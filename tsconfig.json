@@ -6,7 +6,7 @@
     "strict": true,
     "noEmit": true,
     "isolatedModules": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowJs": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -29,5 +29,6 @@
     "babel.config.js",
     "metro.config.js",
     "jest.config.js"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }
