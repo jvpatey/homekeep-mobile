@@ -1,11 +1,15 @@
 import React from "react";
 import { View, Image } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { styles } from "./styles";
 
-// Function component for the logo section used in the home screen
 export function LogoSection() {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.logoContainer}>
+    <View
+      style={[styles.logoContainer, { backgroundColor: colors.background }]}
+    >
       <Image
         source={require("../../../assets/images/homekeep-logo.png")}
         style={styles.logo}
