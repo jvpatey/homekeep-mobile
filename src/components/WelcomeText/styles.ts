@@ -9,12 +9,21 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 40,
   },
-  welcomeText: {
-    fontSize: 22,
-    lineHeight: 32,
+  headline: {
+    fontSize: 26,
+    lineHeight: 34,
     textAlign: "center",
     color: colors.light.text,
-    fontWeight: "500",
-    letterSpacing: 0.2,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 18,
+    lineHeight: 26,
+    textAlign: "center",
+    color: colors.light.textSecondary,
+    fontWeight: "400",
+    letterSpacing: 0.1,
   },
 });
