@@ -1,6 +1,7 @@
 import React from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, ScrollView, View } from "react-native";
+import { PaperProvider } from "react-native-paper";
 import { useTheme } from "../context/ThemeContext";
 import { LogoSection } from "../components/LogoSection/LogoSection";
 import { WelcomeText } from "../components/WelcomeText/WelcomeText";
@@ -12,18 +13,37 @@ export function HomeScreen() {
   const { colors, isDark } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDark ? "light" : "auto"} />
-      <LogoSection />
-      <WelcomeText />
-      <FeatureCard />
-      <ThemeToggle />
-    </View>
+    <PaperProvider>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "auto"} />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <LogoSection />
+          <WelcomeText />
+          <FeatureCard />
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+        <ThemeToggle />
+      </View>
+    </PaperProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+  bottomSpacing: {
+    height: 32,
   },
 });

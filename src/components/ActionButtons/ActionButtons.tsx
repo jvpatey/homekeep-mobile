@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
+import { Button } from "react-native-paper";
 import { useTheme } from "../../context/ThemeContext";
 import { styles } from "./styles";
 
@@ -9,31 +10,43 @@ export function ActionButtons() {
 
   return (
     <View style={styles.buttonContainer}>
-      <TouchableOpacity
+      <Button
+        mode="contained"
+        buttonColor={colors.primary}
+        textColor={isDark ? colors.text : "white"}
+        contentStyle={styles.buttonContent}
+        labelStyle={styles.primaryButtonText}
         style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-        activeOpacity={0.8}
+        onPress={() => {
+          // Handle create account action
+        }}
       >
-        <Text style={styles.primaryButtonText}>Create Account</Text>
-      </TouchableOpacity>
+        Create Account
+      </Button>
 
-      <TouchableOpacity
+      <Button
+        mode="outlined"
+        buttonColor="transparent"
+        textColor={colors.primary}
+        contentStyle={styles.buttonContent}
+        labelStyle={styles.secondaryButtonText}
         style={[
           styles.secondaryButton,
           {
             backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
+              ? "transparent"
               : "rgba(255, 255, 255, 0.6)",
             borderColor: isDark
-              ? "rgba(32, 180, 134, 0.2)"
+              ? "rgba(32, 180, 134, 0.4)"
               : "rgba(46, 196, 182, 0.15)",
           },
         ]}
-        activeOpacity={0.7}
+        onPress={() => {
+          // Handle sign in action
+        }}
       >
-        <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
-          Sign In
-        </Text>
-      </TouchableOpacity>
+        Sign In
+      </Button>
 
       {/* Footer Text */}
       <Text style={[styles.footerText, { color: colors.textSecondary }]}>

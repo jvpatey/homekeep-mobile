@@ -6,15 +6,16 @@ export const styles = StyleSheet.create({
   textContainer: {
     paddingHorizontal: 32,
     alignItems: "center",
-    maxWidth: 320,
+    maxWidth: 360,
     alignSelf: "center",
     marginBottom: 40,
   },
   welcomeText: {
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 22,
+    lineHeight: 32,
     textAlign: "center",
     color: colors.light.text,
-    fontWeight: "400",
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
 });

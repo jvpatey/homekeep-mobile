@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Image } from "react-native";
+import { View, Image, Text } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { styles } from "./styles";
 
@@ -15,6 +15,7 @@ export function LogoSection() {
         style={styles.logo}
         resizeMode="contain"
       />
+      <Text style={[styles.logoText, { color: colors.text }]}>HOMEKEEP</Text>
     </View>
   );
 }

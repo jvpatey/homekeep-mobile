@@ -3,43 +3,32 @@ import { colors } from "../../theme/colors";
 
 export const styles = StyleSheet.create({
   cardContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 40,
-  },
-  liquidGlassCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    borderRadius: 20,
-    padding: 40,
-    shadowColor: "rgba(0, 0, 0, 0.08)",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 2,
+    paddingHorizontal: 32,
+    marginBottom: 32,
   },
   featuresContainer: {
-    marginBottom: 48,
+    marginBottom: 40,
   },
   featureItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 24,
+    minHeight: 48,
   },
   featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: "rgba(46, 196, 182, 0.08)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: 20,
   },
   featureText: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 18,
+    fontWeight: "600",
     color: colors.light.text,
     flex: 1,
+    letterSpacing: 0.1,
   },
 });
