@@ -1,5 +1,6 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 
 export function ThemeToggle() {
@@ -16,16 +17,11 @@ export function ThemeToggle() {
       ]}
       onPress={toggleTheme}
     >
-      <Text
-        style={[
-          styles.toggleText,
-          {
-            color: colors.text,
-          },
-        ]}
-      >
-        {isDark ? "☀️" : "🌙"}
-      </Text>
+      <Ionicons
+        name={isDark ? "sunny-outline" : "moon-outline"}
+        size={20}
+        color="white"
+      />
     </TouchableOpacity>
   );
 }
@@ -50,8 +46,5 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
     zIndex: 1000,
-  },
-  toggleText: {
-    fontSize: 16,
   },
 });

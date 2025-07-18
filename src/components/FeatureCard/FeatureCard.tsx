@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,7 +16,6 @@ import { ActionButtons } from "../ActionButtons/ActionButtons";
 export function FeatureCard() {
   const { colors, isDark } = useTheme();
 
-  // Animation values for each feature
   const feature1Opacity = useSharedValue(0);
   const feature2Opacity = useSharedValue(0);
   const feature3Opacity = useSharedValue(0);
@@ -24,7 +24,6 @@ export function FeatureCard() {
   const feature3TranslateY = useSharedValue(20);
 
   useEffect(() => {
-    // Staggered animations for features
     feature1Opacity.value = withDelay(600, withTiming(1, { duration: 500 }));
     feature1TranslateY.value = withDelay(600, withTiming(0, { duration: 500 }));
 
@@ -50,67 +49,61 @@ export function FeatureCard() {
     transform: [{ translateY: feature3TranslateY.value }],
   }));
 
+  const iconGradientColors = (
+    isDark
+      ? ["rgba(32, 180, 134, 0.15)", "rgba(32, 180, 134, 0.08)"]
+      : ["rgba(46, 196, 182, 0.12)", "rgba(46, 196, 182, 0.06)"]
+  ) as [string, string];
+
   return (
     <View style={styles.cardContainer}>
       {/* Feature Highlights */}
       <View style={styles.featuresContainer}>
         <Animated.View style={[styles.featureItem, feature1AnimatedStyle]}>
-          <View
-            style={[
-              styles.featureIcon,
-              {
-                backgroundColor: isDark
-                  ? "rgba(32, 180, 134, 0.12)"
-                  : "rgba(46, 196, 182, 0.08)",
-              },
-            ]}
+          <LinearGradient
+            colors={iconGradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.featureIcon}
           >
             <Ionicons name="calendar-outline" size={24} color={colors.accent} />
-          </View>
+          </LinearGradient>
           <Text style={[styles.featureText, { color: colors.text }]}>
             Smart Scheduling
           </Text>
         </Animated.View>
 
         <Animated.View style={[styles.featureItem, feature2AnimatedStyle]}>
-          <View
-            style={[
-              styles.featureIcon,
-              {
-                backgroundColor: isDark
-                  ? "rgba(32, 180, 134, 0.12)"
-                  : "rgba(46, 196, 182, 0.08)",
-              },
-            ]}
+          <LinearGradient
+            colors={iconGradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.featureIcon}
           >
             <Ionicons
               name="notifications-outline"
               size={24}
               color={colors.accent}
             />
-          </View>
+          </LinearGradient>
           <Text style={[styles.featureText, { color: colors.text }]}>
             Timely Reminders
           </Text>
         </Animated.View>
 
         <Animated.View style={[styles.featureItem, feature3AnimatedStyle]}>
-          <View
-            style={[
-              styles.featureIcon,
-              {
-                backgroundColor: isDark
-                  ? "rgba(32, 180, 134, 0.12)"
-                  : "rgba(46, 196, 182, 0.08)",
-              },
-            ]}
+          <LinearGradient
+            colors={iconGradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.featureIcon}
           >
             <Ionicons
               name="phone-portrait-outline"
               size={24}
               color={colors.accent}
             />
-          </View>
+          </LinearGradient>
           <Text style={[styles.featureText, { color: colors.text }]}>
             Easy Tracking
           </Text>

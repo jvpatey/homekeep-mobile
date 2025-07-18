@@ -15,22 +15,18 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = Dimensions.get("window");
 
-  // Calculate responsive spacing based on screen size
-  const isLargeScreen = screenHeight > 900; // iPhone Pro Max and larger
-  const isMediumScreen = screenHeight > 800 && screenHeight <= 900; // iPhone Pro
+  const isLargeScreen = screenHeight > 900;
+  const isMediumScreen = screenHeight > 800 && screenHeight <= 900;
 
   let dynamicTopSpacing, dynamicBottomSpacing;
 
   if (isLargeScreen) {
-    // Pro Max and larger screens
     dynamicTopSpacing = insets.top + 40;
     dynamicBottomSpacing = 60;
   } else if (isMediumScreen) {
-    // iPhone Pro and similar
     dynamicTopSpacing = insets.top + 15;
     dynamicBottomSpacing = 20;
   } else {
-    // Smaller screens
     dynamicTopSpacing = insets.top + 10;
     dynamicBottomSpacing = 16;
   }

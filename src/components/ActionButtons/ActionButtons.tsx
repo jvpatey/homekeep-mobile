@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Button } from "react-native-paper";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -37,38 +38,59 @@ export function ActionButtons() {
     // Handle sign in action
   };
 
+  const gradientColors = (
+    isDark
+      ? [colors.primary, colors.secondary]
+      : [colors.primary, colors.secondary]
+  ) as [string, string];
+
   return (
     <Animated.View style={[styles.buttonContainer, animatedStyle]}>
-      <Button
-        mode="contained"
-        buttonColor={colors.primary}
-        textColor={isDark ? colors.text : "white"}
-        contentStyle={styles.buttonContent}
-        labelStyle={styles.primaryButtonText}
-        style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+      <TouchableOpacity
         onPress={handleCreateAccount}
+        style={styles.primaryButton}
       >
-        Create Account
-      </Button>
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientButton}
+        >
+          <Text
+            style={[
+              styles.primaryButtonText,
+              { color: isDark ? colors.text : "white" },
+            ]}
+          >
+            Create Account
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
 
-      <Button
-        mode="outlined"
-        buttonColor="transparent"
-        textColor={colors.primary}
-        contentStyle={styles.buttonContent}
-        labelStyle={styles.secondaryButtonText}
-        style={[
-          styles.secondaryButton,
-          {
-            borderColor: isDark
-              ? "rgba(32, 180, 134, 0.4)"
-              : "rgba(46, 196, 182, 0.3)",
-          },
-        ]}
+      <TouchableOpacity
         onPress={handleSignIn}
+        style={styles.secondaryButtonContainer}
       >
-        Sign In
-      </Button>
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientBorder}
+        >
+          <View
+            style={[
+              styles.secondaryButtonInner,
+              { backgroundColor: colors.background },
+            ]}
+          >
+            <Text
+              style={[styles.secondaryButtonText, { color: colors.primary }]}
+            >
+              Sign In
+            </Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* Footer Text */}
       <Text style={[styles.footerText, { color: colors.textSecondary }]}>

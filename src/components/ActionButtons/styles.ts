@@ -12,7 +12,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   primaryButton: {
-    backgroundColor: colors.light.primary,
     borderRadius: 20,
     minHeight: 56,
     width: "100%",
@@ -25,11 +24,37 @@ export const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
+  gradientButton: {
+    flex: 1,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 56,
+  },
   primaryButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "600",
     letterSpacing: 0.3,
+  },
+  secondaryButtonContainer: {
+    borderRadius: 20,
+    minHeight: 56,
+    width: "100%",
+  },
+  gradientBorder: {
+    borderRadius: 20,
+    padding: 1.5,
+    width: "100%",
+    minHeight: 56,
+  },
+  secondaryButtonInner: {
+    backgroundColor: "transparent",
+    borderRadius: 18.5,
+    minHeight: 53,
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
   },
   secondaryButton: {
     backgroundColor: "transparent",
