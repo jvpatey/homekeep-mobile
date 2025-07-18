@@ -1,6 +1,11 @@
 import React from "react";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { ThemeProvider } from "./src/context/ThemeContext";
 
 export default function App() {
-  return <HomeScreen />;
+  return (
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>
+  );
 }
