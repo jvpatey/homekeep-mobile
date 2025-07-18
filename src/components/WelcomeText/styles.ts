@@ -6,7 +6,6 @@ export const styles = StyleSheet.create({
   textContainer: {
     paddingHorizontal: 32,
     alignItems: "center",
-    maxWidth: 360,
     alignSelf: "center",
     marginBottom: 40,
   },

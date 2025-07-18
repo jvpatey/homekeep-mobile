@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 // Styles for the logo section
 export const styles = StyleSheet.create({
   logoContainer: {
-    marginTop: 60,
+    marginTop: 0,
     marginBottom: 32,
     alignItems: "center",
     paddingHorizontal: 24,
