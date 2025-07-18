@@ -2,10 +2,10 @@ import { StyleSheet } from "react-native";
 import { colors } from "../../theme/colors";
 
 // Styles for the action buttons section used in the home screen
-export const styles = StyleSheet.create({
+    export const styles = StyleSheet.create({
   buttonContainer: {
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   primaryButton: {
     backgroundColor: colors.light.primary,
@@ -13,6 +13,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: "center",
+    width: "100%",
     shadowColor: colors.light.primary,
     shadowOffset: {
       width: 0,
@@ -35,6 +36,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 0.5,
     borderColor: "rgba(46, 196, 182, 0.15)",
+    width: "100%",
   },
   secondaryButtonText: {
     color: colors.light.primary,
@@ -46,5 +48,6 @@ export const styles = StyleSheet.create({
     color: colors.light.textSecondary,
     textAlign: "center",
     fontWeight: "400",
+    marginTop: 16,
   },
 });

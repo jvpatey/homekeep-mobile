@@ -3,6 +3,7 @@ import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme/colors";
 import { styles } from "./styles";
+import { ActionButtons } from "../ActionButtons/ActionButtons";
 
 export function FeatureCard() {
   return (
@@ -43,6 +44,9 @@ export function FeatureCard() {
             <Text style={styles.featureText}>Easy Tracking</Text>
           </View>
         </View>
+
+        {/* Action Buttons */}
+        <ActionButtons />
       </View>
     </View>
   );

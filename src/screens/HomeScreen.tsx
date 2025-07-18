@@ -5,7 +5,6 @@ import { colors } from "../theme/colors";
 import { LogoSection } from "../components/LogoSection/LogoSection";
 import { WelcomeText } from "../components/WelcomeText/WelcomeText";
 import { FeatureCard } from "../components/FeatureCard/FeatureCard";
-import { ActionButtons } from "../components/ActionButtons/ActionButtons";
 
 export function HomeScreen() {
   return (
@@ -14,7 +13,6 @@ export function HomeScreen() {
       <LogoSection />
       <WelcomeText />
       <FeatureCard />
-      <ActionButtons />
     </ScrollView>
   );
 }
