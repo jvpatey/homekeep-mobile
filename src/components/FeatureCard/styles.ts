@@ -18,8 +18,6 @@ export const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 16,
     elevation: 2,
-    borderWidth: 0.5,
-    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   featuresContainer: {
     marginBottom: 48,

@@ -16,11 +16,9 @@ export function FeatureCard() {
           styles.liquidGlassCard,
           {
             backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.08)"
+              ? colors.background
               : "rgba(255, 255, 255, 0.12)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.15)"
-              : "rgba(255, 255, 255, 0.2)",
+            borderWidth: 0,
           },
         ]}
       >

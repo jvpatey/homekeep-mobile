@@ -1,25 +1,24 @@
 import React from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, ScrollView } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { LogoSection } from "../components/LogoSection/LogoSection";
 import { WelcomeText } from "../components/WelcomeText/WelcomeText";
 import { FeatureCard } from "../components/FeatureCard/FeatureCard";
+import { ThemeToggle } from "../components/ThemeToggle/ThemeToggle";
 
 // Function component for the home screen
 export function HomeScreen() {
   const { colors, isDark } = useTheme();
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "auto"} />
       <LogoSection />
       <WelcomeText />
       <FeatureCard />
-    </ScrollView>
+      <ThemeToggle />
+    </View>
   );
 }
 
