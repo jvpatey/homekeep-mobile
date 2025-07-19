@@ -7,6 +7,7 @@ import { useTheme } from "../context/ThemeContext";
 import { LogoSection } from "../components/LogoSection/LogoSection";
 import { WelcomeText } from "../components/WelcomeText/WelcomeText";
 import { FeaturesSection } from "../components/FeaturesSection/FeaturesSection";
+import { GradientDivider } from "../components/GradientDivider/GradientDivider";
 import { ThemeToggle } from "../components/ThemeToggle/ThemeToggle";
 
 // Function component for the home screen
@@ -48,6 +49,7 @@ export function HomeScreen() {
         >
           <LogoSection />
           <WelcomeText />
+          <GradientDivider />
           <FeaturesSection />
         </ScrollView>
         <ThemeToggle />

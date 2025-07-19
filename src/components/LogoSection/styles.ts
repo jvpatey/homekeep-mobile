@@ -4,9 +4,9 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   logoContainer: {
     marginTop: 0,
-    marginBottom: 32,
+    marginBottom: 20,
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
   },
   logo: {
     width: 200,

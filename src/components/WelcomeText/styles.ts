@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 32,
     alignItems: "center",
     alignSelf: "center",
-    marginBottom: 40,
+    marginBottom: 20,
   },
   headline: {
     fontSize: 26,

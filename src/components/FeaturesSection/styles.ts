@@ -4,10 +4,10 @@ import { colors } from "../../theme/colors";
 export const styles = StyleSheet.create({
   cardContainer: {
     paddingHorizontal: 32,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   featuresContainer: {
-    marginBottom: 40,
+    marginBottom: 20,
   },
   featureItem: {
     flexDirection: "row",
