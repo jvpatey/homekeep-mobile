@@ -13,7 +13,7 @@ import { styles } from "./styles";
 import { ActionButtons } from "../ActionButtons/ActionButtons";
 
 // Function component for the features section used in the home screen
-export function FeatureCard() {
+export function FeaturesSection() {
   const { colors, isDark } = useTheme();
 
   const feature1Opacity = useSharedValue(0);

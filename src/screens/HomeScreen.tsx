@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { LogoSection } from "../components/LogoSection/LogoSection";
 import { WelcomeText } from "../components/WelcomeText/WelcomeText";
-import { FeatureCard } from "../components/FeatureCard/FeatureCard";
+import { FeaturesSection } from "../components/FeaturesSection/FeaturesSection";
 import { ThemeToggle } from "../components/ThemeToggle/ThemeToggle";
 
 // Function component for the home screen
@@ -48,7 +48,7 @@ export function HomeScreen() {
         >
           <LogoSection />
           <WelcomeText />
-          <FeatureCard />
+          <FeaturesSection />
         </ScrollView>
         <ThemeToggle />
       </View>

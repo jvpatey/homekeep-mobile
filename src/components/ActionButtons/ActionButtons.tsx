@@ -9,12 +9,18 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
+import { AppStackParamList } from "../../navigation/types";
 import { styles } from "./styles";
+
+type AppNavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 // Function component for the action buttons section used in the home screen
 export function ActionButtons() {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<AppNavigationProp>();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(25);
 
@@ -30,12 +36,12 @@ export function ActionButtons() {
 
   const handleCreateAccount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Handle create account action
+    navigation.navigate("SignUp");
   };
 
   const handleSignIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Handle sign in action
+    navigation.navigate("Login");
   };
 
   const gradientColors = (
