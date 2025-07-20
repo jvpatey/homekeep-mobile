@@ -3,7 +3,6 @@ import { createClient, Session, User } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
-import { Platform } from "react-native";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -34,19 +33,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
+/**
+ * Custom hook to access the authentication context
+ * @throws Error if used outside of AuthProvider
+ */
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
+}
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+/**
+ * AuthProvider - Provides authentication context and methods for the app
+ * Handles Supabase authentication, session management, and OAuth flows
+ * Supports email/password and Google OAuth sign-in methods
+ */
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,14 +66,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    // Get initial session
+    // Get initial session on app startup
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for authentication state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -77,6 +85,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  /**
+   * Sign in with email and password
+   */
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -89,6 +100,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { data, error };
   };
 
+  /**
+   * Sign up with email, password, and full name
+   * Creates user profile automatically via database trigger
+   */
   const signUp = async (email: string, password: string, fullName: string) => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -114,17 +129,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     // Profile will be automatically created by the database trigger
-    // No need for manual profile creation anymore
 
     return { data: authData, error: null };
   };
 
+  /**
+   * Sign in with Google OAuth for mobile platforms
+   */
   const signInWithGoogle = async () => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
     try {
+      // Create redirect URI for OAuth callback
       const redirectTo = makeRedirectUri({
         scheme: "homekeep",
         path: "/auth/callback",
@@ -134,14 +152,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         provider: "google",
         options: {
           redirectTo,
-          skipBrowserRedirect: Platform.OS !== "web",
+          skipBrowserRedirect: true, // Always skip browser redirect for mobile
         },
       });
 
       if (error) throw error;
 
-      // For mobile, open the auth URL in browser
-      if (Platform.OS !== "web" && data?.url) {
+      // Open auth URL in browser and handle callback
+      if (data?.url) {
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
           redirectTo
@@ -171,6 +189,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * Sign out the current user
+   */
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -189,4 +210,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}

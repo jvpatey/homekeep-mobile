@@ -3,7 +3,8 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
     width: "100%",
-    marginTop: 8,
+    paddingHorizontal: 32,
+    marginTop: 0,
     marginBottom: 20,
   },
   gradient: {

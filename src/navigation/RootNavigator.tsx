@@ -12,7 +12,10 @@ import { useTheme } from "../context/ThemeContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Define linking configuration for deep links
+/**
+ * Deep linking configuration for handling OAuth callbacks and email verification
+ * Maps URL paths to specific screens and handles URL parsing
+ */
 const linking = {
   prefixes: ["homekeep://"],
   config: {
@@ -42,7 +45,12 @@ const linking = {
   },
 };
 
-export const RootNavigator: React.FC = () => {
+/**
+ * RootNavigator - The main navigation container that handles authentication-based routing
+ * Manages the overall app navigation structure and deep linking configuration.
+ * Routes users to either authenticated (App) or unauthenticated (Auth) flows based on their login status.
+ */
+export function RootNavigator() {
   const { loading, user } = useAuth();
   const { colors } = useTheme();
 
@@ -66,10 +74,10 @@ export const RootNavigator: React.FC = () => {
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          // User is authenticated - show main app
+          // User is authenticated - show main app navigation
           <Stack.Screen name="App" component={AppNavigator} />
         ) : (
-          // User is not authenticated - show auth screens
+          // User is not authenticated - show authentication flow
           <>
             <Stack.Screen name="Auth" component={AuthNavigator} />
             <Stack.Screen
@@ -81,4 +89,4 @@ export const RootNavigator: React.FC = () => {
       </Stack.Navigator>
     </NavigationContainer>
   );
-};
+}

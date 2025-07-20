@@ -13,17 +13,26 @@ interface OAuthButtonsProps {
   disabled?: boolean;
 }
 
-export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
+/**
+ * OAuthButtons - A component that provides Google OAuth sign-in functionality
+ * with haptic feedback, loading states, and error handling. Displays a divider
+ * with "or" text and a gradient-styled Google sign-in button.
+ */
+export function OAuthButtons({
   onSuccess,
   disabled = false,
-}) => {
+}: OAuthButtonsProps) {
   const { colors, isDark } = useTheme();
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Handles Google OAuth sign-in process with haptic feedback and error handling
+   */
   const handleGoogleSignIn = async () => {
     if (disabled) return;
 
+    // Provide haptic feedback for button press
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -31,16 +40,19 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
       const { data, error } = await signInWithGoogle();
 
       if (error) {
+        // Haptic feedback for error
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert(
           "Sign In Error",
           error.message || "Failed to sign in with Google"
         );
       } else if (data?.session) {
+        // Haptic feedback for success
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onSuccess?.();
       }
     } catch (error: any) {
+      // Handle unexpected errors
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
@@ -48,15 +60,14 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
     }
   };
 
+  // Define gradient colors for the button based on theme
   const gradientColors = (
-    isDark
-      ? [colors.primary, colors.accent]
-      : [colors.primary, colors.accent]
+    isDark ? [colors.primary, colors.accent] : [colors.primary, colors.accent]
   ) as [string, string];
 
   return (
     <View style={styles.container}>
-      {/* Divider */}
+      {/* Visual divider with "or" text */}
       <View style={styles.dividerContainer}>
         <View
           style={[styles.dividerLine, { backgroundColor: colors.border }]}
@@ -69,7 +80,7 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
         />
       </View>
 
-      {/* Google Sign In Button */}
+      {/* Google Sign In Button with gradient background */}
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
@@ -102,4 +113,4 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
       </LinearGradient>
     </View>
   );
-};
+}

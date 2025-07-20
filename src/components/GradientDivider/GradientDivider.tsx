@@ -1,17 +1,24 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
+import { styles } from "./styles";
 
-export const GradientDivider: React.FC = () => {
+/**
+ * GradientDivider - A decorative divider component that displays a gradient line
+ * with fade effects on the edges. Adapts to the current theme (light/dark mode).
+ */
+export function GradientDivider() {
   const { colors, isDark } = useTheme();
 
+  // Define the main gradient colors based on theme
   const gradientColors = (
     isDark
       ? [colors.primary, colors.secondary]
       : [colors.primary, colors.secondary]
   ) as [string, string];
 
+  // Create a fade effect by repeating background colors at the edges
   const fadeColors = [
     colors.background,
     colors.background,
@@ -21,20 +28,6 @@ export const GradientDivider: React.FC = () => {
     colors.background,
     colors.background,
   ] as const;
-
-  const styles = StyleSheet.create({
-    container: {
-      width: "100%",
-      paddingHorizontal: 32,
-      marginTop: 0,
-      marginBottom: 20,
-    },
-    gradient: {
-      height: 2,
-      width: "100%",
-      borderRadius: 1,
-    },
-  });
 
   return (
     <View style={styles.container}>
@@ -46,4 +39,4 @@ export const GradientDivider: React.FC = () => {
       />
     </View>
   );
-};
+}

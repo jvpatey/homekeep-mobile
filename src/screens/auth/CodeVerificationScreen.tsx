@@ -93,10 +93,7 @@ export const CodeVerificationScreen: React.FC = () => {
           [
             {
               text: "Continue",
-              onPress: () => {
-                // Navigation will be handled automatically by RootNavigator
-                // since the user is now authenticated
-              },
+              onPress: () => {},
             },
           ]
         );

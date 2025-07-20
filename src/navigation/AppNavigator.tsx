@@ -5,16 +5,21 @@ import { AppStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
-export const AppNavigator: React.FC = () => {
+/**
+ * AppNavigator - Main navigation stack for authenticated users
+ * Contains all screens that require user authentication.
+ * This is the primary navigation structure for the app's main functionality.
+ */
+export function AppNavigator() {
   return (
     <Stack.Navigator
       initialRouteName="Home"
       screenOptions={{
-        headerShown: false,
+        headerShown: false, // Hide headers for a cleaner app experience
       }}
     >
+      {/* Main app screens - add more authenticated screens here as the app grows */}
       <Stack.Screen name="Home" component={HomeScreen} />
-      {/* Add more authenticated screens here as your app grows */}
     </Stack.Navigator>
   );
-};
+}
