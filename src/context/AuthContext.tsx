@@ -24,6 +24,11 @@ interface AuthContextType {
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string) => Promise<any>;
+  signUpWithProfile: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<any>;
   signOut: () => Promise<void>;
 }
 
@@ -96,6 +101,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { data, error };
   };
 
+  const signUpWithProfile = async (
+    email: string,
+    password: string,
+    fullName: string
+  ) => {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    // First, create the auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (authError) {
+      return { data: null, error: authError };
+    }
+
+    // If user was created successfully, create a profile record
+    if (authData.user) {
+      const { error: profileError } = await supabase.from("profiles").insert([
+        {
+          id: authData.user.id,
+          email: email,
+          full_name: fullName,
+        },
+      ]);
+
+      if (profileError) {
+        console.warn("Profile creation failed:", profileError);
+        // Don't fail the signup if profile creation fails
+        // The user can still sign in and we can retry profile creation later
+      }
+    }
+
+    return { data: authData, error: null };
+  };
+
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -108,6 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isConfigured: hasValidCredentials,
     signIn,
     signUp,
+    signUpWithProfile,
     signOut,
   };
 

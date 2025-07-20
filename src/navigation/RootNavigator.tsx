@@ -4,13 +4,14 @@ import { NavigationContainer } from "@react-navigation/native";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { AppNavigator } from "./AppNavigator";
+import { AuthNavigator } from "./AuthNavigator";
 import { RootStackParamList } from "./types";
 import { useTheme } from "../context/ThemeContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
   const { colors } = useTheme();
 
   // Show loading screen while checking authentication status
@@ -32,8 +33,13 @@ export const RootNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Always show the App navigator, which includes Home and Auth screens */}
-        <Stack.Screen name="App" component={AppNavigator} />
+        {user ? (
+          // User is authenticated - show main app
+          <Stack.Screen name="App" component={AppNavigator} />
+        ) : (
+          // User is not authenticated - show auth screens
+          <Stack.Screen name="Auth" component={AuthNavigator} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

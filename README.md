@@ -1,64 +1,106 @@
-# HomeKeep Mobile
+# HomeKeep Mobile App
 
-A React Native app built with Expo for home management.
+A React Native mobile application built with Expo and TypeScript, featuring Supabase authentication and a modern UI.
 
 ## Features
 
-- 🏠 Home management interface
-- 🔐 Authentication with Supabase
-- 🌙 Dark/Light theme support
-- 📱 Cross-platform (iOS/Android)
+- 🔐 **Supabase Authentication** - Secure email/password authentication
+- 🌙 **Dark/Light Theme** - Toggle between themes
+- 📱 **Responsive Design** - Works on various screen sizes
+- 🎨 **Modern UI** - Beautiful gradient components and animations
+- ⚡ **TypeScript** - Full type safety
 
-## Setup
+## Getting Started
 
-1. **Install dependencies**
+### Prerequisites
 
-   ```bash
-   npm install
-   ```
+- Node.js (v16 or higher)
+- npm or yarn
+- Expo CLI (`npm install -g @expo/cli`)
+- iOS Simulator (for iOS development) or Android Studio (for Android development)
 
-2. **Configure Supabase (Optional)**
+### Installation
 
-   If you want to enable authentication:
+1. Clone the repository:
 
-   - Create a project at [supabase.com](https://supabase.com)
-   - Get your Project URL and anon key from Settings > API
-   - Create a `.env` file in the project root:
+```bash
+git clone <your-repo-url>
+cd homekeep-mobile
+```
 
-   ```
-   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-   ```
+2. Install dependencies:
 
-3. **Run the app**
-   ```bash
-   npm start
-   ```
+```bash
+npm install
+```
+
+3. Set up Supabase authentication:
+
+   - Follow the instructions in `SUPABASE_SETUP.md`
+   - Create a `.env` file with your Supabase credentials
+
+4. Start the development server:
+
+```bash
+npm start
+```
+
+5. Run on your preferred platform:
+   - Press `i` for iOS simulator
+   - Press `a` for Android emulator
+   - Scan QR code with Expo Go app on your device
+
+## Supabase Setup
+
+This app uses Supabase for authentication. To get started:
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Get your project URL and anon key from the API settings
+3. Create a `.env` file in the project root:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=your_project_url_here
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+```
+
+4. Follow the detailed setup instructions in `SUPABASE_SETUP.md`
 
 ## Project Structure
 
 ```
 src/
 ├── components/          # Reusable UI components
-├── context/            # React contexts (Theme, Auth)
-├── navigation/         # Navigation setup and types
-├── screens/           # App screens
-├── theme/             # Theme colors and styling
-└── utils/             # Utility functions
+├── context/            # React Context providers
+├── navigation/         # Navigation configuration
+├── screens/            # Screen components
+│   └── auth/          # Authentication screens
+├── services/           # API and external services
+├── theme/              # Theme configuration
+└── utils/              # Utility functions
 ```
 
 ## Authentication Flow
 
-- **Without Supabase**: App works normally, auth screens show setup instructions
-- **With Supabase**: Full authentication flow with persistent sessions
-- **Navigation**: Home screen serves as welcome page, navigation to auth screens
-- **Session persistence**: Users stay logged in between app restarts
+- **Unauthenticated users** see the welcome screen with options to sign up or sign in
+- **Authenticated users** see a personalized welcome message and can sign out
+- The app automatically handles authentication state changes
+- User profiles are created automatically when signing up
 
-## Technologies
+## Available Scripts
 
-- **React Native** with **Expo**
-- **TypeScript** for type safety
-- **React Navigation** for routing
-- **Supabase** for authentication
-- **React Native Paper** for UI components
-- **React Native Reanimated** for animations
+- `npm start` - Start the Expo development server
+- `npm run android` - Run on Android emulator
+- `npm run ios` - Run on iOS simulator
+- `npm run web` - Run in web browser
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
