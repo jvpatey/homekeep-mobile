@@ -1,24 +1,37 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LogoSection } from "../../components/LogoSection/LogoSection";
-import * as Haptics from "expo-haptics";
+import { useDynamicSpacing, useAuthHaptics } from "./hooks";
+import { authStyles } from "./styles/authStyles";
 
-export const EmailVerificationScreen: React.FC = () => {
+type VerificationStatus = "verifying" | "success" | "error";
+
+/**
+ * EmailVerificationScreen - Handles automatic email verification via deep links
+ * Processes verification URLs from email links and automatically signs in users
+ * Shows loading, success, and error states during the verification process
+ */
+export function EmailVerificationScreen() {
   const { colors } = useTheme();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
-  const insets = useSafeAreaInsets();
-  const [status, setStatus] = useState<"verifying" | "success" | "error">(
-    "verifying"
-  );
+
+  // Shared hooks
+  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { triggerSuccess, triggerError } = useAuthHaptics();
+
+  const [status, setStatus] = useState<VerificationStatus>("verifying");
   const [message, setMessage] = useState("Verifying your email...");
 
   useEffect(() => {
+    /**
+     * Handles the email verification process using URL parameters
+     * Extracts verification tokens from deep links and verifies the email
+     */
     const handleEmailVerification = async () => {
       try {
         // Get URL from navigation state or route params
@@ -60,6 +73,7 @@ export const EmailVerificationScreen: React.FC = () => {
           urlObj = new URL(`http://dummy.com?${hashParams}`);
         }
 
+        // Extract verification parameters from URL
         const token_hash = urlObj.searchParams.get("token_hash");
         const type = urlObj.searchParams.get("type");
 
@@ -69,7 +83,7 @@ export const EmailVerificationScreen: React.FC = () => {
           );
         }
 
-        // Verify the email using the token
+        // Verify the email using the token with Supabase
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
           type: type as any,
@@ -81,7 +95,7 @@ export const EmailVerificationScreen: React.FC = () => {
 
         if (data.session) {
           // Success! User is now signed in
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          triggerSuccess();
           setStatus("success");
           setMessage("Email verified successfully! Welcome to HomeKeep.");
 
@@ -92,14 +106,14 @@ export const EmailVerificationScreen: React.FC = () => {
         }
       } catch (error: any) {
         console.error("Email verification error:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        triggerError();
         setStatus("error");
         setMessage(
           error.message ||
             "Failed to verify email. Please try signing in manually."
         );
 
-        // Navigate back to auth after a delay
+        // Navigate back to auth after a delay to show error message
         setTimeout(() => {
           navigation.reset({
             index: 0,
@@ -110,21 +124,36 @@ export const EmailVerificationScreen: React.FC = () => {
     };
 
     handleEmailVerification();
-  }, [route.params, supabase, navigation]);
+  }, [route.params, supabase, navigation, triggerSuccess, triggerError]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.content, { paddingTop: insets.top + 40 }]}>
+    <View
+      style={[authStyles.container, { backgroundColor: colors.background }]}
+    >
+      <View
+        style={[
+          authStyles.content,
+          {
+            paddingTop: dynamicTopSpacing + 40,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
         <LogoSection showText={true} compact={false} />
 
-        <View style={styles.statusContainer}>
+        {/* Status display container */}
+        <View style={authStyles.statusContainer}>
           {status === "verifying" && (
             <>
+              {/* Loading indicator */}
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.title, { color: colors.text }]}>
+              <Text style={[authStyles.title, { color: colors.text }]}>
                 Verifying Email
               </Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]}>
+              <Text
+                style={[authStyles.message, { color: colors.textSecondary }]}
+              >
                 {message}
               </Text>
             </>
@@ -132,18 +161,21 @@ export const EmailVerificationScreen: React.FC = () => {
 
           {status === "success" && (
             <>
+              {/* Success icon */}
               <View
                 style={[
-                  styles.successIcon,
+                  authStyles.successIcon,
                   { backgroundColor: colors.primary },
                 ]}
               >
-                <Text style={styles.checkmark}>✓</Text>
+                <Text style={authStyles.checkmark}>✓</Text>
               </View>
-              <Text style={[styles.title, { color: colors.text }]}>
+              <Text style={[authStyles.title, { color: colors.text }]}>
                 Email Verified!
               </Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]}>
+              <Text
+                style={[authStyles.message, { color: colors.textSecondary }]}
+              >
                 {message}
               </Text>
             </>
@@ -151,15 +183,21 @@ export const EmailVerificationScreen: React.FC = () => {
 
           {status === "error" && (
             <>
+              {/* Error icon */}
               <View
-                style={[styles.errorIcon, { backgroundColor: colors.error }]}
+                style={[
+                  authStyles.errorIcon,
+                  { backgroundColor: colors.error },
+                ]}
               >
-                <Text style={styles.errorMark}>✗</Text>
+                <Text style={authStyles.errorMark}>✗</Text>
               </View>
-              <Text style={[styles.title, { color: colors.text }]}>
+              <Text style={[authStyles.title, { color: colors.text }]}>
                 Verification Failed
               </Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]}>
+              <Text
+                style={[authStyles.message, { color: colors.textSecondary }]}
+              >
                 {message}
               </Text>
             </>
@@ -168,58 +206,4 @@ export const EmailVerificationScreen: React.FC = () => {
       </View>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statusContainer: {
-    marginTop: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  message: {
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-  successIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkmark: {
-    fontSize: 30,
-    color: "white",
-    fontWeight: "bold",
-  },
-  errorIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorMark: {
-    fontSize: 30,
-    color: "white",
-    fontWeight: "bold",
-  },
-});
+}

@@ -1,120 +1,122 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import { View, Text, Alert } from "react-native";
 import { Button, TextInput, Card } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LogoSection } from "../../components/LogoSection/LogoSection";
+import {
+  useAuthAnimation,
+  useDynamicSpacing,
+  useAuthHaptics,
+  useAuthForm,
+  useAuthGradient,
+  useAuthInputTheme,
+} from "./hooks";
+import { authStyles } from "./styles/authStyles";
 
-export const EmailEntryScreen: React.FC = () => {
-  const { colors, isDark } = useTheme();
+/**
+ * EmailEntryScreen - Handles email entry for verification or password reset
+ * Allows users to enter their email address to receive verification codes
+ */
+export function EmailEntryScreen() {
+  const { colors } = useTheme();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
 
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  // Shared hooks
+  const formAnimatedStyle = useAuthAnimation();
+  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
+  const { gradientColors } = useAuthGradient();
+  const { getInputTheme } = useAuthInputTheme();
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /\S+@\S+\.\S+/;
-    return emailRegex.test(email);
-  };
+  // Form management
+  const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
+    email: { required: true, email: true },
+  });
 
+  const email = getFieldValue("email");
+
+  /**
+   * Validates and processes the email entry
+   */
   const handleContinue = () => {
-    if (!email) {
-      setError("Email is required");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    if (!validateForm()) {
+      triggerError();
       return;
     }
 
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerMedium();
     (navigation as any).navigate("CodeVerification", { email });
   };
 
+  /**
+   * Handles back navigation with haptic feedback
+   */
   const handleBackPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerLight();
     navigation.goBack();
   };
 
-  const gradientColors = (
-    isDark
-      ? [colors.primary, colors.secondary]
-      : [colors.primary, colors.secondary]
-  ) as [string, string];
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
+    <View
+      style={[authStyles.container, { backgroundColor: colors.background }]}
+    >
+      <View style={[authStyles.content, { paddingTop: dynamicTopSpacing }]}>
         <LogoSection showText={false} compact={true} />
 
         <Card
-          style={[styles.formCard, { backgroundColor: colors.surface }]}
+          style={[authStyles.formCard, { backgroundColor: colors.surface }]}
           elevation={2}
         >
-          <Card.Content style={styles.formContent}>
-            <View style={styles.headerContainer}>
-              <Text style={[styles.title, { color: colors.text }]}>
+          <Card.Content style={authStyles.formContent}>
+            {/* Header section */}
+            <View style={authStyles.headerContainer}>
+              <Text style={[authStyles.title, { color: colors.text }]}>
                 Email Verification
               </Text>
-              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[authStyles.subtitle, { color: colors.textSecondary }]}
+              >
                 Enter your email address to verify your account
               </Text>
             </View>
 
+            {/* Email input */}
             <TextInput
               label="Email Address"
               value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setError("");
-              }}
+              onChangeText={(text) => setFieldValue("email", text)}
               mode="outlined"
-              style={styles.input}
-              error={!!error}
+              style={authStyles.input}
+              error={!!errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
               left={<TextInput.Icon icon="email" />}
-              theme={{
-                colors: {
-                  primary: colors.primary,
-                  outline: error ? colors.error : colors.border,
-                  surface: colors.surface,
-                  background: colors.surface,
-                  onSurface: colors.text,
-                  onSurfaceVariant: colors.textSecondary,
-                },
-              }}
+              theme={getInputTheme(!!errors.email)}
             />
 
-            {error ? (
-              <Text style={[styles.errorText, { color: colors.error }]}>
-                {error}
+            {/* Error message */}
+            {errors.email ? (
+              <Text style={[authStyles.errorText, { color: colors.error }]}>
+                {errors.email}
               </Text>
             ) : null}
 
+            {/* Continue button */}
             <LinearGradient
               colors={gradientColors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={[styles.gradientButton, { marginTop: 24 }]}
+              style={[authStyles.gradientButton, { marginTop: 24 }]}
             >
               <Button
                 mode="contained"
                 onPress={handleContinue}
-                style={styles.continueButton}
-                contentStyle={styles.buttonContent}
-                labelStyle={[
-                  styles.buttonLabel,
-                  { color: isDark ? colors.text : "white" },
-                ]}
+                style={authStyles.primaryButton}
+                contentStyle={authStyles.buttonContent}
+                labelStyle={[authStyles.buttonLabel, { color: "white" }]}
               >
                 Continue
               </Button>
@@ -122,13 +124,17 @@ export const EmailEntryScreen: React.FC = () => {
           </Card.Content>
         </Card>
 
-        <View style={styles.buttonContainer}>
+        {/* Back button */}
+        <View style={authStyles.buttonContainer}>
           <Button
             mode="outlined"
             onPress={handleBackPress}
-            style={[styles.backButton, { borderColor: colors.primary }]}
-            contentStyle={styles.buttonContent}
-            labelStyle={[styles.outlineButtonLabel, { color: colors.primary }]}
+            style={[authStyles.outlineButton, { borderColor: colors.primary }]}
+            contentStyle={authStyles.buttonContent}
+            labelStyle={[
+              authStyles.outlineButtonLabel,
+              { color: colors.primary },
+            ]}
           >
             Back
           </Button>
@@ -136,79 +142,4 @@ export const EmailEntryScreen: React.FC = () => {
       </View>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  headerContainer: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    fontWeight: "400",
-    lineHeight: 20,
-  },
-  formCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  formContent: {
-    padding: 24,
-  },
-  input: {
-    marginBottom: 8,
-    backgroundColor: "transparent",
-  },
-  errorText: {
-    fontSize: 13,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  gradientButton: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  continueButton: {
-    backgroundColor: "transparent",
-    borderRadius: 12,
-    margin: 0,
-  },
-  buttonContainer: {
-    marginTop: 16,
-  },
-  backButton: {
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-    height: 56,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  outlineButtonLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-});
+}

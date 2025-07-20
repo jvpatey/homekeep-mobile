@@ -1,211 +1,80 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Dimensions,
-} from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView, Alert } from "react-native";
 import {
   Button,
   TextInput,
   HelperText,
-  Surface,
   Card,
   ProgressBar,
 } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
+import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GradientDivider } from "../../components/GradientDivider/GradientDivider";
 import { LogoSection } from "../../components/LogoSection/LogoSection";
 import { OAuthButtons } from "../../components/OAuthButtons/OAuthButtons";
+import {
+  useAuthStaggeredAnimation,
+  useDynamicSpacing,
+  useAuthHaptics,
+  useAuthForm,
+  useAuthGradient,
+  useAuthInputTheme,
+} from "./hooks";
+import { authStyles } from "./styles/authStyles";
 
-export const SignUpScreen: React.FC = () => {
-  const { colors, isDark } = useTheme();
+/**
+ * SignUpScreen - Handles user registration with comprehensive form validation
+ * Provides progress tracking, field validation, and integration with Supabase auth
+ * Includes OAuth options and automatic profile creation via database triggers
+ */
+export function SignUpScreen() {
+  const { colors } = useTheme();
   const { isConfigured, signUp } = useAuth();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-  const { height: screenHeight } = Dimensions.get("window");
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  // Shared hooks
+  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
+    useAuthHaptics();
+  const { gradientColors, isDark } = useAuthGradient();
+  const { getInputTheme } = useAuthInputTheme();
+  const { headerAnimatedStyle, formAnimatedStyle, buttonAnimatedStyle } =
+    useAuthStaggeredAnimation();
+
+  // Form management with validation
+  const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
+    fullName: { required: true, minLength: 2 },
+    email: { required: true, email: true },
+    password: { required: true, minLength: 6 },
+    confirmPassword: { required: true, match: "password" },
+  });
+
+  const fullName = getFieldValue("fullName");
+  const email = getFieldValue("email");
+  const password = getFieldValue("password");
+  const confirmPassword = getFieldValue("confirmPassword");
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-    fullName: "",
-  });
-
-  // Animation values
-  const headerOpacity = useSharedValue(0);
-  const headerTranslateY = useSharedValue(20);
-  const formOpacity = useSharedValue(0);
-  const formTranslateY = useSharedValue(30);
-  const buttonOpacity = useSharedValue(0);
-  const buttonTranslateY = useSharedValue(20);
-
-  const isLargeScreen = screenHeight > 900;
-  const isMediumScreen = screenHeight > 800 && screenHeight <= 900;
-
-  let dynamicTopSpacing, dynamicBottomSpacing;
-
-  if (isLargeScreen) {
-    dynamicTopSpacing = insets.top + 20;
-    dynamicBottomSpacing = 40;
-  } else if (isMediumScreen) {
-    dynamicTopSpacing = insets.top + 10;
-    dynamicBottomSpacing = 20;
-  } else {
-    dynamicTopSpacing = insets.top + 5;
-    dynamicBottomSpacing = 16;
-  }
-
-  useEffect(() => {
-    // Staggered animations
-    headerOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
-    headerTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
-
-    formOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    formTranslateY.value = withDelay(400, withTiming(0, { duration: 600 }));
-
-    buttonOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
-    buttonTranslateY.value = withDelay(600, withTiming(0, { duration: 600 }));
-  }, []);
-
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: headerOpacity.value,
-    transform: [{ translateY: headerTranslateY.value }],
-  }));
-
-  const formAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: formOpacity.value,
-    transform: [{ translateY: formTranslateY.value }],
-  }));
-
-  const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: buttonOpacity.value,
-    transform: [{ translateY: buttonTranslateY.value }],
-  }));
-
-  // Calculate form completion progress
+  /**
+   * Calculates form completion progress based on filled fields
+   */
   const getFormProgress = () => {
     const fields = [fullName, email, password, confirmPassword];
     const filledFields = fields.filter((field) => field.trim() !== "").length;
     return filledFields / fields.length;
   };
 
-  const validateForm = () => {
-    const newErrors = {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      fullName: "",
-    };
-
-    // Email validation
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Please enter a valid email";
-    }
-
-    // Full name validation
-    if (!fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    } else if (fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
-    }
-
-    // Password validation
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    // Confirm password validation
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== "");
-  };
-
-  const validateField = (field: string, value: string) => {
-    const newErrors = { ...errors };
-
-    switch (field) {
-      case "fullName":
-        if (!value.trim()) {
-          newErrors.fullName = "Full name is required";
-        } else if (value.trim().length < 2) {
-          newErrors.fullName = "Full name must be at least 2 characters";
-        } else {
-          newErrors.fullName = "";
-        }
-        break;
-      case "email":
-        if (!value) {
-          newErrors.email = "Email is required";
-        } else if (!/\S+@\S+\.\S+/.test(value)) {
-          newErrors.email = "Please enter a valid email";
-        } else {
-          newErrors.email = "";
-        }
-        break;
-      case "password":
-        if (!value) {
-          newErrors.password = "Password is required";
-        } else if (value.length < 6) {
-          newErrors.password = "Password must be at least 6 characters";
-        } else {
-          newErrors.password = "";
-        }
-        // Re-validate confirm password if it exists
-        if (confirmPassword) {
-          if (value !== confirmPassword) {
-            newErrors.confirmPassword = "Passwords do not match";
-          } else {
-            newErrors.confirmPassword = "";
-          }
-        }
-        break;
-      case "confirmPassword":
-        if (!value) {
-          newErrors.confirmPassword = "Please confirm your password";
-        } else if (password !== value) {
-          newErrors.confirmPassword = "Passwords do not match";
-        } else {
-          newErrors.confirmPassword = "";
-        }
-        break;
-    }
-
-    setErrors(newErrors);
-  };
-
+  /**
+   * Handles the sign-up process with validation and error handling
+   */
   const handleSignUp = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerMedium();
 
     if (!validateForm()) return;
 
@@ -214,10 +83,10 @@ export const SignUpScreen: React.FC = () => {
       const { data, error } = await signUp(email, password, fullName);
 
       if (error) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        triggerError();
         Alert.alert("Sign Up Error", error.message);
       } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        triggerSuccess();
         Alert.alert(
           "Account Created!",
           "Please check your email to verify your account. You can click the verification link for automatic sign-in, or use the 6-digit code manually in the app.",
@@ -237,29 +106,42 @@ export const SignUpScreen: React.FC = () => {
         );
       }
     } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerError();
       Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Handles back navigation with haptic feedback
+   */
   const handleBackPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerLight();
     navigation.goBack();
   };
 
-  const gradientColors = (
-    isDark
-      ? [colors.primary, colors.secondary]
-      : [colors.primary, colors.secondary]
-  ) as [string, string];
+  /**
+   * Handles password visibility toggle with haptic feedback
+   */
+  const handlePasswordToggle = () => {
+    triggerLight();
+    setShowPassword(!showPassword);
+  };
+
+  /**
+   * Handles confirm password visibility toggle with haptic feedback
+   */
+  const handleConfirmPasswordToggle = () => {
+    triggerLight();
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   const formProgress = getFormProgress();
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[authStyles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{
         paddingTop: dynamicTopSpacing,
         paddingBottom: dynamicBottomSpacing,
@@ -267,16 +149,18 @@ export const SignUpScreen: React.FC = () => {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.content}>
+      <View style={authStyles.content}>
         {/* Logo Section */}
         <LogoSection showText={false} compact={true} />
 
-        {/* Header */}
-        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
-          <Text style={[styles.title, { color: colors.text }]}>
+        {/* Header with account creation message */}
+        <Animated.View
+          style={[authStyles.headerContainer, headerAnimatedStyle]}
+        >
+          <Text style={[authStyles.largeTitle, { color: colors.text }]}>
             Create Account
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[authStyles.subtitle, { color: colors.textSecondary }]}>
             Join HomeKeep today
           </Text>
         </Animated.View>
@@ -284,16 +168,25 @@ export const SignUpScreen: React.FC = () => {
         <GradientDivider />
 
         {!isConfigured ? (
+          // Configuration required message
           <Animated.View style={[formAnimatedStyle]}>
             <Card
-              style={[styles.configCard, { backgroundColor: colors.surface }]}
+              style={[
+                authStyles.configCard,
+                { backgroundColor: colors.surface },
+              ]}
             >
-              <Card.Content style={styles.configContent}>
-                <Text style={[styles.configTitle, { color: colors.primary }]}>
+              <Card.Content style={authStyles.configContent}>
+                <Text
+                  style={[authStyles.configTitle, { color: colors.primary }]}
+                >
                   Supabase Setup Required
                 </Text>
                 <Text
-                  style={[styles.configText, { color: colors.textSecondary }]}
+                  style={[
+                    authStyles.configText,
+                    { color: colors.textSecondary },
+                  ]}
                 >
                   To enable authentication, you need to configure your Supabase
                   credentials.
@@ -304,17 +197,18 @@ export const SignUpScreen: React.FC = () => {
             </Card>
           </Animated.View>
         ) : (
+          // Signup form with progress tracking
           <Animated.View style={[formAnimatedStyle]}>
             <Card
-              style={[styles.formCard, { backgroundColor: colors.surface }]}
+              style={[authStyles.formCard, { backgroundColor: colors.surface }]}
               elevation={2}
             >
-              <Card.Content style={styles.formContent}>
+              <Card.Content style={authStyles.compactFormContent}>
                 {/* Progress indicator */}
-                <View style={styles.progressContainer}>
+                <View style={authStyles.progressContainer}>
                   <Text
                     style={[
-                      styles.progressLabel,
+                      authStyles.progressLabel,
                       { color: colors.textSecondary },
                     ]}
                   >
@@ -323,149 +217,105 @@ export const SignUpScreen: React.FC = () => {
                   <ProgressBar
                     progress={formProgress}
                     color={colors.primary}
-                    style={styles.progressBar}
+                    style={authStyles.progressBar}
                   />
                 </View>
 
+                {/* Full name input */}
                 <TextInput
                   label="Full Name"
                   value={fullName}
-                  onChangeText={setFullName}
-                  onBlur={() => validateField("fullName", fullName)}
+                  onChangeText={(text) => setFieldValue("fullName", text)}
                   mode="outlined"
-                  style={styles.input}
+                  style={authStyles.input}
                   error={!!errors.fullName}
                   autoCapitalize="words"
                   autoComplete="name"
                   left={<TextInput.Icon icon="account" />}
-                  theme={{
-                    colors: {
-                      primary: colors.primary,
-                      outline: errors.fullName ? colors.error : colors.border,
-                      surface: colors.surface,
-                      background: colors.surface,
-                      onSurface: colors.text,
-                      onSurfaceVariant: colors.textSecondary,
-                    },
-                  }}
+                  theme={getInputTheme(!!errors.fullName)}
                 />
                 <HelperText
                   type="error"
                   visible={!!errors.fullName}
-                  style={styles.helperText}
+                  style={authStyles.helperText}
                 >
                   {errors.fullName}
                 </HelperText>
 
+                {/* Email input */}
                 <TextInput
                   label="Email"
                   value={email}
-                  onChangeText={setEmail}
-                  onBlur={() => validateField("email", email)}
+                  onChangeText={(text) => setFieldValue("email", text)}
                   mode="outlined"
-                  style={styles.input}
+                  style={authStyles.input}
                   error={!!errors.email}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
                   left={<TextInput.Icon icon="email" />}
-                  theme={{
-                    colors: {
-                      primary: colors.primary,
-                      outline: errors.email ? colors.error : colors.border,
-                      surface: colors.surface,
-                      background: colors.surface,
-                      onSurface: colors.text,
-                      onSurfaceVariant: colors.textSecondary,
-                    },
-                  }}
+                  theme={getInputTheme(!!errors.email)}
                 />
                 <HelperText
                   type="error"
                   visible={!!errors.email}
-                  style={styles.helperText}
+                  style={authStyles.helperText}
                 >
                   {errors.email}
                 </HelperText>
 
+                {/* Password input with visibility toggle */}
                 <TextInput
                   label="Password"
                   value={password}
-                  onChangeText={setPassword}
-                  onBlur={() => validateField("password", password)}
+                  onChangeText={(text) => setFieldValue("password", text)}
                   mode="outlined"
-                  style={styles.input}
+                  style={authStyles.input}
                   error={!!errors.password}
                   secureTextEntry={!showPassword}
                   left={<TextInput.Icon icon="lock" />}
                   right={
                     <TextInput.Icon
                       icon={showPassword ? "eye-off" : "eye"}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setShowPassword(!showPassword);
-                      }}
+                      onPress={handlePasswordToggle}
                     />
                   }
                   autoComplete="new-password"
-                  theme={{
-                    colors: {
-                      primary: colors.primary,
-                      outline: errors.password ? colors.error : colors.border,
-                      surface: colors.surface,
-                      background: colors.surface,
-                      onSurface: colors.text,
-                      onSurfaceVariant: colors.textSecondary,
-                    },
-                  }}
+                  theme={getInputTheme(!!errors.password)}
                 />
                 <HelperText
                   type="error"
                   visible={!!errors.password}
-                  style={styles.helperText}
+                  style={authStyles.helperText}
                 >
                   {errors.password}
                 </HelperText>
 
+                {/* Confirm password input with visibility toggle */}
                 <TextInput
                   label="Confirm Password"
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  onBlur={() =>
-                    validateField("confirmPassword", confirmPassword)
+                  onChangeText={(text) =>
+                    setFieldValue("confirmPassword", text)
                   }
                   mode="outlined"
-                  style={styles.input}
+                  style={authStyles.input}
                   error={!!errors.confirmPassword}
                   secureTextEntry={!showConfirmPassword}
                   left={<TextInput.Icon icon="lock-check" />}
                   right={
                     <TextInput.Icon
                       icon={showConfirmPassword ? "eye-off" : "eye"}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setShowConfirmPassword(!showConfirmPassword);
-                      }}
+                      onPress={handleConfirmPasswordToggle}
                     />
                   }
                   autoComplete="new-password"
-                  theme={{
-                    colors: {
-                      primary: colors.primary,
-                      outline: errors.confirmPassword
-                        ? colors.error
-                        : colors.border,
-                      surface: colors.surface,
-                      background: colors.surface,
-                      onSurface: colors.text,
-                      onSurfaceVariant: colors.textSecondary,
-                    },
-                  }}
+                  theme={getInputTheme(!!errors.confirmPassword)}
                 />
                 <HelperText
                   type="error"
                   visible={!!errors.confirmPassword}
-                  style={styles.helperText}
+                  style={authStyles.helperText}
                 >
                   {errors.confirmPassword}
                 </HelperText>
@@ -474,24 +324,27 @@ export const SignUpScreen: React.FC = () => {
           </Animated.View>
         )}
 
-        {/* Buttons */}
-        <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
+        {/* Action buttons */}
+        <Animated.View
+          style={[authStyles.buttonContainerWithGap, buttonAnimatedStyle]}
+        >
           {isConfigured && (
+            // Create account button with gradient
             <LinearGradient
               colors={gradientColors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.gradientButton}
+              style={authStyles.gradientButton}
             >
               <Button
                 mode="contained"
                 onPress={handleSignUp}
                 loading={loading}
                 disabled={loading}
-                style={styles.signUpButton}
-                contentStyle={styles.buttonContent}
+                style={authStyles.primaryButton}
+                contentStyle={authStyles.buttonContent}
                 labelStyle={[
-                  styles.buttonLabel,
+                  authStyles.buttonLabel,
                   { color: isDark ? colors.text : "white" },
                 ]}
               >
@@ -500,7 +353,7 @@ export const SignUpScreen: React.FC = () => {
             </LinearGradient>
           )}
 
-          {/* OAuth Buttons */}
+          {/* OAuth authentication options */}
           {isConfigured && (
             <OAuthButtons
               disabled={loading}
@@ -510,19 +363,26 @@ export const SignUpScreen: React.FC = () => {
             />
           )}
 
+          {/* Back to home button */}
           <Button
             mode="outlined"
             onPress={handleBackPress}
-            style={[styles.backButton, { borderColor: colors.primary }]}
+            style={[authStyles.outlineButton, { borderColor: colors.primary }]}
             disabled={loading}
-            contentStyle={styles.buttonContent}
-            labelStyle={[styles.outlineButtonLabel, { color: colors.primary }]}
+            contentStyle={authStyles.buttonContent}
+            labelStyle={[
+              authStyles.outlineButtonLabel,
+              { color: colors.primary },
+            ]}
           >
             Back to Home
           </Button>
 
+          {/* Terms of service footer */}
           {isConfigured && (
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            <Text
+              style={[authStyles.footerText, { color: colors.textSecondary }]}
+            >
               By creating an account, you agree to our Terms of Service
             </Text>
           )}
@@ -530,113 +390,4 @@ export const SignUpScreen: React.FC = () => {
       </View>
     </ScrollView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  headerContainer: {
-    marginVertical: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 6,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    textAlign: "center",
-    fontWeight: "400",
-    lineHeight: 20,
-  },
-  configCard: {
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  configContent: {
-    padding: 20,
-  },
-  configTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  configText: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-  },
-  formCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  formContent: {
-    padding: 16,
-  },
-  progressContainer: {
-    marginBottom: 14,
-  },
-  progressLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  progressBar: {
-    height: 4,
-    borderRadius: 2,
-  },
-  input: {
-    marginBottom: 0,
-    backgroundColor: "transparent",
-  },
-  helperText: {
-    marginBottom: 2,
-    fontSize: 13,
-  },
-  buttonContainer: {
-    gap: 12,
-  },
-  gradientButton: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  signUpButton: {
-    backgroundColor: "transparent",
-    borderRadius: 12,
-    margin: 0,
-  },
-  backButton: {
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-    height: 56,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  outlineButtonLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  footerText: {
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 16,
-    marginTop: 8,
-  },
-});
+}

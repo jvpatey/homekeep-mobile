@@ -1,34 +1,30 @@
-import React, { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  Dimensions,
-  TouchableOpacity,
-} from "react-native";
-import { Button, TextInput, Surface, Card } from "react-native-paper";
+import React, { useState } from "react";
+import { View, Text, Alert, TouchableOpacity } from "react-native";
+import { Button, TextInput, Card } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
+import Animated from "react-native-reanimated";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LogoSection } from "../../components/LogoSection/LogoSection";
+import { useAuthAnimation, useDynamicSpacing, useAuthHaptics } from "./hooks";
+import { authStyles } from "./styles/authStyles";
 
-export const CodeVerificationScreen: React.FC = () => {
+/**
+ * CodeVerificationScreen - Handles email verification code input and validation
+ * Allows users to enter a 6-digit verification code sent to their email
+ * and provides options to resend the code if needed.
+ */
+export function CodeVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
-  const insets = useSafeAreaInsets();
-  const { height: screenHeight } = Dimensions.get("window");
+
+  // Shared hooks
+  const formAnimatedStyle = useAuthAnimation();
+  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,36 +34,13 @@ export const CodeVerificationScreen: React.FC = () => {
   const params = route.params as any;
   const email = params?.email || "";
 
-  // Animation values
-  const formOpacity = useSharedValue(0);
-  const formTranslateY = useSharedValue(30);
-
-  React.useEffect(() => {
-    formOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
-    formTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
-  }, []);
-
-  const formAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: formOpacity.value,
-    transform: [{ translateY: formTranslateY.value }],
-  }));
-
-  const isLargeScreen = screenHeight > 900;
-  const isMediumScreen = screenHeight > 800 && screenHeight <= 900;
-
-  let dynamicTopSpacing;
-  if (isLargeScreen) {
-    dynamicTopSpacing = insets.top + 20;
-  } else if (isMediumScreen) {
-    dynamicTopSpacing = insets.top + 10;
-  } else {
-    dynamicTopSpacing = insets.top + 5;
-  }
-
+  /**
+   * Validates and submits the verification code
+   */
   const handleVerifyCode = async () => {
     if (!code || code.length !== 6) {
       setError("Please enter a valid 6-digit code");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerError();
       return;
     }
 
@@ -86,7 +59,7 @@ export const CodeVerificationScreen: React.FC = () => {
       }
 
       if (data.session) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        triggerSuccess();
         Alert.alert(
           "Email Verified!",
           "Your account has been verified successfully. Welcome to HomeKeep!",
@@ -102,7 +75,7 @@ export const CodeVerificationScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Code verification error:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerError();
 
       let errorMessage = "Invalid or expired code. Please try again.";
       if (error.message?.includes("expired")) {
@@ -116,11 +89,17 @@ export const CodeVerificationScreen: React.FC = () => {
     }
   };
 
+  /**
+   * Handles back navigation with haptic feedback
+   */
   const handleBackPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerLight();
     navigation.goBack();
   };
 
+  /**
+   * Resends verification code to user's email
+   */
   const handleResendCode = async () => {
     if (!email) {
       Alert.alert(
@@ -144,13 +123,13 @@ export const CodeVerificationScreen: React.FC = () => {
         throw error;
       }
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      triggerSuccess();
       Alert.alert(
         "Code Sent",
         "A new verification code has been sent to your email."
       );
     } catch (error: any) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerError();
       Alert.alert(
         "Error",
         error.message || "Failed to resend code. Please try again."
@@ -160,6 +139,7 @@ export const CodeVerificationScreen: React.FC = () => {
     }
   };
 
+  // Define gradient colors for the button based on theme
   const gradientColors = (
     isDark
       ? [colors.primary, colors.secondary]
@@ -167,30 +147,34 @@ export const CodeVerificationScreen: React.FC = () => {
   ) as [string, string];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.content, { paddingTop: dynamicTopSpacing }]}>
+    <View
+      style={[authStyles.container, { backgroundColor: colors.background }]}
+    >
+      <View style={[authStyles.content, { paddingTop: dynamicTopSpacing }]}>
         <LogoSection showText={false} compact={true} />
 
         <Animated.View style={formAnimatedStyle}>
           <Card
-            style={[styles.formCard, { backgroundColor: colors.surface }]}
+            style={[authStyles.formCard, { backgroundColor: colors.surface }]}
             elevation={2}
           >
-            <Card.Content style={styles.formContent}>
-              <View style={styles.headerContainer}>
-                <Text style={[styles.title, { color: colors.text }]}>
+            <Card.Content style={authStyles.formContent}>
+              {/* Header section with title and email display */}
+              <View style={authStyles.headerContainer}>
+                <Text style={[authStyles.title, { color: colors.text }]}>
                   Verify Your Email
                 </Text>
                 <Text
-                  style={[styles.subtitle, { color: colors.textSecondary }]}
+                  style={[authStyles.subtitle, { color: colors.textSecondary }]}
                 >
                   Enter the 6-digit code sent to
                 </Text>
-                <Text style={[styles.email, { color: colors.primary }]}>
+                <Text style={[authStyles.email, { color: colors.primary }]}>
                   {email}
                 </Text>
               </View>
 
+              {/* Verification code input */}
               <TextInput
                 label="Verification Code"
                 value={code}
@@ -199,7 +183,14 @@ export const CodeVerificationScreen: React.FC = () => {
                   setError("");
                 }}
                 mode="outlined"
-                style={styles.input}
+                style={[
+                  authStyles.input,
+                  {
+                    fontSize: 18,
+                    textAlign: "center",
+                    letterSpacing: 4,
+                  },
+                ]}
                 error={!!error}
                 keyboardType="number-pad"
                 maxLength={6}
@@ -218,27 +209,29 @@ export const CodeVerificationScreen: React.FC = () => {
                 }}
               />
 
+              {/* Error message display */}
               {error ? (
-                <Text style={[styles.errorText, { color: colors.error }]}>
+                <Text style={[authStyles.errorText, { color: colors.error }]}>
                   {error}
                 </Text>
               ) : null}
 
+              {/* Verify button with gradient background */}
               <LinearGradient
                 colors={gradientColors}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[styles.gradientButton, { marginTop: 24 }]}
+                style={[authStyles.gradientButton, { marginTop: 24 }]}
               >
                 <Button
                   mode="contained"
                   onPress={handleVerifyCode}
                   loading={loading}
                   disabled={loading || code.length !== 6}
-                  style={styles.verifyButton}
-                  contentStyle={styles.buttonContent}
+                  style={authStyles.primaryButton}
+                  contentStyle={authStyles.buttonContent}
                   labelStyle={[
-                    styles.buttonLabel,
+                    authStyles.buttonLabel,
                     { color: isDark ? colors.text : "white" },
                   ]}
                 >
@@ -246,16 +239,17 @@ export const CodeVerificationScreen: React.FC = () => {
                 </Button>
               </LinearGradient>
 
+              {/* Resend code option */}
               <TouchableOpacity
                 onPress={handleResendCode}
                 disabled={loading}
-                style={styles.resendContainer}
+                style={authStyles.linkContainer}
               >
                 <Text
-                  style={[styles.resendText, { color: colors.textSecondary }]}
+                  style={[authStyles.linkText, { color: colors.textSecondary }]}
                 >
                   Didn't receive a code?{" "}
-                  <Text style={[styles.resendLink, { color: colors.primary }]}>
+                  <Text style={[authStyles.link, { color: colors.primary }]}>
                     Send again
                   </Text>
                 </Text>
@@ -264,14 +258,18 @@ export const CodeVerificationScreen: React.FC = () => {
           </Card>
         </Animated.View>
 
-        <View style={styles.buttonContainer}>
+        {/* Back button */}
+        <View style={authStyles.buttonContainer}>
           <Button
             mode="outlined"
             onPress={handleBackPress}
-            style={[styles.backButton, { borderColor: colors.primary }]}
+            style={[authStyles.outlineButton, { borderColor: colors.primary }]}
             disabled={loading}
-            contentStyle={styles.buttonContent}
-            labelStyle={[styles.outlineButtonLabel, { color: colors.primary }]}
+            contentStyle={authStyles.buttonContent}
+            labelStyle={[
+              authStyles.outlineButtonLabel,
+              { color: colors.primary },
+            ]}
           >
             Back
           </Button>
@@ -279,99 +277,4 @@ export const CodeVerificationScreen: React.FC = () => {
       </View>
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  headerContainer: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    fontWeight: "400",
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  formCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  formContent: {
-    padding: 24,
-  },
-  input: {
-    marginBottom: 8,
-    backgroundColor: "transparent",
-    fontSize: 18,
-    textAlign: "center",
-    letterSpacing: 4,
-  },
-  errorText: {
-    fontSize: 13,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  gradientButton: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  verifyButton: {
-    backgroundColor: "transparent",
-    borderRadius: 12,
-    margin: 0,
-  },
-  buttonContainer: {
-    marginTop: 16,
-  },
-  backButton: {
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-    height: 56,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  outlineButtonLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  resendContainer: {
-    marginTop: 20,
-    alignItems: "center",
-  },
-  resendText: {
-    fontSize: 14,
-    textAlign: "center",
-  },
-  resendLink: {
-    fontWeight: "600",
-  },
-});
+}
