@@ -9,7 +9,15 @@ import Animated, {
 import { useTheme } from "../../context/ThemeContext";
 import { styles } from "./styles";
 
-export function LogoSection() {
+interface LogoSectionProps {
+  showText?: boolean;
+  compact?: boolean;
+}
+
+export function LogoSection({
+  showText = true,
+  compact = false,
+}: LogoSectionProps) {
   const { colors } = useTheme();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
@@ -27,17 +35,19 @@ export function LogoSection() {
   return (
     <Animated.View
       style={[
-        styles.logoContainer,
+        compact ? styles.logoContainerCompact : styles.logoContainer,
         { backgroundColor: colors.background },
         animatedStyle,
       ]}
     >
       <Image
         source={require("../../../assets/images/homekeep-logo.png")}
-        style={styles.logo}
+        style={compact ? styles.logoCompact : styles.logo}
         resizeMode="contain"
       />
-      <Text style={[styles.logoText, { color: colors.text }]}>HOMEKEEP</Text>
+      {showText && (
+        <Text style={[styles.logoText, { color: colors.text }]}>HOMEKEEP</Text>
+      )}
     </Animated.View>
   );
 }
