@@ -1,48 +1,37 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Button } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
+import Animated from "react-native-reanimated";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
+import { AuthStackParamList } from "../../navigation/types";
+import { useButtonAnimation, useGradients, useHaptics } from "../../hooks";
 import { styles } from "./styles";
 
-// Function component for the action buttons section used in the home screen
+type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
+
+/**
+ * ActionButtons - Provides main call-to-action buttons for the home screen
+ * Features gradient styling, haptic feedback, and entrance animations
+ */
 export function ActionButtons() {
-  const { colors, isDark } = useTheme();
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(25);
-
-  useEffect(() => {
-    opacity.value = withDelay(1100, withTiming(1, { duration: 600 }));
-    translateY.value = withDelay(1100, withTiming(0, { duration: 600 }));
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
+  const { colors } = useTheme();
+  const navigation = useNavigation<AuthNavigationProp>();
+  const animatedStyle = useButtonAnimation();
+  const { primaryGradient, isDark } = useGradients();
+  const { triggerMedium, triggerLight } = useHaptics();
 
   const handleCreateAccount = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Handle create account action
+    triggerMedium();
+    navigation.navigate("SignUp");
   };
 
   const handleSignIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Handle sign in action
+    triggerLight();
+    navigation.navigate("Login");
   };
-
-  const gradientColors = (
-    isDark
-      ? [colors.primary, colors.secondary]
-      : [colors.primary, colors.secondary]
-  ) as [string, string];
 
   return (
     <Animated.View style={[styles.buttonContainer, animatedStyle]}>
@@ -51,7 +40,7 @@ export function ActionButtons() {
         style={styles.primaryButton}
       >
         <LinearGradient
-          colors={gradientColors}
+          colors={primaryGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientButton}
@@ -72,7 +61,7 @@ export function ActionButtons() {
         style={styles.secondaryButtonContainer}
       >
         <LinearGradient
-          colors={gradientColors}
+          colors={primaryGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBorder}

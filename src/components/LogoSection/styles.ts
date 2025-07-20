@@ -4,13 +4,24 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   logoContainer: {
     marginTop: 0,
-    marginBottom: 32,
+    marginBottom: 20,
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
+  },
+  logoContainerCompact: {
+    marginTop: 0,
+    marginBottom: 12,
+    alignItems: "center",
+    paddingHorizontal: 32,
   },
   logo: {
     width: 200,
     height: 100,
+    resizeMode: "contain",
+  },
+  logoCompact: {
+    width: 140,
+    height: 70,
     resizeMode: "contain",
   },
   logoText: {
