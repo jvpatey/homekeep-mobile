@@ -9,7 +9,7 @@ import { GradientDivider } from "../../components/GradientDivider/GradientDivide
 
 export const SignUpScreen: React.FC = () => {
   const { colors } = useTheme();
-  const { isConfigured, signUpWithProfile } = useAuth();
+  const { isConfigured, signUp } = useAuth();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
@@ -71,7 +71,7 @@ export const SignUpScreen: React.FC = () => {
 
         setLoading(true);
     try {
-      const { data, error } = await signUpWithProfile(email, password, fullName);
+      const { data, error } = await signUp(email, password, fullName);
       
       if (error) {
         Alert.alert("Sign Up Error", error.message);
