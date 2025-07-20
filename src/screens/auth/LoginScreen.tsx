@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GradientDivider } from "../../components/GradientDivider/GradientDivider";
 
 export const LoginScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -24,6 +25,7 @@ export const LoginScreen: React.FC = () => {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Sign in to your account
         </Text>
+        <GradientDivider />
 
         {/* Configuration status */}
         {!isConfigured ? (
