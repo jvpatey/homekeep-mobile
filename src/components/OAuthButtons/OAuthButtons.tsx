@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { Button, ActivityIndicator } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { AntDesign } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useGradients, useHaptics } from "../../hooks";
 import { styles } from "./styles";
 
 interface OAuthButtonsProps {
@@ -22,8 +22,10 @@ export function OAuthButtons({
   onSuccess,
   disabled = false,
 }: OAuthButtonsProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { signInWithGoogle } = useAuth();
+  const { accentGradient, isDark } = useGradients();
+  const { triggerMedium, triggerError, triggerSuccess } = useHaptics();
   const [loading, setLoading] = useState(false);
 
   /**
@@ -33,7 +35,7 @@ export function OAuthButtons({
     if (disabled) return;
 
     // Provide haptic feedback for button press
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerMedium();
     setLoading(true);
 
     try {
@@ -41,29 +43,24 @@ export function OAuthButtons({
 
       if (error) {
         // Haptic feedback for error
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        triggerError();
         Alert.alert(
           "Sign In Error",
           error.message || "Failed to sign in with Google"
         );
       } else if (data?.session) {
         // Haptic feedback for success
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        triggerSuccess();
         onSuccess?.();
       }
     } catch (error: any) {
       // Handle unexpected errors
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerError();
       Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  // Define gradient colors for the button based on theme
-  const gradientColors = (
-    isDark ? [colors.primary, colors.accent] : [colors.primary, colors.accent]
-  ) as [string, string];
 
   return (
     <View style={styles.container}>
@@ -82,7 +79,7 @@ export function OAuthButtons({
 
       {/* Google Sign In Button with gradient background */}
       <LinearGradient
-        colors={gradientColors}
+        colors={accentGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientButton}

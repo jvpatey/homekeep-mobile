@@ -1,12 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, Image, Text } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
+import { useSimpleAnimation } from "../../hooks";
 import { styles } from "./styles";
 
 interface LogoSectionProps {
@@ -14,23 +10,16 @@ interface LogoSectionProps {
   compact?: boolean;
 }
 
+/**
+ * LogoSection - Displays the app logo with optional text
+ * Features smooth entrance animation and responsive sizing
+ */
 export function LogoSection({
   showText = true,
   compact = false,
 }: LogoSectionProps) {
   const { colors } = useTheme();
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(20);
-
-  useEffect(() => {
-    opacity.value = withTiming(1, { duration: 800 });
-    translateY.value = withTiming(0, { duration: 800 });
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
+  const animatedStyle = useSimpleAnimation(0, 800, 20);
 
   return (
     <Animated.View
