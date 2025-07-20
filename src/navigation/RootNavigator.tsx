@@ -23,7 +23,7 @@ const linking = {
           url: (url: string) => url, // Pass the full URL as parameter
         },
       },
-      Auth: "*", // Fallback to auth for any other deep links
+      Auth: "*", // Handle OAuth callbacks and other auth routes
     },
   },
   // Handle the incoming URL and extract the full URL with query parameters

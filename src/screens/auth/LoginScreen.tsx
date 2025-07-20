@@ -28,6 +28,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GradientDivider } from "../../components/GradientDivider/GradientDivider";
 import { LogoSection } from "../../components/LogoSection/LogoSection";
+import { OAuthButtons } from "../../components/OAuthButtons/OAuthButtons";
 
 export const LoginScreen: React.FC = () => {
   const { colors, isDark } = useTheme();
@@ -303,6 +304,16 @@ export const LoginScreen: React.FC = () => {
                 Sign In
               </Button>
             </LinearGradient>
+          )}
+
+          {/* OAuth Buttons */}
+          {isConfigured && (
+            <OAuthButtons
+              disabled={loading}
+              onSuccess={() => {
+                // User will be automatically navigated by AuthContext
+              }}
+            />
           )}
 
           <Button

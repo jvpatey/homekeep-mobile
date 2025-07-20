@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { createClient, Session, User } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
+import { makeRedirectUri } from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -25,6 +28,7 @@ interface AuthContextType {
   supabase: any; // Expose supabase client
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, fullName: string) => Promise<any>;
+  signInWithGoogle: () => Promise<any>;
   signOut: () => Promise<void>;
 }
 
@@ -115,6 +119,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { data: authData, error: null };
   };
 
+  const signInWithGoogle = async () => {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const redirectTo = makeRedirectUri({
+        scheme: "homekeep",
+        path: "/auth/callback",
+      });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          skipBrowserRedirect: Platform.OS !== "web",
+        },
+      });
+
+      if (error) throw error;
+
+      // For mobile, open the auth URL in browser
+      if (Platform.OS !== "web" && data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectTo
+        );
+
+        if (result.type === "success" && result.url) {
+          // Extract the session from the callback URL
+          const url = new URL(result.url);
+          const access_token = url.searchParams.get("access_token");
+          const refresh_token = url.searchParams.get("refresh_token");
+
+          if (access_token && refresh_token) {
+            const { data: sessionData, error: sessionError } =
+              await supabase.auth.setSession({
+                access_token,
+                refresh_token,
+              });
+            return { data: sessionData, error: sessionError };
+          }
+        }
+      }
+
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      return { data: null, error };
+    }
+  };
+
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -128,6 +184,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     supabase, // Expose supabase client
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
   };
 
