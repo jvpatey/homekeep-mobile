@@ -22,6 +22,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isConfigured: boolean;
+  supabase: any; // Expose supabase client
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, fullName: string) => Promise<any>;
   signOut: () => Promise<void>;
@@ -89,10 +90,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
-    // First, create the auth user
+    // Create redirect URL for email verification
+    const redirectTo = "homekeep://auth/verify";
+
+    // First, create the auth user with email redirect
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
     });
 
     if (authError) {
@@ -129,6 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     loading,
     isConfigured: hasValidCredentials,
+    supabase, // Expose supabase client
     signIn,
     signUp,
     signOut,

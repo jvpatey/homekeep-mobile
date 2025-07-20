@@ -2,8 +2,9 @@ import { NavigatorScreenParams } from "@react-navigation/native";
 
 // Root Stack Navigator Params
 export type RootStackParamList = {
-  App: NavigatorScreenParams<AppStackParamList>;
-  Auth: NavigatorScreenParams<AuthStackParamList>;
+  Auth: undefined;
+  App: undefined;
+  EmailVerification: { url: string }; // Add email verification screen
 };
 
 // App Stack Navigator Params (for authenticated users)
@@ -17,6 +18,7 @@ export type AuthStackParamList = {
   Home: undefined;
   Login: undefined;
   SignUp: undefined;
+  EmailVerification: { url: string }; // Add to auth stack as well
 };
 
 declare global {

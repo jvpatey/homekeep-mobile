@@ -150,6 +150,59 @@ export const SignUpScreen: React.FC = () => {
     return !Object.values(newErrors).some((error) => error !== "");
   };
 
+  const validateField = (field: string, value: string) => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case "fullName":
+        if (!value.trim()) {
+          newErrors.fullName = "Full name is required";
+        } else if (value.trim().length < 2) {
+          newErrors.fullName = "Full name must be at least 2 characters";
+        } else {
+          newErrors.fullName = "";
+        }
+        break;
+      case "email":
+        if (!value) {
+          newErrors.email = "Email is required";
+        } else if (!/\S+@\S+\.\S+/.test(value)) {
+          newErrors.email = "Please enter a valid email";
+        } else {
+          newErrors.email = "";
+        }
+        break;
+      case "password":
+        if (!value) {
+          newErrors.password = "Password is required";
+        } else if (value.length < 6) {
+          newErrors.password = "Password must be at least 6 characters";
+        } else {
+          newErrors.password = "";
+        }
+        // Re-validate confirm password if it exists
+        if (confirmPassword) {
+          if (value !== confirmPassword) {
+            newErrors.confirmPassword = "Passwords do not match";
+          } else {
+            newErrors.confirmPassword = "";
+          }
+        }
+        break;
+      case "confirmPassword":
+        if (!value) {
+          newErrors.confirmPassword = "Please confirm your password";
+        } else if (password !== value) {
+          newErrors.confirmPassword = "Passwords do not match";
+        } else {
+          newErrors.confirmPassword = "";
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
   const handleSignUp = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -166,7 +219,7 @@ export const SignUpScreen: React.FC = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           "Account Created!",
-          "Please check your email to verify your account before signing in.",
+          "Please check your email to verify your account. When you click the verification link, you'll be automatically signed in to HomeKeep!",
           [
             {
               text: "OK",
@@ -270,6 +323,7 @@ export const SignUpScreen: React.FC = () => {
                   label="Full Name"
                   value={fullName}
                   onChangeText={setFullName}
+                  onBlur={() => validateField("fullName", fullName)}
                   mode="outlined"
                   style={styles.input}
                   error={!!errors.fullName}
@@ -299,6 +353,7 @@ export const SignUpScreen: React.FC = () => {
                   label="Email"
                   value={email}
                   onChangeText={setEmail}
+                  onBlur={() => validateField("email", email)}
                   mode="outlined"
                   style={styles.input}
                   error={!!errors.email}
@@ -329,6 +384,7 @@ export const SignUpScreen: React.FC = () => {
                   label="Password"
                   value={password}
                   onChangeText={setPassword}
+                  onBlur={() => validateField("password", password)}
                   mode="outlined"
                   style={styles.input}
                   error={!!errors.password}
@@ -367,6 +423,9 @@ export const SignUpScreen: React.FC = () => {
                   label="Confirm Password"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  onBlur={() =>
+                    validateField("confirmPassword", confirmPassword)
+                  }
                   mode="outlined"
                   style={styles.input}
                   error={!!errors.confirmPassword}
@@ -420,7 +479,7 @@ export const SignUpScreen: React.FC = () => {
                 mode="contained"
                 onPress={handleSignUp}
                 loading={loading}
-                disabled={loading || formProgress < 1}
+                disabled={loading}
                 style={styles.signUpButton}
                 contentStyle={styles.buttonContent}
                 labelStyle={[
