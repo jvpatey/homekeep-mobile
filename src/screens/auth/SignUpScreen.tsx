@@ -219,10 +219,17 @@ export const SignUpScreen: React.FC = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           "Account Created!",
-          "Please check your email to verify your account. When you click the verification link, you'll be automatically signed in to HomeKeep!",
+          "Please check your email to verify your account. You can click the verification link for automatic sign-in, or use the 6-digit code manually in the app.",
           [
             {
+              text: "Enter Code Manually",
+              style: "default",
+              onPress: () =>
+                (navigation as any).navigate("CodeVerification", { email }),
+            },
+            {
               text: "OK",
+              style: "default",
               onPress: () => navigation.goBack(),
             },
           ]

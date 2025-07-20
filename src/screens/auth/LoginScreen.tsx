@@ -315,6 +315,26 @@ export const LoginScreen: React.FC = () => {
           >
             Back to Home
           </Button>
+
+          {/* Email Verification Link */}
+          {isConfigured && (
+            <View style={styles.verificationContainer}>
+              <Button
+                mode="text"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  (navigation as any).navigate("EmailEntry");
+                }}
+                disabled={loading}
+                labelStyle={[
+                  styles.verificationText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Need to verify your email?
+              </Button>
+            </View>
+          )}
         </Animated.View>
       </View>
     </ScrollView>
@@ -408,5 +428,13 @@ const styles = StyleSheet.create({
   outlineButtonLabel: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  verificationContainer: {
+    marginTop: 8,
+    alignItems: "center",
+  },
+  verificationText: {
+    fontSize: 14,
+    textDecorationLine: "underline",
   },
 });

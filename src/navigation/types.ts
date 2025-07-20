@@ -19,6 +19,8 @@ export type AuthStackParamList = {
   Login: undefined;
   SignUp: undefined;
   EmailVerification: { url: string }; // Add to auth stack as well
+  CodeVerification: { email: string }; // Add code verification screen
+  EmailEntry: undefined; // Add email entry screen
 };
 
 declare global {

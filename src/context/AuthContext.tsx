@@ -93,12 +93,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Create redirect URL for email verification
     const redirectTo = "homekeep://auth/verify";
 
-    // First, create the auth user with email redirect
+    // Create the auth user with email redirect and metadata
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectTo,
+        data: {
+          full_name: fullName, // This will be used by the database trigger
+        },
       },
     });
 
@@ -106,22 +109,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { data: null, error: authError };
     }
 
-    // If user was created successfully, create a profile record
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("profiles").insert([
-        {
-          id: authData.user.id,
-          email: email,
-          full_name: fullName,
-        },
-      ]);
-
-      if (profileError) {
-        console.warn("Profile creation failed:", profileError);
-        // Don't fail the signup if profile creation fails
-        // The user can still sign in and we can retry profile creation later
-      }
-    }
+    // Profile will be automatically created by the database trigger
+    // No need for manual profile creation anymore
 
     return { data: authData, error: null };
   };
