@@ -94,7 +94,13 @@ export function CreateTaskModal({
           : undefined,
         is_recurring: form.isRecurring,
         recurrence_type: form.recurrenceType,
-        next_due_date: new Date().toISOString(), // TODO: Add date picker for due date
+        next_due_date: (() => {
+          // Set due date to tomorrow for now (until we add date picker)
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+          return tomorrow.toISOString();
+        })(), // TODO: Add date picker for due date
       };
 
       console.log("Task data:", taskData);

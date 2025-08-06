@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useFeatureAnimation, useHaptics } from "../../hooks";
+import { useFeatureAnimation, useHaptics, useTasks } from "../../hooks";
 import { styles } from "./styles";
 
 // TaskSummaryCards - Features staggered animations and haptic feedback
@@ -12,13 +12,13 @@ import { styles } from "./styles";
 export function TaskSummaryCards() {
   const { colors } = useTheme();
   const { triggerLight } = useHaptics();
+  const { stats } = useTasks();
   const cardAnimatedStyles = useFeatureAnimation(3, 400);
 
-  // TODO: Replace with real task data from API
   const summaryData = [
     {
       title: "Due Today",
-      count: 0, // Will be populated from API
+      count: stats.dueToday,
       icon: "today-outline" as const,
       gradient: [colors.primary, colors.secondary] as const,
       iconColor: "#FFFFFF",
@@ -26,7 +26,7 @@ export function TaskSummaryCards() {
     },
     {
       title: "This Week",
-      count: 0, // Will be populated from API
+      count: stats.thisWeek,
       icon: "calendar-outline" as const,
       gradient: [colors.secondary, colors.accent] as const,
       iconColor: "#FFFFFF",
@@ -34,7 +34,7 @@ export function TaskSummaryCards() {
     },
     {
       title: "Overdue",
-      count: 0, // Will be populated from API
+      count: stats.overdue,
       icon: "warning-outline" as const,
       gradient: [colors.warning, colors.accent] as const,
       iconColor: "#FFFFFF",

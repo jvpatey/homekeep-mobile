@@ -31,11 +31,18 @@ export function UpcomingTasks() {
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
+      // Handle both lowercase (stored in DB) and uppercase (display) versions
+      hvac: "#FF6B6B",
       HVAC: "#FF6B6B",
+      exterior: "#4ECDC4",
       Exterior: "#4ECDC4",
+      safety: "#FFA726",
       Safety: "#FFA726",
+      plumbing: "#9B59B6",
       Plumbing: "#9B59B6",
+      electrical: "#3498DB",
       Electrical: "#3498DB",
+      appliances: "#2ECC71",
       Appliances: "#2ECC71",
     };
     return categoryColors[category] || colors.primary;

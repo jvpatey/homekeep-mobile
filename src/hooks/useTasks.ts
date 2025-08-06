@@ -19,6 +19,7 @@ interface UseTasksReturn {
     completed: number;
     overdue: number;
     dueToday: number;
+    thisWeek: number;
     completionRate: number;
   };
   createTask: (
@@ -51,6 +52,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     completed: 0,
     overdue: 0,
     dueToday: 0,
+    thisWeek: 0,
     completionRate: 0,
   });
 
@@ -80,6 +82,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           completed: 0,
           overdue: 0,
           dueToday: 0,
+          thisWeek: 0,
           completionRate: 0,
         }
       );
@@ -270,6 +273,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           completed: 0,
           overdue: 0,
           dueToday: 0,
+          thisWeek: 0,
           completionRate: 0,
         }
       );
@@ -290,6 +294,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         completed: 0,
         overdue: 0,
         dueToday: 0,
+        thisWeek: 0,
         completionRate: 0,
       });
     }

@@ -326,11 +326,25 @@ export class TaskService {
 
       if (todayError) throw todayError;
 
+      // Get tasks due this week (next 7 days)
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+
+      const { data: thisWeekTasks, error: thisWeekError } = await supabase
+        .from("tasks")
+        .select("id", { count: "exact" })
+        .eq("is_completed", false)
+        .gte("next_due_date", today.toISOString())
+        .lt("next_due_date", nextWeek.toISOString());
+
+      if (thisWeekError) throw thisWeekError;
+
       const stats = {
         total: totalTasks?.length || 0,
         completed: completedTasks?.length || 0,
         overdue: overdueTasks?.length || 0,
         dueToday: todayTasks?.length || 0,
+        thisWeek: thisWeekTasks?.length || 0,
         completionRate: totalTasks?.length
           ? Math.round(
               ((completedTasks?.length || 0) / totalTasks.length) * 100
