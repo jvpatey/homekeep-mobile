@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, Alert } from "react-native";
 import Animated from "react-native-reanimated";
-import { useSimpleAnimation, useHaptics } from "../../../hooks";
+import { useSimpleAnimation, useHaptics, useTasks } from "../../../hooks";
+import { useAuth } from "../../../context/AuthContext";
 import { styles } from "../styles";
 import { FormField } from "./FormField";
 import { CategorySelector } from "./CategorySelector";
@@ -33,6 +34,8 @@ export function CreateTaskModal({
   onTaskCreated,
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
+  const { createTask } = useTasks();
+  const { user } = useAuth();
   const modalAnimatedStyle = useSimpleAnimation(0, 400, 20);
 
   const [form, setForm] = useState<TaskForm>({
@@ -65,21 +68,49 @@ export function CreateTaskModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       triggerLight();
       return;
     }
 
+    // Check if user is authenticated
+    if (!user) {
+      Alert.alert("Error", "You must be signed in to create tasks");
+      return;
+    }
+
+    console.log("Creating task for user:", user.id);
     triggerMedium();
 
-    // TODO: Submit to API
-    console.log("Creating task:", form);
+    try {
+      const taskData = {
+        title: form.title.trim(),
+        description: form.description.trim() || undefined,
+        category: form.category,
+        priority: form.priority,
+        estimated_duration: form.estimatedDuration
+          ? parseInt(form.estimatedDuration)
+          : undefined,
+        is_recurring: form.isRecurring,
+        recurrence_type: form.recurrenceType,
+        next_due_date: new Date().toISOString(), // TODO: Add date picker for due date
+      };
 
-    // Simulate API call
-    setTimeout(() => {
-      onTaskCreated();
-    }, 500);
+      console.log("Task data:", taskData);
+      const { success, error } = await createTask(taskData);
+
+      if (success) {
+        console.log("Task created successfully");
+        onTaskCreated();
+      } else {
+        console.error("Task creation failed:", error);
+        Alert.alert("Error", error || "Failed to create task");
+      }
+    } catch (err) {
+      console.error("Error creating task:", err);
+      Alert.alert("Error", "An unexpected error occurred");
+    }
   };
 
   const updateForm = (key: keyof TaskForm, value: any) => {

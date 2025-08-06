@@ -5,7 +5,7 @@ import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
-import { useSimpleAnimation, useHaptics } from "../../hooks";
+import { useSimpleAnimation, useHaptics, useTasks } from "../../hooks";
 import { AppStackParamList } from "../../navigation/types";
 import { styles } from "./styles";
 
@@ -26,11 +26,8 @@ export function UpcomingTasks() {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { triggerLight } = useHaptics();
+  const { upcomingTasks, loading } = useTasks();
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
-
-  // TODO: Replace with real task data from API
-  const upcomingTasks: Task[] = [];
-  // Tasks will be loaded from Supabase database
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {

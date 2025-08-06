@@ -17,3 +17,6 @@ export { useDynamicSpacing } from "./useDynamicSpacing";
 
 // Auth-specific hooks (keeping these separate for now)
 export * from "../screens/auth/hooks";
+
+// Task management hooks
+export { useTasks } from "./useTasks";
