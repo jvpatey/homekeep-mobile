@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useSimpleAnimation, useGradients, useHaptics } from "../../hooks";
-import { CreateTaskModal } from "./CreateTaskModal";
+import { CreateTaskModal } from "./CreateTaskModal/CreateTaskModal";
 import { styles } from "./styles";
 
 /**
