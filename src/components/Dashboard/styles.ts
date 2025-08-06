@@ -216,6 +216,7 @@ export const styles = StyleSheet.create({
   swipeContainer: {
     position: "relative",
     overflow: "hidden",
+    borderRadius: 16, // Match task item border radius
   },
   deleteBackground: {
     position: "absolute",
@@ -223,23 +224,33 @@ export const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 80,
-    backgroundColor: "#E74C3C",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1,
+    zIndex: 0, // Lower than task item
+    marginBottom: 8, // Match task item marginBottom
   },
   deleteButton: {
-    width: "100%",
-    height: "100%",
+    width: 72,
+    height: 72, // Match exact minHeight of task item
+    borderTopRightRadius: 16, // Match task item border radius
+    borderBottomRightRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 8,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   deleteButtonText: {
-    color: "white",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
-    marginTop: 4,
+    marginTop: 2,
+    letterSpacing: 0.3,
+    textAlign: "center",
   },
 
   // Empty State Styles

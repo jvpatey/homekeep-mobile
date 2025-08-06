@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, FlatList, Alert } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -127,6 +128,7 @@ export function UpcomingTasks() {
     const opacity = useSharedValue(1);
 
     const panGesture = Gesture.Pan()
+      .activeOffsetX([-10, 10]) // Require 10px movement to activate
       .onUpdate((event) => {
         // Only allow left swipe (negative values)
         if (event.translationX < 0) {
@@ -145,19 +147,24 @@ export function UpcomingTasks() {
         }
       });
 
-    const tapGesture = Gesture.Tap().onStart(() => {
-      // Reset position when tapping the main item
-      if (translateX.value < 0) {
+    const tapGesture = Gesture.Tap().onEnd(() => {
+      // Handle tap on the main task item
+      if (translateX.value < -10) {
+        // If swiped out, reset position
         translateX.value = withTiming(0);
+      } else {
+        // Normal task press
+        runOnJS(handleTaskPress)(task.id);
       }
     });
 
-    const combinedGesture = Gesture.Simultaneous(panGesture, tapGesture);
+    const combinedGesture = Gesture.Exclusive(panGesture, tapGesture);
 
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [{ translateX: translateX.value }],
       opacity: opacity.value,
       height: itemHeight.value === 1 ? undefined : withTiming(0),
+      zIndex: 2, // Always above delete button
     }));
 
     const deleteButtonStyle = useAnimatedStyle(() => ({
@@ -165,6 +172,7 @@ export function UpcomingTasks() {
       transform: [
         { scale: translateX.value < -20 ? withTiming(1) : withTiming(0.8) },
       ],
+      zIndex: translateX.value < -10 ? 1 : -1, // Hide behind when not swiped
     }));
 
     return (
@@ -178,9 +186,26 @@ export function UpcomingTasks() {
               translateX.value = withTiming(0);
               handleDeleteTask(task.id, task.title);
             }}
+            activeOpacity={0.9}
           >
-            <Ionicons name="trash" size={24} color="white" />
-            <Text style={styles.deleteButtonText}>Delete</Text>
+            <LinearGradient
+              colors={["#FF6B6B", "#E74C3C"]}
+              style={{
+                width: 72,
+                height: 72,
+                borderTopRightRadius: 16,
+                borderBottomRightRadius: 16,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="trash-outline" size={16} color="white" />
+              <Text style={[styles.deleteButtonText, { color: "white" }]}>
+                Delete
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
 
@@ -189,16 +214,8 @@ export function UpcomingTasks() {
           <Animated.View style={animatedStyle}>
             <TouchableOpacity
               style={[styles.taskItem, { backgroundColor: colors.surface }]}
-              onPress={() => {
-                if (translateX.value < 0) {
-                  // Reset if swiped out
-                  translateX.value = withTiming(0);
-                } else {
-                  // Normal press action
-                  handleTaskPress(task.id);
-                }
-              }}
               onLongPress={() => handleDeleteTask(task.id, task.title)}
+              activeOpacity={0.7}
             >
               <View style={styles.taskItemLeft}>
                 <View
