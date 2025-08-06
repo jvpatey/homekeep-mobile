@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { DashboardScreen } from "../screens/DashboardScreen";
+import { TasksProvider } from "../context/TasksContext";
 import { AppStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -12,14 +13,16 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
  */
 export function AppNavigator() {
   return (
-    <Stack.Navigator
-      initialRouteName="Dashboard"
-      screenOptions={{
-        headerShown: false, // Hide headers for a cleaner app experience
-      }}
-    >
-      {/* Main app screens - add more authenticated screens here as the app grows */}
-      <Stack.Screen name="Dashboard" component={DashboardScreen} />
-    </Stack.Navigator>
+    <TasksProvider>
+      <Stack.Navigator
+        initialRouteName="Dashboard"
+        screenOptions={{
+          headerShown: false, // Hide headers for a cleaner app experience
+        }}
+      >
+        {/* Main app screens - add more authenticated screens here as the app grows */}
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      </Stack.Navigator>
+    </TasksProvider>
   );
 }

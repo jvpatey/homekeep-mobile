@@ -33,7 +33,7 @@ export function FormField({
   return (
     <View style={styles.inputGroup}>
       <Text style={[styles.inputLabel, { color: colors.text }]}>
-        {label} {required && "*"}
+        {label} {required && <Text style={styles.required}>*</Text>}
       </Text>
       <TextInput
         value={value}

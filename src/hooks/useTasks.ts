@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { TaskService } from "../services/taskService";
 import {
   Task,
@@ -75,7 +75,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       if (statsResult.error) throw statsResult.error;
 
       setTasks(tasksResult.data || []);
-      setUpcomingTasks(upcomingResult.data || []);
+      setUpcomingTasks([...(upcomingResult.data || [])]);
       setStats(
         statsResult.data || {
           total: 0,

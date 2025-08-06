@@ -31,7 +31,7 @@ export function CategorySelector({
   return (
     <View style={styles.inputGroup}>
       <Text style={[styles.inputLabel, { color: colors.text }]}>
-        Category *
+        Category <Text style={styles.required}>*</Text>
       </Text>
       <View style={styles.chipContainer}>
         {categories.map((category) => (

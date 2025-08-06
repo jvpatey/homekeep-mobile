@@ -4,7 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useFeatureAnimation, useHaptics, useTasks } from "../../hooks";
+import { useFeatureAnimation, useHaptics } from "../../hooks";
+import { useTasks } from "../../context/TasksContext";
 import { styles } from "./styles";
 
 // TaskSummaryCards - Features staggered animations and haptic feedback

@@ -212,6 +212,36 @@ export const styles = StyleSheet.create({
     marginLeft: 16,
   },
 
+  // Swipe to Delete Styles
+  swipeContainer: {
+    position: "relative",
+    overflow: "hidden",
+  },
+  deleteBackground: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    backgroundColor: "#E74C3C",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  deleteButton: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  deleteButtonText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+
   // Empty State Styles
   emptyState: {
     alignItems: "center",
@@ -318,6 +348,19 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.1,
   },
+  formField: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    letterSpacing: 0.1,
+  },
+  required: {
+    color: "#E74C3C",
+    fontWeight: "700",
+  },
   textInput: {
     borderRadius: 12,
     fontSize: 16,
@@ -384,6 +427,53 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "400",
     marginTop: 2,
+  },
+
+  // Date Picker
+  datePickerButton: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  datePickerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  datePickerText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 12,
+  },
+  datePickerContainer: {
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 8,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  datePickerDone: {
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  datePickerDoneText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   // Submit Button

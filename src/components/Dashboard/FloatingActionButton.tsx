@@ -4,7 +4,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useSimpleAnimation, useGradients, useHaptics } from "../../hooks";
+import {
+  useSimpleAnimation,
+  useGradients,
+  useHaptics,
+  useTasks,
+} from "../../hooks";
 import { CreateTaskModal } from "./CreateTaskModal/CreateTaskModal";
 import { styles } from "./styles";
 
@@ -14,6 +19,7 @@ export function FloatingActionButton() {
   const { colors } = useTheme();
   const { primaryGradient } = useGradients();
   const { triggerMedium } = useHaptics();
+  const { refreshTasks } = useTasks();
   const [modalVisible, setModalVisible] = useState(false);
 
   const fabAnimatedStyle = useSimpleAnimation(800, 600, 30);
@@ -29,7 +35,7 @@ export function FloatingActionButton() {
 
   const handleTaskCreated = () => {
     setModalVisible(false);
-    // TODO: Refresh task list
+    // Task list is automatically refreshed by useTasks.createTask()
     console.log("Task created successfully");
   };
 
