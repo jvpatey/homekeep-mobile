@@ -8,10 +8,8 @@ import { useSimpleAnimation, useGradients, useHaptics } from "../../hooks";
 import { CreateTaskModal } from "./CreateTaskModal/CreateTaskModal";
 import { styles } from "./styles";
 
-/**
- * FloatingActionButton - iOS-style FAB for creating new tasks
- * Features gradient styling, haptic feedback, and bottom sheet modal
- */
+// FloatingActionButton - Features gradient styling, haptic feedback, and bottom sheet modal
+
 export function FloatingActionButton() {
   const { colors } = useTheme();
   const { primaryGradient } = useGradients();

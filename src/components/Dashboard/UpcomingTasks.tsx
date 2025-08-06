@@ -20,10 +20,8 @@ interface Task {
   estimated_duration?: number;
 }
 
-/**
- * UpcomingTasks - Modern iOS-style task list with clean design
- * Features proper touch targets, category indicators, and navigation
- */
+// UpcomingTasks Features proper touch targets, category indicators, and navigation
+
 export function UpcomingTasks() {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();

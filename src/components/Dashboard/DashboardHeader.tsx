@@ -6,12 +6,11 @@ import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useSimpleAnimation } from "../../hooks";
+import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { styles } from "./styles";
 
-/**
- * DashboardHeader - iOS-style large title header with search functionality
- * Features welcome message, user name, and expandable search bar
- */
+// DashboardHeader - Features welcome message, user name, and expandable search bar
+
 export function DashboardHeader() {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -55,16 +54,23 @@ export function DashboardHeader() {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.searchButton, { backgroundColor: colors.surface }]}
-          onPress={() => setSearchVisible(!searchVisible)}
-        >
-          <Ionicons
-            name={searchVisible ? "close" : "search"}
-            size={22}
-            color={colors.text}
+        <View style={styles.headerButtons}>
+          <ThemeToggle
+            style={[styles.headerButton, { backgroundColor: colors.surface }]}
+            size={44}
+            iconSize={22}
           />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.searchButton, { backgroundColor: colors.surface }]}
+            onPress={() => setSearchVisible(!searchVisible)}
+          >
+            <Ionicons
+              name={searchVisible ? "close" : "search"}
+              size={22}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Expandable Search Bar */}

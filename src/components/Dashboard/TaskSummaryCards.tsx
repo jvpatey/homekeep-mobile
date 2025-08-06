@@ -7,10 +7,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { useFeatureAnimation, useHaptics } from "../../hooks";
 import { styles } from "./styles";
 
-/**
- * TaskSummaryCards - Display key task metrics in gradient cards
- * Features staggered animations and haptic feedback following iOS design patterns
- */
+// TaskSummaryCards - Features staggered animations and haptic feedback
+
 export function TaskSummaryCards() {
   const { colors } = useTheme();
   const { triggerLight } = useHaptics();
