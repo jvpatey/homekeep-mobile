@@ -17,8 +17,12 @@ export type RootStackParamList = {
  * This is the main navigation structure for the app's core functionality.
  */
 export type AppStackParamList = {
-  Home: undefined; // Main home screen for authenticated users
-  // Add more authenticated screens here as app grows
+  Dashboard: undefined; // Main dashboard for authenticated users
+  TaskDetail: { taskId: string }; // Task detail view
+  CreateTask: undefined; // Add new task
+  EditTask: { taskId: string }; // Edit existing task
+  TaskHistory: { taskId: string }; // Task completion history
+  Settings: undefined; // User settings
 };
 
 /**

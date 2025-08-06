@@ -1,6 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { HomeScreen } from "../screens/HomeScreen";
+import { DashboardScreen } from "../screens/DashboardScreen";
 import { AppStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -13,13 +13,13 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 export function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Home"
+      initialRouteName="Dashboard"
       screenOptions={{
         headerShown: false, // Hide headers for a cleaner app experience
       }}
     >
       {/* Main app screens - add more authenticated screens here as the app grows */}
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
     </Stack.Navigator>
   );
 }
