@@ -46,7 +46,7 @@ export function CreateTaskModal({
   onTaskCreated,
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
-  const { createTask } = useTasks();
+  const { createTask, refreshTasks } = useTasks();
   const { user } = useAuth();
   const { colors } = useTheme();
   const modalAnimatedStyle = useSimpleAnimation(0, 400, 20);

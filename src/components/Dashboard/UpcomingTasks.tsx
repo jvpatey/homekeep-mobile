@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,18 +15,11 @@ import { useTheme } from "../../context/ThemeContext";
 import { useSimpleAnimation, useHaptics } from "../../hooks";
 import { useTasks } from "../../context/TasksContext";
 import { AppStackParamList } from "../../navigation/types";
+import { TaskDetailModal } from "./TaskDetailModal";
+import { Task } from "../../types/task";
 import { styles } from "./styles";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
-
-interface Task {
-  id: string;
-  title: string;
-  category: string;
-  next_due_date: string;
-  priority: "low" | "medium" | "high" | "urgent";
-  estimated_duration?: number;
-}
 
 // UpcomingTasks Features proper touch targets, category indicators, and navigation
 
@@ -37,6 +30,10 @@ export function UpcomingTasks() {
   const tasksHook = useTasks();
   const { upcomingTasks, loading, deleteTask } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
+
+  // Task detail modal state
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
@@ -92,8 +89,21 @@ export function UpcomingTasks() {
 
   const handleTaskPress = (taskId: string) => {
     triggerLight();
-    // TODO: Navigate to task detail
-    console.log(`Navigate to task ${taskId}`);
+    const task = upcomingTasks.find((t) => t.id === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setTaskDetailVisible(true);
+    }
+  };
+
+  const handleCloseTaskDetail = () => {
+    setTaskDetailVisible(false);
+    setSelectedTask(null);
+  };
+
+  const handleEditTask = (task: Task) => {
+    // TODO: Implement edit functionality
+    console.log("Edit task:", task.id);
   };
 
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
@@ -306,16 +316,26 @@ export function UpcomingTasks() {
   );
 
   return (
-    <Animated.View style={[styles.upcomingContainer, listAnimatedStyle]}>
-      <FlatList
-        data={upcomingTasks}
-        renderItem={renderTaskItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={EmptyState}
-        scrollEnabled={false}
-        showsVerticalScrollIndicator={false}
+    <>
+      <Animated.View style={[styles.upcomingContainer, listAnimatedStyle]}>
+        <FlatList
+          data={upcomingTasks}
+          renderItem={renderTaskItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={EmptyState}
+          scrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+        />
+      </Animated.View>
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        task={selectedTask}
+        visible={taskDetailVisible}
+        onClose={handleCloseTaskDetail}
+        onEdit={handleEditTask}
       />
-    </Animated.View>
+    </>
   );
 }
