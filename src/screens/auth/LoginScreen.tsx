@@ -67,7 +67,7 @@ export function LoginScreen() {
         Alert.alert("Sign In Error", error.message);
       } else {
         triggerSuccess();
-        Alert.alert("Welcome Back!", "You have successfully signed in.");
+        // User is automatically redirected to dashboard on successful sign in
       }
     } catch (error) {
       triggerError();

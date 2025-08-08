@@ -7,6 +7,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useSimpleAnimation } from "../../hooks";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
+import { ProfileMenu } from "./ProfileMenu";
 import { styles } from "./styles";
 
 // DashboardHeader - Features welcome message, user name, and expandable search bar
@@ -60,6 +61,7 @@ export function DashboardHeader() {
             size={44}
             iconSize={22}
           />
+          <ProfileMenu />
           <TouchableOpacity
             style={[styles.searchButton, { backgroundColor: colors.surface }]}
             onPress={() => setSearchVisible(!searchVisible)}

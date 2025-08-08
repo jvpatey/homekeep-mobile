@@ -701,4 +701,69 @@ export const styles = StyleSheet.create({
     color: "white",
     letterSpacing: 0.2,
   },
+
+  // Profile Menu Styles
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  profileInitial: {
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 100,
+    paddingRight: 32,
+  },
+  menuContainer: {
+    borderRadius: 16,
+    minWidth: 200,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: "hidden",
+  },
+  menuHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: "500",
+    letterSpacing: 0.1,
+  },
 });
