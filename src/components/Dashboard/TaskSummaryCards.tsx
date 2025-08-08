@@ -3,15 +3,21 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useFeatureAnimation, useHaptics } from "../../hooks";
 import { useTasks } from "../../context/TasksContext";
+import { AppStackParamList } from "../../navigation/types";
 import { styles } from "./styles";
+
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 // TaskSummaryCards - Features staggered animations and haptic feedback
 
 export function TaskSummaryCards() {
   const { colors } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
   const { triggerLight } = useHaptics();
   const { stats } = useTasks();
   const cardAnimatedStyles = useFeatureAnimation(3, 400);
@@ -24,6 +30,7 @@ export function TaskSummaryCards() {
       gradient: [colors.primary, colors.secondary] as const,
       iconColor: "#FFFFFF",
       animatedStyle: cardAnimatedStyles[0],
+      filterType: "dueToday" as const,
     },
     {
       title: "This Week",
@@ -32,6 +39,7 @@ export function TaskSummaryCards() {
       gradient: [colors.secondary, colors.accent] as const,
       iconColor: "#FFFFFF",
       animatedStyle: cardAnimatedStyles[1],
+      filterType: "thisWeek" as const,
     },
     {
       title: "Overdue",
@@ -40,13 +48,16 @@ export function TaskSummaryCards() {
       gradient: [colors.warning, colors.accent] as const,
       iconColor: "#FFFFFF",
       animatedStyle: cardAnimatedStyles[2],
+      filterType: "overdue" as const,
     },
   ];
 
-  const handleCardPress = (cardType: string) => {
+  const handleCardPress = (cardType: string, filterType: string) => {
     triggerLight();
-    // TODO: Navigate to filtered task list
-    console.log(`Pressed ${cardType} card`);
+    navigation.navigate("FilteredTasks", {
+      filterType,
+      title: cardType,
+    });
   };
 
   return (
@@ -62,7 +73,7 @@ export function TaskSummaryCards() {
             style={[styles.summaryCard, card.animatedStyle]}
           >
             <TouchableOpacity
-              onPress={() => handleCardPress(card.title)}
+              onPress={() => handleCardPress(card.title, card.filterType)}
               style={styles.cardTouchable}
             >
               <LinearGradient
