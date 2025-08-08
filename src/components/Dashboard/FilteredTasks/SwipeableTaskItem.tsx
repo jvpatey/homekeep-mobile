@@ -36,12 +36,12 @@ export function SwipeableTaskItem({
     .activeOffsetX([-10, 10])
     .onUpdate((event) => {
       if (event.translationX < 0) {
-        translateX.value = Math.max(event.translationX, -80);
+        translateX.value = Math.max(event.translationX, -76);
       }
     })
     .onEnd((event) => {
       const shouldShowDelete = event.translationX < -30;
-      translateX.value = withTiming(shouldShowDelete ? -80 : 0);
+      translateX.value = withTiming(shouldShowDelete ? -76 : 0);
     });
 
   const tapGesture = Gesture.Tap().onEnd(() => {
@@ -56,13 +56,15 @@ export function SwipeableTaskItem({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
+    zIndex: translateX.value < -10 ? 2 : 3,
   }));
 
   const deleteButtonStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value < -20 ? withTiming(1) : withTiming(0),
+    opacity: translateX.value < -10 ? withTiming(1) : withTiming(0),
     transform: [
       { scale: translateX.value < -20 ? withTiming(1) : withTiming(0.8) },
     ],
+    zIndex: translateX.value < -10 ? 1 : -1,
   }));
 
   return (
@@ -82,17 +84,15 @@ export function SwipeableTaskItem({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="trash-outline" size={16} color="white" />
-            <Text style={styles.deleteButtonText}>Delete</Text>
+            <Ionicons name="trash-outline" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
 
       <GestureDetector gesture={combinedGesture}>
         <Animated.View style={animatedStyle}>
-          <TouchableOpacity
+          <Animated.View
             style={[styles.taskItem, { backgroundColor: colors.surface }]}
-            activeOpacity={0.7}
           >
             <View style={styles.taskItemLeft}>
               <View
@@ -134,7 +134,7 @@ export function SwipeableTaskItem({
                 color={colors.textSecondary}
               />
             </View>
-          </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
       </GestureDetector>
     </View>
@@ -145,32 +145,37 @@ const styles = {
   swipeContainer: {
     position: "relative" as const,
     marginBottom: 12,
+    marginHorizontal: 2, // Small margin to prevent shadow clipping
   },
   deleteBackground: {
     position: "absolute" as const,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 80,
-    zIndex: 1,
-  },
-  deleteButton: {
-    flex: 1,
-  },
-  deleteGradient: {
-    width: 72,
-    height: 72,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
+    right: 8, // 8px from edge
+    top: 8, // 8px from top for separation
+    bottom: 8, // 8px from bottom for separation
+    width: 60, // Button width + small margin
     justifyContent: "center" as const,
     alignItems: "center" as const,
   },
-  deleteButtonText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "600" as const,
-    marginTop: 2,
+  deleteButton: {
+    width: 56,
+    flex: 1, // Take full height of container
+    borderRadius: 12,
+    overflow: "hidden" as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    marginVertical: 4, // Small margin for visual separation
   },
+  deleteGradient: {
+    width: 56,
+    flex: 1, // Take full height
+    borderRadius: 12,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+
   taskItem: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -179,7 +184,7 @@ const styles = {
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 3,
   },
   taskItemLeft: {

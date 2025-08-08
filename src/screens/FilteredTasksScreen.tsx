@@ -183,9 +183,11 @@ const styles = {
   },
   content: {
     flex: 1,
+    overflow: "visible" as const,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20, // Increased for shadow space
     paddingTop: 16,
+    paddingBottom: 8, // Bottom padding for shadows
   },
 };

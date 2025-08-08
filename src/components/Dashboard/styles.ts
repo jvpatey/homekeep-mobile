@@ -141,6 +141,7 @@ export const styles = StyleSheet.create({
   upcomingContainer: {
     paddingHorizontal: 32,
     marginBottom: 32,
+    overflow: "visible",
   },
   listHeader: {
     flexDirection: "row",
