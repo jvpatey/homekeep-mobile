@@ -36,6 +36,9 @@ export function UpcomingTasks() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<string>("all");
+
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
       // Handle both lowercase (stored in DB) and uppercase (display) versions
@@ -117,6 +120,49 @@ export function UpcomingTasks() {
       ]
     );
   };
+
+  // Filter tasks based on active tab
+  const getFilteredTasks = () => {
+    let filtered = [...upcomingTasks];
+
+    if (activeTab !== "all") {
+      filtered = filtered.filter(
+        (task) => task.priority.toLowerCase() === activeTab
+      );
+    }
+
+    // Sort by due date (earliest first)
+    return filtered.sort(
+      (a, b) =>
+        new Date(a.next_due_date).getTime() -
+        new Date(b.next_due_date).getTime()
+    );
+  };
+
+  const filteredTasks = getFilteredTasks();
+
+  // Tab configuration
+  const tabs = [
+    { id: "all", label: "All", count: upcomingTasks.length },
+    {
+      id: "high",
+      label: "High",
+      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "high")
+        .length,
+    },
+    {
+      id: "medium",
+      label: "Medium",
+      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "medium")
+        .length,
+    },
+    {
+      id: "low",
+      label: "Low",
+      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "low")
+        .length,
+    },
+  ];
 
   const SwipeableTaskItem = ({ task }: { task: Task }) => {
     const translateX = useSharedValue(0);
@@ -268,47 +314,138 @@ export function UpcomingTasks() {
     <SwipeableTaskItem task={task} />
   );
 
-  const ListHeader = () => (
-    <View style={styles.listHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Upcoming Tasks
-      </Text>
-      <TouchableOpacity
-        style={styles.seeAllButton}
-        onPress={() => {
-          triggerLight();
-          // TODO: Navigate to all tasks
-        }}
-      >
-        <Text style={[styles.seeAllText, { color: colors.primary }]}>
-          See All
-        </Text>
-      </TouchableOpacity>
+  const TabBar = () => (
+    <View style={styles.tabBar}>
+      {tabs.map((tab) => (
+        <TouchableOpacity
+          key={tab.id}
+          style={[
+            styles.tab,
+            activeTab === tab.id && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => {
+            triggerLight();
+            setActiveTab(tab.id);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === tab.id ? "white" : colors.textSecondary },
+            ]}
+          >
+            {tab.label}
+          </Text>
+          {tab.count > 0 && (
+            <View
+              style={[
+                styles.tabBadge,
+                {
+                  backgroundColor:
+                    activeTab === tab.id
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : colors.primary,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabBadgeText,
+                  { color: activeTab === tab.id ? "white" : "white" },
+                ]}
+              >
+                {tab.count}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      ))}
     </View>
   );
 
-  const EmptyState = () => (
-    <View style={styles.emptyState}>
-      <Ionicons
-        name="clipboard-outline"
-        size={48}
-        color={colors.textSecondary}
-        style={styles.emptyIcon}
-      />
-      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        No upcoming tasks
-      </Text>
-      <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-        Tap the + button to create your first task
-      </Text>
+  const ListHeader = () => (
+    <View>
+      <View style={styles.listHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Upcoming Tasks
+        </Text>
+      </View>
+      <TabBar />
     </View>
   );
+
+  const EmptyState = () => {
+    const getEmptyMessage = () => {
+      if (activeTab === "all") {
+        return {
+          title: "No upcoming tasks",
+          subtitle: "Tap the + button to create your first task",
+        };
+      } else {
+        const priorityLabel =
+          activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+        return {
+          title: `No ${priorityLabel} priority tasks`,
+          subtitle: `All your ${activeTab} priority tasks are completed`,
+        };
+      }
+    };
+
+    const message = getEmptyMessage();
+
+    return (
+      <View
+        style={{
+          alignItems: "center",
+          paddingVertical: 40,
+          paddingHorizontal: 20,
+        }}
+      >
+        <Ionicons
+          name="clipboard-outline"
+          size={48}
+          color={colors.textSecondary}
+          style={{
+            marginBottom: 16,
+            opacity: 0.6,
+          }}
+        />
+        <Text
+          style={[
+            {
+              fontSize: 18,
+              fontWeight: "600",
+              marginBottom: 8,
+              textAlign: "center",
+            },
+            { color: colors.textSecondary },
+          ]}
+        >
+          {message.title}
+        </Text>
+        <Text
+          style={[
+            {
+              fontSize: 16,
+              fontWeight: "400",
+              textAlign: "center",
+              opacity: 0.8,
+            },
+            { color: colors.textSecondary },
+          ]}
+        >
+          {message.subtitle}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <>
       <Animated.View style={[styles.upcomingContainer, listAnimatedStyle]}>
         <FlatList
-          data={upcomingTasks}
+          data={filteredTasks}
           renderItem={renderTaskItem}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={ListHeader}

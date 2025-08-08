@@ -248,9 +248,39 @@ export const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 10,
     fontWeight: "600",
-    marginTop: 2,
-    letterSpacing: 0.3,
-    textAlign: "center",
+  },
+
+  // Tab Styles
+  tabBar: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 8,
+  },
+  tab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    gap: 6,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+  tabBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: "center",
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.1,
   },
 
   // Task Detail Modal Styles
