@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSimpleAnimation, useHaptics } from "../../../hooks";
 import { useTasks } from "../../../context/TasksContext";
 import { useTheme } from "../../../context/ThemeContext";
+import { PriorityBadge } from "../PriorityBadge";
 import { Task } from "../../../types/task";
 import { styles } from "../styles";
 
@@ -57,19 +58,6 @@ export function TaskDetailModal({
     // Create a gradient by lightening the base color
     const lightColor = baseColor + "CC"; // Add transparency for lighter effect
     return [baseColor, lightColor];
-  };
-
-  const getPriorityIcon = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "alert-circle";
-      case "medium":
-        return "warning";
-      case "low":
-        return "checkmark-circle";
-      default:
-        return "remove";
-    }
   };
 
   const formatDueDate = (dateString: string): string => {
@@ -165,81 +153,76 @@ export function TaskDetailModal({
             }}
           >
             <View style={{ flex: 1 }}>
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: "600",
-                    color: "rgba(255, 255, 255, 0.8)",
-                    letterSpacing: 0.5,
-                    textTransform: "uppercase",
-                    marginBottom: 4,
-                  }}
-                >
-                  Category
-                </Text>
-                <View
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                    borderRadius: 10,
-                    alignSelf: "flex-start",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: "white",
-                      letterSpacing: 0.3,
-                    }}
-                  >
-                    {task.category.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
+              {/* Task Title */}
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: "800",
+                  color: "white",
+                  letterSpacing: -0.5,
+                  lineHeight: 34,
+                  marginBottom: 16,
+                }}
+              >
+                {task.title}
+              </Text>
 
-              <View>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: "600",
-                    color: "rgba(255, 255, 255, 0.8)",
-                    letterSpacing: 0.5,
-                    textTransform: "uppercase",
-                    marginBottom: 4,
-                  }}
-                >
-                  Priority
-                </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                    borderRadius: 10,
-                    alignSelf: "flex-start",
-                  }}
-                >
-                  <Ionicons
-                    name={getPriorityIcon(task.priority)}
-                    size={14}
-                    color="white"
-                    style={{ marginRight: 4 }}
-                  />
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              >
+                <View>
                   <Text
                     style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: "white",
-                      letterSpacing: 0.3,
+                      fontSize: 10,
+                      fontWeight: "600",
+                      color: "rgba(255, 255, 255, 0.8)",
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                      marginBottom: 4,
                     }}
                   >
-                    {task.priority.toUpperCase()}
+                    Category
                   </Text>
+                  <View
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.2)",
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 10,
+                      alignSelf: "flex-start",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: "white",
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {task.category.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "600",
+                      color: "rgba(255, 255, 255, 0.8)",
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Priority
+                  </Text>
+                  <PriorityBadge
+                    priority={task.priority}
+                    size="medium"
+                    variant="header"
+                  />
                 </View>
               </View>
             </View>
@@ -265,20 +248,6 @@ export function TaskDetailModal({
           style={{ flex: 1, paddingHorizontal: 24, paddingTop: 28 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Title */}
-          <Text
-            style={{
-              fontSize: 32,
-              fontWeight: "800",
-              marginBottom: 24,
-              letterSpacing: -0.5,
-              color: colors.text,
-              lineHeight: 38,
-            }}
-          >
-            {task.title}
-          </Text>
-
           {/* Description */}
           {task.description && (
             <View style={{ marginBottom: 32 }}>

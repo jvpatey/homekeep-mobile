@@ -16,6 +16,7 @@ import { useSimpleAnimation, useHaptics } from "../../hooks";
 import { useTasks } from "../../context/TasksContext";
 import { AppStackParamList } from "../../navigation/types";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { PriorityBadge } from "./PriorityBadge";
 import { Task } from "../../types/task";
 import { styles } from "./styles";
 
@@ -52,21 +53,6 @@ export function UpcomingTasks() {
       Appliances: "#2ECC71",
     };
     return categoryColors[category] || colors.primary;
-  };
-
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case "urgent":
-        return "alert-circle" as const;
-      case "high":
-        return "chevron-up" as const;
-      case "medium":
-        return "remove" as const;
-      case "low":
-        return "chevron-down" as const;
-      default:
-        return "remove" as const;
-    }
   };
 
   const formatDueDate = (dateString: string): string => {
@@ -242,11 +228,10 @@ export function UpcomingTasks() {
                     >
                       {task.title}
                     </Text>
-                    <Ionicons
-                      name={getPriorityIcon(task.priority)}
-                      size={16}
-                      color={colors.textSecondary}
-                      style={styles.priorityIcon}
+                    <PriorityBadge
+                      priority={task.priority}
+                      size="small"
+                      variant="card"
                     />
                   </View>
                   <Text
@@ -255,7 +240,11 @@ export function UpcomingTasks() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    {task.category} • Due {formatDueDate(task.next_due_date)}
+                    {task.category === "hvac"
+                      ? task.category.toUpperCase()
+                      : task.category.charAt(0).toUpperCase() +
+                        task.category.slice(1).toLowerCase()}{" "}
+                    • Due {formatDueDate(task.next_due_date)}
                     {task.estimated_duration &&
                       ` • ${task.estimated_duration}m`}
                   </Text>
