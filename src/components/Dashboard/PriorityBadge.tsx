@@ -37,7 +37,7 @@ export function PriorityBadge({
           },
           text: {
             fontSize: 10,
-            fontWeight: "600",
+            fontWeight: "600" as const,
           },
           icon: 12,
         };
@@ -50,7 +50,7 @@ export function PriorityBadge({
           },
           text: {
             fontSize: 14,
-            fontWeight: "700",
+            fontWeight: "700" as const,
           },
           icon: 18,
         };
@@ -63,7 +63,7 @@ export function PriorityBadge({
           },
           text: {
             fontSize: 11,
-            fontWeight: "600",
+            fontWeight: "600" as const,
           },
           icon: 14,
         };
