@@ -22,6 +22,12 @@ export function HomeScreen() {
     <PaperProvider>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar style={isDark ? "light" : "auto"} />
+
+        {/* Theme Toggle in Top-Right Corner */}
+        <View style={styles.themeToggleContainer}>
+          <ThemeToggle size={44} />
+        </View>
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
@@ -38,7 +44,6 @@ export function HomeScreen() {
           <GradientDivider />
           <FeaturesSection />
         </ScrollView>
-        <ThemeToggle />
       </View>
     </PaperProvider>
   );
@@ -47,6 +52,12 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  themeToggleContainer: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    zIndex: 1000,
   },
   scrollView: {
     flex: 1,
