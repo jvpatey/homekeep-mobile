@@ -718,10 +718,18 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  profileAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   profileInitial: {
     fontSize: 18,
     fontWeight: "700",
     letterSpacing: 0.1,
+    color: "white",
   },
   menuOverlay: {
     flex: 1,
@@ -732,8 +740,8 @@ export const styles = StyleSheet.create({
     paddingRight: 32,
   },
   menuContainer: {
-    borderRadius: 16,
-    minWidth: 200,
+    borderRadius: 20,
+    minWidth: 280,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -744,24 +752,59 @@ export const styles = StyleSheet.create({
     elevation: 8,
     overflow: "hidden",
   },
-  menuHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  menuTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.1,
-  },
-  menuItem: {
+  profileSection: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 16,
+  },
+  menuAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuAvatarInitial: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+    color: "white",
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    fontWeight: "400",
+    letterSpacing: 0.1,
+  },
+  menuDivider: {
+    height: 1,
+    marginHorizontal: 20,
+  },
+  signOutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     gap: 12,
   },
-  menuItemText: {
+  signOutIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  signOutText: {
     fontSize: 16,
     fontWeight: "500",
     letterSpacing: 0.1,
