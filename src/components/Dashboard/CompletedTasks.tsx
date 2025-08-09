@@ -11,6 +11,8 @@ import { AppStackParamList } from "../../navigation/types";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { PriorityBadge } from "./PriorityBadge";
 import { TaskItem } from "./TaskItem";
+import { FilterButton } from "./FilterButton";
+import { PriorityFilterButton, PriorityFilter } from "./PriorityFilterButton";
 import { Task } from "../../types/task";
 import { styles } from "./styles";
 
@@ -32,6 +34,9 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   // Task detail modal state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
+
+  // Priority filter state
+  const [activePriority, setActivePriority] = useState<PriorityFilter>("all");
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
@@ -108,7 +113,7 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
     );
   };
 
-  // Filter tasks based on search query
+  // Filter tasks based on search query and priority
   const getFilteredTasks = () => {
     let filtered = [...completedTasks];
 
@@ -122,6 +127,13 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
         const categoryMatch = task.category.toLowerCase().includes(query);
         return titleMatch || descriptionMatch || categoryMatch;
       });
+    }
+
+    // Apply priority filter
+    if (activePriority !== "all") {
+      filtered = filtered.filter(
+        (task) => task.priority.toLowerCase() === activePriority
+      );
     }
 
     // Sort by completion date (most recent first)
@@ -147,11 +159,21 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
 
   const ListHeader = () => (
     <View>
-      <View style={[styles.listHeader, { marginBottom: 4 }]}>
+      <View style={styles.listHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Completed Tasks
         </Text>
       </View>
+      {!searchQuery.trim() && (
+        <View style={styles.filterButtonsContainer}>
+          <PriorityFilterButton
+            selectedPriority={activePriority}
+            onPriorityChange={setActivePriority}
+            style={styles.filterButton}
+          />
+          <FilterButton style={styles.filterButton} />
+        </View>
+      )}
       <Text
         style={[
           styles.sectionSubtitle,
@@ -167,10 +189,28 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   const EmptyState = () => {
     const getEmptyMessage = () => {
       if (searchQuery.trim()) {
-        return "No completed tasks match your search";
+        return {
+          title: "No completed tasks found",
+          subtitle: `No completed tasks match "${searchQuery}"`,
+        };
       }
-      return "No completed tasks yet";
+
+      if (activePriority === "all") {
+        return {
+          title: "No completed tasks yet",
+          subtitle: "Complete some tasks to see them here",
+        };
+      } else {
+        const priorityLabel =
+          activePriority.charAt(0).toUpperCase() + activePriority.slice(1);
+        return {
+          title: `No ${priorityLabel} priority tasks completed`,
+          subtitle: `Complete some ${activePriority} priority tasks to see them here`,
+        };
+      }
     };
+
+    const message = getEmptyMessage();
 
     return (
       <View style={styles.emptyState}>
@@ -180,12 +220,10 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
           color={colors.textSecondary}
         />
         <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          {getEmptyMessage()}
+          {message.title}
         </Text>
         <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-          {searchQuery.trim()
-            ? "Try adjusting your search terms"
-            : "Complete some tasks to see them here"}
+          {message.subtitle}
         </Text>
       </View>
     );

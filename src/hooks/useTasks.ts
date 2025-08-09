@@ -74,7 +74,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         await Promise.all([
           TaskService.getTasks(filters),
           TaskService.getUpcomingTasks(timeRange),
-          TaskService.getCompletedTasks(),
+          TaskService.getCompletedTasks(timeRange),
           TaskService.getTaskStats(),
         ]);
 

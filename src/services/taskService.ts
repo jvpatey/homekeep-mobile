@@ -375,7 +375,7 @@ export class TaskService {
   }
 
   // get completed tasks
-  static async getCompletedTasks(): Promise<{
+  static async getCompletedTasks(timeRangeDays: number = 60): Promise<{
     data: Task[] | null;
     error: any;
   }> {
@@ -384,12 +384,17 @@ export class TaskService {
     }
 
     try {
+      const now = new Date();
+      const startDate = addDays(now, -timeRangeDays); // Look back in time
+
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
         .eq("is_completed", true)
+        .gte("completed_at", startDate.toISOString())
+        .lte("completed_at", now.toISOString())
         .order("completed_at", { ascending: false })
-        .limit(20);
+        .limit(50); // Increased limit for longer time ranges
 
       if (error) throw error;
 
