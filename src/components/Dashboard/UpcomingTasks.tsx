@@ -16,9 +16,13 @@ import { styles } from "./styles";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
+interface UpcomingTasksProps {
+  searchQuery?: string;
+}
+
 // UpcomingTasks Features proper touch targets, category indicators, and navigation
 
-export function UpcomingTasks() {
+export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { triggerLight, triggerMedium } = useHaptics();
@@ -115,10 +119,23 @@ export function UpcomingTasks() {
     );
   };
 
-  // Filter tasks based on active tab
+  // Filter tasks based on active tab and search query
   const getFilteredTasks = () => {
     let filtered = [...upcomingTasks];
 
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((task) => {
+        const titleMatch = task.title.toLowerCase().includes(query);
+        const descriptionMatch =
+          task.description?.toLowerCase().includes(query) || false;
+        const categoryMatch = task.category.toLowerCase().includes(query);
+        return titleMatch || descriptionMatch || categoryMatch;
+      });
+    }
+
+    // Apply tab filter
     if (activeTab !== "all") {
       filtered = filtered.filter(
         (task) => task.priority.toLowerCase() === activeTab
@@ -222,7 +239,7 @@ export function UpcomingTasks() {
     <View>
       <View style={styles.listHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Upcoming Tasks
+          {searchQuery.trim() ? "Search Results" : "Upcoming Tasks"}
         </Text>
       </View>
       <TabBar />
@@ -231,6 +248,13 @@ export function UpcomingTasks() {
 
   const EmptyState = () => {
     const getEmptyMessage = () => {
+      if (searchQuery.trim()) {
+        return {
+          title: "No tasks found",
+          subtitle: `No tasks match "${searchQuery}"`,
+        };
+      }
+
       if (activeTab === "all") {
         return {
           title: "No upcoming tasks",
@@ -257,7 +281,7 @@ export function UpcomingTasks() {
         }}
       >
         <Ionicons
-          name="clipboard-outline"
+          name={searchQuery.trim() ? "search-outline" : "clipboard-outline"}
           size={48}
           color={colors.textSecondary}
           style={{

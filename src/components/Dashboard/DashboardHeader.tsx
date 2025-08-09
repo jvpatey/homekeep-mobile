@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Searchbar } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,13 +10,21 @@ import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { ProfileMenu } from "./ProfileMenu";
 import { styles } from "./styles";
 
+interface DashboardHeaderProps {
+  onSearchChange?: (query: string) => void;
+  searchQuery?: string;
+}
+
 // DashboardHeader - Features welcome message, user name, and expandable search bar
 
-export function DashboardHeader() {
+export function DashboardHeader({
+  onSearchChange,
+  searchQuery = "",
+}: DashboardHeaderProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
   const [searchVisible, setSearchVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
   const headerAnimatedStyle = useSimpleAnimation(0, 600, 15);
   const searchAnimatedStyle = useSimpleAnimation(
@@ -24,6 +32,14 @@ export function DashboardHeader() {
     300,
     10
   );
+
+  // Sync localSearchQuery with searchQuery prop
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+    if (searchQuery && !searchVisible) {
+      setSearchVisible(true);
+    }
+  }, [searchQuery]);
 
   // Get user's first name from full name or email
   const getUserGreeting = () => {
@@ -42,6 +58,19 @@ export function DashboardHeader() {
     return "Good evening";
   };
 
+  const handleSearchChange = (query: string) => {
+    setLocalSearchQuery(query);
+    onSearchChange?.(query);
+  };
+
+  const handleSearchToggle = () => {
+    if (searchVisible) {
+      // Clear search when closing
+      handleSearchChange("");
+    }
+    setSearchVisible(!searchVisible);
+  };
+
   return (
     <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
       {/* Large Title Header */}
@@ -56,15 +85,15 @@ export function DashboardHeader() {
         </View>
 
         <View style={styles.headerButtons}>
+          <ProfileMenu />
           <ThemeToggle
             style={[styles.headerButton, { backgroundColor: colors.surface }]}
             size={44}
             iconSize={22}
           />
-          <ProfileMenu />
           <TouchableOpacity
             style={[styles.searchButton, { backgroundColor: colors.surface }]}
-            onPress={() => setSearchVisible(!searchVisible)}
+            onPress={handleSearchToggle}
           >
             <Ionicons
               name={searchVisible ? "close" : "search"}
@@ -80,8 +109,8 @@ export function DashboardHeader() {
         <Animated.View style={[styles.searchContainer, searchAnimatedStyle]}>
           <Searchbar
             placeholder="Search tasks..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={localSearchQuery}
+            onChangeText={handleSearchChange}
             style={[
               styles.searchBar,
               {

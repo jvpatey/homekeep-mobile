@@ -15,6 +15,7 @@ export function DashboardScreen() {
   const { colors, isDark } = useTheme();
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -23,6 +24,10 @@ export function DashboardScreen() {
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
   };
 
   return (
@@ -48,9 +53,12 @@ export function DashboardScreen() {
             />
           }
         >
-          <DashboardHeader />
+          <DashboardHeader
+            onSearchChange={handleSearchChange}
+            searchQuery={searchQuery}
+          />
           <TaskSummaryCards />
-          <UpcomingTasks />
+          <UpcomingTasks searchQuery={searchQuery} />
         </ScrollView>
         <FloatingActionButton />
       </View>
