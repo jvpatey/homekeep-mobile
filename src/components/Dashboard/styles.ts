@@ -144,10 +144,15 @@ export const styles = StyleSheet.create({
     overflow: "visible",
   },
   listHeader: {
+    marginBottom: 12,
+  },
+  filterButtonsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    gap: 8,
     marginBottom: 16,
+  },
+  filterButton: {
+    // Individual filter button styling handled by components
   },
   seeAllButton: {
     paddingVertical: 8,

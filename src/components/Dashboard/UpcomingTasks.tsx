@@ -11,6 +11,8 @@ import { AppStackParamList } from "../../navigation/types";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { PriorityBadge } from "./PriorityBadge";
 import { TaskItem } from "./TaskItem";
+import { FilterButton } from "./FilterButton";
+import { PriorityFilterButton, PriorityFilter } from "./PriorityFilterButton";
 import { Task } from "../../types/task";
 import { styles } from "./styles";
 
@@ -31,11 +33,11 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<string>("all");
+  // Priority filter state
+  const [activePriority, setActivePriority] = useState<PriorityFilter>("all");
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
@@ -76,16 +78,13 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
 
   const handleTaskPress = (taskId: string) => {
     triggerLight();
-    const task = upcomingTasks.find((t) => t.id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setTaskDetailVisible(true);
-    }
+    setSelectedTaskId(taskId);
+    setTaskDetailVisible(true);
   };
 
   const handleCloseTaskDetail = () => {
     setTaskDetailVisible(false);
-    setSelectedTask(null);
+    setSelectedTaskId(null);
   };
 
   const handleEditTask = (task: Task) => {
@@ -135,10 +134,10 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       });
     }
 
-    // Apply tab filter
-    if (activeTab !== "all") {
+    // Apply priority filter
+    if (activePriority !== "all") {
       filtered = filtered.filter(
-        (task) => task.priority.toLowerCase() === activeTab
+        (task) => task.priority.toLowerCase() === activePriority
       );
     }
 
@@ -153,27 +152,6 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
   const filteredTasks = getFilteredTasks();
 
   // Tab configuration
-  const tabs = [
-    { id: "all", label: "All", count: upcomingTasks.length },
-    {
-      id: "high",
-      label: "High",
-      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "high")
-        .length,
-    },
-    {
-      id: "medium",
-      label: "Medium",
-      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "medium")
-        .length,
-    },
-    {
-      id: "low",
-      label: "Low",
-      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "low")
-        .length,
-    },
-  ];
 
   const renderTaskItem = (task: Task) => (
     <TaskItem
@@ -186,56 +164,6 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     />
   );
 
-  const TabBar = () => (
-    <View style={styles.tabBar}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab.id}
-          style={[
-            styles.tab,
-            activeTab === tab.id && { backgroundColor: colors.primary },
-          ]}
-          onPress={() => {
-            triggerLight();
-            setActiveTab(tab.id);
-          }}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === tab.id ? "white" : colors.textSecondary },
-            ]}
-          >
-            {tab.label}
-          </Text>
-          {tab.count > 0 && (
-            <View
-              style={[
-                styles.tabBadge,
-                {
-                  backgroundColor:
-                    activeTab === tab.id
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : colors.primary,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabBadgeText,
-                  { color: activeTab === tab.id ? "white" : "white" },
-                ]}
-              >
-                {tab.count}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   const ListHeader = () => (
     <View>
       <View style={styles.listHeader}>
@@ -243,7 +171,16 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
           {searchQuery.trim() ? "Search Results" : "Upcoming Tasks"}
         </Text>
       </View>
-      <TabBar />
+      {!searchQuery.trim() && (
+        <View style={styles.filterButtonsContainer}>
+          <PriorityFilterButton
+            selectedPriority={activePriority}
+            onPriorityChange={setActivePriority}
+            style={styles.filterButton}
+          />
+          <FilterButton style={styles.filterButton} />
+        </View>
+      )}
     </View>
   );
 
@@ -256,17 +193,17 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
         };
       }
 
-      if (activeTab === "all") {
+      if (activePriority === "all") {
         return {
           title: "No upcoming tasks",
           subtitle: "Tap the + button to create your first task",
         };
       } else {
         const priorityLabel =
-          activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+          activePriority.charAt(0).toUpperCase() + activePriority.slice(1);
         return {
           title: `No ${priorityLabel} priority tasks`,
-          subtitle: `All your ${activeTab} priority tasks are completed`,
+          subtitle: `All your ${activePriority} priority tasks are completed`,
         };
       }
     };
@@ -344,7 +281,7 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
 
       {/* Task Detail Modal */}
       <TaskDetailModal
-        task={selectedTask}
+        taskId={selectedTaskId}
         visible={taskDetailVisible}
         onClose={handleCloseTaskDetail}
         onEdit={handleEditTask}

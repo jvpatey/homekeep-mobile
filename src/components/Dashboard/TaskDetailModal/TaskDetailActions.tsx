@@ -51,7 +51,7 @@ export function TaskDetailActions({
             paddingHorizontal: 16,
             borderRadius: 12,
             backgroundColor: task.is_completed
-              ? colors.textSecondary
+              ? colors.warning
               : colors.success,
             shadowColor: "#000000",
             shadowOffset: { width: 0, height: 2 },
@@ -76,7 +76,7 @@ export function TaskDetailActions({
               letterSpacing: 0.2,
             }}
           >
-            {task.is_completed ? "Pending" : "Complete"}
+            {task.is_completed ? "Mark Incomplete" : "Complete"}
           </Text>
         </TouchableOpacity>
 

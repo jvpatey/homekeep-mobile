@@ -7,6 +7,7 @@ import {
   TaskFilters,
 } from "../types/task";
 import { useAuth } from "../context/AuthContext";
+import { TimeRange } from "../context/TasksContext";
 
 // UseTasksReturn - interface for the return value of the useTasks hook
 interface UseTasksReturn {
@@ -15,6 +16,7 @@ interface UseTasksReturn {
   completedTasks: Task[];
   loading: boolean;
   error: string | null;
+  timeRange: TimeRange;
   stats: {
     total: number;
     completed: number;
@@ -37,6 +39,7 @@ interface UseTasksReturn {
     taskId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  setTimeRange: (range: TimeRange) => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
 }
@@ -49,6 +52,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>(60);
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
@@ -69,7 +73,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       const [tasksResult, upcomingResult, completedResult, statsResult] =
         await Promise.all([
           TaskService.getTasks(filters),
-          TaskService.getUpcomingTasks(),
+          TaskService.getUpcomingTasks(timeRange),
           TaskService.getCompletedTasks(),
           TaskService.getTaskStats(),
         ]);
@@ -98,7 +102,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, filters]);
+  }, [user, filters, timeRange]);
 
   // createTask - create a new task
   const createTask = useCallback(
@@ -174,65 +178,12 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const { data, error } = await TaskService.completeTask(taskId);
+        const result = await TaskService.completeTask(taskId);
 
-        if (error) throw error;
+        if (result.error) throw result.error;
 
-        // Update local state
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId
-              ? {
-                  ...task,
-                  is_completed: data?.is_completed ?? true,
-                  completed_at: data?.completed_at ?? new Date().toISOString(),
-                  last_completed_date:
-                    data?.last_completed_date ?? new Date().toISOString(),
-                  next_due_date: data?.next_due_date ?? task.next_due_date,
-                  next_instance_date:
-                    data?.next_instance_date ?? task.next_instance_date,
-                }
-              : task
-          )
-        );
-
-        // If it's a recurring task, it should stay in upcoming tasks with the new due date
-        // If it's not recurring, remove it from upcoming tasks
-        if (data?.is_recurring) {
-          setUpcomingTasks((prev) =>
-            prev.map((task) =>
-              task.id === taskId
-                ? {
-                    ...task,
-                    is_completed: false, // Recurring tasks are marked as incomplete for next instance
-                    next_due_date: data?.next_due_date ?? task.next_due_date,
-                    next_instance_date:
-                      data?.next_instance_date ?? task.next_instance_date,
-                  }
-                : task
-            )
-          );
-        } else {
-          setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
-        }
-
-        // Add to completed tasks if it's not recurring, or update if it is
-        if (!data?.is_recurring) {
-          const completedTask = tasks.find((task) => task.id === taskId);
-          if (completedTask) {
-            setCompletedTasks((prev) => [
-              {
-                ...completedTask,
-                is_completed: true,
-                completed_at: data?.completed_at ?? new Date().toISOString(),
-              },
-              ...prev,
-            ]);
-          }
-        }
-
-        // Refresh stats
-        await refreshStats();
+        // Refresh all task data to ensure consistency
+        await loadTasks();
 
         return { success: true };
       } catch (err: any) {
@@ -241,7 +192,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, tasks]
+    [user, loadTasks]
   );
 
   // uncompleteTask - mark a task as incomplete
@@ -256,7 +207,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
 
         if (error) throw error;
 
-        // Refresh tasks to get updated data
+        // Refresh all task data to ensure consistency
         await loadTasks();
 
         return { success: true };
@@ -352,12 +303,14 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     completedTasks,
     loading,
     error,
+    timeRange,
     stats,
     createTask,
     updateTask,
     completeTask,
     uncompleteTask,
     deleteTask,
+    setTimeRange,
     refreshTasks,
     refreshStats,
   };

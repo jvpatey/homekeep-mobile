@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Modal, Alert } from "react-native";
 import { useSimpleAnimation, useHaptics } from "../../../hooks";
 import { useTasks } from "../../../context/TasksContext";
@@ -10,7 +10,7 @@ import { TaskDetailActions } from "./TaskDetailActions";
 import { getCategoryGradient, formatDueDate } from "./utils";
 
 interface TaskDetailModalProps {
-  task: Task | null;
+  taskId: string | null;
   visible: boolean;
   onClose: () => void;
   onEdit: (task: Task) => void;
@@ -18,25 +18,64 @@ interface TaskDetailModalProps {
 
 // TaskDetailModal - Features header, content, and actions for each task
 export function TaskDetailModal({
-  task,
+  taskId,
   visible,
   onClose,
   onEdit,
 }: TaskDetailModalProps) {
   const { colors } = useTheme();
   const { triggerLight, triggerMedium } = useHaptics();
-  const { deleteTask, updateTask } = useTasks();
+  const {
+    deleteTask,
+    completeTask,
+    uncompleteTask,
+    tasks,
+    upcomingTasks,
+    completedTasks,
+  } = useTasks();
 
-  if (!task) return null;
+  // Get the current task from the tasks context to ensure we have the latest state
+  const currentTask = useMemo(() => {
+    if (!taskId) return null;
+    // Check all task arrays to find the most up-to-date version
+    const foundTask =
+      tasks.find((t) => t.id === taskId) ||
+      upcomingTasks.find((t) => t.id === taskId) ||
+      completedTasks.find((t) => t.id === taskId);
+
+    return foundTask;
+  }, [taskId, tasks, upcomingTasks, completedTasks]);
+
+  if (!currentTask) return null;
 
   const handleToggleComplete = async () => {
     triggerMedium();
-    const { success, error } = await updateTask(task.id, {
-      is_completed: !task.is_completed,
+
+    console.log("🎯 Modal toggle complete called:", {
+      taskId: currentTask.id,
+      taskTitle: currentTask.title,
+      currentlyCompleted: currentTask.is_completed,
+      action: currentTask.is_completed
+        ? "marking incomplete"
+        : "marking complete",
     });
 
-    if (!success) {
-      Alert.alert("Error", error || "Failed to update task");
+    if (currentTask.is_completed) {
+      // Mark as incomplete
+      console.log("🔄 Calling uncompleteTask...");
+      const { success, error } = await uncompleteTask(currentTask.id);
+      console.log("🔄 UncompleteTask result:", { success, error });
+      if (!success) {
+        Alert.alert("Error", error || "Failed to mark task as incomplete");
+      }
+    } else {
+      // Mark as complete
+      console.log("✅ Calling completeTask...");
+      const { success, error } = await completeTask(currentTask.id);
+      console.log("✅ CompleteTask result:", { success, error });
+      if (!success) {
+        Alert.alert("Error", error || "Failed to complete task");
+      }
     }
   };
 
@@ -44,7 +83,7 @@ export function TaskDetailModal({
     triggerMedium();
     Alert.alert(
       "Delete Task",
-      `Are you sure you want to delete "${task.title}"?`,
+      `Are you sure you want to delete "${currentTask.title}"?`,
       [
         {
           text: "Cancel",
@@ -56,7 +95,7 @@ export function TaskDetailModal({
           style: "destructive",
           onPress: async () => {
             triggerMedium();
-            const { success, error } = await deleteTask(task.id);
+            const { success, error } = await deleteTask(currentTask.id);
             if (success) {
               onClose();
             } else {
@@ -70,7 +109,7 @@ export function TaskDetailModal({
 
   const handleEdit = () => {
     triggerLight();
-    onEdit(task);
+    onEdit(currentTask);
     onClose();
   };
 
@@ -83,13 +122,13 @@ export function TaskDetailModal({
     >
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <TaskDetailHeader
-          task={task}
+          task={currentTask}
           onClose={onClose}
           getCategoryGradient={getCategoryGradient}
         />
-        <TaskDetailContent task={task} formatDueDate={formatDueDate} />
+        <TaskDetailContent task={currentTask} formatDueDate={formatDueDate} />
         <TaskDetailActions
-          task={task}
+          task={currentTask}
           onToggleComplete={handleToggleComplete}
           onEdit={handleEdit}
           onDelete={handleDelete}

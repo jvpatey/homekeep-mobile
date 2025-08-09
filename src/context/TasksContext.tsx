@@ -5,15 +5,25 @@ import {
   CreateTaskData,
   UpdateTaskData,
   TaskFilters,
-  TaskStats,
 } from "../types/task";
+
+export type TimeRange = 30 | 60 | 90 | 120;
 
 interface UseTasksReturn {
   tasks: Task[];
   upcomingTasks: Task[];
+  completedTasks: Task[];
   loading: boolean;
   error: string | null;
-  stats: TaskStats;
+  timeRange: TimeRange;
+  stats: {
+    total: number;
+    completed: number;
+    overdue: number;
+    dueToday: number;
+    thisWeek: number;
+    completionRate: number;
+  };
   createTask: (
     taskData: CreateTaskData
   ) => Promise<{ success: boolean; error?: string }>;
@@ -21,7 +31,14 @@ interface UseTasksReturn {
     taskId: string,
     updates: UpdateTaskData
   ) => Promise<{ success: boolean; error?: string }>;
+  completeTask: (
+    taskId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  uncompleteTask: (
+    taskId: string
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  setTimeRange: (range: TimeRange) => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
 }

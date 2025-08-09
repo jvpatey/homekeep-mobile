@@ -44,12 +44,10 @@ export function DashboardScreen() {
   const sections: Section[] = [
     { id: "header", type: "header" },
     { id: "summary", type: "summary" },
-    // Only show upcoming tasks section if there are upcoming tasks
-    ...(upcomingTasks.length > 0 ? [{ id: "upcoming", type: "upcoming" }] : []),
-    // Only show completed tasks section if there are completed tasks
-    ...(completedTasks.length > 0
-      ? [{ id: "completed", type: "completed" }]
-      : []),
+    // Always show upcoming tasks section (it has its own empty state)
+    { id: "upcoming", type: "upcoming" },
+    // Always show completed tasks section (it has its own empty state)
+    { id: "completed", type: "completed" },
   ];
 
   const renderSection = useCallback(

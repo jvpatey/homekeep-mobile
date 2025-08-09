@@ -7,6 +7,7 @@ import {
   TaskWithInstances,
   TaskFilters,
 } from "../types/task";
+import { addWeeks, addMonths, addYears, startOfDay, addDays } from "date-fns";
 
 export class TaskService {
   // create a new task
@@ -28,10 +29,13 @@ export class TaskService {
         throw new Error("User not authenticated");
       }
 
-      // Add user_id to the task data
+      // Add user_id and default values to the task data
       const taskWithUserId = {
         ...taskData,
         user_id: user.id,
+        is_completed: false, // Ensure new tasks start as incomplete
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await supabase
@@ -91,8 +95,8 @@ export class TaskService {
     }
   }
 
-  // get upcoming tasks (not completed, due within next 30 days)
-  static async getUpcomingTasks(): Promise<{
+  // get upcoming tasks (not completed, due within specified time range)
+  static async getUpcomingTasks(timeRangeDays: number = 60): Promise<{
     data: Task[] | null;
     error: any;
   }> {
@@ -101,17 +105,17 @@ export class TaskService {
     }
 
     try {
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const now = new Date();
+      const endDate = addDays(now, timeRangeDays);
 
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
         .eq("is_completed", false)
-        .gte("next_due_date", new Date().toISOString())
-        .lte("next_due_date", thirtyDaysFromNow.toISOString())
+        .gte("next_due_date", now.toISOString())
+        .lte("next_due_date", endDate.toISOString())
         .order("next_due_date", { ascending: true })
-        .limit(10);
+        .limit(50); // Increased limit for longer time ranges
 
       if (error) throw error;
 
@@ -227,23 +231,10 @@ export class TaskService {
         is_completed: true,
         completed_at: now,
         updated_at: now,
-        last_completed_date: now,
       };
 
-      // If it's a recurring task, calculate the next due date
-      if (currentTask.is_recurring && currentTask.recurrence_type) {
-        const nextDueDate = TaskService.calculateNextDueDate(
-          currentTask.recurrence_type,
-          currentTask.next_due_date
-        );
-
-        updates = {
-          ...updates,
-          next_due_date: nextDueDate,
-          next_instance_date: nextDueDate,
-          is_completed: false, // Recurring tasks should be marked as incomplete for the next instance
-        };
-      }
+      // For recurring tasks, we'll create a new instance after marking this one complete
+      // Don't change the is_completed status here - let it stay completed
 
       const { data, error } = await supabase
         .from("tasks")
@@ -254,6 +245,77 @@ export class TaskService {
 
       if (error) throw error;
 
+      console.log("✅ Task marked as completed in DB:", {
+        taskId: currentTask.id,
+        isRecurring: currentTask.is_recurring,
+        recurrenceType: currentTask.recurrence_type,
+      });
+
+      // If it's a recurring task, create a new instance for the next occurrence
+      if (currentTask.is_recurring && currentTask.recurrence_type) {
+        console.log("🔄 Processing recurring task...");
+
+        // For recurring tasks, calculate next due date from the current task's due date
+        // This ensures proper spacing for recurring instances
+        const nextDueDate = TaskService.calculateNextDueDate(
+          currentTask.recurrence_type,
+          currentTask.next_due_date
+        );
+
+        // Check if a task with this exact due date already exists for this user
+        const { data: existingTask, error: queryError } = await supabase
+          .from("tasks")
+          .select("id, title, next_due_date, is_completed")
+          .eq("user_id", currentTask.user_id)
+          .eq("title", currentTask.title)
+          .eq("next_due_date", nextDueDate)
+          .eq("is_completed", false)
+          .single();
+
+        if (existingTask) {
+          // Skip creation if duplicate exists
+          console.log(
+            "❌ Skipping duplicate recurring task instance:",
+            existingTask
+          );
+        } else {
+          const newTaskData = {
+            title: currentTask.title,
+            description: currentTask.description,
+            category: currentTask.category,
+            priority: currentTask.priority,
+            estimated_duration: currentTask.estimated_duration,
+            is_recurring: currentTask.is_recurring,
+            recurrence_type: currentTask.recurrence_type,
+            next_due_date: nextDueDate,
+            user_id: currentTask.user_id,
+            is_completed: false,
+            created_at: now,
+            updated_at: now,
+          };
+
+          // Create the new instance
+          const { error: createError } = await supabase
+            .from("tasks")
+            .insert([newTaskData]);
+
+          if (createError) {
+            console.error(
+              "❌ Error creating next recurring task instance:",
+              createError
+            );
+            // Don't fail the completion, just log the error
+          } else {
+            console.log(
+              "✅ Successfully created next recurring instance for",
+              nextDueDate
+            );
+          }
+        }
+      } else {
+        console.log("📝 Non-recurring task, no next instance needed");
+      }
+
       return { data, error: null };
     } catch (error) {
       console.error("Error completing task:", error);
@@ -261,33 +323,26 @@ export class TaskService {
     }
   }
 
-  // Calculate the next due date for recurring tasks
+  // Calculate the next due date for recurring tasks using date-fns
   static calculateNextDueDate(
     recurrenceType: string,
     currentDueDate: string
   ): string {
     const currentDate = new Date(currentDueDate);
-    const nextDate = new Date(currentDate);
 
     switch (recurrenceType) {
       case "weekly":
-        nextDate.setDate(currentDate.getDate() + 7);
-        break;
+        return addWeeks(currentDate, 1).toISOString();
       case "monthly":
-        nextDate.setMonth(currentDate.getMonth() + 1);
-        break;
+        return addMonths(currentDate, 1).toISOString();
       case "quarterly":
-        nextDate.setMonth(currentDate.getMonth() + 3);
-        break;
+        return addMonths(currentDate, 3).toISOString();
       case "yearly":
-        nextDate.setFullYear(currentDate.getFullYear() + 1);
-        break;
+        return addYears(currentDate, 1).toISOString();
       default:
         // Default to weekly if unknown
-        nextDate.setDate(currentDate.getDate() + 7);
+        return addWeeks(currentDate, 1).toISOString();
     }
-
-    return nextDate.toISOString();
   }
 
   // mark a task as incomplete
@@ -395,10 +450,8 @@ export class TaskService {
       if (overdueError) throw overdueError;
 
       // Get tasks due today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const today = startOfDay(new Date());
+      const tomorrow = addDays(today, 1);
 
       const { data: todayTasks, error: todayError } = await supabase
         .from("tasks")
@@ -410,8 +463,7 @@ export class TaskService {
       if (todayError) throw todayError;
 
       // Get tasks due this week (next 7 days)
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
+      const nextWeek = addWeeks(today, 1);
 
       const { data: thisWeekTasks, error: thisWeekError } = await supabase
         .from("tasks")

@@ -254,7 +254,6 @@ const styles = {
     paddingHorizontal: 20,
     borderRadius: 16,
     height: 72, // Fixed height instead of minHeight
-    width: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

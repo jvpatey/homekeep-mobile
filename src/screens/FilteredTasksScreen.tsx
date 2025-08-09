@@ -32,7 +32,7 @@ export function FilteredTasksScreen() {
   const { getCategoryColor } = useCategoryColors();
 
   // Task detail modal state
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
   const { filterType, title } = route.params;
@@ -73,16 +73,13 @@ export function FilteredTasksScreen() {
   }, [filteredTasks]);
 
   const handleTaskPress = (taskId: string) => {
-    const task = sortedTasks.find((t) => t.id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setTaskDetailVisible(true);
-    }
+    setSelectedTaskId(taskId);
+    setTaskDetailVisible(true);
   };
 
   const handleCloseTaskDetail = () => {
     setTaskDetailVisible(false);
-    setSelectedTask(null);
+    setSelectedTaskId(null);
   };
 
   const handleEditTask = (task: Task) => {
@@ -169,7 +166,7 @@ export function FilteredTasksScreen() {
 
       {/* Task Detail Modal */}
       <TaskDetailModal
-        task={selectedTask}
+        taskId={selectedTaskId}
         visible={taskDetailVisible}
         onClose={handleCloseTaskDetail}
         onEdit={handleEditTask}

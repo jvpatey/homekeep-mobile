@@ -30,7 +30,7 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
   const getCategoryColor = (category: string): string => {
@@ -72,16 +72,13 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
 
   const handleTaskPress = (taskId: string) => {
     triggerLight();
-    const task = completedTasks.find((t) => t.id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setTaskDetailVisible(true);
-    }
+    setSelectedTaskId(taskId);
+    setTaskDetailVisible(true);
   };
 
   const handleCloseTaskDetail = () => {
     setTaskDetailVisible(false);
-    setSelectedTask(null);
+    setSelectedTaskId(null);
   };
 
   const handleEditTask = (task: Task) => {
@@ -227,7 +224,7 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
       </Animated.View>
 
       <TaskDetailModal
-        task={selectedTask}
+        taskId={selectedTaskId}
         visible={taskDetailVisible}
         onClose={handleCloseTaskDetail}
         onEdit={handleEditTask}
