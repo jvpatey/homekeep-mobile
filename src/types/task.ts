@@ -13,6 +13,9 @@ export interface Task {
   updated_at: string;
   completed_at?: string;
   is_completed: boolean;
+  // New fields for better recurring task support
+  last_completed_date?: string; // ISO date string - when the last instance was completed
+  next_instance_date?: string; // ISO date string - when the next instance is due
 }
 
 export interface TaskInstance {
@@ -22,6 +25,11 @@ export interface TaskInstance {
   completed_at?: string;
   is_completed: boolean;
   created_at: string;
+}
+
+export interface TaskWithInstances {
+  task: Task;
+  instances: TaskInstance[];
 }
 
 export interface CreateTaskData {
@@ -45,10 +53,8 @@ export interface UpdateTaskData {
   recurrence_type?: "weekly" | "monthly" | "quarterly" | "yearly";
   next_due_date?: string;
   is_completed?: boolean;
-}
-
-export interface TaskWithInstances extends Task {
-  instances?: TaskInstance[];
+  last_completed_date?: string;
+  next_instance_date?: string;
 }
 
 export interface TaskFilters {
@@ -57,4 +63,5 @@ export interface TaskFilters {
   is_completed?: boolean;
   due_date_from?: string;
   due_date_to?: string;
+  show_completed?: boolean;
 }

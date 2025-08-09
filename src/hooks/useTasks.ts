@@ -12,6 +12,7 @@ import { useAuth } from "../context/AuthContext";
 interface UseTasksReturn {
   tasks: Task[];
   upcomingTasks: Task[];
+  completedTasks: Task[];
   loading: boolean;
   error: string | null;
   stats: {
@@ -45,6 +46,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -64,18 +66,22 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     setError(null);
 
     try {
-      const [tasksResult, upcomingResult, statsResult] = await Promise.all([
-        TaskService.getTasks(filters),
-        TaskService.getUpcomingTasks(),
-        TaskService.getTaskStats(),
-      ]);
+      const [tasksResult, upcomingResult, completedResult, statsResult] =
+        await Promise.all([
+          TaskService.getTasks(filters),
+          TaskService.getUpcomingTasks(),
+          TaskService.getCompletedTasks(),
+          TaskService.getTaskStats(),
+        ]);
 
       if (tasksResult.error) throw tasksResult.error;
       if (upcomingResult.error) throw upcomingResult.error;
+      if (completedResult.error) throw completedResult.error;
       if (statsResult.error) throw statsResult.error;
 
       setTasks(tasksResult.data || []);
       setUpcomingTasks([...(upcomingResult.data || [])]);
+      setCompletedTasks([...(completedResult.data || [])]);
       setStats(
         statsResult.data || {
           total: 0,
@@ -178,13 +184,52 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
             task.id === taskId
               ? {
                   ...task,
-                  is_completed: true,
-                  completed_at: new Date().toISOString(),
+                  is_completed: data?.is_completed ?? true,
+                  completed_at: data?.completed_at ?? new Date().toISOString(),
+                  last_completed_date:
+                    data?.last_completed_date ?? new Date().toISOString(),
+                  next_due_date: data?.next_due_date ?? task.next_due_date,
+                  next_instance_date:
+                    data?.next_instance_date ?? task.next_instance_date,
                 }
               : task
           )
         );
-        setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
+
+        // If it's a recurring task, it should stay in upcoming tasks with the new due date
+        // If it's not recurring, remove it from upcoming tasks
+        if (data?.is_recurring) {
+          setUpcomingTasks((prev) =>
+            prev.map((task) =>
+              task.id === taskId
+                ? {
+                    ...task,
+                    is_completed: false, // Recurring tasks are marked as incomplete for next instance
+                    next_due_date: data?.next_due_date ?? task.next_due_date,
+                    next_instance_date:
+                      data?.next_instance_date ?? task.next_instance_date,
+                  }
+                : task
+            )
+          );
+        } else {
+          setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
+        }
+
+        // Add to completed tasks if it's not recurring, or update if it is
+        if (!data?.is_recurring) {
+          const completedTask = tasks.find((task) => task.id === taskId);
+          if (completedTask) {
+            setCompletedTasks((prev) => [
+              {
+                ...completedTask,
+                is_completed: true,
+                completed_at: data?.completed_at ?? new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+          }
+        }
 
         // Refresh stats
         await refreshStats();
@@ -196,7 +241,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user]
+    [user, tasks]
   );
 
   // uncompleteTask - mark a task as incomplete
@@ -289,6 +334,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     } else {
       setTasks([]);
       setUpcomingTasks([]);
+      setCompletedTasks([]);
       setStats({
         total: 0,
         completed: 0,
@@ -303,6 +349,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   return {
     tasks,
     upcomingTasks,
+    completedTasks,
     loading,
     error,
     stats,

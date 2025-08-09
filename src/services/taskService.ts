@@ -213,13 +213,41 @@ export class TaskService {
     }
 
     try {
+      // First, get the current task to check if it's recurring
+      const { data: currentTask, error: fetchError } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("id", taskId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const now = new Date().toISOString();
+      let updates: any = {
+        is_completed: true,
+        completed_at: now,
+        updated_at: now,
+        last_completed_date: now,
+      };
+
+      // If it's a recurring task, calculate the next due date
+      if (currentTask.is_recurring && currentTask.recurrence_type) {
+        const nextDueDate = TaskService.calculateNextDueDate(
+          currentTask.recurrence_type,
+          currentTask.next_due_date
+        );
+
+        updates = {
+          ...updates,
+          next_due_date: nextDueDate,
+          next_instance_date: nextDueDate,
+          is_completed: false, // Recurring tasks should be marked as incomplete for the next instance
+        };
+      }
+
       const { data, error } = await supabase
         .from("tasks")
-        .update({
-          is_completed: true,
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updates)
         .eq("id", taskId)
         .select()
         .single();
@@ -231,6 +259,35 @@ export class TaskService {
       console.error("Error completing task:", error);
       return { data: null, error };
     }
+  }
+
+  // Calculate the next due date for recurring tasks
+  static calculateNextDueDate(
+    recurrenceType: string,
+    currentDueDate: string
+  ): string {
+    const currentDate = new Date(currentDueDate);
+    const nextDate = new Date(currentDate);
+
+    switch (recurrenceType) {
+      case "weekly":
+        nextDate.setDate(currentDate.getDate() + 7);
+        break;
+      case "monthly":
+        nextDate.setMonth(currentDate.getMonth() + 1);
+        break;
+      case "quarterly":
+        nextDate.setMonth(currentDate.getMonth() + 3);
+        break;
+      case "yearly":
+        nextDate.setFullYear(currentDate.getFullYear() + 1);
+        break;
+      default:
+        // Default to weekly if unknown
+        nextDate.setDate(currentDate.getDate() + 7);
+    }
+
+    return nextDate.toISOString();
   }
 
   // mark a task as incomplete
@@ -258,6 +315,32 @@ export class TaskService {
       return { data, error: null };
     } catch (error) {
       console.error("Error uncompleting task:", error);
+      return { data: null, error };
+    }
+  }
+
+  // get completed tasks
+  static async getCompletedTasks(): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("is_completed", true)
+        .order("completed_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error fetching completed tasks:", error);
       return { data: null, error };
     }
   }

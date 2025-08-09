@@ -9,9 +9,9 @@ import { useSimpleAnimation, useHaptics } from "../hooks";
 import { useTasks } from "../context/TasksContext";
 import { AppStackParamList } from "../navigation/types";
 import { TaskDetailModal } from "../components/Dashboard/TaskDetailModal";
+import { TaskItem } from "../components/Dashboard/TaskItem";
 import {
   FilteredTasksHeader,
-  SwipeableTaskItem,
   EmptyState,
   useCategoryColors,
   formatDueDate,
@@ -132,12 +132,13 @@ export function FilteredTasksScreen() {
   };
 
   const renderTaskItem = ({ item: task }: { item: Task }) => (
-    <SwipeableTaskItem
+    <TaskItem
       task={task}
       onPress={handleTaskPress}
       onDelete={handleDeleteTask}
       getCategoryColor={getCategoryColor}
       formatDueDate={formatDueDate}
+      showDeleteButton={true}
     />
   );
 

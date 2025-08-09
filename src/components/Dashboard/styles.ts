@@ -466,6 +466,59 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.8,
   },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    fontWeight: "400",
+    textAlign: "center",
+    opacity: 0.8,
+  },
+
+  // Section Header Styles
+  sectionHeader: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    marginTop: 4,
+    opacity: 0.8,
+  },
+
+  // Loading Styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "400",
+    marginTop: 16,
+  },
+
+  // Container Styles
+  container: {
+    flex: 1,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  separator: {
+    height: 12,
+  },
 
   // Floating Action Button Styles
   fabContainer: {

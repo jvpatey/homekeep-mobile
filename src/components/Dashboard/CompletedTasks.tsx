@@ -16,30 +16,25 @@ import { styles } from "./styles";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-interface UpcomingTasksProps {
+interface CompletedTasksProps {
   searchQuery?: string;
 }
 
-// UpcomingTasks Features proper touch targets, category indicators, and navigation
-
-export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
+// CompletedTasks - Features completed tasks display with green styling
+export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { triggerLight, triggerMedium } = useHaptics();
   const tasksHook = useTasks();
-  const { upcomingTasks, loading, deleteTask } = tasksHook;
+  const { completedTasks, loading, deleteTask } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<string>("all");
-
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
-      // Handle both lowercase (stored in DB) and uppercase (display) versions
       hvac: "#FF6B6B",
       HVAC: "#FF6B6B",
       exterior: "#4ECDC4",
@@ -56,27 +51,28 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     return categoryColors[category] || colors.primary;
   };
 
-  const formatDueDate = (dateString: string): string => {
+  const formatCompletedDate = (dateString: string): string => {
     const date = new Date(dateString);
     const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
       return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
     } else {
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
+        year: "numeric",
       });
     }
   };
 
   const handleTaskPress = (taskId: string) => {
     triggerLight();
-    const task = upcomingTasks.find((t) => t.id === taskId);
+    const task = completedTasks.find((t) => t.id === taskId);
     if (task) {
       setSelectedTask(task);
       setTaskDetailVisible(true);
@@ -99,11 +95,7 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       "Delete Task",
       `Are you sure you want to delete "${taskTitle}"?`,
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => triggerLight(),
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
@@ -119,9 +111,9 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     );
   };
 
-  // Filter tasks based on active tab and search query
+  // Filter tasks based on search query
   const getFilteredTasks = () => {
-    let filtered = [...upcomingTasks];
+    let filtered = [...completedTasks];
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -135,45 +127,15 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       });
     }
 
-    // Apply tab filter
-    if (activeTab !== "all") {
-      filtered = filtered.filter(
-        (task) => task.priority.toLowerCase() === activeTab
-      );
-    }
-
-    // Sort by due date (earliest first)
+    // Sort by completion date (most recent first)
     return filtered.sort(
       (a, b) =>
-        new Date(a.next_due_date).getTime() -
-        new Date(b.next_due_date).getTime()
+        new Date(b.completed_at || "").getTime() -
+        new Date(a.completed_at || "").getTime()
     );
   };
 
   const filteredTasks = getFilteredTasks();
-
-  // Tab configuration
-  const tabs = [
-    { id: "all", label: "All", count: upcomingTasks.length },
-    {
-      id: "high",
-      label: "High",
-      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "high")
-        .length,
-    },
-    {
-      id: "medium",
-      label: "Medium",
-      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "medium")
-        .length,
-    },
-    {
-      id: "low",
-      label: "Low",
-      count: upcomingTasks.filter((t) => t.priority.toLowerCase() === "low")
-        .length,
-    },
-  ];
 
   const renderTaskItem = (task: Task) => (
     <TaskItem
@@ -181,144 +143,66 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       onPress={handleTaskPress}
       onDelete={handleDeleteTask}
       getCategoryColor={getCategoryColor}
-      formatDueDate={formatDueDate}
+      formatDueDate={formatCompletedDate}
       showDeleteButton={true}
     />
   );
 
-  const TabBar = () => (
-    <View style={styles.tabBar}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab.id}
-          style={[
-            styles.tab,
-            activeTab === tab.id && { backgroundColor: colors.primary },
-          ]}
-          onPress={() => {
-            triggerLight();
-            setActiveTab(tab.id);
-          }}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === tab.id ? "white" : colors.textSecondary },
-            ]}
-          >
-            {tab.label}
-          </Text>
-          {tab.count > 0 && (
-            <View
-              style={[
-                styles.tabBadge,
-                {
-                  backgroundColor:
-                    activeTab === tab.id
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : colors.primary,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabBadgeText,
-                  { color: activeTab === tab.id ? "white" : "white" },
-                ]}
-              >
-                {tab.count}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   const ListHeader = () => (
     <View>
-      <View style={styles.listHeader}>
+      <View style={[styles.listHeader, { marginBottom: 4 }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {searchQuery.trim() ? "Search Results" : "Upcoming Tasks"}
+          Completed Tasks
         </Text>
       </View>
-      <TabBar />
+      <Text
+        style={[
+          styles.sectionSubtitle,
+          { color: colors.textSecondary, marginBottom: 8 },
+        ]}
+      >
+        {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}{" "}
+        completed
+      </Text>
     </View>
   );
 
   const EmptyState = () => {
     const getEmptyMessage = () => {
       if (searchQuery.trim()) {
-        return {
-          title: "No tasks found",
-          subtitle: `No tasks match "${searchQuery}"`,
-        };
+        return "No completed tasks match your search";
       }
-
-      if (activeTab === "all") {
-        return {
-          title: "No upcoming tasks",
-          subtitle: "Tap the + button to create your first task",
-        };
-      } else {
-        const priorityLabel =
-          activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
-        return {
-          title: `No ${priorityLabel} priority tasks`,
-          subtitle: `All your ${activeTab} priority tasks are completed`,
-        };
-      }
+      return "No completed tasks yet";
     };
 
-    const message = getEmptyMessage();
-
     return (
-      <View
-        style={{
-          alignItems: "center",
-          paddingVertical: 40,
-          paddingHorizontal: 20,
-        }}
-      >
+      <View style={styles.emptyState}>
         <Ionicons
-          name={searchQuery.trim() ? "search-outline" : "clipboard-outline"}
+          name="checkmark-circle-outline"
           size={48}
           color={colors.textSecondary}
-          style={{
-            marginBottom: 16,
-            opacity: 0.6,
-          }}
         />
-        <Text
-          style={[
-            {
-              fontSize: 18,
-              fontWeight: "600",
-              marginBottom: 8,
-              textAlign: "center",
-            },
-            { color: colors.textSecondary },
-          ]}
-        >
-          {message.title}
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          {getEmptyMessage()}
         </Text>
-        <Text
-          style={[
-            {
-              fontSize: 16,
-              fontWeight: "400",
-              textAlign: "center",
-              opacity: 0.8,
-            },
-            { color: colors.textSecondary },
-          ]}
-        >
-          {message.subtitle}
+        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+          {searchQuery.trim()
+            ? "Try adjusting your search terms"
+            : "Complete some tasks to see them here"}
         </Text>
       </View>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading completed tasks...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -342,7 +226,6 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
         </View>
       </Animated.View>
 
-      {/* Task Detail Modal */}
       <TaskDetailModal
         task={selectedTask}
         visible={taskDetailVisible}
