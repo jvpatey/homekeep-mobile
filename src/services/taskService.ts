@@ -108,11 +108,15 @@ export class TaskService {
       const now = new Date();
       const endDate = addDays(now, timeRangeDays);
 
+      // Use start of day for more reliable date comparison
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
         .eq("is_completed", false)
-        .gte("next_due_date", now.toISOString())
+        .gte("next_due_date", startOfToday.toISOString())
         .lte("next_due_date", endDate.toISOString())
         .order("next_due_date", { ascending: true })
         .limit(50); // Increased limit for longer time ranges

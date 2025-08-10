@@ -13,7 +13,12 @@ export function EmptyState({ filterType, title }: EmptyStateProps) {
   const { colors } = useTheme();
 
   const getEmptyMessage = () => {
-    if (filterType === "overdue") {
+    if (filterType === "completed") {
+      return {
+        title: "No completed tasks",
+        subtitle: "Complete some tasks to see them here!",
+      };
+    } else if (filterType === "overdue") {
       return {
         title: "No overdue tasks",
         subtitle: "Great job! You're all caught up.",
@@ -31,7 +36,7 @@ export function EmptyState({ filterType, title }: EmptyStateProps) {
   return (
     <View style={styles.emptyContainer}>
       <Ionicons
-        name="checkmark-circle-outline"
+        name={filterType === "completed" ? "clipboard-outline" : "checkmark-circle-outline"}
         size={64}
         color={colors.textSecondary}
         style={styles.emptyIcon}

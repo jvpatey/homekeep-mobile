@@ -27,7 +27,7 @@ export function FilteredTasksScreen() {
   const { colors, isDark } = useTheme();
   const route = useRoute<FilteredTasksRouteProp>();
   const { triggerMedium } = useHaptics();
-  const { upcomingTasks, deleteTask } = useTasks();
+  const { upcomingTasks, completedTasks, deleteTask } = useTasks();
   const listAnimatedStyle = useSimpleAnimation(400, 400, 20);
   const { getCategoryColor } = useCategoryColors();
 
@@ -57,20 +57,28 @@ export function FilteredTasksScreen() {
         const taskDate = new Date(task.next_due_date);
         return taskDate >= today && taskDate < nextWeek;
       });
-    } else if (filterType === "overdue") {
-      return upcomingTasks.filter((task) => {
-        const taskDate = new Date(task.next_due_date);
-        return taskDate < today;
-      });
+    } else if (filterType === "completed") {
+      // Return completed tasks from the context
+      return completedTasks;
     } else {
       return upcomingTasks;
     }
-  }, [upcomingTasks, filterType]);
+  }, [upcomingTasks, completedTasks, filterType]);
 
-  // Sort tasks by priority and due date
+  // Sort tasks appropriately based on filter type
   const sortedTasks = useMemo(() => {
-    return sortTasksByPriorityAndDate(filteredTasks);
-  }, [filteredTasks]);
+    if (filterType === "completed") {
+      // Sort completed tasks by completion date (most recent first)
+      return [...filteredTasks].sort((a, b) => {
+        const dateA = new Date(a.completed_at || a.next_due_date);
+        const dateB = new Date(b.completed_at || b.next_due_date);
+        return dateB.getTime() - dateA.getTime(); // Most recent first
+      });
+    } else {
+      // Sort upcoming tasks by priority and due date
+      return sortTasksByPriorityAndDate(filteredTasks);
+    }
+  }, [filteredTasks, filterType]);
 
   const handleTaskPress = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -88,6 +96,9 @@ export function FilteredTasksScreen() {
   };
 
   const handleMarkAllComplete = () => {
+    // Don't show this for completed tasks
+    if (filterType === "completed") return;
+    
     triggerMedium();
     Alert.alert(
       "Mark All Complete",
@@ -147,6 +158,7 @@ export function FilteredTasksScreen() {
       <FilteredTasksHeader
         title={title}
         taskCount={sortedTasks.length}
+        filterType={filterType}
         onMarkAllComplete={handleMarkAllComplete}
       />
 

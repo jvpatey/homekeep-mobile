@@ -64,6 +64,7 @@ export function CreateTaskModal({
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
       nextWeek.setHours(9, 0, 0, 0);
+
       return nextWeek;
     })(),
   });

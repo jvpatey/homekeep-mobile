@@ -12,6 +12,7 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 interface FilteredTasksHeaderProps {
   title: string;
   taskCount: number;
+  filterType?: string;
   onMarkAllComplete?: () => void;
 }
 
@@ -19,6 +20,7 @@ interface FilteredTasksHeaderProps {
 export function FilteredTasksHeader({
   title,
   taskCount,
+  filterType,
   onMarkAllComplete,
 }: FilteredTasksHeaderProps) {
   const { colors } = useTheme();
@@ -47,7 +49,7 @@ export function FilteredTasksHeader({
         </Text>
       </View>
 
-      {taskCount > 0 && onMarkAllComplete && (
+      {taskCount > 0 && onMarkAllComplete && filterType !== "completed" && (
         <TouchableOpacity
           style={styles.actionButton}
           onPress={onMarkAllComplete}

@@ -142,11 +142,13 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     }
 
     // Sort by due date (earliest first)
-    return filtered.sort(
+    const sorted = filtered.sort(
       (a, b) =>
         new Date(a.next_due_date).getTime() -
         new Date(b.next_due_date).getTime()
     );
+
+    return sorted;
   };
 
   const filteredTasks = getFilteredTasks();

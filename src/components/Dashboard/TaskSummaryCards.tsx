@@ -42,13 +42,13 @@ export function TaskSummaryCards() {
       filterType: "thisWeek" as const,
     },
     {
-      title: "Overdue",
-      count: stats.overdue,
-      icon: "warning-outline" as const,
+      title: "Completed",
+      count: stats.completed,
+      icon: "checkmark-circle-outline" as const,
       gradient: [colors.warning, colors.accent] as const,
       iconColor: "#FFFFFF",
       animatedStyle: cardAnimatedStyles[2],
-      filterType: "overdue" as const,
+      filterType: "completed" as const,
     },
   ];
 
