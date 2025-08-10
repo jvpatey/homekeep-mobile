@@ -17,6 +17,8 @@ interface TaskItemProps {
   task: Task;
   onPress: (taskId: string) => void;
   onDelete?: (taskId: string, taskTitle: string) => void;
+  onComplete?: (taskId: string) => void;
+  onUncomplete?: (taskId: string) => void;
   getCategoryColor: (category: string) => string;
   formatDueDate: (dateString: string) => string;
   showDeleteButton?: boolean;
@@ -27,6 +29,8 @@ export function TaskItem({
   task,
   onPress,
   onDelete,
+  onComplete,
+  onUncomplete,
   getCategoryColor,
   formatDueDate,
   showDeleteButton = false,
@@ -43,12 +47,13 @@ export function TaskItem({
         .activeOffsetX([-10, 10])
         .onUpdate((event) => {
           if (event.translationX < 0) {
-            translateX.value = Math.max(event.translationX, -76);
+            // Increased swipe distance to accommodate both buttons
+            translateX.value = Math.max(event.translationX, -140);
           }
         })
         .onEnd((event) => {
-          const shouldShowDelete = event.translationX < -30;
-          translateX.value = withTiming(shouldShowDelete ? -76 : 0);
+          const shouldShowButtons = event.translationX < -30;
+          translateX.value = withTiming(shouldShowButtons ? -140 : 0);
         })
     : Gesture.Pan().enabled(false);
 
@@ -75,27 +80,69 @@ export function TaskItem({
     zIndex: translateX.value < -10 ? 1 : -1,
   }));
 
+  const completeButtonStyle = useAnimatedStyle(() => ({
+    opacity: translateX.value < -10 ? withTiming(1) : withTiming(0),
+    transform: [
+      { scale: translateX.value < -20 ? withTiming(1) : withTiming(0.8) },
+    ],
+    zIndex: translateX.value < -10 ? 1 : -1,
+  }));
+
   return (
     <View style={styles.swipeContainer}>
-      {showDeleteButton && onDelete && (
-        <Animated.View style={[styles.deleteBackground, deleteButtonStyle]}>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => {
-              translateX.value = withTiming(0);
-              onDelete(task.id, task.title);
-            }}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={["#FF6B6B", "#E74C3C"]}
-              style={styles.deleteGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+      {showDeleteButton && (
+        <Animated.View style={[styles.buttonsBackground, deleteButtonStyle]}>
+          {/* Complete/Uncomplete Button */}
+          {onComplete && onUncomplete && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.completeButton]}
+              onPress={() => {
+                translateX.value = withTiming(0);
+                if (isCompleted) {
+                  onUncomplete(task.id);
+                } else {
+                  onComplete(task.id);
+                }
+              }}
+              activeOpacity={0.9}
             >
-              <Ionicons name="trash-outline" size={20} color="white" />
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={
+                  isCompleted ? ["#FFA726", "#FF9800"] : ["#4CAF50", "#45A049"]
+                }
+                style={styles.actionGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons
+                  name={isCompleted ? "refresh-outline" : "checkmark-outline"}
+                  size={20}
+                  color="white"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* Delete Button */}
+          {onDelete && (
+            <TouchableOpacity
+              style={[styles.actionButton]}
+              onPress={() => {
+                translateX.value = withTiming(0);
+                onDelete(task.id, task.title);
+              }}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={["#FF6B6B", "#E74C3C"]}
+                style={styles.actionGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="trash-outline" size={20} color="white" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </Animated.View>
       )}
 
@@ -219,34 +266,7 @@ const styles = {
     position: "relative" as const,
     marginHorizontal: 2, // Small margin to prevent shadow clipping
   },
-  deleteBackground: {
-    position: "absolute" as const,
-    right: 8, // 8px from edge
-    top: 8, // 8px from top for separation
-    bottom: 8, // 8px from bottom for separation
-    width: 60, // Button width + small margin
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  deleteButton: {
-    width: 56,
-    flex: 1, // Take full height of container
-    borderRadius: 12,
-    overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-    marginVertical: 4, // Small margin for visual separation
-  },
-  deleteGradient: {
-    width: 56,
-    flex: 1, // Take full height
-    borderRadius: 12,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
+
   taskItem: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -296,5 +316,37 @@ const styles = {
   },
   taskItemRight: {
     marginLeft: 16,
+  },
+  buttonsBackground: {
+    position: "absolute" as const,
+    right: 8, // 8px from edge
+    top: 8, // 8px from top for separation
+    bottom: 8, // 8px from bottom for separation
+    width: 120, // Two buttons + small margin
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+  },
+  actionButton: {
+    width: 56,
+    flex: 1, // Take full height of container
+    borderRadius: 12,
+    overflow: "hidden" as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    marginVertical: 4, // Small margin for visual separation
+  },
+  actionGradient: {
+    width: 56,
+    flex: 1, // Take full height
+    borderRadius: 12,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  completeButton: {
+    marginRight: 8, // Space between complete and delete buttons
   },
 };
