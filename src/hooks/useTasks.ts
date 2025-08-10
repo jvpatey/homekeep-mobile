@@ -73,6 +73,11 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     setError(null);
 
     try {
+      console.log(
+        `🔄 useTasks: Loading tasks with filter = ${
+          timeRange === "all" ? "All Tasks" : `${timeRange} days`
+        }`
+      );
       const [tasksResult, upcomingResult, completedResult, statsResult] =
         await Promise.all([
           TaskService.getTasks(filters),
@@ -86,14 +91,11 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       if (completedResult.error) throw completedResult.error;
       if (statsResult.error) throw statsResult.error;
 
-      // Get all incomplete tasks (including overdue ones) from the main tasks result
-      const allIncompleteTasks = (tasksResult.data || []).filter(
-        (task) => !task.is_completed
-      );
+      const upcomingCount = upcomingResult.data?.length || 0;
+      const completedCount = completedResult.data?.length || 0;
 
       setTasks(tasksResult.data || []);
-      // Use all incomplete tasks instead of just upcoming ones
-      setUpcomingTasks(allIncompleteTasks);
+      setUpcomingTasks(upcomingResult.data || []);
       setCompletedTasks([...(completedResult.data || [])]);
       setStats(
         statsResult.data || {
@@ -105,9 +107,11 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           completionRate: 0,
         }
       );
+      
+      console.log(`✅ useTasks: Successfully loaded ${upcomingCount} upcoming + ${completedCount} completed tasks`);
     } catch (err: any) {
       setError(err.message || "Failed to load tasks");
-      console.error("Error loading tasks:", err);
+      console.error("❌ useTasks: Error loading tasks:", err);
     } finally {
       setLoading(false);
     }

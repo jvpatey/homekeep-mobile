@@ -15,6 +15,7 @@ const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: 60, label: "60 Days" },
   { value: 90, label: "90 Days" },
   { value: 120, label: "120 Days" },
+  { value: "all", label: "All Tasks" },
 ];
 
 export function FilterButton({ style }: FilterButtonProps) {

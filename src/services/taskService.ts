@@ -95,8 +95,8 @@ export class TaskService {
     }
   }
 
-  // get upcoming tasks (not completed, due within specified time range)
-  static async getUpcomingTasks(timeRangeDays: number = 60): Promise<{
+  // get upcoming tasks (not completed, includes overdue tasks and tasks due within specified time range)
+  static async getUpcomingTasks(timeRange: number | "all" = 60): Promise<{
     data: Task[] | null;
     error: any;
   }> {
@@ -105,25 +105,76 @@ export class TaskService {
     }
 
     try {
+      // If "all" is selected, get all incomplete tasks
+      if (timeRange === "all") {
+        console.log("📋 TaskService: Fetching all incomplete tasks (no time limit)");
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("is_completed", false)
+          .not("next_due_date", "is", null)
+          .order("next_due_date", { ascending: true })
+          .limit(200); // Higher limit for all tasks
+
+        if (error) {
+          console.error("❌ TaskService: Error fetching all incomplete tasks:", error);
+          throw error;
+        }
+
+        console.log(`✅ TaskService: Found ${data?.length || 0} upcoming tasks (all time ranges)`);
+        return { data, error: null };
+      }
+
+      // Ensure timeRange is a valid number for date calculations
+      const timeRangeDays = timeRange as number;
+      if (typeof timeRangeDays !== "number" || timeRangeDays < 0) {
+        throw new Error(`Invalid time range: ${timeRange}`);
+      }
+
+      // For specific time ranges, get overdue + future tasks within range
       const now = new Date();
       const endDate = addDays(now, timeRangeDays);
+      const startOfToday = startOfDay(now);
 
-      // Use start of day for more reliable date comparison
-      const startOfToday = new Date(now);
-      startOfToday.setHours(0, 0, 0, 0);
+      // Get incomplete tasks in two categories:
+      // 1. Overdue tasks (due before today)
+      // 2. Future tasks (due from today up to the time range)
 
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("is_completed", false)
-        .gte("next_due_date", startOfToday.toISOString())
-        .lte("next_due_date", endDate.toISOString())
-        .order("next_due_date", { ascending: true })
-        .limit(50); // Increased limit for longer time ranges
+      const [overdueResult, futureResult] = await Promise.all([
+        // Get overdue tasks (due before today)
+        supabase
+          .from("tasks")
+          .select("*")
+          .eq("is_completed", false)
+          .lt("next_due_date", startOfToday.toISOString())
+          .order("next_due_date", { ascending: true })
+          .limit(50),
 
-      if (error) throw error;
+        // Get future tasks (due from today up to the time range)
+        supabase
+          .from("tasks")
+          .select("*")
+          .eq("is_completed", false)
+          .gte("next_due_date", startOfToday.toISOString())
+          .lte("next_due_date", endDate.toISOString())
+          .order("next_due_date", { ascending: true })
+          .limit(50),
+      ]);
 
-      return { data, error: null };
+      if (overdueResult.error) throw overdueResult.error;
+      if (futureResult.error) throw futureResult.error;
+
+      // Combine and sort all tasks by due date
+      const allTasks = [
+        ...(overdueResult.data || []),
+        ...(futureResult.data || []),
+      ].sort(
+        (a, b) =>
+          new Date(a.next_due_date).getTime() -
+          new Date(b.next_due_date).getTime()
+      );
+
+      return { data: allTasks, error: null };
     } catch (error) {
       console.error("Error fetching upcoming tasks:", error);
       return { data: null, error };
@@ -362,7 +413,7 @@ export class TaskService {
   }
 
   // get completed tasks
-  static async getCompletedTasks(timeRangeDays: number = 60): Promise<{
+  static async getCompletedTasks(timeRange: number | "all" = 60): Promise<{
     data: Task[] | null;
     error: any;
   }> {
@@ -371,6 +422,33 @@ export class TaskService {
     }
 
     try {
+      // If "all" is selected, get all completed tasks
+      if (timeRange === "all") {
+        console.log("📋 TaskService: Fetching all completed tasks (no time limit)");
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("is_completed", true)
+          .not("completed_at", "is", null)
+          .order("completed_at", { ascending: false })
+          .limit(200); // Higher limit for all tasks
+
+        if (error) {
+          console.error("❌ TaskService: Error fetching all completed tasks:", error);
+          throw error;
+        }
+
+        console.log(`✅ TaskService: Found ${data?.length || 0} completed tasks (all time ranges)`);
+        return { data, error: null };
+      }
+
+      // Ensure timeRange is a valid number for date calculations
+      const timeRangeDays = timeRange as number;
+      if (typeof timeRangeDays !== "number" || timeRangeDays < 0) {
+        throw new Error(`Invalid time range: ${timeRange}`);
+      }
+
+      // For specific time ranges, look back in time
       const now = new Date();
       const startDate = addDays(now, -timeRangeDays); // Look back in time
 

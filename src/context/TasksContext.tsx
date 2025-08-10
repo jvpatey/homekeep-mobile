@@ -7,7 +7,7 @@ import {
   TaskFilters,
 } from "../types/task";
 
-export type TimeRange = 30 | 60 | 90 | 120;
+export type TimeRange = 30 | 60 | 90 | 120 | "all";
 
 interface UseTasksReturn {
   tasks: Task[];
@@ -38,6 +38,9 @@ interface UseTasksReturn {
     taskId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  bulkCompleteTasks: (
+    taskIds: string[]
+  ) => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
