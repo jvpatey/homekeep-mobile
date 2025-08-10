@@ -107,8 +107,10 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           completionRate: 0,
         }
       );
-      
-      console.log(`✅ useTasks: Successfully loaded ${upcomingCount} upcoming + ${completedCount} completed tasks`);
+
+      console.log(
+        `✅ useTasks: Successfully loaded ${upcomingCount} upcoming + ${completedCount} completed tasks`
+      );
     } catch (err: any) {
       setError(err.message || "Failed to load tasks");
       console.error("❌ useTasks: Error loading tasks:", err);

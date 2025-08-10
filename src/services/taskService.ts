@@ -107,7 +107,9 @@ export class TaskService {
     try {
       // If "all" is selected, get all incomplete tasks
       if (timeRange === "all") {
-        console.log("📋 TaskService: Fetching all incomplete tasks (no time limit)");
+        console.log(
+          "📋 TaskService: Fetching all incomplete tasks (no time limit)"
+        );
         const { data, error } = await supabase
           .from("tasks")
           .select("*")
@@ -117,11 +119,18 @@ export class TaskService {
           .limit(200); // Higher limit for all tasks
 
         if (error) {
-          console.error("❌ TaskService: Error fetching all incomplete tasks:", error);
+          console.error(
+            "❌ TaskService: Error fetching all incomplete tasks:",
+            error
+          );
           throw error;
         }
 
-        console.log(`✅ TaskService: Found ${data?.length || 0} upcoming tasks (all time ranges)`);
+        console.log(
+          `✅ TaskService: Found ${
+            data?.length || 0
+          } upcoming tasks (all time ranges)`
+        );
         return { data, error: null };
       }
 
@@ -424,7 +433,9 @@ export class TaskService {
     try {
       // If "all" is selected, get all completed tasks
       if (timeRange === "all") {
-        console.log("📋 TaskService: Fetching all completed tasks (no time limit)");
+        console.log(
+          "📋 TaskService: Fetching all completed tasks (no time limit)"
+        );
         const { data, error } = await supabase
           .from("tasks")
           .select("*")
@@ -434,11 +445,18 @@ export class TaskService {
           .limit(200); // Higher limit for all tasks
 
         if (error) {
-          console.error("❌ TaskService: Error fetching all completed tasks:", error);
+          console.error(
+            "❌ TaskService: Error fetching all completed tasks:",
+            error
+          );
           throw error;
         }
 
-        console.log(`✅ TaskService: Found ${data?.length || 0} completed tasks (all time ranges)`);
+        console.log(
+          `✅ TaskService: Found ${
+            data?.length || 0
+          } completed tasks (all time ranges)`
+        );
         return { data, error: null };
       }
 
