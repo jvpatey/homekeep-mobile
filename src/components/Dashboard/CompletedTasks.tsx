@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import React, { useState, useMemo } from "react";
+import { View, Text, TouchableOpacity, Alert, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
@@ -7,8 +7,10 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useSimpleAnimation, useHaptics } from "../../hooks";
 import { useTasks } from "../../context/TasksContext";
+import { useAuth } from "../../context/AuthContext";
 import { AppStackParamList } from "../../navigation/types";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { EditTaskModal } from "./CreateTaskModal/EditTaskModal";
 import { PriorityBadge } from "./PriorityBadge";
 import { TaskItem } from "./TaskItem";
 import { FilterButton } from "./FilterButton";
@@ -34,6 +36,10 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   // Task detail modal state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
+
+  // Edit task modal state
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   // Priority filter state
   const [activePriority, setActivePriority] = useState<PriorityFilter>("all");
@@ -87,8 +93,13 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   };
 
   const handleEditTask = (task: Task) => {
-    // TODO: Implement edit functionality
-    console.log("Edit task:", task.id);
+    // Close the task detail modal first
+    setTaskDetailVisible(false);
+    setSelectedTaskId(null);
+
+    // Then open the edit modal
+    setEditingTask(task);
+    setEditModalVisible(true);
   };
 
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
@@ -269,6 +280,33 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
         onClose={handleCloseTaskDetail}
         onEdit={handleEditTask}
       />
+
+      {/* Edit Task Modal - Rendered at root level */}
+      {editingTask && (
+        <Modal
+          visible={editModalVisible}
+          onRequestClose={() => {
+            setEditModalVisible(false);
+            setEditingTask(null);
+          }}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <EditTaskModal
+            task={editingTask}
+            onClose={() => {
+              setEditModalVisible(false);
+              setEditingTask(null);
+            }}
+            onTaskUpdated={() => {
+              setEditModalVisible(false);
+              setEditingTask(null);
+              // Refresh tasks to show updated data
+              // The useTasks hook should automatically refresh
+            }}
+          />
+        </Modal>
+      )}
     </>
   );
 }

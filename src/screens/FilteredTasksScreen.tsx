@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, FlatList, Alert } from "react-native";
+import { View, FlatList, Alert, Modal } from "react-native";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
@@ -9,6 +9,7 @@ import { useSimpleAnimation, useHaptics } from "../hooks";
 import { useTasks } from "../context/TasksContext";
 import { AppStackParamList } from "../navigation/types";
 import { TaskDetailModal } from "../components/Dashboard/TaskDetailModal";
+import { EditTaskModal } from "../components/Dashboard/CreateTaskModal/EditTaskModal";
 import { TaskItem } from "../components/Dashboard/TaskItem";
 import {
   FilteredTasksHeader,
@@ -35,6 +36,10 @@ export function FilteredTasksScreen() {
   // Task detail modal state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
+
+  // Edit task modal state
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const { filterType, title } = route.params;
 
@@ -92,8 +97,13 @@ export function FilteredTasksScreen() {
   };
 
   const handleEditTask = (task: Task) => {
-    // TODO: Implement edit functionality
-    console.log("Edit task:", task.id);
+    // Close the task detail modal first
+    setTaskDetailVisible(false);
+    setSelectedTaskId(null);
+
+    // Then open the edit modal
+    setEditingTask(task);
+    setEditModalVisible(true);
   };
 
   const handleMarkAllComplete = () => {
@@ -164,40 +174,69 @@ export function FilteredTasksScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDark ? "light" : "auto"} />
+    <>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "auto"} />
 
-      {/* Header */}
-      <FilteredTasksHeader
-        title={title}
-        taskCount={sortedTasks.length}
-        filterType={filterType}
-        onMarkAllComplete={handleMarkAllComplete}
-      />
-
-      {/* Task List */}
-      <Animated.View style={[styles.content, listAnimatedStyle]}>
-        <FlatList
-          data={sortedTasks}
-          renderItem={renderTaskItem}
-          keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          ListEmptyComponent={() => (
-            <EmptyState filterType={filterType} title={title} />
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+        {/* Header */}
+        <FilteredTasksHeader
+          title={title}
+          taskCount={sortedTasks.length}
+          filterType={filterType}
+          onMarkAllComplete={handleMarkAllComplete}
         />
-      </Animated.View>
 
-      {/* Task Detail Modal */}
-      <TaskDetailModal
-        taskId={selectedTaskId}
-        visible={taskDetailVisible}
-        onClose={handleCloseTaskDetail}
-        onEdit={handleEditTask}
-      />
-    </View>
+        {/* Task List */}
+        <Animated.View style={[styles.content, listAnimatedStyle]}>
+          <FlatList
+            data={sortedTasks}
+            renderItem={renderTaskItem}
+            keyExtractor={(item) => item.id}
+            ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+            ListEmptyComponent={() => (
+              <EmptyState filterType={filterType} title={title} />
+            )}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        </Animated.View>
+
+        {/* Task Detail Modal */}
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          visible={taskDetailVisible}
+          onClose={handleCloseTaskDetail}
+          onEdit={handleEditTask}
+        />
+      </View>
+
+      {/* Edit Task Modal - Rendered at root level */}
+      {editingTask && (
+        <Modal
+          visible={editModalVisible}
+          onRequestClose={() => {
+            setEditModalVisible(false);
+            setEditingTask(null);
+          }}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <EditTaskModal
+            task={editingTask}
+            onClose={() => {
+              setEditModalVisible(false);
+              setEditingTask(null);
+            }}
+            onTaskUpdated={() => {
+              setEditModalVisible(false);
+              setEditingTask(null);
+              // Refresh tasks to show updated data
+              // The useTasks hook should automatically refresh
+            }}
+          />
+        </Modal>
+      )}
+    </>
   );
 }
 

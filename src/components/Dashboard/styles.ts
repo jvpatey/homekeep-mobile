@@ -705,6 +705,10 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  datePicker: {
+    height: 200,
+    width: "100%",
+  },
   datePickerDone: {
     alignSelf: "center",
     paddingHorizontal: 20,
