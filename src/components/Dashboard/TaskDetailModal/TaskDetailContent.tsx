@@ -18,7 +18,7 @@ export function TaskDetailContent({
 
   return (
     <ScrollView
-      style={{ flex: 1, paddingHorizontal: 24, paddingTop: 28 }}
+      style={{ paddingHorizontal: 24, paddingTop: 28, paddingBottom: 0 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Description */}

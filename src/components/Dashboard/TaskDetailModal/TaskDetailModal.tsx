@@ -126,13 +126,15 @@ export function TaskDetailModal({
           onClose={onClose}
           getCategoryGradient={getCategoryGradient}
         />
-        <TaskDetailContent task={currentTask} formatDueDate={formatDueDate} />
-        <TaskDetailActions
-          task={currentTask}
-          onToggleComplete={handleToggleComplete}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <View style={{ backgroundColor: colors.background }}>
+          <TaskDetailContent task={currentTask} formatDueDate={formatDueDate} />
+          <TaskDetailActions
+            task={currentTask}
+            onToggleComplete={handleToggleComplete}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </View>
       </View>
     </Modal>
   );

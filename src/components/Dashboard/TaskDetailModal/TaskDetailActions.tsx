@@ -21,7 +21,14 @@ export function TaskDetailActions({
   const { colors } = useTheme();
 
   return (
-    <View style={{ marginTop: 28, marginBottom: 40, paddingHorizontal: 24 }}>
+    <View
+      style={{
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 20,
+        backgroundColor: colors.background,
+      }}
+    >
       <Text
         style={{
           fontSize: 18,
