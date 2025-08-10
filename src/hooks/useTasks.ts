@@ -86,8 +86,14 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       if (completedResult.error) throw completedResult.error;
       if (statsResult.error) throw statsResult.error;
 
+      // Get all incomplete tasks (including overdue ones) from the main tasks result
+      const allIncompleteTasks = (tasksResult.data || []).filter(
+        (task) => !task.is_completed
+      );
+
       setTasks(tasksResult.data || []);
-      setUpcomingTasks([...(upcomingResult.data || [])]);
+      // Use all incomplete tasks instead of just upcoming ones
+      setUpcomingTasks(allIncompleteTasks);
       setCompletedTasks([...(completedResult.data || [])]);
       setStats(
         statsResult.data || {
@@ -152,13 +158,91 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
               : task
           )
         );
-        setUpcomingTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId
-              ? { ...task, ...updates, updated_at: new Date().toISOString() }
-              : task
-          )
-        );
+
+        // Handle completion status changes
+        if (updates.is_completed !== undefined) {
+          if (updates.is_completed) {
+            // Task was completed - remove from upcoming, add to completed
+            setUpcomingTasks((prev) =>
+              prev.filter((task) => task.id !== taskId)
+            );
+            setCompletedTasks((prev) => {
+              const existingTask = prev.find((task) => task.id === taskId);
+              if (existingTask) {
+                return prev.map((task) =>
+                  task.id === taskId
+                    ? {
+                        ...task,
+                        ...updates,
+                        updated_at: new Date().toISOString(),
+                      }
+                    : task
+                );
+              } else {
+                const task = tasks.find((t) => t.id === taskId);
+                if (task) {
+                  return [
+                    ...prev,
+                    {
+                      ...task,
+                      ...updates,
+                      updated_at: new Date().toISOString(),
+                    },
+                  ];
+                }
+                return prev;
+              }
+            });
+          } else {
+            // Task was uncompleted - remove from completed, add to upcoming
+            setCompletedTasks((prev) =>
+              prev.filter((task) => task.id !== taskId)
+            );
+            setUpcomingTasks((prev) => {
+              const existingTask = prev.find((task) => task.id === taskId);
+              if (existingTask) {
+                return prev.map((task) =>
+                  task.id === taskId
+                    ? {
+                        ...task,
+                        ...updates,
+                        updated_at: new Date().toISOString(),
+                      }
+                    : task
+                );
+              } else {
+                const task = tasks.find((t) => t.id === taskId);
+                if (task) {
+                  return [
+                    ...prev,
+                    {
+                      ...task,
+                      ...updates,
+                      updated_at: new Date().toISOString(),
+                    },
+                  ];
+                }
+                return prev;
+              }
+            });
+          }
+        } else {
+          // Regular update - update in both lists if present
+          setUpcomingTasks((prev) =>
+            prev.map((task) =>
+              task.id === taskId
+                ? { ...task, ...updates, updated_at: new Date().toISOString() }
+                : task
+            )
+          );
+          setCompletedTasks((prev) =>
+            prev.map((task) =>
+              task.id === taskId
+                ? { ...task, ...updates, updated_at: new Date().toISOString() }
+                : task
+            )
+          );
+        }
 
         // Refresh stats
         await refreshStats();
@@ -170,7 +254,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user]
+    [user, tasks]
   );
 
   // completeTask - mark a task as completed
@@ -206,12 +290,17 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
+        console.log(`Uncompleting task ${taskId}...`);
         const { data, error } = await TaskService.uncompleteTask(taskId);
 
         if (error) throw error;
 
+        console.log(
+          `Task ${taskId} uncompleted successfully, refreshing tasks...`
+        );
         // Refresh all task data to ensure consistency
         await loadTasks();
+        console.log(`Tasks refreshed after uncompleting task ${taskId}`);
 
         return { success: true };
       } catch (err: any) {

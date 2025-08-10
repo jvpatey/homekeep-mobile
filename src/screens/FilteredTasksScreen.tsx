@@ -28,8 +28,13 @@ export function FilteredTasksScreen() {
   const { colors, isDark } = useTheme();
   const route = useRoute<FilteredTasksRouteProp>();
   const { triggerMedium, triggerSuccess } = useHaptics();
-  const { upcomingTasks, completedTasks, deleteTask, bulkCompleteTasks } =
-    useTasks();
+  const {
+    upcomingTasks,
+    completedTasks,
+    deleteTask,
+    bulkCompleteTasks,
+    uncompleteTask,
+  } = useTasks();
   const listAnimatedStyle = useSimpleAnimation(400, 400, 20);
   const { getCategoryColor } = useCategoryColors();
 
@@ -140,6 +145,61 @@ export function FilteredTasksScreen() {
     );
   };
 
+  const handleMarkAllIncomplete = () => {
+    // Only show this for completed tasks
+    if (filterType !== "completed") return;
+
+    triggerMedium();
+    Alert.alert(
+      "Reset All Tasks",
+      `Are you sure you want to mark all ${filteredTasks.length} completed tasks as incomplete?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset All",
+          style: "destructive",
+          onPress: async () => {
+            triggerMedium();
+
+            try {
+              // Process all tasks in parallel for better performance
+              const promises = filteredTasks.map((task) =>
+                uncompleteTask(task.id)
+              );
+              const results = await Promise.allSettled(promises);
+
+              // Check if any operations failed
+              const failedCount = results.filter(
+                (result) => result.status === "rejected"
+              ).length;
+
+              if (failedCount > 0) {
+                Alert.alert(
+                  "Partial Success",
+                  `${
+                    filteredTasks.length - failedCount
+                  } tasks were reset successfully. ${failedCount} tasks failed to reset.`
+                );
+              } else {
+                triggerSuccess();
+                Alert.alert(
+                  "Success!",
+                  `All ${filteredTasks.length} tasks have been reset successfully.`,
+                  [{ text: "OK", style: "default" }]
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                "Error",
+                "Failed to reset some tasks. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
     triggerMedium();
     Alert.alert(
@@ -184,6 +244,7 @@ export function FilteredTasksScreen() {
           taskCount={sortedTasks.length}
           filterType={filterType}
           onMarkAllComplete={handleMarkAllComplete}
+          onMarkAllIncomplete={handleMarkAllIncomplete}
         />
 
         {/* Task List */}

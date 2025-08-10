@@ -1,7 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, Alert, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated from "react-native-reanimated";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+} from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
@@ -30,7 +37,7 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   const navigation = useNavigation<NavigationProp>();
   const { triggerLight, triggerMedium } = useHaptics();
   const tasksHook = useTasks();
-  const { completedTasks, loading, deleteTask } = tasksHook;
+  const { completedTasks, loading, deleteTask, uncompleteTask } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
@@ -43,6 +50,27 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
 
   // Priority filter state
   const [activePriority, setActivePriority] = useState<PriorityFilter>("all");
+
+  // Bulk operations state
+  const [isBulkOperationLoading, setIsBulkOperationLoading] = useState(false);
+
+  // Loading animation
+  const rotation = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (isBulkOperationLoading) {
+      rotation.value = withRepeat(
+        withTiming(360, { duration: 1000, easing: Easing.linear }),
+        -1
+      );
+    } else {
+      rotation.value = withTiming(0);
+    }
+  }, [isBulkOperationLoading]);
+
+  const loadingIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
@@ -124,6 +152,56 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
     );
   };
 
+  const handleMarkAllIncomplete = () => {
+    if (filteredTasks.length === 0) return;
+
+    triggerMedium();
+    Alert.alert(
+      "Reset All Tasks",
+      `Are you sure you want to mark all ${filteredTasks.length} completed tasks as incomplete?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset All",
+          style: "destructive",
+          onPress: async () => {
+            setIsBulkOperationLoading(true);
+            triggerMedium();
+
+            try {
+              // Process all tasks in parallel for better performance
+              const promises = filteredTasks.map((task) =>
+                uncompleteTask(task.id)
+              );
+              const results = await Promise.allSettled(promises);
+
+              // Check if any operations failed
+              const failedCount = results.filter(
+                (result) => result.status === "rejected"
+              ).length;
+
+              if (failedCount > 0) {
+                Alert.alert(
+                  "Partial Success",
+                  `${
+                    filteredTasks.length - failedCount
+                  } tasks were reset successfully. ${failedCount} tasks failed to reset.`
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                "Error",
+                "Failed to reset some tasks. Please try again."
+              );
+            } finally {
+              setIsBulkOperationLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Filter tasks based on search query and priority
   const getFilteredTasks = () => {
     let filtered = [...completedTasks];
@@ -176,6 +254,42 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Completed Tasks
         </Text>
+        {filteredTasks.length > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.markAllIncompleteButton,
+              {
+                opacity: isBulkOperationLoading ? 0.6 : 1,
+              },
+            ]}
+            onPress={handleMarkAllIncomplete}
+            disabled={isBulkOperationLoading}
+            activeOpacity={0.7}
+            accessibilityLabel={
+              isBulkOperationLoading
+                ? "Resetting all tasks..."
+                : "Reset all completed tasks"
+            }
+            accessibilityHint="Marks all completed tasks as incomplete"
+          >
+            {isBulkOperationLoading ? (
+              <Animated.View style={styles.loadingSpinner}>
+                <Ionicons
+                  name="refresh"
+                  size={20}
+                  color={colors.primary}
+                  style={loadingIconStyle}
+                />
+              </Animated.View>
+            ) : (
+              <Ionicons
+                name="refresh-outline"
+                size={20}
+                color={colors.primary}
+              />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
       {!searchQuery.trim() && (
         <View style={styles.filterButtonsContainer}>

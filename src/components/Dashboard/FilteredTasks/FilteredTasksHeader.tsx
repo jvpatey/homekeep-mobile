@@ -14,6 +14,7 @@ interface FilteredTasksHeaderProps {
   taskCount: number;
   filterType?: string;
   onMarkAllComplete?: () => void;
+  onMarkAllIncomplete?: () => void;
 }
 
 // FilteredTasksHeader - Features header with title, task count, and mark all complete button
@@ -22,6 +23,7 @@ export function FilteredTasksHeader({
   taskCount,
   filterType,
   onMarkAllComplete,
+  onMarkAllIncomplete,
 }: FilteredTasksHeaderProps) {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
@@ -49,14 +51,40 @@ export function FilteredTasksHeader({
         </Text>
       </View>
 
-      {taskCount > 0 && onMarkAllComplete && filterType !== "completed" && (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={onMarkAllComplete}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="checkmark-done" size={20} color={colors.primary} />
-        </TouchableOpacity>
+      {taskCount > 0 && (
+        <>
+          {/* Mark All Complete button for upcoming tasks */}
+          {onMarkAllComplete && filterType !== "completed" && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onMarkAllComplete}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="checkmark-done"
+                size={20}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Reset All button for completed tasks */}
+          {onMarkAllIncomplete && filterType === "completed" && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onMarkAllIncomplete}
+              activeOpacity={0.7}
+              accessibilityLabel="Reset all completed tasks"
+              accessibilityHint="Marks all completed tasks as incomplete"
+            >
+              <Ionicons
+                name="refresh-outline"
+                size={20}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+        </>
       )}
     </View>
   );
