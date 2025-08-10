@@ -7,15 +7,14 @@ import { useDynamicSpacing } from "../hooks";
 import { useTasks } from "../context/TasksContext";
 import { DashboardHeader } from "../components/Dashboard/DashboardHeader";
 import { TaskSummaryCards } from "../components/Dashboard/TaskSummaryCards";
-import { UpcomingTasks } from "../components/Dashboard/UpcomingTasks";
-import { CompletedTasks } from "../components/Dashboard/CompletedTasks";
+import { TaskTabs } from "../components/Dashboard/TaskTabs";
 import { FloatingActionButton } from "../components/Dashboard/FloatingActionButton";
 
 // DashboardScreen - The main dashboard for authenticated users
 
 interface Section {
   id: string;
-  type: "header" | "summary" | "upcoming" | "completed";
+  type: "header" | "summary" | "tasks";
 }
 
 export function DashboardScreen() {
@@ -44,10 +43,7 @@ export function DashboardScreen() {
   const sections: Section[] = [
     { id: "header", type: "header" },
     { id: "summary", type: "summary" },
-    // Always show upcoming tasks section (it has its own empty state)
-    { id: "upcoming", type: "upcoming" },
-    // Always show completed tasks section (it has its own empty state)
-    { id: "completed", type: "completed" },
+    { id: "tasks", type: "tasks" },
   ];
 
   const renderSection = useCallback(
@@ -62,15 +58,13 @@ export function DashboardScreen() {
           );
         case "summary":
           return <TaskSummaryCards />;
-        case "upcoming":
-          return <UpcomingTasks searchQuery={searchQuery} />;
-        case "completed":
-          return <CompletedTasks searchQuery={searchQuery} />;
+        case "tasks":
+          return <TaskTabs searchQuery={searchQuery} />;
         default:
           return null;
       }
     },
-    [searchQuery, upcomingTasks.length, completedTasks.length]
+    [searchQuery]
   );
 
   const keyExtractor = useCallback((item: Section) => item.id, []);

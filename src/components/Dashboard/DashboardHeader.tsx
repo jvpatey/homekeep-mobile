@@ -8,6 +8,11 @@ import { useAuth } from "../../context/AuthContext";
 import { useSimpleAnimation } from "../../hooks";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { ProfileMenu } from "./ProfileMenu";
+import {
+  DesignSystem,
+  getTypography,
+  getSpacing,
+} from "../../theme/designSystem";
 import { styles } from "./styles";
 
 interface DashboardHeaderProps {

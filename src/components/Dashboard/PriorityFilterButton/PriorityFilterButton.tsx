@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { DesignSystem } from "../../../theme/designSystem";
 
 export type PriorityFilter = "all" | "high" | "medium" | "low";
 
@@ -134,26 +135,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
+    paddingHorizontal: DesignSystem.spacing.sm + 6, // 14px
+    paddingVertical: DesignSystem.spacing.sm + 2, // 10px
+    borderRadius: DesignSystem.borders.radius.medium,
+    gap: DesignSystem.spacing.xs + 2, // 6px
+    minHeight: DesignSystem.components.buttonSmall,
+    ...DesignSystem.shadows.medium,
+    borderWidth: DesignSystem.borders.width,
     borderColor: "rgba(0, 0, 0, 0.06)",
   },
   filterText: {
-    fontSize: 14,
+    ...DesignSystem.typography.smallSemiBold,
     color: "#1F2937",
-    fontWeight: "600",
-    letterSpacing: -0.2,
   },
   modalOverlay: {
     flex: 1,

@@ -1,116 +1,89 @@
 import { StyleSheet, Dimensions } from "react-native";
+import { DesignSystem } from "../../theme/designSystem";
 
 const { width } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   // Dashboard Header Styles
   headerContainer: {
-    paddingHorizontal: 32,
-    paddingBottom: 20,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingBottom: DesignSystem.spacing.lg,
   },
   headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: DesignSystem.spacing.md,
   },
   titleSection: {
     flex: 1,
   },
   greeting: {
-    fontSize: 16,
-    fontWeight: "400",
-    marginBottom: 4,
-    letterSpacing: 0.1,
+    ...DesignSystem.typography.body,
+    marginBottom: DesignSystem.spacing.xs,
   },
   userName: {
-    fontSize: 32,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-    lineHeight: 38,
+    ...DesignSystem.typography.h1,
   },
   headerButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: DesignSystem.spacing.sm,
   },
   headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: DesignSystem.components.minTouchTarget,
+    height: DesignSystem.components.minTouchTarget,
+    borderRadius: DesignSystem.components.minTouchTarget / 2,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...DesignSystem.shadows.small,
   },
   searchButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: DesignSystem.components.minTouchTarget,
+    height: DesignSystem.components.minTouchTarget,
+    borderRadius: DesignSystem.components.minTouchTarget / 2,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...DesignSystem.shadows.small,
   },
   searchContainer: {
-    marginTop: 16,
+    marginTop: DesignSystem.spacing.md,
   },
   searchBar: {
-    borderRadius: 16,
+    borderRadius: DesignSystem.borders.radius.large,
     elevation: 0,
-    borderWidth: 1,
+    borderWidth: DesignSystem.borders.width,
   },
   searchInput: {
-    fontSize: 16,
+    ...DesignSystem.typography.body,
   },
 
   // Task Summary Cards Styles
   summaryContainer: {
-    paddingHorizontal: 32,
-    marginBottom: 32,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    marginBottom: DesignSystem.spacing.lg, // Reduced from xl (32px) to lg (24px)
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 16,
-    letterSpacing: -0.3,
+    ...DesignSystem.typography.h3,
+    marginBottom: DesignSystem.spacing.md,
   },
   cardsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 12,
+    gap: DesignSystem.spacing.sm,
   },
   summaryCard: {
     flex: 1,
-    minHeight: 120,
+    minHeight: 80, // Reduced from 120 to 80
   },
   cardTouchable: {
     flex: 1,
   },
   cardGradient: {
     flex: 1,
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    borderRadius: DesignSystem.borders.radius.large,
+    padding: DesignSystem.spacing.sm + 4, // 12px - reduced from 16px
+    ...DesignSystem.shadows.medium,
   },
   cardContent: {
     flex: 1,
@@ -123,33 +96,31 @@ export const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   cardCount: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 24, // Reduced from 28
+    fontWeight: "700", // Reduced from 800
     color: "white",
-    marginBottom: 4,
-    letterSpacing: -0.5,
+    marginBottom: DesignSystem.spacing.xs, // 4px
+    letterSpacing: -0.3,
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    ...DesignSystem.typography.captionSemiBold,
     color: "white",
     opacity: 0.9,
-    letterSpacing: 0.1,
   },
 
   // Upcoming Tasks Styles
   upcomingContainer: {
-    paddingHorizontal: 32,
-    marginBottom: 32,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    marginBottom: DesignSystem.spacing.xl,
     overflow: "visible",
   },
   listHeader: {
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.sm,
   },
   filterButtonsContainer: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
+    gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
   },
   filterButton: {
     // Individual filter button styling handled by components
