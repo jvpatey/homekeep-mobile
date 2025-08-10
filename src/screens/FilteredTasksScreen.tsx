@@ -181,6 +181,7 @@ export function FilteredTasksScreen() {
           data={sortedTasks}
           renderItem={renderTaskItem}
           keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
           ListEmptyComponent={() => (
             <EmptyState filterType={filterType} title={title} />
           )}
@@ -212,5 +213,8 @@ const styles = {
     paddingHorizontal: 20, // Increased for shadow space
     paddingTop: 16,
     paddingBottom: 8, // Bottom padding for shadows
+  },
+  itemSeparator: {
+    height: 16, // Increased spacing to match other components and provide better visual separation
   },
 };

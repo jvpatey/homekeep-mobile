@@ -264,7 +264,7 @@ export function TaskItem({
 const styles = {
   swipeContainer: {
     position: "relative" as const,
-    marginHorizontal: 2, // Small margin to prevent shadow clipping
+    marginHorizontal: 6, // Increased margin for better spacing between items
   },
 
   taskItem: {
