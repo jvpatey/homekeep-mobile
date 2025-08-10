@@ -164,7 +164,7 @@ export function TaskDetailContent({
                 color: colors.text,
               }}
             >
-              {task.is_completed ? "Completed" : "Pending"}
+              {task.is_completed ? "Completed" : "Incomplete"}
             </Text>
           </View>
 
