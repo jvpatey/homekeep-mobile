@@ -1,9 +1,19 @@
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  style?: ViewStyle | ViewStyle[];
+  size?: number;
+  iconSize?: number;
+}
+
+export function ThemeToggle({
+  style,
+  size = 44,
+  iconSize = 20,
+}: ThemeToggleProps) {
   const { colors, isDark, toggleTheme } = useTheme();
 
   return (
@@ -13,14 +23,18 @@ export function ThemeToggle() {
         {
           backgroundColor: colors.primary,
           borderColor: colors.border,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
         },
+        style,
       ]}
       onPress={toggleTheme}
     >
       <Ionicons
         name={isDark ? "sunny-outline" : "moon-outline"}
-        size={20}
-        color="white"
+        size={iconSize}
+        color={isDark ? "white" : colors.text}
       />
     </TouchableOpacity>
   );
@@ -28,12 +42,6 @@ export function ThemeToggle() {
 
 const styles = StyleSheet.create({
   toggleButton: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
@@ -45,6 +53,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    zIndex: 1000,
   },
 });

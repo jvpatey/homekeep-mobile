@@ -1,0 +1,320 @@
+import React, { useState, useMemo } from "react";
+import { View, FlatList, Alert, Modal } from "react-native";
+import { useRoute, RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
+import Animated from "react-native-reanimated";
+import { useTheme } from "../context/ThemeContext";
+import { useSimpleAnimation, useHaptics } from "../hooks";
+import { useTasks } from "../context/TasksContext";
+import { AppStackParamList } from "../navigation/types";
+import { TaskDetailModal } from "../components/Dashboard/TaskDetailModal";
+import { EditTaskModal } from "../components/Dashboard/CreateTaskModal/EditTaskModal";
+import { TaskItem } from "../components/Dashboard/TaskItem";
+import {
+  FilteredTasksHeader,
+  EmptyState,
+  useCategoryColors,
+  formatDueDate,
+  sortTasksByPriorityAndDate,
+} from "../components/Dashboard/FilteredTasks";
+import { Task } from "../types/task";
+
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+type FilteredTasksRouteProp = RouteProp<AppStackParamList, "FilteredTasks">;
+
+// FilteredTasksScreen - Displays filtered tasks based on summary card selection
+export function FilteredTasksScreen() {
+  const { colors, isDark } = useTheme();
+  const route = useRoute<FilteredTasksRouteProp>();
+  const { triggerMedium, triggerSuccess } = useHaptics();
+  const {
+    upcomingTasks,
+    completedTasks,
+    deleteTask,
+    bulkCompleteTasks,
+    uncompleteTask,
+  } = useTasks();
+  const listAnimatedStyle = useSimpleAnimation(400, 400, 20);
+  const { getCategoryColor } = useCategoryColors();
+
+  // Task detail modal state
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [taskDetailVisible, setTaskDetailVisible] = useState(false);
+
+  // Edit task modal state
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+
+  const { filterType, title } = route.params;
+
+  // Filter tasks based on filter type
+  const filteredTasks = useMemo(() => {
+    // Use the same logic as TaskService.getTaskStats() for consistency
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    if (filterType === "dueToday") {
+      return upcomingTasks.filter((task) => {
+        const taskDate = new Date(task.next_due_date);
+        return taskDate >= today && taskDate < tomorrow;
+      });
+    } else if (filterType === "thisWeek") {
+      return upcomingTasks.filter((task) => {
+        const taskDate = new Date(task.next_due_date);
+        return taskDate >= today && taskDate < nextWeek;
+      });
+    } else if (filterType === "completed") {
+      // Return completed tasks from the context
+      return completedTasks;
+    } else {
+      return upcomingTasks;
+    }
+  }, [upcomingTasks, completedTasks, filterType]);
+
+  // Sort tasks appropriately based on filter type
+  const sortedTasks = useMemo(() => {
+    if (filterType === "completed") {
+      // Sort completed tasks by completion date (most recent first)
+      return [...filteredTasks].sort((a, b) => {
+        const dateA = new Date(a.completed_at || a.next_due_date);
+        const dateB = new Date(b.completed_at || b.next_due_date);
+        return dateB.getTime() - dateA.getTime(); // Most recent first
+      });
+    } else {
+      // Sort upcoming tasks by priority and due date
+      return sortTasksByPriorityAndDate(filteredTasks);
+    }
+  }, [filteredTasks, filterType]);
+
+  const handleTaskPress = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setTaskDetailVisible(true);
+  };
+
+  const handleCloseTaskDetail = () => {
+    setTaskDetailVisible(false);
+    setSelectedTaskId(null);
+  };
+
+  const handleEditTask = (task: Task) => {
+    // Close the task detail modal first
+    setTaskDetailVisible(false);
+    setSelectedTaskId(null);
+
+    // Then open the edit modal
+    setEditingTask(task);
+    setEditModalVisible(true);
+  };
+
+  const handleMarkAllComplete = () => {
+    // Don't show this for completed tasks
+    if (filterType === "completed") return;
+
+    triggerMedium();
+    Alert.alert(
+      "Mark All Complete",
+      `Are you sure you want to mark all ${filteredTasks.length} tasks as complete?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Complete All",
+          onPress: async () => {
+            triggerMedium();
+            const { success, error } = await bulkCompleteTasks(
+              filteredTasks.map((task) => task.id)
+            );
+            if (!success) {
+              Alert.alert("Error", error || "Failed to complete all tasks");
+            } else {
+              // Show success message and stay on the page
+              triggerSuccess();
+              Alert.alert(
+                "Success!",
+                `All ${filteredTasks.length} tasks have been marked as complete.`,
+                [{ text: "OK", style: "default" }]
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMarkAllIncomplete = () => {
+    // Only show this for completed tasks
+    if (filterType !== "completed") return;
+
+    triggerMedium();
+    Alert.alert(
+      "Reset All Tasks",
+      `Are you sure you want to mark all ${filteredTasks.length} completed tasks as incomplete?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset All",
+          style: "destructive",
+          onPress: async () => {
+            triggerMedium();
+
+            try {
+              // Process all tasks in parallel for better performance
+              const promises = filteredTasks.map((task) =>
+                uncompleteTask(task.id)
+              );
+              const results = await Promise.allSettled(promises);
+
+              // Check if any operations failed
+              const failedCount = results.filter(
+                (result) => result.status === "rejected"
+              ).length;
+
+              if (failedCount > 0) {
+                Alert.alert(
+                  "Partial Success",
+                  `${
+                    filteredTasks.length - failedCount
+                  } tasks were reset successfully. ${failedCount} tasks failed to reset.`
+                );
+              } else {
+                triggerSuccess();
+                Alert.alert(
+                  "Success!",
+                  `All ${filteredTasks.length} tasks have been reset successfully.`,
+                  [{ text: "OK", style: "default" }]
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                "Error",
+                "Failed to reset some tasks. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteTask = (taskId: string, taskTitle: string) => {
+    triggerMedium();
+    Alert.alert(
+      "Delete Task",
+      `Are you sure you want to delete "${taskTitle}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            triggerMedium();
+            const { success, error } = await deleteTask(taskId);
+            if (!success) {
+              Alert.alert("Error", error || "Failed to delete task");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderTaskItem = ({ item: task }: { item: Task }) => (
+    <TaskItem
+      task={task}
+      onPress={handleTaskPress}
+      onDelete={handleDeleteTask}
+      getCategoryColor={getCategoryColor}
+      formatDueDate={formatDueDate}
+      showDeleteButton={true}
+    />
+  );
+
+  return (
+    <>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "auto"} />
+
+        {/* Header */}
+        <FilteredTasksHeader
+          title={title}
+          taskCount={sortedTasks.length}
+          filterType={filterType}
+          onMarkAllComplete={handleMarkAllComplete}
+          onMarkAllIncomplete={handleMarkAllIncomplete}
+        />
+
+        {/* Task List */}
+        <Animated.View style={[styles.content, listAnimatedStyle]}>
+          <FlatList
+            data={sortedTasks}
+            renderItem={renderTaskItem}
+            keyExtractor={(item) => item.id}
+            ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+            ListEmptyComponent={() => (
+              <EmptyState filterType={filterType} title={title} />
+            )}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        </Animated.View>
+
+        {/* Task Detail Modal */}
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          visible={taskDetailVisible}
+          onClose={handleCloseTaskDetail}
+          onEdit={handleEditTask}
+        />
+      </View>
+
+      {/* Edit Task Modal - Rendered at root level */}
+      {editingTask && (
+        <Modal
+          visible={editModalVisible}
+          onRequestClose={() => {
+            setEditModalVisible(false);
+            setEditingTask(null);
+          }}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <EditTaskModal
+            task={editingTask}
+            onClose={() => {
+              setEditModalVisible(false);
+              setEditingTask(null);
+            }}
+            onTaskUpdated={() => {
+              setEditModalVisible(false);
+              setEditingTask(null);
+              // Refresh tasks to show updated data
+              // The useTasks hook should automatically refresh
+            }}
+          />
+        </Modal>
+      )}
+    </>
+  );
+}
+
+const styles = {
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    overflow: "visible" as const,
+  },
+  listContent: {
+    paddingHorizontal: 20, // Increased for shadow space
+    paddingTop: 16,
+    paddingBottom: 8, // Bottom padding for shadows
+  },
+  itemSeparator: {
+    height: 16, // Increased spacing to match other components and provide better visual separation
+  },
+};
