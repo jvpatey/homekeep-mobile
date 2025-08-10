@@ -27,9 +27,9 @@ interface UpcomingTasksProps {
 export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
   const { colors } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { triggerLight, triggerMedium } = useHaptics();
+  const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
   const tasksHook = useTasks();
-  const { upcomingTasks, loading, deleteTask } = tasksHook;
+  const { upcomingTasks, loading, deleteTask, bulkCompleteTasks } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
@@ -118,6 +118,39 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     );
   };
 
+  const handleMarkAllComplete = () => {
+    if (filteredTasks.length === 0) return;
+
+    triggerMedium();
+    Alert.alert(
+      "Mark All Complete",
+      `Are you sure you want to mark all ${filteredTasks.length} tasks as complete?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Complete All",
+          onPress: async () => {
+            triggerMedium();
+            const { success, error } = await bulkCompleteTasks(
+              filteredTasks.map((task) => task.id)
+            );
+            if (!success) {
+              Alert.alert("Error", error || "Failed to complete all tasks");
+            } else {
+              // Show success message and stay on the page
+              triggerSuccess();
+              Alert.alert(
+                "Success!",
+                `All ${filteredTasks.length} tasks have been marked as complete.`,
+                [{ text: "OK", style: "default" }]
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Filter tasks based on active tab and search query
   const getFilteredTasks = () => {
     let filtered = [...upcomingTasks];
@@ -174,6 +207,15 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           {searchQuery.trim() ? "Search Results" : "Upcoming Tasks"}
         </Text>
+        {filteredTasks.length > 0 && !searchQuery.trim() && (
+          <TouchableOpacity
+            style={styles.completeAllButton}
+            onPress={handleMarkAllComplete}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark-done" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
       </View>
       {!searchQuery.trim() && (
         <View style={styles.filterButtonsContainer}>

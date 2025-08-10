@@ -26,8 +26,9 @@ type FilteredTasksRouteProp = RouteProp<AppStackParamList, "FilteredTasks">;
 export function FilteredTasksScreen() {
   const { colors, isDark } = useTheme();
   const route = useRoute<FilteredTasksRouteProp>();
-  const { triggerMedium } = useHaptics();
-  const { upcomingTasks, completedTasks, deleteTask } = useTasks();
+  const { triggerMedium, triggerSuccess } = useHaptics();
+  const { upcomingTasks, completedTasks, deleteTask, bulkCompleteTasks } =
+    useTasks();
   const listAnimatedStyle = useSimpleAnimation(400, 400, 20);
   const { getCategoryColor } = useCategoryColors();
 
@@ -98,7 +99,7 @@ export function FilteredTasksScreen() {
   const handleMarkAllComplete = () => {
     // Don't show this for completed tasks
     if (filterType === "completed") return;
-    
+
     triggerMedium();
     Alert.alert(
       "Mark All Complete",
@@ -109,8 +110,20 @@ export function FilteredTasksScreen() {
           text: "Complete All",
           onPress: async () => {
             triggerMedium();
-            // TODO: Implement bulk update
-            console.log("Mark all complete for", filterType);
+            const { success, error } = await bulkCompleteTasks(
+              filteredTasks.map((task) => task.id)
+            );
+            if (!success) {
+              Alert.alert("Error", error || "Failed to complete all tasks");
+            } else {
+              // Show success message and stay on the page
+              triggerSuccess();
+              Alert.alert(
+                "Success!",
+                `All ${filteredTasks.length} tasks have been marked as complete.`,
+                [{ text: "OK", style: "default" }]
+              );
+            }
           },
         },
       ]

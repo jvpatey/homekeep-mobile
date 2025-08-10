@@ -116,6 +116,17 @@ export const styles = StyleSheet.create({
   },
   listHeader: {
     marginBottom: DesignSystem.spacing.sm,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  completeAllButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   filterButtonsContainer: {
     flexDirection: "row",

@@ -39,6 +39,9 @@ interface UseTasksReturn {
     taskId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  bulkCompleteTasks: (
+    taskIds: string[]
+  ) => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
@@ -249,6 +252,35 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     [user]
   );
 
+  // bulkCompleteTasks - mark multiple tasks as completed
+  const bulkCompleteTasks = useCallback(
+    async (taskIds: string[]) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      if (!taskIds.length) {
+        return { success: true };
+      }
+
+      try {
+        const result = await TaskService.bulkCompleteTasks(taskIds);
+
+        if (result.error) throw result.error;
+
+        // Refresh all task data to ensure consistency
+        await loadTasks();
+
+        return { success: true };
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to complete tasks";
+        console.error("Error bulk completing tasks:", err);
+        return { success: false, error: errorMessage };
+      }
+    },
+    [user, loadTasks]
+  );
+
   // refreshTasks - refresh the tasks
   const refreshTasks = useCallback(async () => {
     await loadTasks();
@@ -310,6 +342,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     completeTask,
     uncompleteTask,
     deleteTask,
+    bulkCompleteTasks,
     setTimeRange,
     refreshTasks,
     refreshStats,

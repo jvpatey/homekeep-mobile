@@ -502,4 +502,113 @@ export class TaskService {
       return { data: null, error };
     }
   }
+
+  // bulk complete multiple tasks
+  static async bulkCompleteTasks(
+    taskIds: string[]
+  ): Promise<{ data: Task[] | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    if (!taskIds.length) {
+      return { data: [], error: null };
+    }
+
+    try {
+      const now = new Date().toISOString();
+
+      // First, get all the tasks to check which ones are recurring
+      const { data: tasksToComplete, error: fetchError } = await supabase
+        .from("tasks")
+        .select("*")
+        .in("id", taskIds)
+        .eq("is_completed", false);
+
+      if (fetchError) throw fetchError;
+
+      if (!tasksToComplete || tasksToComplete.length === 0) {
+        return { data: [], error: null };
+      }
+
+      // Update all tasks to completed
+      const { data: updatedTasks, error: updateError } = await supabase
+        .from("tasks")
+        .update({
+          is_completed: true,
+          completed_at: now,
+          updated_at: now,
+        })
+        .in("id", taskIds)
+        .eq("is_completed", false)
+        .select();
+
+      if (updateError) throw updateError;
+
+      // Handle recurring tasks - create next instances
+      const recurringTasks = tasksToComplete.filter(
+        (task) => task.is_recurring && task.recurrence_type
+      );
+
+      if (recurringTasks.length > 0) {
+        const newInstances = [];
+
+        for (const task of recurringTasks) {
+          const nextDueDate = TaskService.calculateNextDueDate(
+            task.recurrence_type,
+            task.next_due_date
+          );
+
+          // Check if a task with this exact due date already exists for this user
+          const { data: existingTask } = await supabase
+            .from("tasks")
+            .select("id, title, next_due_date, is_completed")
+            .eq("user_id", task.user_id)
+            .eq("title", task.title)
+            .eq("next_due_date", nextDueDate)
+            .eq("is_completed", false)
+            .single();
+
+          if (!existingTask) {
+            const newTaskData = {
+              title: task.title,
+              description: task.description,
+              category: task.category,
+              priority: task.priority,
+              estimated_duration: task.estimated_duration,
+              is_recurring: task.is_recurring,
+              recurrence_type: task.recurrence_type,
+              next_due_date: nextDueDate,
+              user_id: task.user_id,
+              is_completed: false,
+              created_at: now,
+              updated_at: now,
+            };
+
+            newInstances.push(newTaskData);
+          }
+        }
+
+        // Create all new instances in a single batch if there are any
+        if (newInstances.length > 0) {
+          const { error: createError } = await supabase
+            .from("tasks")
+            .insert(newInstances);
+
+          if (createError) {
+            console.error(
+              "Error creating recurring task instances:",
+              createError
+            );
+            // Don't fail the bulk completion, just log the error
+          }
+        }
+      }
+
+      return { data: updatedTasks, error: null };
+    } catch (error) {
+      console.error("Error bulk completing tasks:", error);
+      return { data: null, error };
+    }
+  }
 }
