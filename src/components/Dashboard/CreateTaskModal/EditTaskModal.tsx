@@ -98,7 +98,6 @@ export function EditTaskModal({
       return;
     }
 
-    console.log("Updating task:", task.id);
     triggerMedium();
 
     try {
@@ -118,7 +117,6 @@ export function EditTaskModal({
       const { success, error } = await updateTask(task.id, updateData);
 
       if (success) {
-        console.log("Task updated successfully");
         triggerMedium();
         onTaskUpdated();
       } else {

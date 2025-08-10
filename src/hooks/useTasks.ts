@@ -290,17 +290,12 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        console.log(`Uncompleting task ${taskId}...`);
         const { data, error } = await TaskService.uncompleteTask(taskId);
 
         if (error) throw error;
 
-        console.log(
-          `Task ${taskId} uncompleted successfully, refreshing tasks...`
-        );
         // Refresh all task data to ensure consistency
         await loadTasks();
-        console.log(`Tasks refreshed after uncompleting task ${taskId}`);
 
         return { success: true };
       } catch (err: any) {

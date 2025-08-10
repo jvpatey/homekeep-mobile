@@ -102,7 +102,6 @@ export function CreateTaskModal({
       return;
     }
 
-    console.log("Creating task for user:", user.id);
     triggerMedium();
 
     try {
@@ -122,8 +121,6 @@ export function CreateTaskModal({
       const { success, error } = await createTask(taskData);
 
       if (success) {
-        console.log("Task created successfully");
-
         onTaskCreated();
       } else {
         console.error("Task creation failed:", error);

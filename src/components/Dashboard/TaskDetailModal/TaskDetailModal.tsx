@@ -51,28 +51,15 @@ export function TaskDetailModal({
   const handleToggleComplete = async () => {
     triggerMedium();
 
-    console.log("🎯 Modal toggle complete called:", {
-      taskId: currentTask.id,
-      taskTitle: currentTask.title,
-      currentlyCompleted: currentTask.is_completed,
-      action: currentTask.is_completed
-        ? "marking incomplete"
-        : "marking complete",
-    });
-
     if (currentTask.is_completed) {
       // Mark as incomplete
-      console.log("🔄 Calling uncompleteTask...");
       const { success, error } = await uncompleteTask(currentTask.id);
-      console.log("🔄 UncompleteTask result:", { success, error });
       if (!success) {
         Alert.alert("Error", error || "Failed to mark task as incomplete");
       }
     } else {
       // Mark as complete
-      console.log("✅ Calling completeTask...");
       const { success, error } = await completeTask(currentTask.id);
-      console.log("✅ CompleteTask result:", { success, error });
       if (!success) {
         Alert.alert("Error", error || "Failed to complete task");
       }

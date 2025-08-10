@@ -249,16 +249,8 @@ export class TaskService {
 
       if (error) throw error;
 
-      console.log("✅ Task marked as completed in DB:", {
-        taskId: currentTask.id,
-        isRecurring: currentTask.is_recurring,
-        recurrenceType: currentTask.recurrence_type,
-      });
-
       // If it's a recurring task, create a new instance for the next occurrence
       if (currentTask.is_recurring && currentTask.recurrence_type) {
-        console.log("🔄 Processing recurring task...");
-
         // For recurring tasks, calculate next due date from the current task's due date
         // This ensures proper spacing for recurring instances
         const nextDueDate = TaskService.calculateNextDueDate(
@@ -278,10 +270,6 @@ export class TaskService {
 
         if (existingTask) {
           // Skip creation if duplicate exists
-          console.log(
-            "❌ Skipping duplicate recurring task instance:",
-            existingTask
-          );
         } else {
           const newTaskData = {
             title: currentTask.title,
@@ -310,14 +298,9 @@ export class TaskService {
             );
             // Don't fail the completion, just log the error
           } else {
-            console.log(
-              "✅ Successfully created next recurring instance for",
-              nextDueDate
-            );
           }
         }
       } else {
-        console.log("📝 Non-recurring task, no next instance needed");
       }
 
       return { data, error: null };

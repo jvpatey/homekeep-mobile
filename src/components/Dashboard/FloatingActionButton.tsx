@@ -36,7 +36,6 @@ export function FloatingActionButton() {
   const handleTaskCreated = () => {
     setModalVisible(false);
     // Task list is automatically refreshed by useTasks.createTask()
-    console.log("Task created successfully");
   };
 
   return (
