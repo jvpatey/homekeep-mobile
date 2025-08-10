@@ -17,14 +17,21 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useGradients } from "../../hooks";
+import { useGradients, useHaptics } from "../../hooks";
+import { useUserPreferences } from "../../context/UserPreferencesContext";
+import { AvatarCustomizationModal } from "../AvatarCustomizationModal";
 import { styles } from "./styles";
 
 export function ProfileMenu() {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { primaryGradient } = useGradients();
+  const { selectedGradient } = useUserPreferences();
+
+  const { triggerLight, triggerMedium } = useHaptics();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [customizationModalVisible, setCustomizationModalVisible] =
+    useState(false);
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -54,7 +61,8 @@ export function ProfileMenu() {
     opacity: opacity.value,
   }));
 
-  const showMenu = () => {
+  const showMenu = async () => {
+    await triggerLight();
     setMenuVisible(true);
     scale.value = withTiming(1, { duration: 200 });
     opacity.value = withTiming(1, { duration: 200 });
@@ -85,6 +93,24 @@ export function ProfileMenu() {
     ]);
   };
 
+  const handleCustomizeAvatar = async () => {
+    await triggerMedium();
+    hideMenu();
+    // Add a small delay to ensure menu closes before modal opens
+    setTimeout(() => {
+      setCustomizationModalVisible(true);
+    }, 300);
+  };
+
+  const handleCloseCustomization = () => {
+    setCustomizationModalVisible(false);
+  };
+
+  // Use custom gradient if available, otherwise fall back to primary gradient
+  const avatarGradient = selectedGradient
+    ? selectedGradient.colors
+    : primaryGradient;
+
   return (
     <>
       <TouchableOpacity
@@ -92,10 +118,10 @@ export function ProfileMenu() {
         onPress={showMenu}
       >
         <LinearGradient
-          colors={primaryGradient}
+          colors={avatarGradient}
           style={styles.profileAvatar}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          start={selectedGradient?.start || { x: 0, y: 0 }}
+          end={selectedGradient?.end || { x: 1, y: 1 }}
         >
           <Text style={styles.profileInitial}>{getUserInitial()}</Text>
         </LinearGradient>
@@ -118,10 +144,10 @@ export function ProfileMenu() {
             {/* User Profile Section */}
             <View style={styles.profileSection}>
               <LinearGradient
-                colors={primaryGradient}
+                colors={avatarGradient}
                 style={styles.menuAvatar}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                start={selectedGradient?.start || { x: 0, y: 0 }}
+                end={selectedGradient?.end || { x: 1, y: 1 }}
               >
                 <Text style={styles.menuAvatarInitial}>{getUserInitial()}</Text>
               </LinearGradient>
@@ -136,6 +162,38 @@ export function ProfileMenu() {
                 </Text>
               </View>
             </View>
+
+            {/* Divider */}
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
+            {/* Customize Avatar Button */}
+            <TouchableOpacity
+              style={styles.menuActionButton}
+              onPress={handleCustomizeAvatar}
+            >
+              <View
+                style={[
+                  styles.menuActionIconContainer,
+                  { backgroundColor: colors.primary + "15" },
+                ]}
+              >
+                <Ionicons
+                  name="color-palette-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.menuActionText, { color: colors.text }]}>
+                Customize Avatar
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
 
             {/* Divider */}
             <View
@@ -166,6 +224,12 @@ export function ProfileMenu() {
           </Animated.View>
         </Pressable>
       </Modal>
+
+      {/* Avatar Customization Modal */}
+      <AvatarCustomizationModal
+        visible={customizationModalVisible}
+        onClose={handleCloseCustomization}
+      />
     </>
   );
 }

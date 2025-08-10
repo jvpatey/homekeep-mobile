@@ -873,4 +873,24 @@ export const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 0.1,
   },
+  menuActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  menuActionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuActionText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    letterSpacing: 0.1,
+  },
 });

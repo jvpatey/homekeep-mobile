@@ -1,0 +1,1 @@
+export { AvatarCustomizationModal } from "./AvatarCustomizationModal";
