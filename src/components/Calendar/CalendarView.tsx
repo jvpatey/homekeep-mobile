@@ -8,6 +8,7 @@ import { Task } from "../../types/task";
 import { TaskDetailModal } from "../Dashboard/TaskDetailModal/TaskDetailModal";
 import { EditTaskModal } from "../Dashboard/CreateTaskModal/EditTaskModal";
 import { MonthCalendar } from "./MonthCalendar";
+import { styles as dashboardStyles } from "../Dashboard/styles";
 
 function formatDateKey(date: Date): string {
   const y = date.getFullYear();
@@ -139,6 +140,11 @@ export function CalendarView() {
 
   return (
     <View style={{ flex: 1 }}>
+      <View style={[dashboardStyles.summaryContainer, { marginBottom: 8 }]}>
+        <Text style={[dashboardStyles.sectionTitle, { color: colors.text }]}>
+          Upcoming Tasks
+        </Text>
+      </View>
       <MonthCalendar
         month={new Date(visibleMonth.year, visibleMonth.month - 1, 1)}
         selectedDate={selectedDate}
@@ -156,6 +162,14 @@ export function CalendarView() {
             month: new Date(m.year, m.month, 1).getMonth() + 1,
           }))
         }
+        onToday={() => {
+          const now = new Date();
+          setVisibleMonth({
+            year: now.getFullYear(),
+            month: now.getMonth() + 1,
+          });
+          setSelectedDate(now);
+        }}
       />
       <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
         <View

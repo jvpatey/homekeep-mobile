@@ -22,6 +22,7 @@ interface MonthCalendarProps {
   onSelectDate: (d: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onToday: () => void;
 }
 
 function dateKey(date: Date): string {
@@ -38,6 +39,7 @@ export function MonthCalendar({
   onSelectDate,
   onPrevMonth,
   onNextMonth,
+  onToday,
 }: MonthCalendarProps) {
   const { colors, isDark } = useTheme();
 
@@ -103,6 +105,37 @@ export function MonthCalendar({
         accessibilityLabel="Next month"
       >
         <Ionicons name="chevron-forward" size={18} color={colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const todayChip = (
+    <View
+      style={{
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingBottom: 6,
+      }}
+    >
+      <TouchableOpacity
+        onPress={onToday}
+        accessibilityLabel="Jump to today"
+        activeOpacity={0.8}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+          backgroundColor: isDark ? "#2A2A2A" : "#F0F2F4",
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <Ionicons name="home" size={14} color={colors.text} />
+        <Text style={{ color: colors.text, marginLeft: 6, fontSize: 12 }}>
+          Today
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -200,6 +233,7 @@ export function MonthCalendar({
       }}
     >
       {header}
+      {todayChip}
       {weekdayRow}
       {grid}
     </View>
