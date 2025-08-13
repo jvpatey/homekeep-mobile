@@ -1,14 +1,15 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Modal } from "react-native";
-import { Calendar } from "react-native-calendars";
+// Replacing library calendar with custom MonthCalendar for robust theming
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { Task } from "../../types/task";
 import { TaskDetailModal } from "../Dashboard/TaskDetailModal/TaskDetailModal";
 import { EditTaskModal } from "../Dashboard/CreateTaskModal/EditTaskModal";
+import { MonthCalendar } from "./MonthCalendar";
 
-function formatISODate(date: Date): string {
+function formatDateKey(date: Date): string {
   const y = date.getFullYear();
   const m = `${date.getMonth() + 1}`.padStart(2, "0");
   const d = `${date.getDate()}`.padStart(2, "0");
@@ -16,12 +17,10 @@ function formatISODate(date: Date): string {
 }
 
 export function CalendarView() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { tasks } = useTasks();
 
-  const [selectedDate, setSelectedDate] = useState<string>(
-    formatISODate(new Date())
-  );
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [visibleMonth, setVisibleMonth] = useState<{
     year: number;
     month: number;
@@ -43,44 +42,16 @@ export function CalendarView() {
     });
   }, [tasks, visibleMonth]);
 
-  const markedDates = useMemo(() => {
-    const marks: Record<string, any> = {};
-    for (const task of tasksInVisibleMonth) {
-      const dt = new Date(task.next_due_date);
-      const key = formatISODate(dt);
-      const color = task.is_completed ? colors.textSecondary : colors.primary;
-      if (!marks[key]) {
-        marks[key] = { marked: true, dots: [{ color }], customStyles: {} };
-      } else {
-        const dots = marks[key].dots || [];
-        if (dots.length < 3) dots.push({ color });
-        marks[key].dots = dots;
-      }
-    }
-    marks[selectedDate] = {
-      ...(marks[selectedDate] || {}),
-      selected: true,
-      selectedColor: colors.accent,
-    };
-    return marks;
-  }, [tasksInVisibleMonth, selectedDate, colors]);
-
   const tasksForSelectedDate = useMemo(() => {
+    const key = formatDateKey(selectedDate);
     return tasks.filter(
-      (t) => formatISODate(new Date(t.next_due_date)) === selectedDate
+      (t) => formatDateKey(new Date(t.next_due_date)) === key
     );
   }, [tasks, selectedDate]);
 
-  const onDayPress = useCallback((day: { dateString: string }) => {
-    setSelectedDate(day.dateString);
+  const onSelectDate = useCallback((date: Date) => {
+    setSelectedDate(date);
   }, []);
-
-  const onMonthChange = useCallback(
-    (month: { year: number; month: number }) => {
-      setVisibleMonth({ year: month.year, month: month.month });
-    },
-    []
-  );
 
   const handleTaskPress = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -168,30 +139,23 @@ export function CalendarView() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Calendar
-        onDayPress={onDayPress}
-        onMonthChange={onMonthChange}
-        markedDates={markedDates}
-        markingType="multi-dot"
-        theme={{
-          backgroundColor: colors.background,
-          calendarBackground: colors.surface,
-          textSectionTitleColor: colors.textSecondary,
-          selectedDayBackgroundColor: colors.accent,
-          selectedDayTextColor: "#ffffff",
-          todayTextColor: colors.secondary,
-          dayTextColor: colors.text,
-          textDisabledColor: colors.textSecondary,
-          monthTextColor: colors.text,
-          arrowColor: colors.text,
-        }}
-        style={{
-          marginHorizontal: 16,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.border,
-          overflow: "hidden",
-        }}
+      <MonthCalendar
+        month={new Date(visibleMonth.year, visibleMonth.month - 1, 1)}
+        selectedDate={selectedDate}
+        tasks={tasksInVisibleMonth}
+        onSelectDate={onSelectDate}
+        onPrevMonth={() =>
+          setVisibleMonth((m) => ({
+            year: new Date(m.year, m.month - 2, 1).getFullYear(),
+            month: new Date(m.year, m.month - 2, 1).getMonth() + 1,
+          }))
+        }
+        onNextMonth={() =>
+          setVisibleMonth((m) => ({
+            year: new Date(m.year, m.month, 1).getFullYear(),
+            month: new Date(m.year, m.month, 1).getMonth() + 1,
+          }))
+        }
       />
       <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
         <View
@@ -202,8 +166,15 @@ export function CalendarView() {
           }}
         >
           <Ionicons name="calendar" size={18} color={colors.textSecondary} />
-          <Text style={{ color: colors.textSecondary, marginLeft: 6 }}>
-            {selectedDate}
+          <Text
+            style={{ color: colors.textSecondary, marginLeft: 6, fontSize: 14 }}
+          >
+            {selectedDate.toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </Text>
         </View>
         {tasksForSelectedDate.length === 0 ? (
