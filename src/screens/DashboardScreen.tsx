@@ -1,6 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View, FlatList, RefreshControl } from "react-native";
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  RefreshControl,
+  Dimensions,
+} from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { useTheme } from "../context/ThemeContext";
 import { useDynamicSpacing } from "../hooks";
@@ -9,12 +15,18 @@ import { DashboardHeader } from "../components/Dashboard/DashboardHeader";
 import { TaskSummaryCards } from "../components/Dashboard/TaskSummaryCards";
 import { TaskTabs } from "../components/Dashboard/TaskTabs";
 import { FloatingActionButton } from "../components/Dashboard/FloatingActionButton";
+import { CalendarView } from "../components/Calendar/CalendarView";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 
 // DashboardScreen - The main dashboard for authenticated users
 
 interface Section {
   id: string;
-  type: "header" | "summary" | "tasks";
+  type: "header" | "body";
 }
 
 export function DashboardScreen() {
@@ -23,6 +35,19 @@ export function DashboardScreen() {
   const { completedTasks, upcomingTasks, refreshTasks } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mode, setMode] = useState<"dashboard" | "calendar">("dashboard");
+
+  // Side-swipe container setup
+  const screenWidth = Dimensions.get("window").width;
+  const translateX = useSharedValue(0);
+  const sliderStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  useEffect(() => {
+    const target = mode === "dashboard" ? 0 : -screenWidth;
+    translateX.value = withTiming(target, { duration: 260 });
+  }, [mode, screenWidth]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -39,12 +64,13 @@ export function DashboardScreen() {
     setSearchQuery(query);
   };
 
-  // Define the sections for the FlatList
-  const sections: Section[] = [
-    { id: "header", type: "header" },
-    { id: "summary", type: "summary" },
-    { id: "tasks", type: "tasks" },
-  ];
+  // Define sections: header is static, body holds swipeable content
+  const sections: Section[] = useMemo(() => {
+    return [
+      { id: "header", type: "header" },
+      { id: "body", type: "body" },
+    ];
+  }, []);
 
   const renderSection = useCallback(
     ({ item }: { item: Section }) => {
@@ -54,17 +80,39 @@ export function DashboardScreen() {
             <DashboardHeader
               onSearchChange={handleSearchChange}
               searchQuery={searchQuery}
+              mode={mode}
+              onPrimaryToggle={() =>
+                setMode((m) => (m === "calendar" ? "dashboard" : "calendar"))
+              }
             />
           );
-        case "summary":
-          return <TaskSummaryCards />;
-        case "tasks":
-          return <TaskTabs searchQuery={searchQuery} />;
+        case "body":
+          return (
+            <View style={{ overflow: "hidden" }}>
+              <Animated.View
+                style={[
+                  {
+                    width: screenWidth * 2,
+                    flexDirection: "row",
+                  },
+                  sliderStyle,
+                ]}
+              >
+                <View style={{ width: screenWidth }}>
+                  <TaskSummaryCards />
+                  <TaskTabs searchQuery={searchQuery} />
+                </View>
+                <View style={{ width: screenWidth }}>
+                  <CalendarView />
+                </View>
+              </Animated.View>
+            </View>
+          );
         default:
           return null;
       }
     },
-    [searchQuery]
+    [searchQuery, mode, screenWidth]
   );
 
   const keyExtractor = useCallback((item: Section) => item.id, []);

@@ -5,6 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AppStackParamList } from "../../navigation/types";
 import { useSimpleAnimation } from "../../hooks";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { ProfileMenu } from "./ProfileMenu";
@@ -18,6 +21,8 @@ import { styles } from "./styles";
 interface DashboardHeaderProps {
   onSearchChange?: (query: string) => void;
   searchQuery?: string;
+  mode?: "dashboard" | "calendar";
+  onPrimaryToggle?: () => void; // optional handler to avoid navigation and toggle inline
 }
 
 // DashboardHeader - Features welcome message, user name, and expandable search bar
@@ -25,9 +30,13 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
   onSearchChange,
   searchQuery = "",
+  mode = "dashboard",
+  onPrimaryToggle,
 }: DashboardHeaderProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [searchVisible, setSearchVisible] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
@@ -76,6 +85,15 @@ export function DashboardHeader({
     setSearchVisible(!searchVisible);
   };
 
+  const handlePrimaryToggle = () => {
+    if (onPrimaryToggle) {
+      onPrimaryToggle();
+      return;
+    }
+    if (mode === "calendar") navigation.navigate("Dashboard");
+    else navigation.navigate("Calendar");
+  };
+
   return (
     <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
       {/* Large Title Header */}
@@ -96,6 +114,16 @@ export function DashboardHeader({
             size={44}
             iconSize={22}
           />
+          <TouchableOpacity
+            style={[styles.searchButton, { backgroundColor: colors.surface }]}
+            onPress={handlePrimaryToggle}
+          >
+            <Ionicons
+              name={mode === "calendar" ? "list" : "calendar"}
+              size={22}
+              color={colors.text}
+            />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.searchButton, { backgroundColor: colors.surface }]}
             onPress={handleSearchToggle}
