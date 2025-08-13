@@ -265,39 +265,42 @@ export function FilteredTasksScreen() {
         {/* Lookback summary and toggle for applicable filters */}
         {(filterType === "incomplete" || filterType === "completed") && (
           <View
-            style={{ paddingHorizontal: 20, marginTop: -8, marginBottom: 8 }}
+            style={{
+              paddingHorizontal: 20,
+              marginTop: 8,
+              marginBottom: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
-            <Text style={{ color: colors.textSecondary }}>
+            <Text
+              style={{ color: colors.textSecondary }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {lookbackDays === "all"
                 ? "Showing all history"
                 : `Showing last ${lookbackDays} days`}
             </Text>
-            <View
+            <TouchableOpacity
+              onPress={() =>
+                setLookbackDays(lookbackDays === "all" ? 14 : "all")
+              }
               style={{
-                flexDirection: "row",
-                justifyContent: "flex-end",
-                marginTop: 6,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                borderRadius: 10,
+                backgroundColor: colors.surface,
               }}
+              activeOpacity={0.7}
             >
-              <TouchableOpacity
-                onPress={() =>
-                  setLookbackDays(lookbackDays === "all" ? 14 : "all")
-                }
-                style={{
-                  paddingVertical: 6,
-                  paddingHorizontal: 10,
-                  borderRadius: 10,
-                  backgroundColor: colors.surface,
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                  {lookbackDays === "all"
-                    ? "Show last 14 days"
-                    : "View all history"}
-                </Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                {lookbackDays === "all"
+                  ? "Show last 14 days"
+                  : "View all history"}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
