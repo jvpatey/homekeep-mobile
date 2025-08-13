@@ -32,6 +32,12 @@ export const categories = [
     icon: "tv-outline",
     color: "#2ECC71",
   },
+  {
+    id: "other",
+    name: "Other",
+    icon: "ellipsis-horizontal-circle-outline",
+    color: "#9CA3AF",
+  },
 ];
 
 export const priorities = [
