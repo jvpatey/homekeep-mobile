@@ -17,6 +17,7 @@ interface UseTasksReturn {
   loading: boolean;
   error: string | null;
   timeRange: TimeRange;
+  lookbackDays: number | "all";
   stats: {
     total: number;
     completed: number;
@@ -43,6 +44,7 @@ interface UseTasksReturn {
     taskIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
+  setLookbackDays: (days: number | "all") => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
 }

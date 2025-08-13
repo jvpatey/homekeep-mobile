@@ -18,6 +18,7 @@ interface UseTasksReturn {
   loading: boolean;
   error: string | null;
   timeRange: TimeRange;
+  lookbackDays: number | "all";
   stats: {
     total: number;
     completed: number;
@@ -44,6 +45,7 @@ interface UseTasksReturn {
     taskIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
+  setLookbackDays: (days: number | "all") => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
 }
@@ -66,6 +68,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     thisWeek: 0,
     completionRate: 0,
   });
+  const [lookbackDays, setLookbackDays] = useState<number | "all">(14);
 
   // loadTasks - load tasks from the database
   const loadTasks = useCallback(async () => {
@@ -80,14 +83,19 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           timeRange === "all" ? "All Tasks" : `${timeRange} days`
         }`
       );
-      const [tasksResult, upcomingResult, overdueResult, completedResult, statsResult] =
-        await Promise.all([
-          TaskService.getTasks(filters),
-          TaskService.getUpcomingTasks(timeRange),
-          TaskService.getOverdueTasks(),
-          TaskService.getCompletedTasks(timeRange),
-          TaskService.getTaskStats(),
-        ]);
+      const [
+        tasksResult,
+        upcomingResult,
+        overdueResult,
+        completedResult,
+        statsResult,
+      ] = await Promise.all([
+        TaskService.getTasks(filters),
+        TaskService.getUpcomingTasks(timeRange),
+        TaskService.getOverdueTasks(lookbackDays),
+        TaskService.getCompletedTasksLookback(lookbackDays),
+        TaskService.getTaskStats(),
+      ]);
 
       if (tasksResult.error) throw tasksResult.error;
       if (upcomingResult.error) throw upcomingResult.error;
@@ -123,7 +131,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, filters, timeRange]);
+  }, [user, filters, timeRange, lookbackDays]);
 
   // createTask - create a new task
   const createTask = useCallback(
@@ -435,6 +443,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     loading,
     error,
     timeRange,
+    lookbackDays,
     stats,
     createTask,
     updateTask,
@@ -443,6 +452,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     deleteTask,
     bulkCompleteTasks,
     setTimeRange,
+    setLookbackDays,
     refreshTasks,
     refreshStats,
   };

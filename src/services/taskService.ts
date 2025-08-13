@@ -167,20 +167,29 @@ export class TaskService {
   }
 
   // get overdue tasks (not completed, due before the start of today)
-  static async getOverdueTasks(): Promise<{ data: Task[] | null; error: any }> {
+  // If lookbackDays is a number, only include tasks with next_due_date >= startOfToday - lookbackDays
+  static async getOverdueTasks(
+    lookbackDays: number | "all" = 14
+  ): Promise<{ data: Task[] | null; error: any }> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
     try {
       const start = startOfDay(new Date());
-      const { data, error } = await supabase
+      let query = supabase
         .from("tasks")
         .select("*")
         .eq("is_completed", false)
         .lt("next_due_date", start.toISOString())
-        .order("next_due_date", { ascending: true })
-        .limit(200);
+        .order("next_due_date", { ascending: true });
+
+      if (lookbackDays !== "all") {
+        const from = addDays(start, -lookbackDays);
+        query = query.gte("next_due_date", from.toISOString());
+      }
+
+      const { data, error } = await query.limit(200);
 
       if (error) throw error;
       return { data, error: null };
@@ -484,6 +493,46 @@ export class TaskService {
       return { data, error: null };
     } catch (error) {
       console.error("Error fetching completed tasks:", error);
+      return { data: null, error };
+    }
+  }
+
+  // get completed tasks with lookback window separate from upcoming filter
+  static async getCompletedTasksLookback(
+    lookbackDays: number | "all" = 14
+  ): Promise<{ data: Task[] | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      if (lookbackDays === "all") {
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("is_completed", true)
+          .not("completed_at", "is", null)
+          .order("completed_at", { ascending: false })
+          .limit(500);
+        if (error) throw error;
+        return { data, error: null };
+      }
+
+      const now = new Date();
+      const from = addDays(now, -lookbackDays);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("is_completed", true)
+        .gte("completed_at", from.toISOString())
+        .lte("completed_at", now.toISOString())
+        .order("completed_at", { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error fetching completed tasks (lookback):", error);
       return { data: null, error };
     }
   }

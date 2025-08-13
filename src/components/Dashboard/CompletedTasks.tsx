@@ -37,7 +37,14 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   const navigation = useNavigation<NavigationProp>();
   const { triggerLight, triggerMedium } = useHaptics();
   const tasksHook = useTasks();
-  const { completedTasks, loading, deleteTask, uncompleteTask } = tasksHook;
+  const {
+    completedTasks,
+    loading,
+    deleteTask,
+    uncompleteTask,
+    lookbackDays,
+    setLookbackDays,
+  } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
@@ -292,24 +299,50 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
         )}
       </View>
       {!searchQuery.trim() && (
-        <View style={styles.filterButtonsContainer}>
-          <PriorityFilterButton
-            selectedPriority={activePriority}
-            onPriorityChange={setActivePriority}
-            style={styles.filterButton}
-          />
-          <FilterButton style={styles.filterButton} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <PriorityFilterButton
+              selectedPriority={activePriority}
+              onPriorityChange={setActivePriority}
+              style={styles.filterButton}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setLookbackDays(lookbackDays === "all" ? 14 : "all")}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+              backgroundColor: colors.surface,
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              {lookbackDays === "all"
+                ? "Show last 14 days"
+                : "View all history"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
       <Text
-        style={[
-          styles.sectionSubtitle,
-          { color: colors.textSecondary, marginBottom: 8 },
-        ]}
+        style={{
+          marginBottom: 6,
+          color: colors.textSecondary,
+        }}
       >
-        {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}{" "}
-        completed
+        {lookbackDays === "all"
+          ? "Showing all history"
+          : `Showing last ${lookbackDays} days`}
       </Text>
+      {/* Removed completed count subtitle for cleaner spacing */}
     </View>
   );
 

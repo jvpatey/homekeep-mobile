@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { View, FlatList, Alert, Modal } from "react-native";
+import {
+  View,
+  FlatList,
+  Alert,
+  Modal,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
@@ -35,6 +42,8 @@ export function FilteredTasksScreen() {
     deleteTask,
     bulkCompleteTasks,
     uncompleteTask,
+    lookbackDays,
+    setLookbackDays,
   } = useTasks();
   const listAnimatedStyle = useSimpleAnimation(400, 400, 20);
   const { getCategoryColor } = useCategoryColors();
@@ -252,6 +261,45 @@ export function FilteredTasksScreen() {
           }
           onMarkAllIncomplete={handleMarkAllIncomplete}
         />
+
+        {/* Lookback summary and toggle for applicable filters */}
+        {(filterType === "incomplete" || filterType === "completed") && (
+          <View
+            style={{ paddingHorizontal: 20, marginTop: -8, marginBottom: 8 }}
+          >
+            <Text style={{ color: colors.textSecondary }}>
+              {lookbackDays === "all"
+                ? "Showing all history"
+                : `Showing last ${lookbackDays} days`}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                marginTop: 6,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() =>
+                  setLookbackDays(lookbackDays === "all" ? 14 : "all")
+                }
+                style={{
+                  paddingVertical: 6,
+                  paddingHorizontal: 10,
+                  borderRadius: 10,
+                  backgroundColor: colors.surface,
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                  {lookbackDays === "all"
+                    ? "Show last 14 days"
+                    : "View all history"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Task List */}
         <Animated.View style={[styles.content, listAnimatedStyle]}>

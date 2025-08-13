@@ -22,7 +22,7 @@ export function IncompleteTasks({ searchQuery = "" }: IncompleteTasksProps) {
   const { colors } = useTheme();
   const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
   const tasksHook = useTasks();
-  const { overdueTasks, deleteTask, bulkCompleteTasks } = tasksHook;
+  const { overdueTasks, deleteTask, lookbackDays, setLookbackDays } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -149,15 +149,49 @@ export function IncompleteTasks({ searchQuery = "" }: IncompleteTasksProps) {
         {/* No bulk complete for overdue tasks */}
       </View>
       {!searchQuery.trim() && (
-        <View style={styles.filterButtonsContainer}>
-          <PriorityFilterButton
-            selectedPriority={activePriority}
-            onPriorityChange={setActivePriority}
-            style={styles.filterButton}
-          />
-          <FilterButton style={styles.filterButton} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <PriorityFilterButton
+              selectedPriority={activePriority}
+              onPriorityChange={setActivePriority}
+              style={styles.filterButton}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setLookbackDays(lookbackDays === "all" ? 14 : "all")}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+              backgroundColor: colors.surface,
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              {lookbackDays === "all"
+                ? "Show last 14 days"
+                : "View all history"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
+      <Text
+        style={{
+          marginBottom: 6,
+          color: colors.textSecondary,
+        }}
+      >
+        {lookbackDays === "all"
+          ? "Showing all overdue history"
+          : `Showing last ${lookbackDays} days`}
+      </Text>
     </View>
   );
 
