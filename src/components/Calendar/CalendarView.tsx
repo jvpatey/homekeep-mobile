@@ -43,20 +43,142 @@ export function CalendarView({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
+  // Recurrence helpers to project occurrences within the current month
+  const advanceByRecurrence = useCallback((recurrence: string, from: Date) => {
+    const d = new Date(from);
+    switch (recurrence) {
+      case "weekly":
+        d.setDate(d.getDate() + 7);
+        return d;
+      case "monthly":
+        d.setMonth(d.getMonth() + 1);
+        return d;
+      case "quarterly":
+        d.setMonth(d.getMonth() + 3);
+        return d;
+      case "yearly":
+        d.setFullYear(d.getFullYear() + 1);
+        return d;
+      default:
+        d.setDate(d.getDate() + 7);
+        return d;
+    }
+  }, []);
+
+  const monthRange = useMemo(() => {
+    const start = new Date(
+      visibleMonth.year,
+      visibleMonth.month - 1,
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const end = new Date(
+      visibleMonth.year,
+      visibleMonth.month,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+    return { start, end };
+  }, [visibleMonth]);
+
+  const virtualsForMonth = useMemo(() => {
+    const result: Task[] = [] as any;
+    const seeds = tasks.filter((t) => t.is_recurring && t.recurrence_type);
+    const realKeys = new Set(
+      tasks
+        .filter((t) => {
+          const dt = new Date(t.next_due_date);
+          return dt >= monthRange.start && dt <= monthRange.end;
+        })
+        .map(
+          (t) =>
+            `${t.user_id}|${t.title}|${new Date(t.next_due_date).toISOString()}`
+        )
+    );
+    const addedKeys = new Set<string>();
+    for (const seed of seeds) {
+      if (!seed.recurrence_type || !seed.next_due_date) continue;
+      let occurrence = new Date(seed.next_due_date);
+      // Fast-forward to month start
+      let guard = 0;
+      while (occurrence < monthRange.start && guard < 200) {
+        occurrence = advanceByRecurrence(
+          seed.recurrence_type as string,
+          occurrence
+        );
+        guard++;
+      }
+      // Add occurrences that fall within the month
+      while (occurrence <= monthRange.end && guard < 400) {
+        const key = `${seed.user_id}|${seed.title}|${occurrence.toISOString()}`;
+        if (!realKeys.has(key) && !addedKeys.has(key)) {
+          result.push({
+            id: `v-${seed.id}-${occurrence.toISOString()}`,
+            user_id: seed.user_id,
+            title: seed.title,
+            description: seed.description,
+            category: seed.category,
+            priority: seed.priority,
+            estimated_duration: seed.estimated_duration,
+            is_recurring: true,
+            recurrence_type: seed.recurrence_type,
+            next_due_date: occurrence.toISOString(),
+            created_at: seed.created_at,
+            updated_at: seed.updated_at,
+            is_completed: false,
+            completed_at: undefined,
+            last_completed_date: seed.last_completed_date,
+            next_instance_date: seed.next_instance_date,
+            is_virtual: true,
+          } as Task);
+          addedKeys.add(key);
+        }
+        occurrence = advanceByRecurrence(
+          seed.recurrence_type as string,
+          occurrence
+        );
+        guard++;
+      }
+    }
+    return result;
+  }, [tasks, monthRange, advanceByRecurrence]);
+
   const tasksInVisibleMonth = useMemo(() => {
     const { year, month } = visibleMonth;
-    return tasks.filter((t) => {
+    const real = tasks.filter((t) => {
       const dt = new Date(t.next_due_date);
       return dt.getFullYear() === year && dt.getMonth() + 1 === month;
     });
-  }, [tasks, visibleMonth]);
+    return [...real, ...virtualsForMonth];
+  }, [tasks, visibleMonth, virtualsForMonth]);
 
   const tasksForSelectedDate = useMemo(() => {
     const key = formatDateKey(selectedDate);
-    return tasks.filter(
-      (t) => formatDateKey(new Date(t.next_due_date)) === key
-    );
-  }, [tasks, selectedDate]);
+    const seen = new Set<string>();
+    const result: Task[] = [] as any;
+    const add = (t: Task) => {
+      const k = `${t.user_id}|${t.title}|${new Date(
+        t.next_due_date
+      ).toISOString()}`;
+      if (!seen.has(k)) {
+        seen.add(k);
+        result.push(t);
+      }
+    };
+    tasks.forEach((t) => {
+      if (formatDateKey(new Date(t.next_due_date)) === key) add(t);
+    });
+    virtualsForMonth.forEach((t) => {
+      if (formatDateKey(new Date(t.next_due_date)) === key) add(t);
+    });
+    return result;
+  }, [tasks, selectedDate, virtualsForMonth]);
 
   const filteredBySearch = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
