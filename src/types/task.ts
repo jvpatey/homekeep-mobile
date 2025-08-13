@@ -16,6 +16,8 @@ export interface Task {
   // New fields for better recurring task support
   last_completed_date?: string; // ISO date string - when the last instance was completed
   next_instance_date?: string; // ISO date string - when the next instance is due
+  // Client-only flag to indicate a synthesized future occurrence
+  is_virtual?: boolean;
 }
 
 export interface TaskInstance {

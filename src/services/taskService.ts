@@ -158,8 +158,80 @@ export class TaskService {
         .limit(100);
 
       if (error) throw error;
+      // Project virtual future occurrences for recurring tasks up to endDate
+      // This shows forthcoming instances without creating real DB rows
+      const { data: recurringSeeds } = await supabase
+        .from("tasks")
+        .select(
+          "id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, next_due_date, user_id, is_completed"
+        )
+        .eq("is_recurring", true);
 
-      return { data, error: null };
+      const existingKey = new Set(
+        (data || []).map(
+          (t: any) =>
+            `${t.user_id}|${t.title}|${new Date(t.next_due_date).toISOString()}`
+        )
+      );
+
+      const virtuals: any[] = [];
+      if (recurringSeeds && Array.isArray(recurringSeeds)) {
+        for (const seed of recurringSeeds) {
+          if (!seed.recurrence_type || !seed.next_due_date) continue;
+          // Start projecting from the next occurrence after the seed's next_due_date
+          let projectionDate = new Date(
+            TaskService.calculateNextDueDate(
+              seed.recurrence_type,
+              seed.next_due_date
+            )
+          );
+
+          // Generate until endDate (respect timeRange window)
+          while (projectionDate <= endDate) {
+            const key = `${seed.user_id}|${
+              seed.title
+            }|${projectionDate.toISOString()}`;
+            if (!existingKey.has(key)) {
+              existingKey.add(key);
+              virtuals.push({
+                id: `virtual-${seed.id}-${projectionDate.toISOString()}`,
+                user_id: seed.user_id,
+                title: seed.title,
+                description: seed.description,
+                category: seed.category,
+                priority: seed.priority,
+                estimated_duration: seed.estimated_duration,
+                is_recurring: true,
+                recurrence_type: seed.recurrence_type,
+                next_due_date: projectionDate.toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                is_completed: false,
+                completed_at: null,
+                last_completed_date: null,
+                next_instance_date: null,
+                is_virtual: true,
+              });
+            }
+
+            // Step forward
+            projectionDate = new Date(
+              TaskService.calculateNextDueDate(
+                seed.recurrence_type,
+                projectionDate.toISOString()
+              )
+            );
+          }
+        }
+      }
+
+      const combined = [...(data || []), ...virtuals].sort(
+        (a, b) =>
+          new Date(a.next_due_date).getTime() -
+          new Date(b.next_due_date).getTime()
+      );
+
+      return { data: combined, error: null };
     } catch (error) {
       console.error("Error fetching upcoming tasks:", error);
       return { data: null, error };

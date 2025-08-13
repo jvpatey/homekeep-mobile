@@ -60,12 +60,10 @@ export function CreateTaskModal({
     estimatedDuration: "",
     isRecurring: false,
     dueDate: (() => {
-      // Default to next week for maintenance tasks
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      nextWeek.setHours(9, 0, 0, 0);
-
-      return nextWeek;
+      // Default to today at 9:00 AM local time
+      const today = new Date();
+      today.setHours(9, 0, 0, 0);
+      return today;
     })(),
   });
 
