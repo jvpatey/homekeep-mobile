@@ -17,7 +17,15 @@ function formatDateKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export function CalendarView() {
+interface CalendarViewProps {
+  searchQuery?: string;
+  onClearSearch?: () => void;
+}
+
+export function CalendarView({
+  searchQuery = "",
+  onClearSearch,
+}: CalendarViewProps) {
   const { colors, isDark } = useTheme();
   const { tasks } = useTasks();
 
@@ -49,6 +57,23 @@ export function CalendarView() {
       (t) => formatDateKey(new Date(t.next_due_date)) === key
     );
   }, [tasks, selectedDate]);
+
+  const filteredBySearch = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [] as Task[];
+    return tasks
+      .filter((t) => {
+        const inTitle = t.title.toLowerCase().includes(q);
+        const inDesc = (t.description || "").toLowerCase().includes(q);
+        const inCategory = t.category.toLowerCase().includes(q);
+        return inTitle || inDesc || inCategory;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.next_due_date).getTime() -
+          new Date(b.next_due_date).getTime()
+      );
+  }, [tasks, searchQuery]);
 
   const onSelectDate = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -145,54 +170,84 @@ export function CalendarView() {
           Upcoming Tasks
         </Text>
       </View>
-      <MonthCalendar
-        month={new Date(visibleMonth.year, visibleMonth.month - 1, 1)}
-        selectedDate={selectedDate}
-        tasks={tasksInVisibleMonth}
-        onSelectDate={onSelectDate}
-        onPrevMonth={() =>
-          setVisibleMonth((m) => ({
-            year: new Date(m.year, m.month - 2, 1).getFullYear(),
-            month: new Date(m.year, m.month - 2, 1).getMonth() + 1,
-          }))
-        }
-        onNextMonth={() =>
-          setVisibleMonth((m) => ({
-            year: new Date(m.year, m.month, 1).getFullYear(),
-            month: new Date(m.year, m.month, 1).getMonth() + 1,
-          }))
-        }
-        onToday={() => {
-          const now = new Date();
-          setVisibleMonth({
-            year: now.getFullYear(),
-            month: now.getMonth() + 1,
-          });
-          setSelectedDate(now);
-        }}
-        disablePast
-      />
-      <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 8,
+      {searchQuery.trim().length === 0 && (
+        <MonthCalendar
+          month={new Date(visibleMonth.year, visibleMonth.month - 1, 1)}
+          selectedDate={selectedDate}
+          tasks={tasksInVisibleMonth}
+          onSelectDate={onSelectDate}
+          onPrevMonth={() =>
+            setVisibleMonth((m) => ({
+              year: new Date(m.year, m.month - 2, 1).getFullYear(),
+              month: new Date(m.year, m.month - 2, 1).getMonth() + 1,
+            }))
+          }
+          onNextMonth={() =>
+            setVisibleMonth((m) => ({
+              year: new Date(m.year, m.month, 1).getFullYear(),
+              month: new Date(m.year, m.month, 1).getMonth() + 1,
+            }))
+          }
+          onToday={() => {
+            const now = new Date();
+            setVisibleMonth({
+              year: now.getFullYear(),
+              month: now.getMonth() + 1,
+            });
+            setSelectedDate(now);
           }}
-        >
-          <Ionicons name="calendar" size={18} color={colors.textSecondary} />
-          <Text
-            style={{ color: colors.textSecondary, marginLeft: 6, fontSize: 14 }}
-          >
-            {selectedDate.toLocaleDateString(undefined, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </Text>
-        </View>
-        {tasksForSelectedDate.length === 0 ? (
+          disablePast
+        />
+      )}
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
+        {searchQuery.trim().length > 0 ? (
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ color: colors.textSecondary }}>
+                {filteredBySearch.length} result
+                {filteredBySearch.length === 1 ? "" : "s"}
+              </Text>
+              {filteredBySearch.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const first = filteredBySearch[0];
+                    const d = new Date(first.next_due_date);
+                    setVisibleMonth({
+                      year: d.getFullYear(),
+                      month: d.getMonth() + 1,
+                    });
+                    setSelectedDate(d);
+                    onClearSearch?.();
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    Show calendar
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={filteredBySearch}
+              keyExtractor={(t) => t.id}
+              renderItem={renderTaskItem}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            />
+          </>
+        ) : tasksForSelectedDate.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: 24 }}>
             <Ionicons
               name="clipboard-outline"
