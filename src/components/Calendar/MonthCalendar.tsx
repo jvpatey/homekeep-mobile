@@ -10,6 +10,8 @@ import {
   isSameDay,
   isSameMonth,
   isToday,
+  isBefore,
+  startOfDay,
 } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -23,6 +25,7 @@ interface MonthCalendarProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
+  disablePast?: boolean;
 }
 
 function dateKey(date: Date): string {
@@ -40,6 +43,7 @@ export function MonthCalendar({
   onPrevMonth,
   onNextMonth,
   onToday,
+  disablePast = false,
 }: MonthCalendarProps) {
   const { colors, isDark } = useTheme();
 
@@ -47,6 +51,9 @@ export function MonthCalendar({
   const monthEnd = endOfMonth(month);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+  const currentMonthStart = startOfMonth(new Date());
+  const prevDisabled =
+    disablePast && monthStart.getTime() <= currentMonthStart.getTime();
 
   const days: Date[] = [];
   for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) {
@@ -90,11 +97,17 @@ export function MonthCalendar({
       }}
     >
       <TouchableOpacity
-        onPress={onPrevMonth}
-        style={{ padding: 8, borderRadius: 8 }}
+        onPress={prevDisabled ? undefined : onPrevMonth}
+        disabled={prevDisabled}
+        style={{ padding: 8, borderRadius: 8, opacity: prevDisabled ? 0.4 : 1 }}
         accessibilityLabel="Previous month"
+        accessibilityState={{ disabled: prevDisabled }}
       >
-        <Ionicons name="chevron-back" size={18} color={colors.text} />
+        <Ionicons
+          name="chevron-back"
+          size={18}
+          color={prevDisabled ? colors.textSecondary : colors.text}
+        />
       </TouchableOpacity>
       <Text style={{ color: colors.text, fontSize: 18, fontWeight: "700" }}>
         {format(month, "MMMM yyyy")}
@@ -169,12 +182,16 @@ export function MonthCalendar({
             const key = dateKey(d);
             const dots = markers[key] || [];
             const baseTextColor = inMonth ? colors.text : colors.textSecondary;
+            const past = disablePast && isBefore(d, startOfDay(new Date()));
 
             return (
               <TouchableOpacity
                 key={key}
-                onPress={() => onSelectDate(d)}
+                onPress={() => {
+                  if (!past) onSelectDate(d);
+                }}
                 activeOpacity={0.8}
+                disabled={past}
                 style={{ flex: 1, paddingHorizontal: 4, paddingVertical: 4 }}
               >
                 <View
@@ -188,6 +205,7 @@ export function MonthCalendar({
                     borderWidth: today && !isSelected ? 1 : 0,
                     borderColor:
                       today && !isSelected ? colors.secondary : "transparent",
+                    opacity: past ? 0.45 : 1,
                   }}
                 >
                   <Text
@@ -208,6 +226,7 @@ export function MonthCalendar({
                           borderRadius: 2,
                           marginHorizontal: 1,
                           backgroundColor: isSelected ? "#ffffff" : c,
+                          opacity: past ? 0.6 : 1,
                         }}
                       />
                     ))}

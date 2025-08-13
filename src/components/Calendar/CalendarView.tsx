@@ -170,6 +170,7 @@ export function CalendarView() {
           });
           setSelectedDate(now);
         }}
+        disablePast
       />
       <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
         <View
