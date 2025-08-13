@@ -30,6 +30,7 @@ export function FilteredTasksScreen() {
   const { triggerMedium, triggerSuccess } = useHaptics();
   const {
     upcomingTasks,
+    overdueTasks,
     completedTasks,
     deleteTask,
     bulkCompleteTasks,
@@ -68,13 +69,15 @@ export function FilteredTasksScreen() {
         const taskDate = new Date(task.next_due_date);
         return taskDate >= today && taskDate < nextWeek;
       });
+    } else if (filterType === "incomplete") {
+      return overdueTasks;
     } else if (filterType === "completed") {
       // Return completed tasks from the context
       return completedTasks;
     } else {
       return upcomingTasks;
     }
-  }, [upcomingTasks, completedTasks, filterType]);
+  }, [upcomingTasks, overdueTasks, completedTasks, filterType]);
 
   // Sort tasks appropriately based on filter type
   const sortedTasks = useMemo(() => {
@@ -112,8 +115,8 @@ export function FilteredTasksScreen() {
   };
 
   const handleMarkAllComplete = () => {
-    // Don't show this for completed tasks
-    if (filterType === "completed") return;
+    // Don't allow complete-all for completed or incomplete filters
+    if (filterType === "completed" || filterType === "incomplete") return;
 
     triggerMedium();
     Alert.alert(
@@ -230,6 +233,7 @@ export function FilteredTasksScreen() {
       getCategoryColor={getCategoryColor}
       formatDueDate={formatDueDate}
       showDeleteButton={true}
+      variant={filterType === "incomplete" ? "incomplete" : "default"}
     />
   );
 
@@ -243,7 +247,9 @@ export function FilteredTasksScreen() {
           title={title}
           taskCount={sortedTasks.length}
           filterType={filterType}
-          onMarkAllComplete={handleMarkAllComplete}
+          onMarkAllComplete={
+            filterType === "incomplete" ? undefined : handleMarkAllComplete
+          }
           onMarkAllIncomplete={handleMarkAllIncomplete}
         />
 

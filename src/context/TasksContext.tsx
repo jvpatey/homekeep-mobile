@@ -12,6 +12,7 @@ export type TimeRange = 30 | 60 | 90 | 120 | "all";
 interface UseTasksReturn {
   tasks: Task[];
   upcomingTasks: Task[];
+  overdueTasks: Task[];
   completedTasks: Task[];
   loading: boolean;
   error: string | null;

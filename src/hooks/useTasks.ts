@@ -13,6 +13,7 @@ import { TimeRange } from "../context/TasksContext";
 interface UseTasksReturn {
   tasks: Task[];
   upcomingTasks: Task[];
+  overdueTasks: Task[];
   completedTasks: Task[];
   loading: boolean;
   error: string | null;
@@ -52,6 +53,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,10 +80,11 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           timeRange === "all" ? "All Tasks" : `${timeRange} days`
         }`
       );
-      const [tasksResult, upcomingResult, completedResult, statsResult] =
+      const [tasksResult, upcomingResult, overdueResult, completedResult, statsResult] =
         await Promise.all([
           TaskService.getTasks(filters),
           TaskService.getUpcomingTasks(timeRange),
+          TaskService.getOverdueTasks(),
           TaskService.getCompletedTasks(timeRange),
           TaskService.getTaskStats(),
         ]);
@@ -89,13 +92,16 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       if (tasksResult.error) throw tasksResult.error;
       if (upcomingResult.error) throw upcomingResult.error;
       if (completedResult.error) throw completedResult.error;
+      if (overdueResult.error) throw overdueResult.error;
       if (statsResult.error) throw statsResult.error;
 
       const upcomingCount = upcomingResult.data?.length || 0;
+      const overdueCount = overdueResult.data?.length || 0;
       const completedCount = completedResult.data?.length || 0;
 
       setTasks(tasksResult.data || []);
       setUpcomingTasks(upcomingResult.data || []);
+      setOverdueTasks(overdueResult.data || []);
       setCompletedTasks([...(completedResult.data || [])]);
       setStats(
         statsResult.data || {
@@ -109,7 +115,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       );
 
       console.log(
-        `✅ useTasks: Successfully loaded ${upcomingCount} upcoming + ${completedCount} completed tasks`
+        `✅ useTasks: Loaded ${upcomingCount} upcoming, ${overdueCount} overdue, ${completedCount} completed tasks`
       );
     } catch (err: any) {
       setError(err.message || "Failed to load tasks");
@@ -328,6 +334,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         // Remove from local state
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
         setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
+        setOverdueTasks((prev) => prev.filter((task) => task.id !== taskId));
 
         // Refresh stats
         await refreshStats();
@@ -407,6 +414,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     } else {
       setTasks([]);
       setUpcomingTasks([]);
+      setOverdueTasks([]);
       setCompletedTasks([]);
       setStats({
         total: 0,
@@ -422,6 +430,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   return {
     tasks,
     upcomingTasks,
+    overdueTasks,
     completedTasks,
     loading,
     error,
