@@ -260,7 +260,10 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
           activePriority.charAt(0).toUpperCase() + activePriority.slice(1);
         return {
           title: `No ${priorityLabel} priority tasks`,
-          subtitle: `All your ${activePriority} priority tasks are completed`,
+          subtitle:
+            tasksHook.timeRange === "all"
+              ? `No ${activePriority} priority tasks scheduled`
+              : `No ${activePriority} priority tasks due in the next ${tasksHook.timeRange} days`,
         };
       }
     };

@@ -59,7 +59,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>(60);
+  const [timeRange, setTimeRange] = useState<TimeRange>(30);
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,

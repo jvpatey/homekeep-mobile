@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { DesignSystem } from "../../../theme/designSystem";
 import { useTheme } from "../../../context/ThemeContext";
 
-export type PriorityFilter = "all" | "high" | "medium" | "low";
+export type PriorityFilter = "all" | "urgent" | "high" | "medium" | "low";
 
 interface PriorityFilterButtonProps {
   selectedPriority: PriorityFilter;
@@ -19,6 +19,12 @@ const PRIORITY_OPTIONS: {
   color: string;
 }[] = [
   { value: "all", label: "All Tasks", icon: "list", color: "#6B7280" },
+  {
+    value: "urgent",
+    label: "Urgent",
+    icon: "alert",
+    color: "#DC2626",
+  },
   {
     value: "high",
     label: "High Priority",

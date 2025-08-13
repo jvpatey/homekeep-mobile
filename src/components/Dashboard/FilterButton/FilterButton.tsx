@@ -48,7 +48,7 @@ export function FilterButton({ style }: FilterButtonProps) {
       >
         <Ionicons name="filter" size={18} color={colors.textSecondary} />
         <Text style={[styles.filterText, { color: colors.text }]}>
-          {selectedOption?.label || "60 Days"}
+          {selectedOption?.label || "30 Days"}
         </Text>
         <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
       </TouchableOpacity>
