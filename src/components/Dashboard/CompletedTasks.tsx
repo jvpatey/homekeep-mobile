@@ -23,6 +23,8 @@ import { TaskItem } from "./TaskItem";
 import { FilterButton } from "./FilterButton";
 import { PriorityFilterButton, PriorityFilter } from "./PriorityFilterButton";
 import { Task } from "../../types/task";
+import { groupTasksByKey } from "../Dashboard/grouping";
+import { StackedTaskItem } from "../Dashboard/StackedTaskItem";
 import { styles } from "./styles";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
@@ -241,6 +243,7 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   };
 
   const filteredTasks = getFilteredTasks();
+  const grouped = groupTasksByKey(filteredTasks);
 
   const renderTaskItem = (task: Task) => (
     <TaskItem
@@ -404,12 +407,25 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
       <Animated.View style={[styles.upcomingContainer, listAnimatedStyle]}>
         <View style={{ paddingHorizontal: 4, paddingBottom: 8 }}>
           <ListHeader />
-          {filteredTasks.length > 0 ? (
+          {grouped.length > 0 ? (
             <View>
-              {filteredTasks.map((task, index) => (
-                <View key={task.id}>
-                  {renderTaskItem(task)}
-                  {index < filteredTasks.length - 1 && (
+              {grouped.map((group, index) => (
+                <View key={group.key}>
+                  {group.items.length > 1 ? (
+                    <StackedTaskItem
+                      groupKey={group.key}
+                      items={group.items}
+                      onPressTask={handleTaskPress}
+                      onDeleteTask={handleDeleteTask}
+                      onComplete={tasksHook.completeTask}
+                      onUncomplete={tasksHook.uncompleteTask}
+                      getCategoryColor={getCategoryColor}
+                      formatDueDate={formatCompletedDate}
+                    />
+                  ) : (
+                    renderTaskItem(group.items[0])
+                  )}
+                  {index < grouped.length - 1 && (
                     <View style={styles.separator} />
                   )}
                 </View>
