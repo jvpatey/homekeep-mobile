@@ -102,7 +102,14 @@ export function TaskSummaryCards() {
 
                   <View style={styles.cardBody}>
                     <Text style={styles.cardCount}>{card.count}</Text>
-                    <Text style={styles.cardTitle}>{card.title}</Text>
+                    <Text
+                      style={styles.cardTitle}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
+                      {card.title}
+                    </Text>
                   </View>
                 </View>
               </LinearGradient>
