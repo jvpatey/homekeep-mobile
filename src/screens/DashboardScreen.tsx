@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View, FlatList, RefreshControl } from "react-native";
 import { PaperProvider } from "react-native-paper";
@@ -8,13 +8,14 @@ import { useTasks } from "../context/TasksContext";
 import { DashboardHeader } from "../components/Dashboard/DashboardHeader";
 import { TaskSummaryCards } from "../components/Dashboard/TaskSummaryCards";
 import { TaskTabs } from "../components/Dashboard/TaskTabs";
+import { CalendarView } from "../components/Calendar/CalendarView";
 import { FloatingActionButton } from "../components/Dashboard/FloatingActionButton";
 
 // DashboardScreen - The main dashboard for authenticated users
 
 interface Section {
   id: string;
-  type: "header" | "summary" | "tasks";
+  type: "header" | "summary" | "tasks" | "calendar";
 }
 
 export function DashboardScreen() {
@@ -23,6 +24,7 @@ export function DashboardScreen() {
   const { completedTasks, upcomingTasks, refreshTasks } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mode, setMode] = useState<"dashboard" | "calendar">("dashboard");
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -40,11 +42,19 @@ export function DashboardScreen() {
   };
 
   // Define the sections for the FlatList
-  const sections: Section[] = [
-    { id: "header", type: "header" },
-    { id: "summary", type: "summary" },
-    { id: "tasks", type: "tasks" },
-  ];
+  const sections: Section[] = useMemo(() => {
+    if (mode === "calendar") {
+      return [
+        { id: "header", type: "header" },
+        { id: "calendar", type: "calendar" },
+      ];
+    }
+    return [
+      { id: "header", type: "header" },
+      { id: "summary", type: "summary" },
+      { id: "tasks", type: "tasks" },
+    ];
+  }, [mode]);
 
   const renderSection = useCallback(
     ({ item }: { item: Section }) => {
@@ -54,17 +64,23 @@ export function DashboardScreen() {
             <DashboardHeader
               onSearchChange={handleSearchChange}
               searchQuery={searchQuery}
+              mode={mode}
+              onPrimaryToggle={() =>
+                setMode((m) => (m === "calendar" ? "dashboard" : "calendar"))
+              }
             />
           );
         case "summary":
           return <TaskSummaryCards />;
         case "tasks":
           return <TaskTabs searchQuery={searchQuery} />;
+        case "calendar":
+          return <CalendarView />;
         default:
           return null;
       }
     },
-    [searchQuery]
+    [searchQuery, mode]
   );
 
   const keyExtractor = useCallback((item: Section) => item.id, []);

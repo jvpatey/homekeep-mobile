@@ -24,6 +24,7 @@ export type AppStackParamList = {
   TaskHistory: { taskId: string }; // Task completion history
   FilteredTasks: { filterType: string; title: string }; // Filtered task list
   Settings: undefined; // User settings
+  Calendar: undefined; // Monthly calendar view
 };
 
 /**
