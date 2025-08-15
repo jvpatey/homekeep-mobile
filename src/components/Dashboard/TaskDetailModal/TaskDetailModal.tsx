@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
-import { View, Modal, Alert } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Modal, Alert, Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSimpleAnimation, useHaptics } from "../../../hooks";
 import { useTasks } from "../../../context/TasksContext";
 import { useTheme } from "../../../context/ThemeContext";
@@ -8,6 +9,7 @@ import { TaskDetailHeader } from "./TaskDetailHeader";
 import { TaskDetailContent } from "./TaskDetailContent";
 import { TaskDetailActions } from "./TaskDetailActions";
 import { getCategoryGradient, formatDueDate } from "./utils";
+import { TaskService } from "../../../services/taskService";
 
 interface TaskDetailModalProps {
   taskId: string | null;
@@ -32,6 +34,8 @@ export function TaskDetailModal({
     tasks,
     upcomingTasks,
     completedTasks,
+    overdueTasks,
+    refreshTasks,
   } = useTasks();
 
   // Get the current task from the tasks context to ensure we have the latest state
@@ -39,12 +43,19 @@ export function TaskDetailModal({
     if (!taskId) return null;
     // Check all task arrays to find the most up-to-date version
     const foundTask =
-      tasks.find((t) => t.id === taskId) ||
-      upcomingTasks.find((t) => t.id === taskId) ||
-      completedTasks.find((t) => t.id === taskId);
+      tasks.find((t) => t.id === taskId || t.instance_id === taskId) ||
+      upcomingTasks.find((t) => t.id === taskId || t.instance_id === taskId) ||
+      overdueTasks.find((t) => t.id === taskId || t.instance_id === taskId) ||
+      completedTasks.find((t) => t.id === taskId || t.instance_id === taskId);
 
     return foundTask;
-  }, [taskId, tasks, upcomingTasks, completedTasks]);
+  }, [taskId, tasks, upcomingTasks, overdueTasks, completedTasks]);
+
+  const [editMode, setEditMode] = useState<"occurrence" | "series" | null>(
+    null
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingDate, setPendingDate] = useState<Date>(new Date());
 
   if (!currentTask) return null;
 
@@ -96,8 +107,59 @@ export function TaskDetailModal({
 
   const handleEdit = () => {
     triggerLight();
-    onEdit(currentTask);
-    onClose();
+    if (currentTask.instance_id) {
+      Alert.alert("Edit Recurring Task", "Choose what to edit", [
+        {
+          text: "This occurrence",
+          onPress: () => {
+            setEditMode("occurrence");
+            setPendingDate(new Date(currentTask.next_due_date));
+            setShowDatePicker(true);
+          },
+        },
+        {
+          text: "This and future",
+          onPress: () => {
+            setEditMode("series");
+            setPendingDate(new Date(currentTask.next_due_date));
+            setShowDatePicker(true);
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    } else {
+      onEdit(currentTask);
+      onClose();
+    }
+  };
+
+  const handleConfirmDate = async (selected: Date | undefined) => {
+    setShowDatePicker(false);
+    if (!selected || !editMode) return;
+    try {
+      if (editMode === "occurrence" && currentTask.instance_id) {
+        const { error } = await TaskService.updateInstanceDueDate(
+          currentTask.instance_id,
+          selected.toISOString()
+        );
+        if (error) throw error;
+      } else if (editMode === "series") {
+        const deltaMs =
+          selected.getTime() - new Date(currentTask.next_due_date).getTime();
+        const { error } = await TaskService.shiftFutureInstances(
+          currentTask.id,
+          new Date(currentTask.next_due_date).toISOString(),
+          deltaMs
+        );
+        if (error) throw error;
+      }
+      await refreshTasks();
+      onClose();
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to update recurrence");
+    } finally {
+      setEditMode(null);
+    }
   };
 
   return (
@@ -122,6 +184,21 @@ export function TaskDetailModal({
             onDelete={handleDelete}
           />
         </View>
+        {showDatePicker && (
+          <DateTimePicker
+            value={pendingDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={(event, selectedDate) => {
+              if (Platform.OS !== "ios") {
+                handleConfirmDate(selectedDate || pendingDate);
+              } else if (selectedDate) {
+                setPendingDate(selectedDate);
+              }
+            }}
+            style={{ backgroundColor: colors.surface }}
+          />
+        )}
       </View>
     </Modal>
   );

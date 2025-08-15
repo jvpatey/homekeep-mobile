@@ -1,4 +1,5 @@
 export interface Task {
+  instance_id?: string; // If this Task represents a concrete occurrence from task_instances
   id: string;
   user_id: string;
   title: string;

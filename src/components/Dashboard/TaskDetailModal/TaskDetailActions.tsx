@@ -21,6 +21,7 @@ export function TaskDetailActions({
   const { colors } = useTheme();
   const isOverdue =
     !task.is_completed && new Date(task.next_due_date) < new Date();
+  const isInstance = !!task.instance_id;
 
   return (
     <View
@@ -120,7 +121,7 @@ export function TaskDetailActions({
               letterSpacing: 0.2,
             }}
           >
-            Edit
+            {isInstance ? "Edit occurrence" : "Edit"}
           </Text>
         </TouchableOpacity>
       </View>

@@ -145,7 +145,7 @@ export function StackedTaskItem({
         )
         .map((task, idx) => (
           <TaskItem
-            key={task.id}
+            key={task.instance_id || task.id}
             task={task}
             onPress={onPressTask}
             onDelete={onDeleteTask}

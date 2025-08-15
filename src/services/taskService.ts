@@ -10,6 +10,64 @@ import {
 import { addWeeks, addMonths, addYears, startOfDay, addDays } from "date-fns";
 
 export class TaskService {
+  private static async ensureInstancesForRange(
+    startISO: string,
+    endISO: string,
+    includeCompleted: boolean
+  ) {
+    if (!supabase) return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch tasks in range for this user
+      let tasksQuery = supabase
+        .from("tasks")
+        .select("id, user_id, next_due_date, is_completed, completed_at")
+        .eq("user_id", user.id)
+        .gte("next_due_date", startISO)
+        .lte("next_due_date", endISO);
+      if (!includeCompleted) {
+        tasksQuery = tasksQuery.eq("is_completed", false);
+      }
+      const { data: tasksInRange, error: tasksErr } = await tasksQuery;
+      if (tasksErr || !tasksInRange || tasksInRange.length === 0) return;
+
+      const taskIds = tasksInRange.map((t: any) => t.id);
+      const { data: existingInstances } = await supabase
+        .from("task_instances")
+        .select("task_id, due_date")
+        .in("task_id", taskIds)
+        .gte("due_date", startISO)
+        .lte("due_date", endISO);
+
+      const existingKey = new Set(
+        (existingInstances || []).map(
+          (i: any) => `${i.task_id}|${new Date(i.due_date).toISOString()}`
+        )
+      );
+
+      const toInsert = tasksInRange
+        .filter((t: any) => {
+          const key = `${t.id}|${new Date(t.next_due_date).toISOString()}`;
+          return !existingKey.has(key);
+        })
+        .map((t: any) => ({
+          task_id: t.id,
+          due_date: t.next_due_date,
+          is_completed: t.is_completed,
+          completed_at: t.completed_at || null,
+        }));
+
+      if (toInsert.length > 0) {
+        await supabase.from("task_instances").insert(toInsert);
+      }
+    } catch (e) {
+      console.error("ensureInstancesForRange error", e);
+    }
+  }
   // create a new task
   static async createTask(
     taskData: CreateTaskData
@@ -235,6 +293,359 @@ export class TaskService {
     } catch (error) {
       console.error("Error fetching upcoming tasks:", error);
       return { data: null, error };
+    }
+  }
+
+  // Instance-based upcoming fetch (preferred for recurring support)
+  static async getUpcomingInstances(timeRange: number | "all" = 60): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const start = startOfDay(new Date());
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("is_completed", false)
+        .gte("due_date", start.toISOString())
+        .order("due_date", { ascending: true });
+
+      let end = undefined as string | undefined;
+      if (timeRange !== "all") {
+        const e = addDays(new Date(), timeRange as number);
+        end = e.toISOString();
+        query = query.lte("due_date", end);
+      }
+
+      // Backfill instances for tasks in range so lists/calendar see them
+      await TaskService.ensureInstancesForRange(
+        start.toISOString(),
+        end || addDays(new Date(), 365).toISOString(),
+        false
+      );
+
+      const { data, error } = await query.limit(500);
+      if (error) throw error;
+
+      const seen = new Set<string>();
+      const unique = (data || []).filter((i: any) => {
+        const key = `${i.task_id}|${new Date(i.due_date).toISOString()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const mapped: Task[] = unique.map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching upcoming instances:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getCompletedInstances(
+    lookbackDays: number | "all" = 14
+  ): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      const now = new Date();
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("is_completed", true)
+        .order("completed_at", { ascending: false });
+      if (lookbackDays !== "all") {
+        const from = addDays(now, -(lookbackDays as number));
+        query = query.gte("completed_at", from.toISOString());
+      }
+      const { data, error } = await query.limit(500);
+      if (error) throw error;
+      const mapped: Task[] = (data || []).map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching completed instances:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getOverdueInstances(lookbackDays: number | "all" = 14): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      const start = startOfDay(new Date());
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("is_completed", false)
+        .lt("due_date", start.toISOString())
+        .order("due_date", { ascending: true });
+      if (lookbackDays !== "all") {
+        const from = addDays(start, -(lookbackDays as number));
+        query = query.gte("due_date", from.toISOString());
+      }
+      const { data, error } = await query.limit(500);
+      if (error) throw error;
+      const mapped: Task[] = (data || []).map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching overdue instances:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getInstancesInRange(
+    startISO: string,
+    endISO: string,
+    includeCompleted: boolean = true
+  ): Promise<{ data: Task[] | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      // Backfill instances for tasks in range
+      await TaskService.ensureInstancesForRange(
+        startISO,
+        endISO,
+        includeCompleted
+      );
+
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .gte("due_date", startISO)
+        .lte("due_date", endISO)
+        .order("due_date", { ascending: true });
+      if (!includeCompleted) {
+        query = query.eq("is_completed", false);
+      }
+      const { data, error } = await query.limit(1000);
+      if (error) throw error;
+      // De-duplicate by (task_id, due_date)
+      const seen = new Set<string>();
+      const unique = (data || []).filter((i: any) => {
+        const key = `${i.task_id}|${new Date(i.due_date).toISOString()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      const mapped: Task[] = unique.map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching instances in range:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getInstanceById(
+    instanceId: string
+  ): Promise<{ data: Task | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      const { data, error } = await supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("id", instanceId)
+        .single();
+      if (error) throw error;
+      const mapped: Task = {
+        id: data.task?.id,
+        instance_id: data.id,
+        user_id: data.task?.user_id,
+        title: data.task?.title,
+        description: data.task?.description,
+        category: data.task?.category,
+        priority: data.task?.priority,
+        estimated_duration: data.task?.estimated_duration,
+        is_recurring: !!data.task?.is_recurring,
+        recurrence_type: data.task?.recurrence_type,
+        next_due_date: data.due_date,
+        created_at: data.task?.created_at || data.created_at,
+        updated_at: data.task?.updated_at || data.created_at,
+        is_completed: data.is_completed,
+        completed_at: data.completed_at,
+      } as Task;
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching instance by id:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async completeInstance(instanceId: string) {
+    if (!supabase)
+      return { data: null, error: { message: "Supabase not configured" } };
+    try {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("task_instances")
+        .update({ is_completed: true, completed_at: now })
+        .eq("id", instanceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error completing instance:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async uncompleteInstance(instanceId: string) {
+    if (!supabase)
+      return { data: null, error: { message: "Supabase not configured" } };
+    try {
+      const { data, error } = await supabase
+        .from("task_instances")
+        .update({ is_completed: false, completed_at: null })
+        .eq("id", instanceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error uncompleting instance:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateInstanceDueDate(instanceId: string, newDueISO: string) {
+    if (!supabase)
+      return { data: null, error: { message: "Supabase not configured" } };
+    try {
+      const { data, error } = await supabase
+        .from("task_instances")
+        .update({ due_date: newDueISO })
+        .eq("id", instanceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error updating instance due date:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async shiftFutureInstances(
+    taskId: string,
+    fromDueDateISO: string,
+    deltaMs: number
+  ) {
+    if (!supabase) return { error: { message: "Supabase not configured" } };
+    try {
+      const { data: instances, error } = await supabase
+        .from("task_instances")
+        .select("id, due_date")
+        .eq("task_id", taskId)
+        .gte("due_date", fromDueDateISO)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      if (!instances || instances.length === 0) return { error: null };
+      const updates = instances.map((i: any) => ({
+        id: i.id,
+        due_date: new Date(
+          new Date(i.due_date).getTime() + deltaMs
+        ).toISOString(),
+      }));
+      // Batch update
+      const { error: upErr } = await supabase
+        .from("task_instances")
+        .upsert(updates);
+      if (upErr) throw upErr;
+      return { error: null };
+    } catch (e) {
+      console.error("Error shifting future instances:", e);
+      return { error: e };
     }
   }
 

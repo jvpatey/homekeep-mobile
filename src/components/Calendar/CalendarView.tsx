@@ -4,6 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
+import { TaskService } from "../../services/taskService";
 import { Task } from "../../types/task";
 import { TaskDetailModal } from "../Dashboard/TaskDetailModal/TaskDetailModal";
 import { EditTaskModal } from "../Dashboard/CreateTaskModal/EditTaskModal";
@@ -27,7 +28,8 @@ export function CalendarView({
   onClearSearch,
 }: CalendarViewProps) {
   const { colors, isDark } = useTheme();
-  const { tasks } = useTasks();
+  const { tasks, upcomingTasks, overdueTasks, completedTasks } = useTasks();
+  const [monthInstances, setMonthInstances] = useState<Task[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [visibleMonth, setVisibleMonth] = useState<{
@@ -87,103 +89,60 @@ export function CalendarView({
     return { start, end };
   }, [visibleMonth]);
 
-  const virtualsForMonth = useMemo(() => {
-    const result: Task[] = [] as any;
-    const seeds = tasks.filter((t) => t.is_recurring && t.recurrence_type);
-    const realKeys = new Set(
-      tasks
-        .filter((t) => {
-          const dt = new Date(t.next_due_date);
-          return dt >= monthRange.start && dt <= monthRange.end;
-        })
-        .map(
-          (t) =>
-            `${t.user_id}|${t.title}|${new Date(t.next_due_date).toISOString()}`
-        )
-    );
-    const addedKeys = new Set<string>();
-    for (const seed of seeds) {
-      if (!seed.recurrence_type || !seed.next_due_date) continue;
-      let occurrence = new Date(seed.next_due_date);
-      // Fast-forward to month start
-      let guard = 0;
-      while (occurrence < monthRange.start && guard < 200) {
-        occurrence = advanceByRecurrence(
-          seed.recurrence_type as string,
-          occurrence
-        );
-        guard++;
-      }
-      // Add occurrences that fall within the month
-      while (occurrence <= monthRange.end && guard < 400) {
-        const key = `${seed.user_id}|${seed.title}|${occurrence.toISOString()}`;
-        if (!realKeys.has(key) && !addedKeys.has(key)) {
-          result.push({
-            id: `v-${seed.id}-${occurrence.toISOString()}`,
-            user_id: seed.user_id,
-            title: seed.title,
-            description: seed.description,
-            category: seed.category,
-            priority: seed.priority,
-            estimated_duration: seed.estimated_duration,
-            is_recurring: true,
-            recurrence_type: seed.recurrence_type,
-            next_due_date: occurrence.toISOString(),
-            created_at: seed.created_at,
-            updated_at: seed.updated_at,
-            is_completed: false,
-            completed_at: undefined,
-            last_completed_date: seed.last_completed_date,
-            next_instance_date: seed.next_instance_date,
-            is_virtual: true,
-          } as Task);
-          addedKeys.add(key);
-        }
-        occurrence = advanceByRecurrence(
-          seed.recurrence_type as string,
-          occurrence
-        );
-        guard++;
-      }
-    }
-    return result;
-  }, [tasks, monthRange, advanceByRecurrence]);
+  React.useEffect(() => {
+    (async () => {
+      const { data } = await TaskService.getInstancesInRange(
+        monthRange.start.toISOString(),
+        monthRange.end.toISOString(),
+        true
+      );
+      setMonthInstances(data || []);
+    })();
+  }, [monthRange.start.getTime(), monthRange.end.getTime()]);
 
   const tasksInVisibleMonth = useMemo(() => {
-    const { year, month } = visibleMonth;
-    const real = tasks.filter((t) => {
-      const dt = new Date(t.next_due_date);
-      return dt.getFullYear() === year && dt.getMonth() + 1 === month;
-    });
-    return [...real, ...virtualsForMonth];
-  }, [tasks, visibleMonth, virtualsForMonth]);
+    // De-duplicate within month by (task_id, due_date)
+    const seen = new Set<string>();
+    const deduped: Task[] = [];
+    for (const t of monthInstances) {
+      const key = `${t.id}|${new Date(t.next_due_date).toISOString()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(t);
+      }
+    }
+    return deduped;
+  }, [monthInstances]);
 
   const tasksForSelectedDate = useMemo(() => {
     const key = formatDateKey(selectedDate);
+    return monthInstances.filter(
+      (t) => formatDateKey(new Date(t.next_due_date)) === key
+    );
+  }, [monthInstances, selectedDate]);
+
+  const allInstances = useMemo(() => {
+    const list = [...upcomingTasks, ...overdueTasks, ...completedTasks];
     const seen = new Set<string>();
-    const result: Task[] = [] as any;
-    const add = (t: Task) => {
-      const k = `${t.user_id}|${t.title}|${new Date(
-        t.next_due_date
-      ).toISOString()}`;
-      if (!seen.has(k)) {
-        seen.add(k);
-        result.push(t);
+    const deduped: Task[] = [];
+    for (const t of list) {
+      const key = `${t.instance_id || t.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(t);
       }
-    };
-    tasks.forEach((t) => {
-      if (formatDateKey(new Date(t.next_due_date)) === key) add(t);
-    });
-    virtualsForMonth.forEach((t) => {
-      if (formatDateKey(new Date(t.next_due_date)) === key) add(t);
-    });
-    return result;
-  }, [tasks, selectedDate, virtualsForMonth]);
+    }
+    return deduped.sort(
+      (a, b) =>
+        new Date(a.next_due_date).getTime() -
+        new Date(b.next_due_date).getTime()
+    );
+  }, [upcomingTasks, overdueTasks, completedTasks]);
 
   const filteredBySearch = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [] as Task[];
-    return tasks
+    return allInstances
       .filter((t) => {
         const inTitle = t.title.toLowerCase().includes(q);
         const inDesc = (t.description || "").toLowerCase().includes(q);
@@ -195,14 +154,14 @@ export function CalendarView({
           new Date(a.next_due_date).getTime() -
           new Date(b.next_due_date).getTime()
       );
-  }, [tasks, searchQuery]);
+  }, [allInstances, searchQuery]);
 
   const onSelectDate = useCallback((date: Date) => {
     setSelectedDate(date);
   }, []);
 
-  const handleTaskPress = (taskId: string) => {
-    setSelectedTaskId(taskId);
+  const handleTaskPress = (taskKey: string) => {
+    setSelectedTaskId(taskKey);
     setTaskDetailVisible(true);
   };
 
@@ -236,7 +195,7 @@ export function CalendarView({
     const badgeColor = categoryColorMap[item.category] || colors.primary;
     return (
       <TouchableOpacity
-        onPress={() => handleTaskPress(item.id)}
+        onPress={() => handleTaskPress(item.instance_id || item.id)}
         activeOpacity={0.7}
         style={{
           paddingVertical: 12,
@@ -364,7 +323,7 @@ export function CalendarView({
             </View>
             <FlatList
               data={filteredBySearch}
-              keyExtractor={(t) => t.id}
+              keyExtractor={(t) => t.instance_id || t.id}
               renderItem={renderTaskItem}
               contentContainerStyle={{ paddingBottom: 24 }}
             />
@@ -383,7 +342,7 @@ export function CalendarView({
         ) : (
           <FlatList
             data={tasksForSelectedDate}
-            keyExtractor={(t) => t.id}
+            keyExtractor={(t) => t.instance_id || t.id}
             renderItem={renderTaskItem}
             contentContainerStyle={{ paddingBottom: 24 }}
           />

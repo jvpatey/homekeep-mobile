@@ -145,7 +145,7 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
           onPress: async () => {
             triggerMedium();
             const { success, error } = await bulkCompleteTasks(
-              filteredTasks.map((task) => task.id)
+              filteredTasks.map((task) => task.instance_id || task.id)
             );
             if (!success) {
               Alert.alert("Error", error || "Failed to complete all tasks");

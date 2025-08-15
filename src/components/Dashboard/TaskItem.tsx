@@ -64,7 +64,7 @@ export function TaskItem({
     if (translateX.value < -10) {
       translateX.value = withTiming(0);
     } else {
-      runOnJS(onPress)(task.id);
+      runOnJS(onPress)(task.instance_id || task.id);
     }
   });
 

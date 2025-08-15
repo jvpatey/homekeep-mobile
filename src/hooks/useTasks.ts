@@ -90,10 +90,10 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         completedResult,
         statsResult,
       ] = await Promise.all([
-        TaskService.getTasks(filters),
-        TaskService.getUpcomingTasks(timeRange),
-        TaskService.getOverdueTasks(lookbackDays),
-        TaskService.getCompletedTasksLookback(lookbackDays),
+        TaskService.getTasks(filters), // series templates (for editing etc.)
+        TaskService.getUpcomingInstances(timeRange),
+        TaskService.getOverdueInstances(lookbackDays),
+        TaskService.getCompletedInstances(lookbackDays),
         TaskService.getTaskStats(),
       ]);
 
@@ -277,7 +277,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     [user, tasks]
   );
 
-  // completeTask - mark a task as completed
+  // completeTask - mark a task or instance as completed
   const completeTask = useCallback(
     async (taskId: string) => {
       if (!user) {
@@ -285,7 +285,20 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const result = await TaskService.completeTask(taskId);
+        // Prefer completing an instance if we can map the id
+        const candidate =
+          upcomingTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          overdueTasks.find((t) => t.instance_id === taskId || t.id === taskId);
+
+        let result: any;
+        if (candidate?.instance_id) {
+          result = await TaskService.completeInstance(candidate.instance_id);
+        } else {
+          // Fallback to completing the template task
+          result = await TaskService.completeTask(taskId);
+        }
 
         if (result.error) throw result.error;
 
@@ -299,10 +312,10 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user, loadTasks, upcomingTasks, overdueTasks]
   );
 
-  // uncompleteTask - mark a task as incomplete
+  // uncompleteTask - mark a task/instance as incomplete
   const uncompleteTask = useCallback(
     async (taskId: string) => {
       if (!user) {
@@ -310,7 +323,24 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const { data, error } = await TaskService.uncompleteTask(taskId);
+        const candidate =
+          completedTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          upcomingTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          );
+
+        let error: any = null;
+        if (candidate?.instance_id) {
+          const res = await TaskService.uncompleteInstance(
+            candidate.instance_id
+          );
+          error = res.error;
+        } else {
+          const res = await TaskService.uncompleteTask(taskId);
+          error = res.error;
+        }
 
         if (error) throw error;
 
@@ -324,7 +354,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user, loadTasks, completedTasks, upcomingTasks]
   );
 
   // deleteTask - delete a task
@@ -357,7 +387,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     [user]
   );
 
-  // bulkCompleteTasks - mark multiple tasks as completed
+  // bulkCompleteTasks - mark multiple tasks/instances as completed
   const bulkCompleteTasks = useCallback(
     async (taskIds: string[]) => {
       if (!user) {
@@ -369,9 +399,17 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const result = await TaskService.bulkCompleteTasks(taskIds);
-
-        if (result.error) throw result.error;
+        // Complete each as instance if possible
+        for (const id of taskIds) {
+          const candidate =
+            upcomingTasks.find((t) => t.instance_id === id || t.id === id) ||
+            overdueTasks.find((t) => t.instance_id === id || t.id === id);
+          if (candidate?.instance_id) {
+            await TaskService.completeInstance(candidate.instance_id);
+          } else {
+            await TaskService.completeTask(id);
+          }
+        }
 
         // Refresh all task data to ensure consistency
         await loadTasks();
@@ -383,7 +421,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user, loadTasks, upcomingTasks, overdueTasks]
   );
 
   // refreshTasks - refresh the tasks
