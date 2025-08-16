@@ -143,18 +143,22 @@ export function StackedTaskItem({
             new Date(a.next_due_date).getTime() -
             new Date(b.next_due_date).getTime()
         )
-        .map((task, idx) => (
-          <TaskItem
+        .map((task, idx, arr) => (
+          <View
             key={task.instance_id || task.id}
-            task={task}
-            onPress={onPressTask}
-            onDelete={onDeleteTask}
-            onComplete={onComplete}
-            onUncomplete={onUncomplete}
-            getCategoryColor={getCategoryColor}
-            formatDueDate={formatDueDate}
-            showDeleteButton={true}
-          />
+            style={{ marginBottom: idx === arr.length - 1 ? 0 : 8 }}
+          >
+            <TaskItem
+              task={task}
+              onPress={onPressTask}
+              onDelete={onDeleteTask}
+              onComplete={onComplete}
+              onUncomplete={onUncomplete}
+              getCategoryColor={getCategoryColor}
+              formatDueDate={formatDueDate}
+              showDeleteButton={true}
+            />
+          </View>
         ))}
     </View>
   );

@@ -89,16 +89,18 @@ export function CalendarView({
     return { start, end };
   }, [visibleMonth]);
 
-  React.useEffect(() => {
-    (async () => {
-      const { data } = await TaskService.getInstancesInRange(
-        monthRange.start.toISOString(),
-        monthRange.end.toISOString(),
-        true
-      );
-      setMonthInstances(data || []);
-    })();
+  const reloadMonthInstances = useCallback(async () => {
+    const { data } = await TaskService.getInstancesInRange(
+      monthRange.start.toISOString(),
+      monthRange.end.toISOString(),
+      true
+    );
+    setMonthInstances(data || []);
   }, [monthRange.start.getTime(), monthRange.end.getTime()]);
+
+  React.useEffect(() => {
+    reloadMonthInstances();
+  }, [reloadMonthInstances, upcomingTasks, overdueTasks, completedTasks]);
 
   const tasksInVisibleMonth = useMemo(() => {
     // De-duplicate within month by (task_id, due_date)
@@ -375,6 +377,8 @@ export function CalendarView({
             onTaskUpdated={() => {
               setEditModalVisible(false);
               setEditingTask(null);
+              // Ensure calendar month view refreshes immediately after edits
+              reloadMonthInstances();
             }}
           />
         </Modal>
