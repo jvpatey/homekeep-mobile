@@ -1045,66 +1045,63 @@ export class TaskService {
     }
 
     try {
-      // Get total tasks
-      const { data: totalTasks, error: totalError } = await supabase
+      // Get total tasks (series templates)
+      const { count: totalTasksCount, error: totalError } = await supabase
         .from("tasks")
-        .select("id", { count: "exact" });
-
+        .select("id", { count: "exact", head: true });
       if (totalError) throw totalError;
 
-      // Get completed tasks
-      const { data: completedTasks, error: completedError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", true);
-
-      if (completedError) throw completedError;
-
-      // Get overdue tasks (strictly before start of today)
+      // Use task_instances for dynamic stats so they reflect instance changes immediately
       const start = startOfDay(new Date());
-      const { data: overdueTasks, error: overdueError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", false)
-        .lt("next_due_date", start.toISOString());
-
-      if (overdueError) throw overdueError;
-
-      // Get tasks due today
-      const today = startOfDay(new Date());
+      const today = start;
       const tomorrow = addDays(today, 1);
-
-      const { data: todayTasks, error: todayError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", false)
-        .gte("next_due_date", today.toISOString())
-        .lt("next_due_date", tomorrow.toISOString());
-
-      if (todayError) throw todayError;
-
-      // Get tasks due this week (next 7 days)
       const nextWeek = addWeeks(today, 1);
 
-      const { data: thisWeekTasks, error: thisWeekError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", false)
-        .gte("next_due_date", today.toISOString())
-        .lt("next_due_date", nextWeek.toISOString());
+      // Completed instances
+      const { count: completedInstancesCount, error: completedInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", true);
+      if (completedInstancesError) throw completedInstancesError;
 
-      if (thisWeekError) throw thisWeekError;
+      // Overdue instances (incomplete and due before today)
+      const { count: overdueInstancesCount, error: overdueInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", false)
+          .lt("due_date", today.toISOString());
+      if (overdueInstancesError) throw overdueInstancesError;
+
+      // Due today instances (incomplete)
+      const { count: todayInstancesCount, error: todayInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", false)
+          .gte("due_date", today.toISOString())
+          .lt("due_date", tomorrow.toISOString());
+      if (todayInstancesError) throw todayInstancesError;
+
+      // Due this week instances (incomplete)
+      const { count: thisWeekInstancesCount, error: thisWeekInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", false)
+          .gte("due_date", today.toISOString())
+          .lt("due_date", nextWeek.toISOString());
+      if (thisWeekInstancesError) throw thisWeekInstancesError;
 
       const stats = {
-        total: totalTasks?.length || 0,
-        completed: completedTasks?.length || 0,
-        overdue: overdueTasks?.length || 0,
-        dueToday: todayTasks?.length || 0,
-        thisWeek: thisWeekTasks?.length || 0,
-        completionRate: totalTasks?.length
-          ? Math.round(
-              ((completedTasks?.length || 0) / totalTasks.length) * 100
-            )
+        total: totalTasksCount || 0,
+        completed: completedInstancesCount || 0,
+        overdue: overdueInstancesCount || 0,
+        dueToday: todayInstancesCount || 0,
+        thisWeek: thisWeekInstancesCount || 0,
+        completionRate: totalTasksCount
+          ? Math.round(((completedInstancesCount || 0) / totalTasksCount) * 100)
           : 0,
       };
 
