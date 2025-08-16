@@ -23,6 +23,7 @@ import { ModalHeader } from "./ModalHeader";
 import { SubmitButton } from "./SubmitButton";
 import { categories, priorities, recurrenceOptions } from "./data";
 import { Task, UpdateTaskData } from "../../../types/task";
+import { TaskService } from "../../../services/taskService";
 
 interface EditTaskModalProps {
   task: Task;
@@ -101,6 +102,7 @@ export function EditTaskModal({
     triggerMedium();
 
     try {
+      const originalDue = new Date(task.next_due_date);
       const updateData: UpdateTaskData = {
         title: form.title.trim(),
         description: form.description.trim() || undefined,
@@ -117,6 +119,19 @@ export function EditTaskModal({
       const { success, error } = await updateTask(task.id, updateData);
 
       if (success) {
+        // If recurring and due date changed, shift future instances by delta
+        if (
+          (task.is_recurring || form.isRecurring) &&
+          originalDue.getTime() !== form.dueDate.getTime()
+        ) {
+          const deltaMs = form.dueDate.getTime() - originalDue.getTime();
+          await TaskService.shiftFutureInstances(
+            task.id,
+            originalDue.toISOString(),
+            deltaMs
+          );
+          await refreshTasks();
+        }
         triggerMedium();
         onTaskUpdated();
       } else {

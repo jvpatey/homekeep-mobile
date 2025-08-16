@@ -631,17 +631,17 @@ export class TaskService {
         .order("due_date", { ascending: true });
       if (error) throw error;
       if (!instances || instances.length === 0) return { error: null };
-      const updates = instances.map((i: any) => ({
-        id: i.id,
-        due_date: new Date(
+      // Perform per-row updates to avoid accidental inserts under RLS
+      for (const i of instances) {
+        const newDue = new Date(
           new Date(i.due_date).getTime() + deltaMs
-        ).toISOString(),
-      }));
-      // Batch update
-      const { error: upErr } = await supabase
-        .from("task_instances")
-        .upsert(updates);
-      if (upErr) throw upErr;
+        ).toISOString();
+        const { error: updErr } = await supabase
+          .from("task_instances")
+          .update({ due_date: newDue })
+          .eq("id", i.id);
+        if (updErr) throw updErr;
+      }
       return { error: null };
     } catch (e) {
       console.error("Error shifting future instances:", e);

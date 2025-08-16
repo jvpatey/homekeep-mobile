@@ -1,5 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { View, Modal, Alert, Platform } from "react-native";
+import {
+  View,
+  Modal,
+  Alert,
+  Platform,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSimpleAnimation, useHaptics } from "../../../hooks";
 import { useTasks } from "../../../context/TasksContext";
@@ -120,9 +127,8 @@ export function TaskDetailModal({
         {
           text: "This and future",
           onPress: () => {
-            setEditMode("series");
-            setPendingDate(new Date(currentTask.next_due_date));
-            setShowDatePicker(true);
+            onEdit(currentTask);
+            onClose();
           },
         },
         { text: "Cancel", style: "cancel" },
@@ -185,19 +191,144 @@ export function TaskDetailModal({
           />
         </View>
         {showDatePicker && (
-          <DateTimePicker
-            value={pendingDate}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={(event, selectedDate) => {
-              if (Platform.OS !== "ios") {
-                handleConfirmDate(selectedDate || pendingDate);
-              } else if (selectedDate) {
-                setPendingDate(selectedDate);
-              }
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              paddingTop: 8,
+              paddingBottom: 16,
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderTopWidth: 1,
+              borderColor: colors.border,
             }}
-            style={{ backgroundColor: colors.surface }}
-          />
+          >
+            <DateTimePicker
+              value={pendingDate}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event: any, selectedDate?: Date) => {
+                if (Platform.OS !== "ios") {
+                  if (event?.type === "dismissed") {
+                    setShowDatePicker(false);
+                    setEditMode(null);
+                  } else {
+                    handleConfirmDate(selectedDate || pendingDate);
+                  }
+                } else if (selectedDate) {
+                  setPendingDate(selectedDate);
+                }
+              }}
+              style={{ backgroundColor: colors.surface }}
+            />
+            {Platform.OS === "ios" && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 16,
+                  marginTop: 8,
+                }}
+              >
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    }}
+                  >
+                    <View
+                      style={{
+                        alignItems: "center",
+                        paddingVertical: 12,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          width: "100%",
+                          paddingHorizontal: 12,
+                        }}
+                      >
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                          <View
+                            style={{
+                              backgroundColor: colors.surface,
+                              borderRadius: 10,
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                            }}
+                          >
+                            <View
+                              style={{
+                                alignItems: "center",
+                                paddingVertical: 10,
+                              }}
+                            >
+                              <></>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={{ marginRight: 8 }}>
+                    <View
+                      style={{
+                        borderRadius: 12,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <View
+                        style={{ paddingVertical: 10, paddingHorizontal: 16 }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => {
+                            setShowDatePicker(false);
+                            setEditMode(null);
+                          }}
+                        >
+                          <Text style={{ color: colors.textSecondary }}>
+                            Cancel
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                  <View>
+                    <View
+                      style={{
+                        borderRadius: 12,
+                        backgroundColor: colors.primary,
+                      }}
+                    >
+                      <View
+                        style={{ paddingVertical: 10, paddingHorizontal: 16 }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => handleConfirmDate(pendingDate)}
+                        >
+                          <Text style={{ color: "#ffffff", fontWeight: "700" }}>
+                            Save
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
         )}
       </View>
     </Modal>
