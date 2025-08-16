@@ -90,8 +90,9 @@ export function DashboardHeader({
       onPrimaryToggle();
       return;
     }
+    // Fallback navigation (kept for type safety; Calendar route was removed)
     if (mode === "calendar") navigation.navigate("Dashboard");
-    else navigation.navigate("Calendar");
+    else navigation.navigate("Dashboard");
   };
 
   return (

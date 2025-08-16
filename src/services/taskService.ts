@@ -616,6 +616,21 @@ export class TaskService {
     }
   }
 
+  static async deleteInstance(instanceId: string): Promise<{ error: any }> {
+    if (!supabase) return { error: { message: "Supabase not configured" } };
+    try {
+      const { error } = await supabase
+        .from("task_instances")
+        .delete()
+        .eq("id", instanceId);
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      console.error("Error deleting instance:", error);
+      return { error };
+    }
+  }
+
   static async shiftFutureInstances(
     taskId: string,
     fromDueDateISO: string,
@@ -1038,6 +1053,67 @@ export class TaskService {
     }
   }
 
+  static async deleteAllTasks(): Promise<{
+    error: any;
+    tasksDeleted?: number;
+    instancesDeleted?: number;
+  }> {
+    if (!supabase) {
+      return { error: { message: "Supabase not configured" } };
+    }
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw userError || new Error("Not authenticated");
+
+      // Fetch user's task ids to scope child deletions under RLS
+      const { data: userTasks, error: fetchErr } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("user_id", user.id);
+      if (fetchErr) throw fetchErr;
+
+      const taskIds = (userTasks || []).map((t: any) => t.id);
+      const tasksCount = taskIds.length;
+      let instancesCount = 0;
+
+      if (taskIds.length > 0) {
+        // Count instances first
+        const { count: instCount, error: instCountErr } = await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .in("task_id", taskIds);
+        if (instCountErr) throw instCountErr;
+        instancesCount = instCount || 0;
+
+        // Delete instances first
+        const { error: instErr } = await supabase
+          .from("task_instances")
+          .delete()
+          .in("task_id", taskIds);
+        if (instErr) throw instErr;
+      }
+
+      // Delete all tasks for this user
+      const { error: tasksErr } = await supabase
+        .from("tasks")
+        .delete()
+        .eq("user_id", user.id);
+      if (tasksErr) throw tasksErr;
+
+      return {
+        error: null,
+        tasksDeleted: tasksCount,
+        instancesDeleted: instancesCount,
+      };
+    } catch (error) {
+      console.error("Error deleting all tasks:", error);
+      return { error };
+    }
+  }
+
   // get task statistics for dashboard
   static async getTaskStats(): Promise<{ data: any | null; error: any }> {
     if (!supabase) {
@@ -1064,6 +1140,13 @@ export class TaskService {
           .select("id", { count: "exact", head: true })
           .eq("is_completed", true);
       if (completedInstancesError) throw completedInstancesError;
+
+      // Total instances (all occurrences regardless of status or filters)
+      const { count: totalInstancesCount, error: totalInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true });
+      if (totalInstancesError) throw totalInstancesError;
 
       // Overdue instances (incomplete and due before today)
       const { count: overdueInstancesCount, error: overdueInstancesError } =
@@ -1104,6 +1187,13 @@ export class TaskService {
           ? Math.round(((completedInstancesCount || 0) / totalTasksCount) * 100)
           : 0,
       };
+
+      // Log overall totals regardless of current UI filters
+      console.log(
+        `📊 Task totals — occurrences: ${
+          totalInstancesCount || 0
+        }, templates: ${totalTasksCount || 0}`
+      );
 
       return { data: stats, error: null };
     } catch (error) {

@@ -44,6 +44,7 @@ interface UseTasksReturn {
   bulkCompleteTasks: (
     taskIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
+  deleteAllTasks: () => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
   setLookbackDays: (days: number | "all") => void;
   refreshTasks: () => Promise<void>;
@@ -120,6 +121,13 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           thisWeek: 0,
           completionRate: 0,
         }
+      );
+
+      // Global totals regardless of UI filters
+      console.log(
+        `📦 User totals — tasks: ${
+          tasksResult.data?.length || 0
+        }, upcoming: ${upcomingCount}, overdue: ${overdueCount}, completed: ${completedCount}`
       );
 
       console.log(
@@ -365,14 +373,59 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const { error } = await TaskService.deleteTask(taskId);
+        // If taskId matches an instance in any list, delete the instance instead of the series
+        const instanceCandidate =
+          upcomingTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          overdueTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          completedTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          );
+
+        let error: any = null;
+        if (
+          instanceCandidate?.instance_id &&
+          instanceCandidate.instance_id === taskId
+        ) {
+          const res = await TaskService.deleteInstance(
+            instanceCandidate.instance_id
+          );
+          error = res.error;
+          if (!error) {
+            console.log(
+              `🗑️ Deleted occurrence ${instanceCandidate.instance_id} of task ${instanceCandidate.id} (${instanceCandidate.title})`
+            );
+          }
+        } else {
+          const res = await TaskService.deleteTask(taskId);
+          error = res.error;
+          if (!error) {
+            console.log(`🗑️ Deleted entire series task ${taskId}`);
+          }
+        }
 
         if (error) throw error;
 
         // Remove from local state
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setOverdueTasks((prev) => prev.filter((task) => task.id !== taskId));
+        setUpcomingTasks((prev) =>
+          prev.filter(
+            (task) => task.id !== taskId && task.instance_id !== taskId
+          )
+        );
+        setOverdueTasks((prev) =>
+          prev.filter(
+            (task) => task.id !== taskId && task.instance_id !== taskId
+          )
+        );
+        setCompletedTasks((prev) =>
+          prev.filter(
+            (task) => task.id !== taskId && task.instance_id !== taskId
+          )
+        );
 
         // Refresh stats
         await refreshStats();
@@ -384,7 +437,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user]
+    [user, upcomingTasks, overdueTasks, completedTasks]
   );
 
   // bulkCompleteTasks - mark multiple tasks/instances as completed
@@ -453,6 +506,34 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     }
   }, [user]);
 
+  // delete all tasks (series + instances) for current user
+  const deleteAllTasks = useCallback(async () => {
+    if (!user) {
+      return { success: false, error: "User not authenticated" };
+    }
+    try {
+      const { error, tasksDeleted, instancesDeleted } =
+        await TaskService.deleteAllTasks();
+      if (error) throw error;
+      // Clear local state
+      setTasks([]);
+      setUpcomingTasks([]);
+      setOverdueTasks([]);
+      setCompletedTasks([]);
+      await refreshStats();
+      console.log(
+        `🗑️ Deleted all tasks: ${tasksDeleted || 0} tasks and ${
+          instancesDeleted || 0
+        } instances`
+      );
+      return { success: true };
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to delete all tasks";
+      console.error("Error deleting all tasks:", err);
+      return { success: false, error: errorMessage };
+    }
+  }, [user, refreshStats]);
+
   // Load tasks on mount and when user changes
   useEffect(() => {
     if (user) {
@@ -489,6 +570,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     uncompleteTask,
     deleteTask,
     bulkCompleteTasks,
+    deleteAllTasks,
     setTimeRange,
     setLookbackDays,
     refreshTasks,

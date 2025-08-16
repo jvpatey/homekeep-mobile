@@ -356,6 +356,10 @@ export function CalendarView({
         visible={taskDetailVisible}
         onClose={handleCloseTaskDetail}
         onEdit={handleEditTask}
+        onDeleted={() => {
+          // Immediately reload month after deletion so the UI reflects removal
+          reloadMonthInstances();
+        }}
       />
 
       {editingTask && (

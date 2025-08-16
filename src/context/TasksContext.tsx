@@ -43,6 +43,7 @@ interface UseTasksReturn {
   bulkCompleteTasks: (
     taskIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
+  deleteAllTasks: () => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
   setLookbackDays: (days: number | "all") => void;
   refreshTasks: () => Promise<void>;

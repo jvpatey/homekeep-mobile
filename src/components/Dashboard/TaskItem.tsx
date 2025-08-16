@@ -132,7 +132,7 @@ export function TaskItem({
               style={[styles.actionButton]}
               onPress={() => {
                 translateX.value = withTiming(0);
-                onDelete(task.id, task.title);
+                onDelete(task.instance_id || task.id, task.title);
               }}
               activeOpacity={0.9}
             >

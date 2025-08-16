@@ -23,6 +23,7 @@ interface TaskDetailModalProps {
   visible: boolean;
   onClose: () => void;
   onEdit: (task: Task) => void;
+  onDeleted?: () => void;
 }
 
 // TaskDetailModal - Features header, content, and actions for each task
@@ -31,6 +32,7 @@ export function TaskDetailModal({
   visible,
   onClose,
   onEdit,
+  onDeleted,
 }: TaskDetailModalProps) {
   const { colors } = useTheme();
   const { triggerLight, triggerMedium } = useHaptics();
@@ -86,30 +88,74 @@ export function TaskDetailModal({
 
   const handleDelete = () => {
     triggerMedium();
-    Alert.alert(
-      "Delete Task",
-      `Are you sure you want to delete "${currentTask.title}"?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => triggerLight(),
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            triggerMedium();
-            const { success, error } = await deleteTask(currentTask.id);
-            if (success) {
-              onClose();
-            } else {
-              Alert.alert("Error", error || "Failed to delete task");
-            }
+    if (currentTask.instance_id) {
+      Alert.alert(
+        "Delete Recurring Task",
+        `Do you want to delete just this occurrence of "${currentTask.title}" or the entire series?`,
+        [
+          { text: "Cancel", style: "cancel", onPress: () => triggerLight() },
+          {
+            text: "This occurrence",
+            style: "destructive",
+            onPress: async () => {
+              triggerMedium();
+              const { success, error } = await deleteTask(
+                currentTask.instance_id!
+              );
+              if (success) {
+                Alert.alert("Deleted", "This occurrence has been deleted.");
+                onClose();
+                onDeleted?.();
+              } else {
+                Alert.alert("Error", error || "Failed to delete occurrence");
+              }
+            },
           },
-        },
-      ]
-    );
+          {
+            text: "Entire series",
+            style: "destructive",
+            onPress: async () => {
+              triggerMedium();
+              const { success, error } = await deleteTask(currentTask.id);
+              if (success) {
+                Alert.alert("Deleted", "The entire series has been deleted.");
+                onClose();
+                onDeleted?.();
+              } else {
+                Alert.alert("Error", error || "Failed to delete series");
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Delete Task",
+        `Are you sure you want to delete "${currentTask.title}"?`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => triggerLight(),
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              triggerMedium();
+              const { success, error } = await deleteTask(currentTask.id);
+              if (success) {
+                Alert.alert("Deleted", "The task has been deleted.");
+                onClose();
+                onDeleted?.();
+              } else {
+                Alert.alert("Error", error || "Failed to delete task");
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   const handleEdit = () => {
