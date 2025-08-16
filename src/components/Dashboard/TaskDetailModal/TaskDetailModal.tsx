@@ -17,6 +17,7 @@ import { TaskDetailContent } from "./TaskDetailContent";
 import { TaskDetailActions } from "./TaskDetailActions";
 import { getCategoryGradient, formatDueDate } from "./utils";
 import { TaskService } from "../../../services/taskService";
+import { startOfDay } from "date-fns";
 
 interface TaskDetailModalProps {
   taskId: string | null;
@@ -192,15 +193,16 @@ export function TaskDetailModal({
       if (editMode === "occurrence" && currentTask.instance_id) {
         const { error } = await TaskService.updateInstanceDueDate(
           currentTask.instance_id,
-          selected.toISOString()
+          startOfDay(selected).toISOString()
         );
         if (error) throw error;
       } else if (editMode === "series") {
         const deltaMs =
-          selected.getTime() - new Date(currentTask.next_due_date).getTime();
+          startOfDay(selected).getTime() -
+          startOfDay(new Date(currentTask.next_due_date)).getTime();
         const { error } = await TaskService.shiftFutureInstances(
           currentTask.id,
-          new Date(currentTask.next_due_date).toISOString(),
+          startOfDay(new Date(currentTask.next_due_date)).toISOString(),
           deltaMs
         );
         if (error) throw error;

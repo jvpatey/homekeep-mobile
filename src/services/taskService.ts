@@ -10,6 +10,20 @@ import {
 import { addWeeks, addMonths, addYears, startOfDay, addDays } from "date-fns";
 
 export class TaskService {
+  private static dateKeyLocal(dateInput: string | Date): string {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, "0");
+    const day = `${d.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  private static utcStartOfDayISO(dateInput: string | Date): string {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    const iso = new Date(
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)
+    ).toISOString();
+    return iso;
+  }
   private static async ensureInstancesForRange(
     startISO: string,
     endISO: string,
@@ -45,13 +59,13 @@ export class TaskService {
 
       const existingKey = new Set(
         (existingInstances || []).map(
-          (i: any) => `${i.task_id}|${new Date(i.due_date).toISOString()}`
+          (i: any) => `${i.task_id}|${TaskService.dateKeyLocal(i.due_date)}`
         )
       );
 
       const toInsert = tasksInRange
         .filter((t: any) => {
-          const key = `${t.id}|${new Date(t.next_due_date).toISOString()}`;
+          const key = `${t.id}|${TaskService.dateKeyLocal(t.next_due_date)}`;
           return !existingKey.has(key);
         })
         .map((t: any) => ({
@@ -335,7 +349,7 @@ export class TaskService {
 
       const seen = new Set<string>();
       const unique = (data || []).filter((i: any) => {
-        const key = `${i.task_id}|${new Date(i.due_date).toISOString()}`;
+        const key = `${i.task_id}|${TaskService.dateKeyLocal(i.due_date)}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -490,10 +504,10 @@ export class TaskService {
       }
       const { data, error } = await query.limit(1000);
       if (error) throw error;
-      // De-duplicate by (task_id, due_date)
+      // De-duplicate by (task_id, local day)
       const seen = new Set<string>();
       const unique = (data || []).filter((i: any) => {
-        const key = `${i.task_id}|${new Date(i.due_date).toISOString()}`;
+        const key = `${i.task_id}|${TaskService.dateKeyLocal(i.due_date)}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -638,24 +652,68 @@ export class TaskService {
   ) {
     if (!supabase) return { error: { message: "Supabase not configured" } };
     try {
+      // Normalize threshold to UTC start-of-day to avoid timezone cutoffs
+      const fromUTCStart = TaskService.utcStartOfDayISO(fromDueDateISO);
+      const deltaDays = Math.round(deltaMs / (24 * 60 * 60 * 1000));
+
+      // Also align the series template `next_due_date` to prevent backfills from inserting an extra occurrence
+      const newSeriesNextMs =
+        Date.parse(TaskService.utcStartOfDayISO(fromDueDateISO)) +
+        deltaDays * 24 * 60 * 60 * 1000;
+      const newSeriesNextISO = new Date(newSeriesNextMs).toISOString();
+      await supabase
+        .from("tasks")
+        .update({ next_due_date: newSeriesNextISO })
+        .eq("id", taskId);
+
       const { data: instances, error } = await supabase
         .from("task_instances")
-        .select("id, due_date")
+        .select("id, due_date, created_at")
         .eq("task_id", taskId)
-        .gte("due_date", fromDueDateISO)
+        .gte("due_date", fromUTCStart)
         .order("due_date", { ascending: true });
       if (error) throw error;
       if (!instances || instances.length === 0) return { error: null };
       // Perform per-row updates to avoid accidental inserts under RLS
       for (const i of instances) {
-        const newDue = new Date(
-          new Date(i.due_date).getTime() + deltaMs
+        const prev = new Date(i.due_date);
+        const shiftedUTC = new Date(
+          Date.UTC(
+            prev.getUTCFullYear(),
+            prev.getUTCMonth(),
+            prev.getUTCDate() + deltaDays,
+            0,
+            0,
+            0,
+            0
+          )
         ).toISOString();
         const { error: updErr } = await supabase
           .from("task_instances")
-          .update({ due_date: newDue })
+          .update({ due_date: shiftedUTC })
           .eq("id", i.id);
         if (updErr) throw updErr;
+      }
+
+      // Post-shift de-duplication by (task_id, local-day)
+      const { data: afterInstances } = await supabase
+        .from("task_instances")
+        .select("id, due_date, created_at")
+        .eq("task_id", taskId)
+        .gte("due_date", fromUTCStart)
+        .order("due_date", { ascending: true });
+      const keepByDay = new Map<string, string>();
+      const toRemove: string[] = [];
+      for (const inst of afterInstances || []) {
+        const dayKey = TaskService.dateKeyLocal(inst.due_date);
+        if (!keepByDay.has(dayKey)) {
+          keepByDay.set(dayKey, inst.id);
+        } else {
+          toRemove.push(inst.id);
+        }
+      }
+      if (toRemove.length > 0) {
+        await supabase.from("task_instances").delete().in("id", toRemove);
       }
       return { error: null };
     } catch (e) {
@@ -816,59 +874,7 @@ export class TaskService {
 
       if (error) throw error;
 
-      // If it's a recurring task, create a new instance for the next occurrence
-      if (currentTask.is_recurring && currentTask.recurrence_type) {
-        // For recurring tasks, calculate next due date from the current task's due date
-        // This ensures proper spacing for recurring instances
-        const nextDueDate = TaskService.calculateNextDueDate(
-          currentTask.recurrence_type,
-          currentTask.next_due_date
-        );
-
-        // Check if a task with this exact due date already exists for this user
-        const { data: existingTask, error: queryError } = await supabase
-          .from("tasks")
-          .select("id, title, next_due_date, is_completed")
-          .eq("user_id", currentTask.user_id)
-          .eq("title", currentTask.title)
-          .eq("next_due_date", nextDueDate)
-          .eq("is_completed", false)
-          .single();
-
-        if (existingTask) {
-          // Skip creation if duplicate exists
-        } else {
-          const newTaskData = {
-            title: currentTask.title,
-            description: currentTask.description,
-            category: currentTask.category,
-            priority: currentTask.priority,
-            estimated_duration: currentTask.estimated_duration,
-            is_recurring: currentTask.is_recurring,
-            recurrence_type: currentTask.recurrence_type,
-            next_due_date: nextDueDate,
-            user_id: currentTask.user_id,
-            is_completed: false,
-            created_at: now,
-            updated_at: now,
-          };
-
-          // Create the new instance
-          const { error: createError } = await supabase
-            .from("tasks")
-            .insert([newTaskData]);
-
-          if (createError) {
-            console.error(
-              "❌ Error creating next recurring task instance:",
-              createError
-            );
-            // Don't fail the completion, just log the error
-          } else {
-          }
-        }
-      } else {
-      }
+      // Instance-based model: do not create additional series rows here
 
       return { data, error: null };
     } catch (error) {
