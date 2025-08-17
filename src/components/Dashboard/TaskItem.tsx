@@ -22,6 +22,7 @@ interface TaskItemProps {
   getCategoryColor: (category: string) => string;
   formatDueDate: (dateString: string) => string;
   showDeleteButton?: boolean;
+  variant?: "default" | "incomplete" | "completed";
 }
 
 // TaskItem - Unified component for displaying tasks in both upcoming and completed sections
@@ -34,12 +35,14 @@ export function TaskItem({
   getCategoryColor,
   formatDueDate,
   showDeleteButton = false,
+  variant = "default",
 }: TaskItemProps) {
   const { colors } = useTheme();
   const translateX = useSharedValue(0);
 
   // Determine if this is a completed task
   const isCompleted = task.is_completed;
+  const isIncompleteView = variant === "incomplete" && !isCompleted;
 
   // Set up swipe gesture only if delete functionality is enabled
   const panGesture = showDeleteButton
@@ -61,7 +64,7 @@ export function TaskItem({
     if (translateX.value < -10) {
       translateX.value = withTiming(0);
     } else {
-      runOnJS(onPress)(task.id);
+      runOnJS(onPress)(task.instance_id || task.id);
     }
   });
 
@@ -129,7 +132,7 @@ export function TaskItem({
               style={[styles.actionButton]}
               onPress={() => {
                 translateX.value = withTiming(0);
-                onDelete(task.id, task.title);
+                onDelete(task.instance_id || task.id, task.title);
               }}
               activeOpacity={0.9}
             >
@@ -154,6 +157,8 @@ export function TaskItem({
               {
                 backgroundColor: isCompleted
                   ? colors.success + "15"
+                  : isIncompleteView
+                  ? colors.error + "15"
                   : colors.surface,
               },
             ]}
@@ -174,8 +179,24 @@ export function TaskItem({
                 ]}
               />
             )}
+            {isIncompleteView && (
+              <View
+                style={[
+                  {
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 4,
+                    backgroundColor: colors.error,
+                    borderTopLeftRadius: 16,
+                    borderBottomLeftRadius: 16,
+                  },
+                ]}
+              />
+            )}
             <View style={styles.taskItemLeft}>
-              {!isCompleted && (
+              {!isCompleted && !isIncompleteView && (
                 <View
                   style={[
                     styles.categoryIndicator,
@@ -191,7 +212,11 @@ export function TaskItem({
                     style={[
                       styles.taskTitle,
                       {
-                        color: isCompleted ? colors.success : colors.text,
+                        color: isCompleted
+                          ? colors.success
+                          : isIncompleteView
+                          ? colors.error
+                          : colors.text,
                         opacity: isCompleted ? 0.8 : 1,
                         lineHeight: 18, // Adjusted for better fit
                         textDecorationLine: isCompleted
@@ -218,6 +243,8 @@ export function TaskItem({
                     {
                       color: isCompleted
                         ? colors.success + "CC"
+                        : isIncompleteView
+                        ? colors.error + "CC"
                         : colors.textSecondary,
                       opacity: isCompleted ? 0.8 : 1,
                       lineHeight: 18, // Adjusted for better fit
@@ -246,6 +273,8 @@ export function TaskItem({
                   size={24}
                   color={colors.success}
                 />
+              ) : isIncompleteView ? (
+                <Ionicons name="alert-circle" size={22} color={colors.error} />
               ) : (
                 <Ionicons
                   name="chevron-forward"

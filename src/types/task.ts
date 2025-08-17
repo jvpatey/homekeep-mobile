@@ -1,4 +1,5 @@
 export interface Task {
+  instance_id?: string; // If this Task represents a concrete occurrence from task_instances
   id: string;
   user_id: string;
   title: string;
@@ -16,6 +17,8 @@ export interface Task {
   // New fields for better recurring task support
   last_completed_date?: string; // ISO date string - when the last instance was completed
   next_instance_date?: string; // ISO date string - when the next instance is due
+  // Client-only flag to indicate a synthesized future occurrence
+  is_virtual?: boolean;
 }
 
 export interface TaskInstance {

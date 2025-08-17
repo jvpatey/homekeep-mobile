@@ -23,6 +23,8 @@ import { ModalHeader } from "./ModalHeader";
 import { SubmitButton } from "./SubmitButton";
 import { categories, priorities, recurrenceOptions } from "./data";
 import { Task, UpdateTaskData } from "../../../types/task";
+import { TaskService } from "../../../services/taskService";
+import { startOfDay } from "date-fns";
 
 interface EditTaskModalProps {
   task: Task;
@@ -101,6 +103,7 @@ export function EditTaskModal({
     triggerMedium();
 
     try {
+      const originalDue = startOfDay(new Date(task.next_due_date));
       const updateData: UpdateTaskData = {
         title: form.title.trim(),
         description: form.description.trim() || undefined,
@@ -111,12 +114,26 @@ export function EditTaskModal({
           : undefined,
         is_recurring: form.isRecurring,
         recurrence_type: form.recurrenceType,
-        next_due_date: form.dueDate.toISOString(),
+        next_due_date: startOfDay(form.dueDate).toISOString(),
       };
 
       const { success, error } = await updateTask(task.id, updateData);
 
       if (success) {
+        // If recurring and due date changed, shift future instances by delta
+        if (
+          (task.is_recurring || form.isRecurring) &&
+          originalDue.getTime() !== startOfDay(form.dueDate).getTime()
+        ) {
+          const deltaMs =
+            startOfDay(form.dueDate).getTime() - originalDue.getTime();
+          await TaskService.shiftFutureInstances(
+            task.id,
+            originalDue.toISOString(),
+            deltaMs
+          );
+          await refreshTasks();
+        }
         triggerMedium();
         onTaskUpdated();
       } else {

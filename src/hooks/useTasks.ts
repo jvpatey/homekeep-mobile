@@ -13,10 +13,12 @@ import { TimeRange } from "../context/TasksContext";
 interface UseTasksReturn {
   tasks: Task[];
   upcomingTasks: Task[];
+  overdueTasks: Task[];
   completedTasks: Task[];
   loading: boolean;
   error: string | null;
   timeRange: TimeRange;
+  lookbackDays: number | "all";
   stats: {
     total: number;
     completed: number;
@@ -42,7 +44,9 @@ interface UseTasksReturn {
   bulkCompleteTasks: (
     taskIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
+  deleteAllTasks: () => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
+  setLookbackDays: (days: number | "all") => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
 }
@@ -52,10 +56,11 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>(60);
+  const [timeRange, setTimeRange] = useState<TimeRange>(30);
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
@@ -64,6 +69,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     thisWeek: 0,
     completionRate: 0,
   });
+  const [lookbackDays, setLookbackDays] = useState<number | "all">(14);
 
   // loadTasks - load tasks from the database
   const loadTasks = useCallback(async () => {
@@ -78,24 +84,33 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           timeRange === "all" ? "All Tasks" : `${timeRange} days`
         }`
       );
-      const [tasksResult, upcomingResult, completedResult, statsResult] =
-        await Promise.all([
-          TaskService.getTasks(filters),
-          TaskService.getUpcomingTasks(timeRange),
-          TaskService.getCompletedTasks(timeRange),
-          TaskService.getTaskStats(),
-        ]);
+      const [
+        tasksResult,
+        upcomingResult,
+        overdueResult,
+        completedResult,
+        statsResult,
+      ] = await Promise.all([
+        TaskService.getTasks(filters), // series templates (for editing etc.)
+        TaskService.getUpcomingInstances(timeRange),
+        TaskService.getOverdueInstances(lookbackDays),
+        TaskService.getCompletedInstances(lookbackDays),
+        TaskService.getTaskStats(),
+      ]);
 
       if (tasksResult.error) throw tasksResult.error;
       if (upcomingResult.error) throw upcomingResult.error;
       if (completedResult.error) throw completedResult.error;
+      if (overdueResult.error) throw overdueResult.error;
       if (statsResult.error) throw statsResult.error;
 
       const upcomingCount = upcomingResult.data?.length || 0;
+      const overdueCount = overdueResult.data?.length || 0;
       const completedCount = completedResult.data?.length || 0;
 
       setTasks(tasksResult.data || []);
       setUpcomingTasks(upcomingResult.data || []);
+      setOverdueTasks(overdueResult.data || []);
       setCompletedTasks([...(completedResult.data || [])]);
       setStats(
         statsResult.data || {
@@ -108,8 +123,15 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         }
       );
 
+      // Global totals regardless of UI filters
       console.log(
-        `✅ useTasks: Successfully loaded ${upcomingCount} upcoming + ${completedCount} completed tasks`
+        `📦 User totals — tasks: ${
+          tasksResult.data?.length || 0
+        }, upcoming: ${upcomingCount}, overdue: ${overdueCount}, completed: ${completedCount}`
+      );
+
+      console.log(
+        `✅ useTasks: Loaded ${upcomingCount} upcoming, ${overdueCount} overdue, ${completedCount} completed tasks`
       );
     } catch (err: any) {
       setError(err.message || "Failed to load tasks");
@@ -117,7 +139,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, filters, timeRange]);
+  }, [user, filters, timeRange, lookbackDays]);
 
   // createTask - create a new task
   const createTask = useCallback(
@@ -263,7 +285,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     [user, tasks]
   );
 
-  // completeTask - mark a task as completed
+  // completeTask - mark a task or instance as completed
   const completeTask = useCallback(
     async (taskId: string) => {
       if (!user) {
@@ -271,7 +293,20 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const result = await TaskService.completeTask(taskId);
+        // Prefer completing an instance if we can map the id
+        const candidate =
+          upcomingTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          overdueTasks.find((t) => t.instance_id === taskId || t.id === taskId);
+
+        let result: any;
+        if (candidate?.instance_id) {
+          result = await TaskService.completeInstance(candidate.instance_id);
+        } else {
+          // Fallback to completing the template task
+          result = await TaskService.completeTask(taskId);
+        }
 
         if (result.error) throw result.error;
 
@@ -285,10 +320,10 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user, loadTasks, upcomingTasks, overdueTasks]
   );
 
-  // uncompleteTask - mark a task as incomplete
+  // uncompleteTask - mark a task/instance as incomplete
   const uncompleteTask = useCallback(
     async (taskId: string) => {
       if (!user) {
@@ -296,7 +331,24 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const { data, error } = await TaskService.uncompleteTask(taskId);
+        const candidate =
+          completedTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          upcomingTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          );
+
+        let error: any = null;
+        if (candidate?.instance_id) {
+          const res = await TaskService.uncompleteInstance(
+            candidate.instance_id
+          );
+          error = res.error;
+        } else {
+          const res = await TaskService.uncompleteTask(taskId);
+          error = res.error;
+        }
 
         if (error) throw error;
 
@@ -310,7 +362,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user, loadTasks, completedTasks, upcomingTasks]
   );
 
   // deleteTask - delete a task
@@ -321,13 +373,59 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const { error } = await TaskService.deleteTask(taskId);
+        // If taskId matches an instance in any list, delete the instance instead of the series
+        const instanceCandidate =
+          upcomingTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          overdueTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          ) ||
+          completedTasks.find(
+            (t) => t.instance_id === taskId || t.id === taskId
+          );
+
+        let error: any = null;
+        if (
+          instanceCandidate?.instance_id &&
+          instanceCandidate.instance_id === taskId
+        ) {
+          const res = await TaskService.deleteInstance(
+            instanceCandidate.instance_id
+          );
+          error = res.error;
+          if (!error) {
+            console.log(
+              `🗑️ Deleted occurrence ${instanceCandidate.instance_id} of task ${instanceCandidate.id} (${instanceCandidate.title})`
+            );
+          }
+        } else {
+          const res = await TaskService.deleteTask(taskId);
+          error = res.error;
+          if (!error) {
+            console.log(`🗑️ Deleted entire series task ${taskId}`);
+          }
+        }
 
         if (error) throw error;
 
         // Remove from local state
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
+        setUpcomingTasks((prev) =>
+          prev.filter(
+            (task) => task.id !== taskId && task.instance_id !== taskId
+          )
+        );
+        setOverdueTasks((prev) =>
+          prev.filter(
+            (task) => task.id !== taskId && task.instance_id !== taskId
+          )
+        );
+        setCompletedTasks((prev) =>
+          prev.filter(
+            (task) => task.id !== taskId && task.instance_id !== taskId
+          )
+        );
 
         // Refresh stats
         await refreshStats();
@@ -339,10 +437,10 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user]
+    [user, upcomingTasks, overdueTasks, completedTasks]
   );
 
-  // bulkCompleteTasks - mark multiple tasks as completed
+  // bulkCompleteTasks - mark multiple tasks/instances as completed
   const bulkCompleteTasks = useCallback(
     async (taskIds: string[]) => {
       if (!user) {
@@ -354,9 +452,17 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        const result = await TaskService.bulkCompleteTasks(taskIds);
-
-        if (result.error) throw result.error;
+        // Complete each as instance if possible
+        for (const id of taskIds) {
+          const candidate =
+            upcomingTasks.find((t) => t.instance_id === id || t.id === id) ||
+            overdueTasks.find((t) => t.instance_id === id || t.id === id);
+          if (candidate?.instance_id) {
+            await TaskService.completeInstance(candidate.instance_id);
+          } else {
+            await TaskService.completeTask(id);
+          }
+        }
 
         // Refresh all task data to ensure consistency
         await loadTasks();
@@ -368,7 +474,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user, loadTasks, upcomingTasks, overdueTasks]
   );
 
   // refreshTasks - refresh the tasks
@@ -400,6 +506,34 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     }
   }, [user]);
 
+  // delete all tasks (series + instances) for current user
+  const deleteAllTasks = useCallback(async () => {
+    if (!user) {
+      return { success: false, error: "User not authenticated" };
+    }
+    try {
+      const { error, tasksDeleted, instancesDeleted } =
+        await TaskService.deleteAllTasks();
+      if (error) throw error;
+      // Clear local state
+      setTasks([]);
+      setUpcomingTasks([]);
+      setOverdueTasks([]);
+      setCompletedTasks([]);
+      await refreshStats();
+      console.log(
+        `🗑️ Deleted all tasks: ${tasksDeleted || 0} tasks and ${
+          instancesDeleted || 0
+        } instances`
+      );
+      return { success: true };
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to delete all tasks";
+      console.error("Error deleting all tasks:", err);
+      return { success: false, error: errorMessage };
+    }
+  }, [user, refreshStats]);
+
   // Load tasks on mount and when user changes
   useEffect(() => {
     if (user) {
@@ -407,6 +541,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     } else {
       setTasks([]);
       setUpcomingTasks([]);
+      setOverdueTasks([]);
       setCompletedTasks([]);
       setStats({
         total: 0,
@@ -422,10 +557,12 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
   return {
     tasks,
     upcomingTasks,
+    overdueTasks,
     completedTasks,
     loading,
     error,
     timeRange,
+    lookbackDays,
     stats,
     createTask,
     updateTask,
@@ -433,7 +570,9 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     uncompleteTask,
     deleteTask,
     bulkCompleteTasks,
+    deleteAllTasks,
     setTimeRange,
+    setLookbackDays,
     refreshTasks,
     refreshStats,
   };

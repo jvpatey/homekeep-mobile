@@ -10,6 +10,78 @@ import {
 import { addWeeks, addMonths, addYears, startOfDay, addDays } from "date-fns";
 
 export class TaskService {
+  private static dateKeyLocal(dateInput: string | Date): string {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, "0");
+    const day = `${d.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  private static utcStartOfDayISO(dateInput: string | Date): string {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    const iso = new Date(
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)
+    ).toISOString();
+    return iso;
+  }
+  private static async ensureInstancesForRange(
+    startISO: string,
+    endISO: string,
+    includeCompleted: boolean
+  ) {
+    if (!supabase) return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch tasks in range for this user
+      let tasksQuery = supabase
+        .from("tasks")
+        .select("id, user_id, next_due_date, is_completed, completed_at")
+        .eq("user_id", user.id)
+        .gte("next_due_date", startISO)
+        .lte("next_due_date", endISO);
+      if (!includeCompleted) {
+        tasksQuery = tasksQuery.eq("is_completed", false);
+      }
+      const { data: tasksInRange, error: tasksErr } = await tasksQuery;
+      if (tasksErr || !tasksInRange || tasksInRange.length === 0) return;
+
+      const taskIds = tasksInRange.map((t: any) => t.id);
+      const { data: existingInstances } = await supabase
+        .from("task_instances")
+        .select("task_id, due_date")
+        .in("task_id", taskIds)
+        .gte("due_date", startISO)
+        .lte("due_date", endISO);
+
+      const existingKey = new Set(
+        (existingInstances || []).map(
+          (i: any) => `${i.task_id}|${TaskService.dateKeyLocal(i.due_date)}`
+        )
+      );
+
+      const toInsert = tasksInRange
+        .filter((t: any) => {
+          const key = `${t.id}|${TaskService.dateKeyLocal(t.next_due_date)}`;
+          return !existingKey.has(key);
+        })
+        .map((t: any) => ({
+          task_id: t.id,
+          due_date: t.next_due_date,
+          is_completed: t.is_completed,
+          completed_at: t.completed_at || null,
+        }));
+
+      if (toInsert.length > 0) {
+        await supabase.from("task_instances").insert(toInsert);
+      }
+    } catch (e) {
+      console.error("ensureInstancesForRange error", e);
+    }
+  }
   // create a new task
   static async createTask(
     taskData: CreateTaskData
@@ -95,7 +167,7 @@ export class TaskService {
     }
   }
 
-  // get upcoming tasks (not completed, includes overdue tasks and tasks due within specified time range)
+  // get upcoming tasks (not completed, due from start of today forward within specified time range)
   static async getUpcomingTasks(timeRange: number | "all" = 60): Promise<{
     data: Task[] | null;
     error: any;
@@ -105,15 +177,17 @@ export class TaskService {
     }
 
     try {
-      // If "all" is selected, get all incomplete tasks
+      // If "all" is selected, get all incomplete tasks due today or later (exclude overdue)
       if (timeRange === "all") {
         console.log(
-          "📋 TaskService: Fetching all incomplete tasks (no time limit)"
+          "📋 TaskService: Fetching all upcoming incomplete tasks (no time limit)"
         );
+        const start = startOfDay(new Date());
         const { data, error } = await supabase
           .from("tasks")
           .select("*")
           .eq("is_completed", false)
+          .gte("next_due_date", start.toISOString())
           .not("next_due_date", "is", null)
           .order("next_due_date", { ascending: true })
           .limit(200); // Higher limit for all tasks
@@ -140,52 +214,543 @@ export class TaskService {
         throw new Error(`Invalid time range: ${timeRange}`);
       }
 
-      // For specific time ranges, get overdue + future tasks within range
+      // For specific time ranges, get future tasks within range (today to end date)
       const now = new Date();
       const endDate = addDays(now, timeRangeDays);
       const startOfToday = startOfDay(now);
 
-      // Get incomplete tasks in two categories:
-      // 1. Overdue tasks (due before today)
-      // 2. Future tasks (due from today up to the time range)
+      // Get future tasks (due from today up to the time range)
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("is_completed", false)
+        .gte("next_due_date", startOfToday.toISOString())
+        .lte("next_due_date", endDate.toISOString())
+        .order("next_due_date", { ascending: true })
+        .limit(100);
 
-      const [overdueResult, futureResult] = await Promise.all([
-        // Get overdue tasks (due before today)
-        supabase
-          .from("tasks")
-          .select("*")
-          .eq("is_completed", false)
-          .lt("next_due_date", startOfToday.toISOString())
-          .order("next_due_date", { ascending: true })
-          .limit(50),
+      if (error) throw error;
+      // Project virtual future occurrences for recurring tasks up to endDate
+      // This shows forthcoming instances without creating real DB rows
+      const { data: recurringSeeds } = await supabase
+        .from("tasks")
+        .select(
+          "id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, next_due_date, user_id, is_completed"
+        )
+        .eq("is_recurring", true);
 
-        // Get future tasks (due from today up to the time range)
-        supabase
-          .from("tasks")
-          .select("*")
-          .eq("is_completed", false)
-          .gte("next_due_date", startOfToday.toISOString())
-          .lte("next_due_date", endDate.toISOString())
-          .order("next_due_date", { ascending: true })
-          .limit(50),
-      ]);
+      const existingKey = new Set(
+        (data || []).map(
+          (t: any) =>
+            `${t.user_id}|${t.title}|${new Date(t.next_due_date).toISOString()}`
+        )
+      );
 
-      if (overdueResult.error) throw overdueResult.error;
-      if (futureResult.error) throw futureResult.error;
+      const virtuals: any[] = [];
+      if (recurringSeeds && Array.isArray(recurringSeeds)) {
+        for (const seed of recurringSeeds) {
+          if (!seed.recurrence_type || !seed.next_due_date) continue;
+          // Start projecting from the next occurrence after the seed's next_due_date
+          let projectionDate = new Date(
+            TaskService.calculateNextDueDate(
+              seed.recurrence_type,
+              seed.next_due_date
+            )
+          );
 
-      // Combine and sort all tasks by due date
-      const allTasks = [
-        ...(overdueResult.data || []),
-        ...(futureResult.data || []),
-      ].sort(
+          // Generate until endDate (respect timeRange window)
+          while (projectionDate <= endDate) {
+            const key = `${seed.user_id}|${
+              seed.title
+            }|${projectionDate.toISOString()}`;
+            if (!existingKey.has(key)) {
+              existingKey.add(key);
+              virtuals.push({
+                id: `virtual-${seed.id}-${projectionDate.toISOString()}`,
+                user_id: seed.user_id,
+                title: seed.title,
+                description: seed.description,
+                category: seed.category,
+                priority: seed.priority,
+                estimated_duration: seed.estimated_duration,
+                is_recurring: true,
+                recurrence_type: seed.recurrence_type,
+                next_due_date: projectionDate.toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                is_completed: false,
+                completed_at: null,
+                last_completed_date: null,
+                next_instance_date: null,
+                is_virtual: true,
+              });
+            }
+
+            // Step forward
+            projectionDate = new Date(
+              TaskService.calculateNextDueDate(
+                seed.recurrence_type,
+                projectionDate.toISOString()
+              )
+            );
+          }
+        }
+      }
+
+      const combined = [...(data || []), ...virtuals].sort(
         (a, b) =>
           new Date(a.next_due_date).getTime() -
           new Date(b.next_due_date).getTime()
       );
 
-      return { data: allTasks, error: null };
+      return { data: combined, error: null };
     } catch (error) {
       console.error("Error fetching upcoming tasks:", error);
+      return { data: null, error };
+    }
+  }
+
+  // Instance-based upcoming fetch (preferred for recurring support)
+  static async getUpcomingInstances(timeRange: number | "all" = 60): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const start = startOfDay(new Date());
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("is_completed", false)
+        .gte("due_date", start.toISOString())
+        .order("due_date", { ascending: true });
+
+      let end = undefined as string | undefined;
+      if (timeRange !== "all") {
+        const e = addDays(new Date(), timeRange as number);
+        end = e.toISOString();
+        query = query.lte("due_date", end);
+      }
+
+      // Backfill instances for tasks in range so lists/calendar see them
+      await TaskService.ensureInstancesForRange(
+        start.toISOString(),
+        end || addDays(new Date(), 365).toISOString(),
+        false
+      );
+
+      const { data, error } = await query.limit(500);
+      if (error) throw error;
+
+      const seen = new Set<string>();
+      const unique = (data || []).filter((i: any) => {
+        const key = `${i.task_id}|${TaskService.dateKeyLocal(i.due_date)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const mapped: Task[] = unique.map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching upcoming instances:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getCompletedInstances(
+    lookbackDays: number | "all" = 14
+  ): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      const now = new Date();
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("is_completed", true)
+        .order("completed_at", { ascending: false });
+      if (lookbackDays !== "all") {
+        const from = addDays(now, -(lookbackDays as number));
+        query = query.gte("completed_at", from.toISOString());
+      }
+      const { data, error } = await query.limit(500);
+      if (error) throw error;
+      const mapped: Task[] = (data || []).map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching completed instances:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getOverdueInstances(lookbackDays: number | "all" = 14): Promise<{
+    data: Task[] | null;
+    error: any;
+  }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      const start = startOfDay(new Date());
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("is_completed", false)
+        .lt("due_date", start.toISOString())
+        .order("due_date", { ascending: true });
+      if (lookbackDays !== "all") {
+        const from = addDays(start, -(lookbackDays as number));
+        query = query.gte("due_date", from.toISOString());
+      }
+      const { data, error } = await query.limit(500);
+      if (error) throw error;
+      const mapped: Task[] = (data || []).map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching overdue instances:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getInstancesInRange(
+    startISO: string,
+    endISO: string,
+    includeCompleted: boolean = true
+  ): Promise<{ data: Task[] | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      // Backfill instances for tasks in range
+      await TaskService.ensureInstancesForRange(
+        startISO,
+        endISO,
+        includeCompleted
+      );
+
+      let query = supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .gte("due_date", startISO)
+        .lte("due_date", endISO)
+        .order("due_date", { ascending: true });
+      if (!includeCompleted) {
+        query = query.eq("is_completed", false);
+      }
+      const { data, error } = await query.limit(1000);
+      if (error) throw error;
+      // De-duplicate by (task_id, local day)
+      const seen = new Set<string>();
+      const unique = (data || []).filter((i: any) => {
+        const key = `${i.task_id}|${TaskService.dateKeyLocal(i.due_date)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      const mapped: Task[] = unique.map((i: any) => ({
+        id: i.task?.id,
+        instance_id: i.id,
+        user_id: i.task?.user_id,
+        title: i.task?.title,
+        description: i.task?.description,
+        category: i.task?.category,
+        priority: i.task?.priority,
+        estimated_duration: i.task?.estimated_duration,
+        is_recurring: !!i.task?.is_recurring,
+        recurrence_type: i.task?.recurrence_type,
+        next_due_date: i.due_date,
+        created_at: i.task?.created_at || i.created_at,
+        updated_at: i.task?.updated_at || i.created_at,
+        is_completed: i.is_completed,
+        completed_at: i.completed_at,
+      }));
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching instances in range:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async getInstanceById(
+    instanceId: string
+  ): Promise<{ data: Task | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    try {
+      const { data, error } = await supabase
+        .from("task_instances")
+        .select(
+          `*, task:tasks(id, user_id, title, description, category, priority, estimated_duration, is_recurring, recurrence_type, created_at, updated_at)`
+        )
+        .eq("id", instanceId)
+        .single();
+      if (error) throw error;
+      const mapped: Task = {
+        id: data.task?.id,
+        instance_id: data.id,
+        user_id: data.task?.user_id,
+        title: data.task?.title,
+        description: data.task?.description,
+        category: data.task?.category,
+        priority: data.task?.priority,
+        estimated_duration: data.task?.estimated_duration,
+        is_recurring: !!data.task?.is_recurring,
+        recurrence_type: data.task?.recurrence_type,
+        next_due_date: data.due_date,
+        created_at: data.task?.created_at || data.created_at,
+        updated_at: data.task?.updated_at || data.created_at,
+        is_completed: data.is_completed,
+        completed_at: data.completed_at,
+      } as Task;
+      return { data: mapped, error: null };
+    } catch (error) {
+      console.error("Error fetching instance by id:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async completeInstance(instanceId: string) {
+    if (!supabase)
+      return { data: null, error: { message: "Supabase not configured" } };
+    try {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("task_instances")
+        .update({ is_completed: true, completed_at: now })
+        .eq("id", instanceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error completing instance:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async uncompleteInstance(instanceId: string) {
+    if (!supabase)
+      return { data: null, error: { message: "Supabase not configured" } };
+    try {
+      const { data, error } = await supabase
+        .from("task_instances")
+        .update({ is_completed: false, completed_at: null })
+        .eq("id", instanceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error uncompleting instance:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateInstanceDueDate(instanceId: string, newDueISO: string) {
+    if (!supabase)
+      return { data: null, error: { message: "Supabase not configured" } };
+    try {
+      const { data, error } = await supabase
+        .from("task_instances")
+        .update({ due_date: newDueISO })
+        .eq("id", instanceId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error updating instance due date:", error);
+      return { data: null, error };
+    }
+  }
+
+  static async deleteInstance(instanceId: string): Promise<{ error: any }> {
+    if (!supabase) return { error: { message: "Supabase not configured" } };
+    try {
+      const { error } = await supabase
+        .from("task_instances")
+        .delete()
+        .eq("id", instanceId);
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      console.error("Error deleting instance:", error);
+      return { error };
+    }
+  }
+
+  static async shiftFutureInstances(
+    taskId: string,
+    fromDueDateISO: string,
+    deltaMs: number
+  ) {
+    if (!supabase) return { error: { message: "Supabase not configured" } };
+    try {
+      // Normalize threshold to UTC start-of-day to avoid timezone cutoffs
+      const fromUTCStart = TaskService.utcStartOfDayISO(fromDueDateISO);
+      const deltaDays = Math.round(deltaMs / (24 * 60 * 60 * 1000));
+
+      // Also align the series template `next_due_date` to prevent backfills from inserting an extra occurrence
+      const newSeriesNextMs =
+        Date.parse(TaskService.utcStartOfDayISO(fromDueDateISO)) +
+        deltaDays * 24 * 60 * 60 * 1000;
+      const newSeriesNextISO = new Date(newSeriesNextMs).toISOString();
+      await supabase
+        .from("tasks")
+        .update({ next_due_date: newSeriesNextISO })
+        .eq("id", taskId);
+
+      const { data: instances, error } = await supabase
+        .from("task_instances")
+        .select("id, due_date, created_at")
+        .eq("task_id", taskId)
+        .gte("due_date", fromUTCStart)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      if (!instances || instances.length === 0) return { error: null };
+      // Perform per-row updates to avoid accidental inserts under RLS
+      for (const i of instances) {
+        const prev = new Date(i.due_date);
+        const shiftedUTC = new Date(
+          Date.UTC(
+            prev.getUTCFullYear(),
+            prev.getUTCMonth(),
+            prev.getUTCDate() + deltaDays,
+            0,
+            0,
+            0,
+            0
+          )
+        ).toISOString();
+        const { error: updErr } = await supabase
+          .from("task_instances")
+          .update({ due_date: shiftedUTC })
+          .eq("id", i.id);
+        if (updErr) throw updErr;
+      }
+
+      // Post-shift de-duplication by (task_id, local-day)
+      const { data: afterInstances } = await supabase
+        .from("task_instances")
+        .select("id, due_date, created_at")
+        .eq("task_id", taskId)
+        .gte("due_date", fromUTCStart)
+        .order("due_date", { ascending: true });
+      const keepByDay = new Map<string, string>();
+      const toRemove: string[] = [];
+      for (const inst of afterInstances || []) {
+        const dayKey = TaskService.dateKeyLocal(inst.due_date);
+        if (!keepByDay.has(dayKey)) {
+          keepByDay.set(dayKey, inst.id);
+        } else {
+          toRemove.push(inst.id);
+        }
+      }
+      if (toRemove.length > 0) {
+        await supabase.from("task_instances").delete().in("id", toRemove);
+      }
+      return { error: null };
+    } catch (e) {
+      console.error("Error shifting future instances:", e);
+      return { error: e };
+    }
+  }
+
+  // get overdue tasks (not completed, due before the start of today)
+  // If lookbackDays is a number, only include tasks with next_due_date >= startOfToday - lookbackDays
+  static async getOverdueTasks(
+    lookbackDays: number | "all" = 14
+  ): Promise<{ data: Task[] | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const start = startOfDay(new Date());
+      let query = supabase
+        .from("tasks")
+        .select("*")
+        .eq("is_completed", false)
+        .lt("next_due_date", start.toISOString())
+        .order("next_due_date", { ascending: true });
+
+      if (lookbackDays !== "all") {
+        const from = addDays(start, -lookbackDays);
+        query = query.gte("next_due_date", from.toISOString());
+      }
+
+      const { data, error } = await query.limit(200);
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error fetching overdue tasks:", error);
       return { data: null, error };
     }
   }
@@ -309,59 +874,7 @@ export class TaskService {
 
       if (error) throw error;
 
-      // If it's a recurring task, create a new instance for the next occurrence
-      if (currentTask.is_recurring && currentTask.recurrence_type) {
-        // For recurring tasks, calculate next due date from the current task's due date
-        // This ensures proper spacing for recurring instances
-        const nextDueDate = TaskService.calculateNextDueDate(
-          currentTask.recurrence_type,
-          currentTask.next_due_date
-        );
-
-        // Check if a task with this exact due date already exists for this user
-        const { data: existingTask, error: queryError } = await supabase
-          .from("tasks")
-          .select("id, title, next_due_date, is_completed")
-          .eq("user_id", currentTask.user_id)
-          .eq("title", currentTask.title)
-          .eq("next_due_date", nextDueDate)
-          .eq("is_completed", false)
-          .single();
-
-        if (existingTask) {
-          // Skip creation if duplicate exists
-        } else {
-          const newTaskData = {
-            title: currentTask.title,
-            description: currentTask.description,
-            category: currentTask.category,
-            priority: currentTask.priority,
-            estimated_duration: currentTask.estimated_duration,
-            is_recurring: currentTask.is_recurring,
-            recurrence_type: currentTask.recurrence_type,
-            next_due_date: nextDueDate,
-            user_id: currentTask.user_id,
-            is_completed: false,
-            created_at: now,
-            updated_at: now,
-          };
-
-          // Create the new instance
-          const { error: createError } = await supabase
-            .from("tasks")
-            .insert([newTaskData]);
-
-          if (createError) {
-            console.error(
-              "❌ Error creating next recurring task instance:",
-              createError
-            );
-            // Don't fail the completion, just log the error
-          } else {
-          }
-        }
-      } else {
-      }
+      // Instance-based model: do not create additional series rows here
 
       return { data, error: null };
     } catch (error) {
@@ -488,6 +1001,46 @@ export class TaskService {
     }
   }
 
+  // get completed tasks with lookback window separate from upcoming filter
+  static async getCompletedTasksLookback(
+    lookbackDays: number | "all" = 14
+  ): Promise<{ data: Task[] | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      if (lookbackDays === "all") {
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("is_completed", true)
+          .not("completed_at", "is", null)
+          .order("completed_at", { ascending: false })
+          .limit(500);
+        if (error) throw error;
+        return { data, error: null };
+      }
+
+      const now = new Date();
+      const from = addDays(now, -lookbackDays);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("is_completed", true)
+        .gte("completed_at", from.toISOString())
+        .lte("completed_at", now.toISOString())
+        .order("completed_at", { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error fetching completed tasks (lookback):", error);
+      return { data: null, error };
+    }
+  }
+
   // delete a task
   static async deleteTask(taskId: string): Promise<{ error: any }> {
     if (!supabase) {
@@ -506,6 +1059,67 @@ export class TaskService {
     }
   }
 
+  static async deleteAllTasks(): Promise<{
+    error: any;
+    tasksDeleted?: number;
+    instancesDeleted?: number;
+  }> {
+    if (!supabase) {
+      return { error: { message: "Supabase not configured" } };
+    }
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw userError || new Error("Not authenticated");
+
+      // Fetch user's task ids to scope child deletions under RLS
+      const { data: userTasks, error: fetchErr } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("user_id", user.id);
+      if (fetchErr) throw fetchErr;
+
+      const taskIds = (userTasks || []).map((t: any) => t.id);
+      const tasksCount = taskIds.length;
+      let instancesCount = 0;
+
+      if (taskIds.length > 0) {
+        // Count instances first
+        const { count: instCount, error: instCountErr } = await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .in("task_id", taskIds);
+        if (instCountErr) throw instCountErr;
+        instancesCount = instCount || 0;
+
+        // Delete instances first
+        const { error: instErr } = await supabase
+          .from("task_instances")
+          .delete()
+          .in("task_id", taskIds);
+        if (instErr) throw instErr;
+      }
+
+      // Delete all tasks for this user
+      const { error: tasksErr } = await supabase
+        .from("tasks")
+        .delete()
+        .eq("user_id", user.id);
+      if (tasksErr) throw tasksErr;
+
+      return {
+        error: null,
+        tasksDeleted: tasksCount,
+        instancesDeleted: instancesCount,
+      };
+    } catch (error) {
+      console.error("Error deleting all tasks:", error);
+      return { error };
+    }
+  }
+
   // get task statistics for dashboard
   static async getTaskStats(): Promise<{ data: any | null; error: any }> {
     if (!supabase) {
@@ -513,67 +1127,79 @@ export class TaskService {
     }
 
     try {
-      // Get total tasks
-      const { data: totalTasks, error: totalError } = await supabase
+      // Get total tasks (series templates)
+      const { count: totalTasksCount, error: totalError } = await supabase
         .from("tasks")
-        .select("id", { count: "exact" });
-
+        .select("id", { count: "exact", head: true });
       if (totalError) throw totalError;
 
-      // Get completed tasks
-      const { data: completedTasks, error: completedError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", true);
-
-      if (completedError) throw completedError;
-
-      // Get overdue tasks
-      const { data: overdueTasks, error: overdueError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", false)
-        .lt("next_due_date", new Date().toISOString());
-
-      if (overdueError) throw overdueError;
-
-      // Get tasks due today
-      const today = startOfDay(new Date());
+      // Use task_instances for dynamic stats so they reflect instance changes immediately
+      const start = startOfDay(new Date());
+      const today = start;
       const tomorrow = addDays(today, 1);
-
-      const { data: todayTasks, error: todayError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", false)
-        .gte("next_due_date", today.toISOString())
-        .lt("next_due_date", tomorrow.toISOString());
-
-      if (todayError) throw todayError;
-
-      // Get tasks due this week (next 7 days)
       const nextWeek = addWeeks(today, 1);
 
-      const { data: thisWeekTasks, error: thisWeekError } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact" })
-        .eq("is_completed", false)
-        .gte("next_due_date", today.toISOString())
-        .lt("next_due_date", nextWeek.toISOString());
+      // Completed instances
+      const { count: completedInstancesCount, error: completedInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", true);
+      if (completedInstancesError) throw completedInstancesError;
 
-      if (thisWeekError) throw thisWeekError;
+      // Total instances (all occurrences regardless of status or filters)
+      const { count: totalInstancesCount, error: totalInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true });
+      if (totalInstancesError) throw totalInstancesError;
+
+      // Overdue instances (incomplete and due before today)
+      const { count: overdueInstancesCount, error: overdueInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", false)
+          .lt("due_date", today.toISOString());
+      if (overdueInstancesError) throw overdueInstancesError;
+
+      // Due today instances (incomplete)
+      const { count: todayInstancesCount, error: todayInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", false)
+          .gte("due_date", today.toISOString())
+          .lt("due_date", tomorrow.toISOString());
+      if (todayInstancesError) throw todayInstancesError;
+
+      // Due this week instances (incomplete)
+      const { count: thisWeekInstancesCount, error: thisWeekInstancesError } =
+        await supabase
+          .from("task_instances")
+          .select("id", { count: "exact", head: true })
+          .eq("is_completed", false)
+          .gte("due_date", today.toISOString())
+          .lt("due_date", nextWeek.toISOString());
+      if (thisWeekInstancesError) throw thisWeekInstancesError;
 
       const stats = {
-        total: totalTasks?.length || 0,
-        completed: completedTasks?.length || 0,
-        overdue: overdueTasks?.length || 0,
-        dueToday: todayTasks?.length || 0,
-        thisWeek: thisWeekTasks?.length || 0,
-        completionRate: totalTasks?.length
-          ? Math.round(
-              ((completedTasks?.length || 0) / totalTasks.length) * 100
-            )
+        total: totalTasksCount || 0,
+        completed: completedInstancesCount || 0,
+        overdue: overdueInstancesCount || 0,
+        dueToday: todayInstancesCount || 0,
+        thisWeek: thisWeekInstancesCount || 0,
+        completionRate: totalTasksCount
+          ? Math.round(((completedInstancesCount || 0) / totalTasksCount) * 100)
           : 0,
       };
+
+      // Log overall totals regardless of current UI filters
+      console.log(
+        `📊 Task totals — occurrences: ${
+          totalInstancesCount || 0
+        }, templates: ${totalTasksCount || 0}`
+      );
 
       return { data: stats, error: null };
     } catch (error) {

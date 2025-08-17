@@ -12,10 +12,12 @@ export type TimeRange = 30 | 60 | 90 | 120 | "all";
 interface UseTasksReturn {
   tasks: Task[];
   upcomingTasks: Task[];
+  overdueTasks: Task[];
   completedTasks: Task[];
   loading: boolean;
   error: string | null;
   timeRange: TimeRange;
+  lookbackDays: number | "all";
   stats: {
     total: number;
     completed: number;
@@ -41,7 +43,9 @@ interface UseTasksReturn {
   bulkCompleteTasks: (
     taskIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
+  deleteAllTasks: () => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
+  setLookbackDays: (days: number | "all") => void;
   refreshTasks: () => Promise<void>;
   refreshStats: () => Promise<void>;
 }

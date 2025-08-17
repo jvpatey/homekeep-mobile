@@ -13,10 +13,12 @@ import { useTasks } from "../../../context/TasksContext";
 import { DesignSystem } from "../../../theme/designSystem";
 import { UpcomingTasks } from "../UpcomingTasks";
 import { CompletedTasks } from "../CompletedTasks";
+import { IncompleteTasks } from "../IncompleteTasks";
+// Missed/Overdue tasks component to be added
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-export type TabType = "upcoming" | "completed";
+export type TabType = "upcoming" | "incomplete" | "completed";
 
 interface TaskTabsProps {
   searchQuery?: string;
@@ -31,7 +33,7 @@ interface TabInfo {
 
 export function TaskTabs({ searchQuery = "" }: TaskTabsProps) {
   const { colors } = useTheme();
-  const { upcomingTasks, completedTasks } = useTasks();
+  const { upcomingTasks, overdueTasks, completedTasks } = useTasks();
   const [activeTab, setActiveTab] = useState<TabType>("upcoming");
   const [slideAnim] = useState(new Animated.Value(0));
 
@@ -41,6 +43,12 @@ export function TaskTabs({ searchQuery = "" }: TaskTabsProps) {
       label: "Upcoming",
       icon: "time-outline",
       count: upcomingTasks.length,
+    },
+    {
+      id: "incomplete",
+      label: "Incomplete",
+      icon: "alert-circle-outline",
+      count: overdueTasks.length,
     },
     {
       id: "completed",
@@ -53,7 +61,7 @@ export function TaskTabs({ searchQuery = "" }: TaskTabsProps) {
   const handleTabPress = (tabId: TabType) => {
     if (tabId === activeTab) return;
 
-    const toValue = tabId === "completed" ? 1 : 0;
+    const toValue = tabId === "completed" ? 1 : 0; // animation placeholder
 
     Animated.spring(slideAnim, {
       toValue,
@@ -67,16 +75,19 @@ export function TaskTabs({ searchQuery = "" }: TaskTabsProps) {
 
   const renderTabButton = (tab: TabInfo) => {
     const isActive = activeTab === tab.id;
+    const tabColor =
+      tab.id === "completed"
+        ? colors.success
+        : tab.id === "incomplete"
+        ? colors.error
+        : colors.primary;
 
     return (
       <TouchableOpacity
         key={tab.id}
         style={[
           styles.tabButton,
-          isActive && [
-            styles.activeTabButton,
-            { backgroundColor: colors.primary },
-          ],
+          isActive && [styles.activeTabButton, { backgroundColor: tabColor }],
         ]}
         onPress={() => handleTabPress(tab.id)}
         activeOpacity={0.7}
@@ -85,28 +96,17 @@ export function TaskTabs({ searchQuery = "" }: TaskTabsProps) {
           <Ionicons
             name={tab.icon as any}
             size={20}
-            color={isActive ? "white" : colors.textSecondary}
+            color={isActive ? "white" : tabColor}
             style={styles.tabIcon}
           />
-          <Text
-            style={[
-              styles.tabLabel,
-              {
-                color: isActive ? "white" : colors.textSecondary,
-                fontWeight: isActive ? "700" : "500",
-              },
-            ]}
-          >
-            {tab.label}
-          </Text>
           {tab.count > 0 && (
             <View
               style={[
                 styles.countBadge,
                 {
                   backgroundColor: isActive
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : colors.primary,
+                    ? "rgba(255, 255, 255, 0.25)"
+                    : tabColor,
                 },
               ]}
             >
@@ -129,6 +129,8 @@ export function TaskTabs({ searchQuery = "" }: TaskTabsProps) {
     switch (activeTab) {
       case "upcoming":
         return <UpcomingTasks searchQuery={searchQuery} />;
+      case "incomplete":
+        return <IncompleteTasks searchQuery={searchQuery} />;
       case "completed":
         return <CompletedTasks searchQuery={searchQuery} />;
       default:
@@ -164,6 +166,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: "row",
+    gap: DesignSystem.spacing.xs,
     borderRadius: DesignSystem.borders.radius.large,
     padding: DesignSystem.spacing.xs,
     ...DesignSystem.shadows.medium,
@@ -176,6 +179,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: DesignSystem.components.minTouchTarget,
+    overflow: "hidden",
   },
   activeTabButton: {
     ...DesignSystem.shadows.small,
@@ -183,13 +187,13 @@ const styles = StyleSheet.create({
   tabContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: DesignSystem.spacing.sm,
+    gap: DesignSystem.spacing.xs,
   },
   tabIcon: {
     // Icon styling
   },
   tabLabel: {
-    ...DesignSystem.typography.smallSemiBold,
+    display: "none" as any,
   },
   countBadge: {
     minWidth: 20,

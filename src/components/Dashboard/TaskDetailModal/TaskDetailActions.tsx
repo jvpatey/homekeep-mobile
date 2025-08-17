@@ -19,6 +19,9 @@ export function TaskDetailActions({
   onDelete,
 }: TaskDetailActionsProps) {
   const { colors } = useTheme();
+  const isOverdue =
+    !task.is_completed && new Date(task.next_due_date) < new Date();
+  const isInstance = !!task.instance_id;
 
   return (
     <View
@@ -48,44 +51,46 @@ export function TaskDetailActions({
           justifyContent: "space-between",
         }}
       >
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            borderRadius: 12,
-            backgroundColor: task.is_completed
-              ? colors.warning
-              : colors.success,
-            shadowColor: "#000000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 2,
-            marginRight: 6,
-          }}
-          onPress={onToggleComplete}
-        >
-          <Ionicons
-            name={task.is_completed ? "refresh" : "checkmark"}
-            size={20}
-            color="white"
-          />
-          <Text
+        {!isOverdue && (
+          <TouchableOpacity
             style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: "white",
-              marginLeft: 6,
-              letterSpacing: 0.2,
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              backgroundColor: task.is_completed
+                ? colors.warning
+                : colors.success,
+              shadowColor: "#000000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
+              marginRight: 6,
             }}
+            onPress={onToggleComplete}
           >
-            {task.is_completed ? "Mark Incomplete" : "Complete"}
-          </Text>
-        </TouchableOpacity>
+            <Ionicons
+              name={task.is_completed ? "refresh" : "checkmark"}
+              size={20}
+              color="white"
+            />
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: "white",
+                marginLeft: 6,
+                letterSpacing: 0.2,
+              }}
+            >
+              {task.is_completed ? "Mark Incomplete" : "Complete"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={{
@@ -116,7 +121,7 @@ export function TaskDetailActions({
               letterSpacing: 0.2,
             }}
           >
-            Edit
+            {isInstance ? "Edit occurrence" : "Edit"}
           </Text>
         </TouchableOpacity>
       </View>

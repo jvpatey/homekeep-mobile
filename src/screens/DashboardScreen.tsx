@@ -99,11 +99,14 @@ export function DashboardScreen() {
                 ]}
               >
                 <View style={{ width: screenWidth }}>
-                  <TaskSummaryCards />
+                  {searchQuery.trim().length === 0 && <TaskSummaryCards />}
                   <TaskTabs searchQuery={searchQuery} />
                 </View>
                 <View style={{ width: screenWidth }}>
-                  <CalendarView />
+                  <CalendarView
+                    searchQuery={searchQuery}
+                    onClearSearch={() => setSearchQuery("")}
+                  />
                 </View>
               </Animated.View>
             </View>

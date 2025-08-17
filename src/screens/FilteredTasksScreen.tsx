@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { View, FlatList, Alert, Modal } from "react-native";
+import {
+  View,
+  FlatList,
+  Alert,
+  Modal,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
@@ -30,10 +37,13 @@ export function FilteredTasksScreen() {
   const { triggerMedium, triggerSuccess } = useHaptics();
   const {
     upcomingTasks,
+    overdueTasks,
     completedTasks,
     deleteTask,
     bulkCompleteTasks,
     uncompleteTask,
+    lookbackDays,
+    setLookbackDays,
   } = useTasks();
   const listAnimatedStyle = useSimpleAnimation(400, 400, 20);
   const { getCategoryColor } = useCategoryColors();
@@ -68,13 +78,15 @@ export function FilteredTasksScreen() {
         const taskDate = new Date(task.next_due_date);
         return taskDate >= today && taskDate < nextWeek;
       });
+    } else if (filterType === "incomplete") {
+      return overdueTasks;
     } else if (filterType === "completed") {
       // Return completed tasks from the context
       return completedTasks;
     } else {
       return upcomingTasks;
     }
-  }, [upcomingTasks, completedTasks, filterType]);
+  }, [upcomingTasks, overdueTasks, completedTasks, filterType]);
 
   // Sort tasks appropriately based on filter type
   const sortedTasks = useMemo(() => {
@@ -112,8 +124,8 @@ export function FilteredTasksScreen() {
   };
 
   const handleMarkAllComplete = () => {
-    // Don't show this for completed tasks
-    if (filterType === "completed") return;
+    // Don't allow complete-all for completed or incomplete filters
+    if (filterType === "completed" || filterType === "incomplete") return;
 
     triggerMedium();
     Alert.alert(
@@ -230,6 +242,7 @@ export function FilteredTasksScreen() {
       getCategoryColor={getCategoryColor}
       formatDueDate={formatDueDate}
       showDeleteButton={true}
+      variant={filterType === "incomplete" ? "incomplete" : "default"}
     />
   );
 
@@ -243,9 +256,53 @@ export function FilteredTasksScreen() {
           title={title}
           taskCount={sortedTasks.length}
           filterType={filterType}
-          onMarkAllComplete={handleMarkAllComplete}
+          onMarkAllComplete={
+            filterType === "incomplete" ? undefined : handleMarkAllComplete
+          }
           onMarkAllIncomplete={handleMarkAllIncomplete}
         />
+
+        {/* Lookback summary and toggle for applicable filters */}
+        {(filterType === "incomplete" || filterType === "completed") && (
+          <View
+            style={{
+              paddingHorizontal: 20,
+              marginTop: 8,
+              marginBottom: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text
+              style={{ color: colors.textSecondary }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {lookbackDays === "all"
+                ? "Showing all history"
+                : `Showing last ${lookbackDays} days`}
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                setLookbackDays(lookbackDays === "all" ? 14 : "all")
+              }
+              style={{
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                borderRadius: 10,
+                backgroundColor: colors.surface,
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                {lookbackDays === "all"
+                  ? "Show last 14 days"
+                  : "View all history"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Task List */}
         <Animated.View style={[styles.content, listAnimatedStyle]}>

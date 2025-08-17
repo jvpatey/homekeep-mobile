@@ -27,7 +27,7 @@ export function TaskSummaryCards() {
       title: "Due Today",
       count: stats.dueToday,
       icon: "today-outline" as const,
-      gradient: [colors.primary, colors.secondary] as const,
+      gradient: [colors.secondary, colors.primary] as const,
       iconColor: "#FFFFFF",
       animatedStyle: cardAnimatedStyles[0],
       filterType: "dueToday" as const,
@@ -42,10 +42,19 @@ export function TaskSummaryCards() {
       filterType: "thisWeek" as const,
     },
     {
+      title: "Incomplete",
+      count: stats.overdue,
+      icon: "alert-circle-outline" as const,
+      gradient: [colors.error, colors.accent] as const,
+      iconColor: "#FFFFFF",
+      animatedStyle: cardAnimatedStyles[2],
+      filterType: "incomplete" as const,
+    },
+    {
       title: "Completed",
       count: stats.completed,
       icon: "checkmark-circle-outline" as const,
-      gradient: [colors.warning, colors.accent] as const,
+      gradient: [colors.success, colors.primary] as const,
       iconColor: "#FFFFFF",
       animatedStyle: cardAnimatedStyles[2],
       filterType: "completed" as const,
@@ -93,7 +102,14 @@ export function TaskSummaryCards() {
 
                   <View style={styles.cardBody}>
                     <Text style={styles.cardCount}>{card.count}</Text>
-                    <Text style={styles.cardTitle}>{card.title}</Text>
+                    <Text
+                      style={styles.cardTitle}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
+                      {card.title}
+                    </Text>
                   </View>
                 </View>
               </LinearGradient>

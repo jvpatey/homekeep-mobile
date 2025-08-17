@@ -4,6 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
+import { TaskService } from "../../services/taskService";
 import { Task } from "../../types/task";
 import { TaskDetailModal } from "../Dashboard/TaskDetailModal/TaskDetailModal";
 import { EditTaskModal } from "../Dashboard/CreateTaskModal/EditTaskModal";
@@ -17,9 +18,18 @@ function formatDateKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export function CalendarView() {
+interface CalendarViewProps {
+  searchQuery?: string;
+  onClearSearch?: () => void;
+}
+
+export function CalendarView({
+  searchQuery = "",
+  onClearSearch,
+}: CalendarViewProps) {
   const { colors, isDark } = useTheme();
-  const { tasks } = useTasks();
+  const { tasks, upcomingTasks, overdueTasks, completedTasks } = useTasks();
+  const [monthInstances, setMonthInstances] = useState<Task[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [visibleMonth, setVisibleMonth] = useState<{
@@ -35,27 +45,125 @@ export function CalendarView() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
+  // Recurrence helpers to project occurrences within the current month
+  const advanceByRecurrence = useCallback((recurrence: string, from: Date) => {
+    const d = new Date(from);
+    switch (recurrence) {
+      case "weekly":
+        d.setDate(d.getDate() + 7);
+        return d;
+      case "monthly":
+        d.setMonth(d.getMonth() + 1);
+        return d;
+      case "quarterly":
+        d.setMonth(d.getMonth() + 3);
+        return d;
+      case "yearly":
+        d.setFullYear(d.getFullYear() + 1);
+        return d;
+      default:
+        d.setDate(d.getDate() + 7);
+        return d;
+    }
+  }, []);
+
+  const monthRange = useMemo(() => {
+    const start = new Date(
+      visibleMonth.year,
+      visibleMonth.month - 1,
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const end = new Date(
+      visibleMonth.year,
+      visibleMonth.month,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+    return { start, end };
+  }, [visibleMonth]);
+
+  const reloadMonthInstances = useCallback(async () => {
+    const { data } = await TaskService.getInstancesInRange(
+      monthRange.start.toISOString(),
+      monthRange.end.toISOString(),
+      true
+    );
+    setMonthInstances(data || []);
+  }, [monthRange.start.getTime(), monthRange.end.getTime()]);
+
+  React.useEffect(() => {
+    reloadMonthInstances();
+  }, [reloadMonthInstances, upcomingTasks, overdueTasks, completedTasks]);
+
   const tasksInVisibleMonth = useMemo(() => {
-    const { year, month } = visibleMonth;
-    return tasks.filter((t) => {
-      const dt = new Date(t.next_due_date);
-      return dt.getFullYear() === year && dt.getMonth() + 1 === month;
-    });
-  }, [tasks, visibleMonth]);
+    // De-duplicate within month by (task_id, due_date)
+    const seen = new Set<string>();
+    const deduped: Task[] = [];
+    for (const t of monthInstances) {
+      const key = `${t.id}|${new Date(t.next_due_date).toISOString()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(t);
+      }
+    }
+    return deduped;
+  }, [monthInstances]);
 
   const tasksForSelectedDate = useMemo(() => {
     const key = formatDateKey(selectedDate);
-    return tasks.filter(
+    return monthInstances.filter(
       (t) => formatDateKey(new Date(t.next_due_date)) === key
     );
-  }, [tasks, selectedDate]);
+  }, [monthInstances, selectedDate]);
+
+  const allInstances = useMemo(() => {
+    const list = [...upcomingTasks, ...overdueTasks, ...completedTasks];
+    const seen = new Set<string>();
+    const deduped: Task[] = [];
+    for (const t of list) {
+      const key = `${t.instance_id || t.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(t);
+      }
+    }
+    return deduped.sort(
+      (a, b) =>
+        new Date(a.next_due_date).getTime() -
+        new Date(b.next_due_date).getTime()
+    );
+  }, [upcomingTasks, overdueTasks, completedTasks]);
+
+  const filteredBySearch = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [] as Task[];
+    return allInstances
+      .filter((t) => {
+        const inTitle = t.title.toLowerCase().includes(q);
+        const inDesc = (t.description || "").toLowerCase().includes(q);
+        const inCategory = t.category.toLowerCase().includes(q);
+        return inTitle || inDesc || inCategory;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.next_due_date).getTime() -
+          new Date(b.next_due_date).getTime()
+      );
+  }, [allInstances, searchQuery]);
 
   const onSelectDate = useCallback((date: Date) => {
     setSelectedDate(date);
   }, []);
 
-  const handleTaskPress = (taskId: string) => {
-    setSelectedTaskId(taskId);
+  const handleTaskPress = (taskKey: string) => {
+    setSelectedTaskId(taskKey);
     setTaskDetailVisible(true);
   };
 
@@ -89,7 +197,7 @@ export function CalendarView() {
     const badgeColor = categoryColorMap[item.category] || colors.primary;
     return (
       <TouchableOpacity
-        onPress={() => handleTaskPress(item.id)}
+        onPress={() => handleTaskPress(item.instance_id || item.id)}
         activeOpacity={0.7}
         style={{
           paddingVertical: 12,
@@ -145,54 +253,84 @@ export function CalendarView() {
           Upcoming Tasks
         </Text>
       </View>
-      <MonthCalendar
-        month={new Date(visibleMonth.year, visibleMonth.month - 1, 1)}
-        selectedDate={selectedDate}
-        tasks={tasksInVisibleMonth}
-        onSelectDate={onSelectDate}
-        onPrevMonth={() =>
-          setVisibleMonth((m) => ({
-            year: new Date(m.year, m.month - 2, 1).getFullYear(),
-            month: new Date(m.year, m.month - 2, 1).getMonth() + 1,
-          }))
-        }
-        onNextMonth={() =>
-          setVisibleMonth((m) => ({
-            year: new Date(m.year, m.month, 1).getFullYear(),
-            month: new Date(m.year, m.month, 1).getMonth() + 1,
-          }))
-        }
-        onToday={() => {
-          const now = new Date();
-          setVisibleMonth({
-            year: now.getFullYear(),
-            month: now.getMonth() + 1,
-          });
-          setSelectedDate(now);
-        }}
-        disablePast
-      />
-      <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 8,
+      {searchQuery.trim().length === 0 && (
+        <MonthCalendar
+          month={new Date(visibleMonth.year, visibleMonth.month - 1, 1)}
+          selectedDate={selectedDate}
+          tasks={tasksInVisibleMonth}
+          onSelectDate={onSelectDate}
+          onPrevMonth={() =>
+            setVisibleMonth((m) => ({
+              year: new Date(m.year, m.month - 2, 1).getFullYear(),
+              month: new Date(m.year, m.month - 2, 1).getMonth() + 1,
+            }))
+          }
+          onNextMonth={() =>
+            setVisibleMonth((m) => ({
+              year: new Date(m.year, m.month, 1).getFullYear(),
+              month: new Date(m.year, m.month, 1).getMonth() + 1,
+            }))
+          }
+          onToday={() => {
+            const now = new Date();
+            setVisibleMonth({
+              year: now.getFullYear(),
+              month: now.getMonth() + 1,
+            });
+            setSelectedDate(now);
           }}
-        >
-          <Ionicons name="calendar" size={18} color={colors.textSecondary} />
-          <Text
-            style={{ color: colors.textSecondary, marginLeft: 6, fontSize: 14 }}
-          >
-            {selectedDate.toLocaleDateString(undefined, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </Text>
-        </View>
-        {tasksForSelectedDate.length === 0 ? (
+          disablePast
+        />
+      )}
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, flex: 1 }}>
+        {searchQuery.trim().length > 0 ? (
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ color: colors.textSecondary }}>
+                {filteredBySearch.length} result
+                {filteredBySearch.length === 1 ? "" : "s"}
+              </Text>
+              {filteredBySearch.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const first = filteredBySearch[0];
+                    const d = new Date(first.next_due_date);
+                    setVisibleMonth({
+                      year: d.getFullYear(),
+                      month: d.getMonth() + 1,
+                    });
+                    setSelectedDate(d);
+                    onClearSearch?.();
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    Show calendar
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={filteredBySearch}
+              keyExtractor={(t) => t.instance_id || t.id}
+              renderItem={renderTaskItem}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            />
+          </>
+        ) : tasksForSelectedDate.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: 24 }}>
             <Ionicons
               name="clipboard-outline"
@@ -206,7 +344,7 @@ export function CalendarView() {
         ) : (
           <FlatList
             data={tasksForSelectedDate}
-            keyExtractor={(t) => t.id}
+            keyExtractor={(t) => t.instance_id || t.id}
             renderItem={renderTaskItem}
             contentContainerStyle={{ paddingBottom: 24 }}
           />
@@ -218,6 +356,10 @@ export function CalendarView() {
         visible={taskDetailVisible}
         onClose={handleCloseTaskDetail}
         onEdit={handleEditTask}
+        onDeleted={() => {
+          // Immediately reload month after deletion so the UI reflects removal
+          reloadMonthInstances();
+        }}
       />
 
       {editingTask && (
@@ -239,6 +381,8 @@ export function CalendarView() {
             onTaskUpdated={() => {
               setEditModalVisible(false);
               setEditingTask(null);
+              // Ensure calendar month view refreshes immediately after edits
+              reloadMonthInstances();
             }}
           />
         </Modal>

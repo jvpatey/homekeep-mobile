@@ -1,55 +1,40 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useSimpleAnimation, useHaptics } from "../../hooks";
 import { useTasks } from "../../context/TasksContext";
-import { useAuth } from "../../context/AuthContext";
-import { AppStackParamList } from "../../navigation/types";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { EditTaskModal } from "./CreateTaskModal/EditTaskModal";
-import { PriorityBadge } from "./PriorityBadge";
-import { TaskItem } from "./TaskItem";
-import { groupTasksByKey } from "../Dashboard/grouping";
-import { StackedTaskItem } from "../Dashboard/StackedTaskItem";
-import { FilterButton } from "./FilterButton";
 import { PriorityFilterButton, PriorityFilter } from "./PriorityFilterButton";
+import { FilterButton } from "./FilterButton";
+import { TaskItem } from "./TaskItem";
 import { Task } from "../../types/task";
+import { groupTasksByKey } from "./grouping";
+import { StackedTaskItem } from "./StackedTaskItem";
 import { styles } from "./styles";
 
-type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
-
-interface UpcomingTasksProps {
+interface IncompleteTasksProps {
   searchQuery?: string;
 }
 
-// UpcomingTasks Features proper touch targets, category indicators, and navigation
-
-export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
+// IncompleteTasks - shows overdue, incomplete tasks only
+export function IncompleteTasks({ searchQuery = "" }: IncompleteTasksProps) {
   const { colors } = useTheme();
-  const navigation = useNavigation<NavigationProp>();
   const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
   const tasksHook = useTasks();
-  const { upcomingTasks, loading, deleteTask, bulkCompleteTasks } = tasksHook;
+  const { overdueTasks, deleteTask, lookbackDays, setLookbackDays } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
-  // Task detail modal state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetailVisible, setTaskDetailVisible] = useState(false);
-
-  // Edit task modal state
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
-
-  // Priority filter state
   const [activePriority, setActivePriority] = useState<PriorityFilter>("all");
 
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
-      // Handle both lowercase (stored in DB) and uppercase (display) versions
       hvac: "#FF6B6B",
       HVAC: "#FF6B6B",
       exterior: "#4ECDC4",
@@ -66,22 +51,9 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     return categoryColors[category] || colors.primary;
   };
 
-  const formatDueDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    }
+  const formatOverdueDate = (dateString: string): string => {
+    const due = new Date(dateString);
+    return due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const handleTaskPress = (taskId: string) => {
@@ -96,11 +68,8 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
   };
 
   const handleEditTask = (task: Task) => {
-    // Close the task detail modal first
     setTaskDetailVisible(false);
     setSelectedTaskId(null);
-
-    // Then open the edit modal
     setEditingTask(task);
     setEditModalVisible(true);
   };
@@ -111,11 +80,7 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       "Delete Task",
       `Are you sure you want to delete "${taskTitle}"?`,
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => triggerLight(),
-        },
+        { text: "Cancel", style: "cancel", onPress: () => triggerLight() },
         {
           text: "Delete",
           style: "destructive",
@@ -131,44 +96,11 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     );
   };
 
-  const handleMarkAllComplete = () => {
-    if (filteredTasks.length === 0) return;
+  const handleMarkAllComplete = () => {};
 
-    triggerMedium();
-    Alert.alert(
-      "Mark All Complete",
-      `Are you sure you want to mark all ${filteredTasks.length} tasks as complete?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Complete All",
-          onPress: async () => {
-            triggerMedium();
-            const { success, error } = await bulkCompleteTasks(
-              filteredTasks.map((task) => task.instance_id || task.id)
-            );
-            if (!success) {
-              Alert.alert("Error", error || "Failed to complete all tasks");
-            } else {
-              // Show success message and stay on the page
-              triggerSuccess();
-              Alert.alert(
-                "Success!",
-                `All ${filteredTasks.length} tasks have been marked as complete.`,
-                [{ text: "OK", style: "default" }]
-              );
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Filter tasks based on active tab and search query
   const getFilteredTasks = () => {
-    let filtered = [...upcomingTasks];
+    let filtered = [...overdueTasks];
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((task) => {
@@ -180,27 +112,22 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       });
     }
 
-    // Apply priority filter
     if (activePriority !== "all") {
       filtered = filtered.filter(
         (task) => task.priority.toLowerCase() === activePriority
       );
     }
 
-    // Sort by due date (earliest first)
-    const sorted = filtered.sort(
+    // Sort by due date (oldest first)
+    return filtered.sort(
       (a, b) =>
         new Date(a.next_due_date).getTime() -
         new Date(b.next_due_date).getTime()
     );
-
-    return sorted;
   };
 
   const filteredTasks = getFilteredTasks();
   const grouped = groupTasksByKey(filteredTasks);
-
-  // Tab configuration
 
   const renderTaskItem = (task: Task) => (
     <TaskItem
@@ -210,8 +137,9 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
       onComplete={tasksHook.completeTask}
       onUncomplete={tasksHook.uncompleteTask}
       getCategoryColor={getCategoryColor}
-      formatDueDate={formatDueDate}
+      formatDueDate={formatOverdueDate}
       showDeleteButton={true}
+      variant="incomplete"
     />
   );
 
@@ -219,106 +147,101 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
     <View>
       <View style={styles.listHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {searchQuery.trim() ? "Search Results" : "Upcoming Tasks"}
+          Incomplete Tasks
         </Text>
-        {filteredTasks.length > 0 && !searchQuery.trim() && (
-          <TouchableOpacity
-            style={styles.completeAllButton}
-            onPress={handleMarkAllComplete}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="checkmark-done" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        )}
+        {/* No bulk complete for overdue tasks */}
       </View>
       {!searchQuery.trim() && (
-        <View style={styles.filterButtonsContainer}>
-          <PriorityFilterButton
-            selectedPriority={activePriority}
-            onPriorityChange={setActivePriority}
-            style={styles.filterButton}
-          />
-          <FilterButton style={styles.filterButton} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <PriorityFilterButton
+              selectedPriority={activePriority}
+              onPriorityChange={setActivePriority}
+              style={styles.filterButton}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setLookbackDays(lookbackDays === "all" ? 14 : "all")}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+              backgroundColor: colors.surface,
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              {lookbackDays === "all"
+                ? "Show last 14 days"
+                : "View all history"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
+      <Text
+        style={{
+          marginBottom: 6,
+          color: colors.textSecondary,
+        }}
+      >
+        {lookbackDays === "all"
+          ? "Showing all overdue history"
+          : `Showing last ${lookbackDays} days`}
+      </Text>
     </View>
   );
 
-  const EmptyState = () => {
-    const getEmptyMessage = () => {
-      if (searchQuery.trim()) {
-        return {
-          title: "No tasks found",
-          subtitle: `No tasks match "${searchQuery}"`,
-        };
-      }
-
-      if (activePriority === "all") {
-        return {
-          title: "No upcoming tasks",
-          subtitle: "Tap the + button to create your first task",
-        };
-      } else {
-        const priorityLabel =
-          activePriority.charAt(0).toUpperCase() + activePriority.slice(1);
-        return {
-          title: `No ${priorityLabel} priority tasks`,
-          subtitle:
-            tasksHook.timeRange === "all"
-              ? `No ${activePriority} priority tasks scheduled`
-              : `No ${activePriority} priority tasks due in the next ${tasksHook.timeRange} days`,
-        };
-      }
-    };
-
-    const message = getEmptyMessage();
-
-    return (
-      <View
-        style={{
-          alignItems: "center",
-          paddingVertical: 40,
-          paddingHorizontal: 20,
-        }}
+  const EmptyState = () => (
+    <View
+      style={{
+        alignItems: "center",
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+      }}
+    >
+      <Ionicons
+        name={searchQuery.trim() ? "search-outline" : "time-outline"}
+        size={48}
+        color={colors.textSecondary}
+        style={{ marginBottom: 16, opacity: 0.6 }}
+      />
+      <Text
+        style={[
+          {
+            fontSize: 18,
+            fontWeight: "600",
+            marginBottom: 8,
+            textAlign: "center",
+          },
+          { color: colors.textSecondary },
+        ]}
       >
-        <Ionicons
-          name={searchQuery.trim() ? "search-outline" : "clipboard-outline"}
-          size={48}
-          color={colors.textSecondary}
-          style={{
-            marginBottom: 16,
-            opacity: 0.6,
-          }}
-        />
-        <Text
-          style={[
-            {
-              fontSize: 18,
-              fontWeight: "600",
-              marginBottom: 8,
-              textAlign: "center",
-            },
-            { color: colors.textSecondary },
-          ]}
-        >
-          {message.title}
-        </Text>
-        <Text
-          style={[
-            {
-              fontSize: 16,
-              fontWeight: "400",
-              textAlign: "center",
-              opacity: 0.8,
-            },
-            { color: colors.textSecondary },
-          ]}
-        >
-          {message.subtitle}
-        </Text>
-      </View>
-    );
-  };
+        {searchQuery.trim() ? "No tasks found" : "No incomplete tasks"}
+      </Text>
+      <Text
+        style={[
+          {
+            fontSize: 16,
+            fontWeight: "400",
+            textAlign: "center",
+            opacity: 0.8,
+          },
+          { color: colors.textSecondary },
+        ]}
+      >
+        {searchQuery.trim()
+          ? `No tasks match "${searchQuery}"`
+          : "Great job! You're all caught up."}
+      </Text>
+    </View>
+  );
 
   return (
     <>
@@ -338,7 +261,7 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
                       onComplete={tasksHook.completeTask}
                       onUncomplete={tasksHook.uncompleteTask}
                       getCategoryColor={getCategoryColor}
-                      formatDueDate={formatDueDate}
+                      formatDueDate={formatOverdueDate}
                     />
                   ) : (
                     renderTaskItem(group.items[0])
@@ -355,7 +278,6 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
         </View>
       </Animated.View>
 
-      {/* Task Detail Modal */}
       <TaskDetailModal
         taskId={selectedTaskId}
         visible={taskDetailVisible}
@@ -363,7 +285,6 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
         onEdit={handleEditTask}
       />
 
-      {/* Edit Task Modal - Rendered at root level */}
       {editingTask && (
         <Modal
           visible={editModalVisible}
@@ -383,8 +304,6 @@ export function UpcomingTasks({ searchQuery = "" }: UpcomingTasksProps) {
             onTaskUpdated={() => {
               setEditModalVisible(false);
               setEditingTask(null);
-              // Refresh tasks to show updated data
-              // The useTasks hook should automatically refresh
             }}
           />
         </Modal>

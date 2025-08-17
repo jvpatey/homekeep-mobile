@@ -23,6 +23,8 @@ import { TaskItem } from "./TaskItem";
 import { FilterButton } from "./FilterButton";
 import { PriorityFilterButton, PriorityFilter } from "./PriorityFilterButton";
 import { Task } from "../../types/task";
+import { groupTasksByKey } from "../Dashboard/grouping";
+import { StackedTaskItem } from "../Dashboard/StackedTaskItem";
 import { styles } from "./styles";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
@@ -37,7 +39,14 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   const navigation = useNavigation<NavigationProp>();
   const { triggerLight, triggerMedium } = useHaptics();
   const tasksHook = useTasks();
-  const { completedTasks, loading, deleteTask, uncompleteTask } = tasksHook;
+  const {
+    completedTasks,
+    loading,
+    deleteTask,
+    uncompleteTask,
+    lookbackDays,
+    setLookbackDays,
+  } = tasksHook;
   const listAnimatedStyle = useSimpleAnimation(600, 600, 20);
 
   // Task detail modal state
@@ -234,6 +243,7 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
   };
 
   const filteredTasks = getFilteredTasks();
+  const grouped = groupTasksByKey(filteredTasks);
 
   const renderTaskItem = (task: Task) => (
     <TaskItem
@@ -292,24 +302,50 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
         )}
       </View>
       {!searchQuery.trim() && (
-        <View style={styles.filterButtonsContainer}>
-          <PriorityFilterButton
-            selectedPriority={activePriority}
-            onPriorityChange={setActivePriority}
-            style={styles.filterButton}
-          />
-          <FilterButton style={styles.filterButton} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <PriorityFilterButton
+              selectedPriority={activePriority}
+              onPriorityChange={setActivePriority}
+              style={styles.filterButton}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setLookbackDays(lookbackDays === "all" ? 14 : "all")}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+              backgroundColor: colors.surface,
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              {lookbackDays === "all"
+                ? "Show last 14 days"
+                : "View all history"}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
       <Text
-        style={[
-          styles.sectionSubtitle,
-          { color: colors.textSecondary, marginBottom: 8 },
-        ]}
+        style={{
+          marginBottom: 6,
+          color: colors.textSecondary,
+        }}
       >
-        {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}{" "}
-        completed
+        {lookbackDays === "all"
+          ? "Showing all history"
+          : `Showing last ${lookbackDays} days`}
       </Text>
+      {/* Removed completed count subtitle for cleaner spacing */}
     </View>
   );
 
@@ -371,12 +407,25 @@ export function CompletedTasks({ searchQuery = "" }: CompletedTasksProps) {
       <Animated.View style={[styles.upcomingContainer, listAnimatedStyle]}>
         <View style={{ paddingHorizontal: 4, paddingBottom: 8 }}>
           <ListHeader />
-          {filteredTasks.length > 0 ? (
+          {grouped.length > 0 ? (
             <View>
-              {filteredTasks.map((task, index) => (
-                <View key={task.id}>
-                  {renderTaskItem(task)}
-                  {index < filteredTasks.length - 1 && (
+              {grouped.map((group, index) => (
+                <View key={group.key}>
+                  {group.items.length > 1 ? (
+                    <StackedTaskItem
+                      groupKey={group.key}
+                      items={group.items}
+                      onPressTask={handleTaskPress}
+                      onDeleteTask={handleDeleteTask}
+                      onComplete={tasksHook.completeTask}
+                      onUncomplete={tasksHook.uncompleteTask}
+                      getCategoryColor={getCategoryColor}
+                      formatDueDate={formatCompletedDate}
+                    />
+                  ) : (
+                    renderTaskItem(group.items[0])
+                  )}
+                  {index < grouped.length - 1 && (
                     <View style={styles.separator} />
                   )}
                 </View>

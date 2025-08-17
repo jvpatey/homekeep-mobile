@@ -17,6 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useTasks } from "../../context/TasksContext";
 import { useGradients, useHaptics } from "../../hooks";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { AvatarCustomizationModal } from "../AvatarCustomizationModal";
@@ -25,6 +26,7 @@ import { styles } from "./styles";
 export function ProfileMenu() {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
+  const { deleteAllTasks, stats } = useTasks();
   const { primaryGradient } = useGradients();
   const { selectedGradient } = useUserPreferences();
 
@@ -102,6 +104,32 @@ export function ProfileMenu() {
     }, 300);
   };
 
+  const handleDeleteAllTasks = async () => {
+    hideMenu();
+    Alert.alert(
+      "Delete All Tasks",
+      "This will permanently delete all of your tasks and their history. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: async () => {
+            const { success, error } = await deleteAllTasks();
+            if (!success) {
+              Alert.alert("Error", error || "Failed to delete all tasks");
+            } else {
+              Alert.alert(
+                "Deleted",
+                "All tasks and history have been deleted."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleCloseCustomization = () => {
     setCustomizationModalVisible(false);
   };
@@ -168,6 +196,33 @@ export function ProfileMenu() {
               style={[styles.menuDivider, { backgroundColor: colors.border }]}
             />
 
+            {/* Totals Summary */}
+            <View style={styles.menuActionButton}>
+              <View
+                style={[
+                  styles.menuActionIconContainer,
+                  { backgroundColor: colors.primary + "15" },
+                ]}
+              >
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.menuActionText, { color: colors.text }]}>
+                Total Tasks
+              </Text>
+              <Text style={{ color: colors.text, fontWeight: "700" }}>
+                {stats.total}
+              </Text>
+            </View>
+
+            {/* Divider */}
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
             {/* Customize Avatar Button */}
             <TouchableOpacity
               style={styles.menuActionButton}
@@ -193,6 +248,33 @@ export function ProfileMenu() {
                 size={16}
                 color={colors.textSecondary}
               />
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
+            {/* Delete All Tasks */}
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleDeleteAllTasks}
+            >
+              <View
+                style={[
+                  styles.signOutIconContainer,
+                  { backgroundColor: colors.error + "15" },
+                ]}
+              >
+                <Ionicons
+                  name="trash-bin-outline"
+                  size={20}
+                  color={colors.error}
+                />
+              </View>
+              <Text style={[styles.signOutText, { color: colors.error }]}>
+                Delete All Tasks
+              </Text>
             </TouchableOpacity>
 
             {/* Divider */}
