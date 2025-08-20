@@ -114,6 +114,27 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
           snapToAlignment="center"
           decelerationRate="fast"
           onViewableItemsChanged={handleViewableItemsChanged}
+          onScrollEndDrag={(event) => {
+            // Ensure proper centering after manual scroll
+            const offsetX = event.nativeEvent.contentOffset.x;
+            const index = Math.round(offsetX / CARD_WIDTH);
+            const clampedIndex = Math.max(0, Math.min(index, tasks.length - 1));
+            setTimeout(() => {
+              scrollToIndex(clampedIndex);
+            }, 100);
+          }}
+          onMomentumScrollEnd={(event) => {
+            // Ensure proper centering after momentum scroll
+            const offsetX = event.nativeEvent.contentOffset.x;
+            const index = Math.round(offsetX / CARD_WIDTH);
+            const clampedIndex = Math.max(0, Math.min(index, tasks.length - 1));
+            setCurrentIndex(clampedIndex);
+          }}
+          getItemLayout={(data, index) => ({
+            length: CARD_WIDTH,
+            offset: CARD_WIDTH * index,
+            index,
+          })}
           viewabilityConfig={{
             itemVisiblePercentThreshold: 50,
           }}
@@ -200,6 +221,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingLeft: (screenWidth - CARD_WIDTH) / 2,
     paddingRight: (screenWidth - CARD_WIDTH) / 2,
+    alignItems: "center",
   },
   cardContainer: {
     alignItems: "center",
