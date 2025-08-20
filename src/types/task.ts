@@ -68,3 +68,82 @@ export interface TaskFilters {
   due_date_to?: string;
   show_completed?: boolean;
 }
+
+// New comprehensive home maintenance categories
+export const HOME_MAINTENANCE_CATEGORIES = {
+  HVAC: {
+    name: "HVAC",
+    displayName: "HVAC",
+    color: "#FF6B6B",
+    gradient: ["#FF6B6B", "#FF8E8E"],
+    icon: "❄️",
+    description: "Heating, ventilation, and air conditioning systems",
+  },
+  PLUMBING: {
+    name: "PLUMBING",
+    displayName: "Plumbing",
+    color: "#4ECDC4",
+    gradient: ["#4ECDC4", "#6EE7DF"],
+    icon: "🚰",
+    description: "Water systems, pipes, and fixtures",
+  },
+  ELECTRICAL: {
+    name: "ELECTRICAL",
+    displayName: "Electrical",
+    color: "#FFE66D",
+    gradient: ["#FFE66D", "#FFF4A3"],
+    icon: "⚡",
+    description: "Electrical systems and components",
+  },
+  APPLIANCES: {
+    name: "APPLIANCES",
+    displayName: "Appliances",
+    color: "#A8E6CF",
+    gradient: ["#A8E6CF", "#C8F0E0"],
+    icon: "🔌",
+    description: "Home appliances and electronics",
+  },
+  EXTERIOR: {
+    name: "EXTERIOR",
+    displayName: "Exterior",
+    color: "#FF9A8B",
+    gradient: ["#FF9A8B", "#FFB8A8"],
+    icon: "🏠",
+    description: "Roof, siding, gutters, and outdoor structures",
+  },
+  INTERIOR: {
+    name: "INTERIOR",
+    displayName: "Interior",
+    color: "#B8E0D2",
+    gradient: ["#B8E0D2", "#D4F0E4"],
+    icon: "🪑",
+    description: "Paint, flooring, windows, and interior finishes",
+  },
+  LANDSCAPING: {
+    name: "LANDSCAPING",
+    displayName: "Landscaping",
+    color: "#95E1D3",
+    gradient: ["#95E1D3", "#B8F0E4"],
+    icon: "🌳",
+    description: "Lawn, trees, irrigation, and outdoor spaces",
+  },
+  SAFETY: {
+    name: "SAFETY",
+    displayName: "Safety",
+    color: "#F38181",
+    gradient: ["#F38181", "#FFA5A5"],
+    icon: "🛡️",
+    description: "Smoke detectors, fire extinguishers, and safety equipment",
+  },
+  GENERAL: {
+    name: "GENERAL",
+    displayName: "General",
+    color: "#C7CEEA",
+    gradient: ["#C7CEEA", "#E2E8F0"],
+    icon: "🔧",
+    description: "General maintenance and miscellaneous tasks",
+  },
+} as const;
+
+export type CategoryKey = keyof typeof HOME_MAINTENANCE_CATEGORIES;
+export type Category = (typeof HOME_MAINTENANCE_CATEGORIES)[CategoryKey];

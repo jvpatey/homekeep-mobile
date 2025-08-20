@@ -16,6 +16,8 @@ import { TaskSummaryCards } from "../components/Dashboard/TaskSummaryCards";
 import { TaskTabs } from "../components/Dashboard/TaskTabs";
 import { FloatingActionButton } from "../components/Dashboard/FloatingActionButton";
 import { CalendarView } from "../components/Calendar/CalendarView";
+import { useNavigation } from "@react-navigation/native";
+import { TouchableOpacity, Text } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -36,6 +38,7 @@ export function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mode, setMode] = useState<"dashboard" | "calendar">("dashboard");
+  const navigation = useNavigation();
 
   // Side-swipe container setup
   const screenWidth = Dimensions.get("window").width;
@@ -77,14 +80,30 @@ export function DashboardScreen() {
       switch (item.type) {
         case "header":
           return (
-            <DashboardHeader
-              onSearchChange={handleSearchChange}
-              searchQuery={searchQuery}
-              mode={mode}
-              onPrimaryToggle={() =>
-                setMode((m) => (m === "calendar" ? "dashboard" : "calendar"))
-              }
-            />
+            <View>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.primary,
+                  padding: 16,
+                  margin: 16,
+                  borderRadius: 8,
+                  alignItems: "center",
+                }}
+                onPress={() => navigation.navigate("NewDashboard" as never)}
+              >
+                <Text style={{ color: "white", fontWeight: "600" }}>
+                  🚀 Try New Dashboard
+                </Text>
+              </TouchableOpacity>
+              <DashboardHeader
+                onSearchChange={handleSearchChange}
+                searchQuery={searchQuery}
+                mode={mode}
+                onPrimaryToggle={() =>
+                  setMode((m) => (m === "calendar" ? "dashboard" : "calendar"))
+                }
+              />
+            </View>
           );
         case "body":
           return (
