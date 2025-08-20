@@ -112,7 +112,12 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
 
               {/* Category icon and name */}
               <View style={styles.categorySection}>
-                <Text style={styles.categoryIcon}>{category.icon}</Text>
+                <Ionicons
+                  name={category.icon as any}
+                  size={48}
+                  color="white"
+                  style={styles.categoryIcon}
+                />
                 <Text style={styles.categoryName}>{category.displayName}</Text>
               </View>
 
@@ -264,7 +269,6 @@ const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
   },
   categoryIcon: {
-    fontSize: 48,
     marginBottom: DesignSystem.spacing.xs,
   },
   categoryName: {

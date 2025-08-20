@@ -104,7 +104,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.categoryContainer}>
-              <Text style={styles.categoryIcon}>{categoryInfo.icon}</Text>
+              <Ionicons
+                name={categoryInfo.icon as any}
+                size={24}
+                color="white"
+                style={styles.categoryIcon}
+              />
               <Text style={styles.categoryText}>
                 {categoryInfo.displayName}
               </Text>
@@ -220,7 +225,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryIcon: {
-    fontSize: 20,
     marginRight: DesignSystem.spacing.xs,
   },
   categoryText: {

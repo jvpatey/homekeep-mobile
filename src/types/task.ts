@@ -76,7 +76,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "HVAC",
     color: "#FF6B6B",
     gradient: ["#FF6B6B", "#FF8E8E"],
-    icon: "❄️",
+    icon: "snow-outline",
     description: "Heating, ventilation, and air conditioning systems",
   },
   PLUMBING: {
@@ -84,7 +84,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Plumbing",
     color: "#4ECDC4",
     gradient: ["#4ECDC4", "#6EE7DF"],
-    icon: "🚰",
+    icon: "water-outline",
     description: "Water systems, pipes, and fixtures",
   },
   ELECTRICAL: {
@@ -92,7 +92,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Electrical",
     color: "#FFE66D",
     gradient: ["#FFE66D", "#FFF4A3"],
-    icon: "⚡",
+    icon: "flash-outline",
     description: "Electrical systems and components",
   },
   APPLIANCES: {
@@ -100,7 +100,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Appliances",
     color: "#A8E6CF",
     gradient: ["#A8E6CF", "#C8F0E0"],
-    icon: "🔌",
+    icon: "hardware-chip-outline",
     description: "Home appliances and electronics",
   },
   EXTERIOR: {
@@ -108,7 +108,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Exterior",
     color: "#FF9A8B",
     gradient: ["#FF9A8B", "#FFB8A8"],
-    icon: "🏠",
+    icon: "home-outline",
     description: "Roof, siding, gutters, and outdoor structures",
   },
   INTERIOR: {
@@ -116,7 +116,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Interior",
     color: "#B8E0D2",
     gradient: ["#B8E0D2", "#D4F0E4"],
-    icon: "🪑",
+    icon: "bed-outline",
     description: "Paint, flooring, windows, and interior finishes",
   },
   LANDSCAPING: {
@@ -124,7 +124,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Landscaping",
     color: "#95E1D3",
     gradient: ["#95E1D3", "#B8F0E4"],
-    icon: "🌳",
+    icon: "leaf-outline",
     description: "Lawn, trees, irrigation, and outdoor spaces",
   },
   SAFETY: {
@@ -132,7 +132,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "Safety",
     color: "#F38181",
     gradient: ["#F38181", "#FFA5A5"],
-    icon: "🛡️",
+    icon: "shield-checkmark-outline",
     description: "Smoke detectors, fire extinguishers, and safety equipment",
   },
   GENERAL: {
@@ -140,7 +140,7 @@ export const HOME_MAINTENANCE_CATEGORIES = {
     displayName: "General",
     color: "#C7CEEA",
     gradient: ["#C7CEEA", "#E2E8F0"],
-    icon: "🔧",
+    icon: "construct-outline",
     description: "General maintenance and miscellaneous tasks",
   },
 } as const;
