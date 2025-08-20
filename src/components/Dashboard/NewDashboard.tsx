@@ -16,6 +16,8 @@ import HeroCarousel from "./HeroCarousel";
 import TimelineView from "./TimelineView";
 import CompletionCelebration from "./CompletionCelebration";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../context/AuthContext";
+import ProfileButton from "./ProfileButton";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -34,6 +36,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   onRefresh,
   refreshing = false,
 }) => {
+  const { user } = useAuth();
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -75,17 +78,62 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
+    let greeting = "";
+    if (hour < 12) greeting = "Good Morning";
+    else if (hour < 17) greeting = "Good Afternoon";
+    else greeting = "Good Evening";
+
+    const userName =
+      user?.user_metadata?.full_name?.split(" ")[0] ||
+      user?.email?.split("@")[0] ||
+      "there";
+    return `${greeting}, ${userName}!`;
   };
 
   const getMotivationalMessage = () => {
-    if (completedCount === 0) return "Let's get started with your first task!";
-    if (completedCount >= totalCount * 0.8)
-      return "You're almost there! Keep going!";
-    if (streak > 0) return `Great job! You're on a ${streak}-day streak!`;
-    return "Every completed task brings you closer to a well-maintained home!";
+    // No tasks at all
+    if (totalCount === 0) {
+      return "Welcome to HomeKeep! Let's add your first maintenance task.";
+    }
+
+    // No completed tasks yet
+    if (completedCount === 0) {
+      return "You have tasks to complete! Let's get started with your first one.";
+    }
+
+    // All tasks completed
+    if (completedCount === totalCount && totalCount > 0) {
+      return "Amazing! All your tasks are complete. Your home is well-maintained! 🎉";
+    }
+
+    // Almost done (80%+ completed)
+    if (completedCount >= totalCount * 0.8) {
+      return "You're almost there! Just a few more tasks to go! 💪";
+    }
+
+    // On a streak
+    if (streak > 0) {
+      if (streak === 1) {
+        return "Great start! You completed a task today! 🌟";
+      } else if (streak >= 7) {
+        return `Incredible! You're on a ${streak}-day streak! 🔥`;
+      } else {
+        return `Great job! You're on a ${streak}-day streak! Keep it up! ✨`;
+      }
+    }
+
+    // Good progress
+    if (completedCount >= totalCount * 0.5) {
+      return "You're making great progress! Keep up the momentum! 🚀";
+    }
+
+    // Just getting started
+    if (completedCount < totalCount * 0.3) {
+      return "Every completed task brings you closer to a well-maintained home! 🏠";
+    }
+
+    // Default encouraging message
+    return "You're doing great! Keep checking off those tasks! 💪";
   };
 
   return (
@@ -110,6 +158,11 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
           >
+            {/* Profile Button - Top Right */}
+            <View style={styles.profileButtonContainer}>
+              <ProfileButton size={40} />
+            </View>
+
             <View style={styles.headerContent}>
               <View style={styles.greetingContainer}>
                 <Text style={styles.greeting}>{getGreeting()}</Text>
@@ -245,6 +298,13 @@ const styles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.xl,
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
+    position: "relative",
+  },
+  profileButtonContainer: {
+    position: "absolute",
+    top: DesignSystem.spacing.md,
+    right: DesignSystem.spacing.md,
+    zIndex: 10,
   },
   headerContent: {
     alignItems: "center",

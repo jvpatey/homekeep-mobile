@@ -4,6 +4,7 @@ export { default as HeroCarousel } from "./HeroCarousel";
 export { default as TimelineView } from "./TimelineView";
 export { default as TaskCard } from "./TaskCard";
 export { default as CompletionCelebration } from "./CompletionCelebration";
+export { default as ProfileButton } from "./ProfileButton";
 
 // Legacy Components (keeping for backward compatibility)
 export { default as DashboardHeader } from "./DashboardHeader";
