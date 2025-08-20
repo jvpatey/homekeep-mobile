@@ -205,71 +205,26 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           onTaskPress={onTaskPress}
         />
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.quickActionButton}>
-              <LinearGradient
-                colors={[colors.light.accent, "#FFB347"]}
-                style={styles.quickActionGradient}
-              >
-                <Ionicons
-                  name="add-circle"
-                  size={24}
-                  color={colors.light.surface}
-                />
-                <Text style={styles.quickActionText}>Add Task</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.quickActionButton}>
-              <LinearGradient
-                colors={[colors.light.success, "#4CAF50"]}
-                style={styles.quickActionGradient}
-              >
-                <Ionicons
-                  name="calendar"
-                  size={24}
-                  color={colors.light.surface}
-                />
-                <Text style={styles.quickActionText}>Calendar</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.quickActionButton}>
-              <LinearGradient
-                colors={[colors.light.secondary, "#2196F3"]}
-                style={styles.quickActionGradient}
-              >
-                <Ionicons
-                  name="analytics"
-                  size={24}
-                  color={colors.light.surface}
-                />
-                <Text style={styles.quickActionText}>Progress</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.quickActionButton}>
-              <LinearGradient
-                colors={[colors.light.error, "#F44336"]}
-                style={styles.quickActionGradient}
-              >
-                <Ionicons
-                  name="settings"
-                  size={24}
-                  color={colors.light.surface}
-                />
-                <Text style={styles.quickActionText}>Settings</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Floating Action Button - Add Task */}
+      <TouchableOpacity
+        style={styles.floatingActionButton}
+        onPress={() => {
+          // TODO: Navigate to add task screen or open add task modal
+          console.log("Add task pressed");
+        }}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={[colors.light.accent, "#FFB347"]}
+          style={styles.floatingActionButtonGradient}
+        >
+          <Ionicons name="add" size={28} color={colors.light.surface} />
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* Completion Celebration */}
       <CompletionCelebration
@@ -357,40 +312,33 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
-  quickActionsSection: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.xl,
-  },
-  sectionTitle: {
-    ...DesignSystem.typography.h3,
-    color: colors.light.text,
-    marginBottom: DesignSystem.spacing.md,
-  },
-  quickActionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.md,
-  },
-  quickActionButton: {
-    width: (screenWidth - DesignSystem.spacing.md * 3) / 2,
-    borderRadius: DesignSystem.borders.radius.medium,
-    overflow: "hidden",
-    ...DesignSystem.shadows.medium,
-  },
-  quickActionGradient: {
-    padding: DesignSystem.spacing.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 80,
-  },
-  quickActionText: {
-    ...DesignSystem.typography.bodyMedium,
-    color: colors.light.surface,
-    marginTop: DesignSystem.spacing.xs,
-    textAlign: "center",
-  },
+
   bottomSpacing: {
     height: DesignSystem.spacing.xxl,
+  },
+  floatingActionButton: {
+    position: "absolute",
+    bottom: DesignSystem.spacing.xl,
+    right: DesignSystem.spacing.xl,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  floatingActionButtonGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
