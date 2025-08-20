@@ -13,6 +13,7 @@ import { HOME_MAINTENANCE_CATEGORIES, CategoryKey } from "../../types/task";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width: screenWidth } = Dimensions.get("window");
+const CARD_WIDTH = screenWidth - 80; // 40px padding on each side for better centering
 
 interface TaskCardProps {
   id: string;
@@ -187,7 +188,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: screenWidth - DesignSystem.spacing.md * 2,
+    width: CARD_WIDTH,
     height: 200,
     borderRadius: DesignSystem.borders.radius.large,
     marginHorizontal: DesignSystem.spacing.md,

@@ -4,9 +4,8 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  ScrollView,
   TouchableOpacity,
-  Animated,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../theme/colors";
@@ -16,9 +15,7 @@ import { Task } from "../../types/task";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width: screenWidth } = Dimensions.get("window");
-const CARD_WIDTH = screenWidth - DesignSystem.spacing.md * 2;
-const CARD_SPACING = DesignSystem.spacing.md;
-const VISIBLE_CARDS = 1.2; // Show 1 full card + 20% of next
+const CARD_WIDTH = screenWidth - 80; // 40px padding on each side
 
 interface HeroCarouselProps {
   tasks: Task[];
@@ -31,32 +28,30 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
   onCompleteTask,
   onTaskPress,
 }) => {
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollX = useRef(new Animated.Value(0)).current;
 
-  const handleScroll = useCallback((event: any) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (CARD_WIDTH + CARD_SPACING));
-    setCurrentIndex(index);
+  const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index);
+    }
   }, []);
 
   const scrollToIndex = useCallback((index: number) => {
-    if (scrollViewRef.current) {
-      const offset = index * (CARD_WIDTH + CARD_SPACING);
-      scrollViewRef.current.scrollTo({ x: offset, animated: true });
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index, animated: true });
     }
   }, []);
 
   const scrollToNext = useCallback(() => {
-    const nextIndex = (currentIndex + 1) % tasks.length;
+    const nextIndex = Math.min(currentIndex + 1, tasks.length - 1);
     scrollToIndex(nextIndex);
   }, [currentIndex, tasks.length, scrollToIndex]);
 
   const scrollToPrevious = useCallback(() => {
-    const prevIndex = currentIndex === 0 ? tasks.length - 1 : currentIndex - 1;
+    const prevIndex = Math.max(currentIndex - 1, 0);
     scrollToIndex(prevIndex);
-  }, [currentIndex, tasks.length, scrollToIndex]);
+  }, [currentIndex, scrollToIndex]);
 
   if (tasks.length === 0) {
     return (
@@ -109,70 +104,39 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
       </View>
 
       {/* Carousel */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + CARD_SPACING}
-        snapToAlignment="center"
-        decelerationRate="fast"
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false, listener: handleScroll }
-        )}
-        scrollEventThrottle={16}
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        {/* Duplicate first few items at the end for infinite scroll */}
-        {[...tasks.slice(-2), ...tasks, ...tasks.slice(0, 2)].map(
-          (task, index) => {
-            const inputRange = [
-              (index - 2) * (CARD_WIDTH + CARD_SPACING),
-              (index - 1) * (CARD_WIDTH + CARD_SPACING),
-              index * (CARD_WIDTH + CARD_SPACING),
-              (index + 1) * (CARD_WIDTH + CARD_SPACING),
-            ];
-
-            const scale = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.8, 0.9, 1, 0.9],
-              extrapolate: "clamp",
-            });
-
-            const opacity = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.4, 0.7, 1, 0.7],
-              extrapolate: "clamp",
-            });
-
-            return (
-              <Animated.View
-                key={`${task.id}-${index}`}
-                style={[
-                  styles.cardContainer,
-                  {
-                    transform: [{ scale }],
-                    opacity,
-                  },
-                ]}
-              >
-                <TaskCard
-                  id={task.id}
-                  title={task.title}
-                  category={task.category as any}
-                  priority={task.priority}
-                  estimatedDuration={task.estimated_duration}
-                  dueDate={task.next_due_date}
-                  isCompleted={task.is_completed}
-                  onComplete={onCompleteTask}
-                  onPress={onTaskPress}
-                />
-              </Animated.View>
-            );
-          }
-        )}
-      </ScrollView>
+      <View style={styles.carouselContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={tasks}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={CARD_WIDTH}
+          snapToAlignment="center"
+          decelerationRate="fast"
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={{
+            itemVisiblePercentThreshold: 50,
+          }}
+          renderItem={({ item: task }) => (
+            <View style={styles.cardContainer}>
+              <TaskCard
+                id={task.id}
+                title={task.title}
+                category={task.category as any}
+                priority={task.priority}
+                estimatedDuration={task.estimated_duration}
+                dueDate={task.next_due_date}
+                isCompleted={task.is_completed}
+                onComplete={onCompleteTask}
+                onPress={onTaskPress}
+              />
+            </View>
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollView}
+        />
+      </View>
 
       {/* Pagination Dots */}
       {tasks.length > 1 && (
@@ -227,14 +191,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...DesignSystem.shadows.small,
   },
+  carouselContainer: {
+    alignItems: "center",
+  },
   scrollView: {
-    height: 220, // TaskCard height + some padding
+    height: 240,
   },
   scrollContent: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingLeft: (screenWidth - CARD_WIDTH) / 2,
+    paddingRight: (screenWidth - CARD_WIDTH) / 2,
   },
   cardContainer: {
-    marginRight: DesignSystem.spacing.md,
+    alignItems: "center",
   },
   emptyContainer: {
     height: 200,
