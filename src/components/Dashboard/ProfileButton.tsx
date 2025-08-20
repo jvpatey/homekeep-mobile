@@ -132,6 +132,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    // Ensure the button doesn't expand beyond its intended size
+    overflow: "hidden",
   },
   profileAvatar: {
     alignItems: "center",

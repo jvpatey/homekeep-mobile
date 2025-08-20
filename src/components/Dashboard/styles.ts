@@ -561,6 +561,11 @@ export const styles = StyleSheet.create({
   },
   createTaskContainer: {
     flex: 1,
+    backgroundColor: "white",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalHeader: {
     flexDirection: "row",
@@ -590,6 +595,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
+    paddingBottom: 100, // Add bottom padding for submit button
   },
   modalFooter: {
     paddingHorizontal: 24,
@@ -644,6 +650,26 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     fontWeight: "500",
+  },
+
+  // Summary Container Styles
+  summaryContainer: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+    letterSpacing: 0.1,
+  },
+  summaryText: {
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.1,
   },
 
   // Chip Styles
