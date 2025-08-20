@@ -5,6 +5,7 @@ export { default as TimelineView } from "./TimelineView";
 export { default as TaskCard } from "./TaskCard";
 export { default as CompletionCelebration } from "./CompletionCelebration";
 export { default as ProfileButton } from "./ProfileButton";
+export { default as SimpleTaskDetailModal } from "./SimpleTaskDetailModal";
 
 // Legacy Components (keeping for backward compatibility)
 export { default as DashboardHeader } from "./DashboardHeader";

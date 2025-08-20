@@ -18,6 +18,7 @@ import CompletionCelebration from "./CompletionCelebration";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import ProfileButton from "./ProfileButton";
+import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -38,6 +39,8 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 }) => {
   const { user } = useAuth();
   const [showCelebration, setShowCelebration] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -70,6 +73,14 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
     setTimeout(() => {
       setShowCelebration(true);
     }, 300);
+  };
+
+  const handleTaskPress = (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setShowTaskDetail(true);
+    }
   };
 
   const handleCloseCelebration = () => {
@@ -195,14 +206,14 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
         <HeroCarousel
           tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
           onCompleteTask={handleCompleteTask}
-          onTaskPress={onTaskPress}
+          onTaskPress={handleTaskPress}
         />
 
         {/* Timeline View */}
         <TimelineView
           tasks={upcomingTasks}
           onCompleteTask={handleCompleteTask}
-          onTaskPress={onTaskPress}
+          onTaskPress={handleTaskPress}
         />
 
         {/* Bottom Spacing */}
@@ -225,6 +236,14 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           <Ionicons name="add" size={28} color={colors.light.surface} />
         </LinearGradient>
       </TouchableOpacity>
+
+      {/* Task Detail Modal */}
+      <SimpleTaskDetailModal
+        task={selectedTask}
+        visible={showTaskDetail}
+        onClose={() => setShowTaskDetail(false)}
+        onComplete={handleCompleteTask}
+      />
 
       {/* Completion Celebration */}
       <CompletionCelebration
