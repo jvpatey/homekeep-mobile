@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
   featuresContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: DesignSystem.spacing.xl,
+    marginBottom: DesignSystem.spacing.xxl, // Increased from xl to xxl for better separation from action buttons
     gap: DesignSystem.spacing.md,
   },
   featureTouchable: {

@@ -308,19 +308,6 @@ export function SignUpScreen() {
 
         {/* OAuth Section */}
         <OAuthButtons animatedStyle={buttonAnimatedStyle} />
-
-        {/* Sign In Link */}
-        <View style={authStyles.linkContainer}>
-          <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
-            Already have an account?{" "}
-            <Text
-              style={[authStyles.link, { color: colors.primary }]}
-              onPress={handleSignIn}
-            >
-              Sign in
-            </Text>
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );

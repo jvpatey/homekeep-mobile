@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     paddingTop: DesignSystem.spacing.xxxl,
-    paddingBottom: DesignSystem.spacing.xxl,
+    paddingBottom: DesignSystem.spacing.xxxl, // Increased from xxl to xxxl for bigger hero
     paddingHorizontal: DesignSystem.spacing.md,
   },
   heroContent: {
@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xxl, // Increased from xl to xxl for smoother hero-to-content transition
   },
 });

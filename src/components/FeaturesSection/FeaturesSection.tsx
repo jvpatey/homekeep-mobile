@@ -8,9 +8,10 @@ import Animated, {
   withSpring,
   withSequence,
   withTiming,
+  Easing,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useFeatureAnimation, useGradients } from "../../hooks";
+import { useFeatureAnimation, useGradients, useHaptics } from "../../hooks";
 import { styles } from "./styles";
 import { ActionButtons } from "../ActionButtons/ActionButtons";
 import { DesignSystem } from "../../theme/designSystem";
@@ -18,12 +19,13 @@ import { DesignSystem } from "../../theme/designSystem";
 /**
  * FeaturesSection - Displays key app features with animated icons and descriptions
  * Features staggered animations for each feature item and gradient icon backgrounds
- * Now includes interactive tap effects with descriptive blurbs
+ * Now includes interactive tap effects with descriptive blurbs and iOS-native animations
  */
 export function FeaturesSection() {
   const { colors } = useTheme();
   const { iconGradient } = useGradients();
   const featureAnimatedStyles = useFeatureAnimation(3, 600);
+  const { triggerLight } = useHaptics();
 
   // State for modal
   const [selectedFeature, setSelectedFeature] = useState<number | null>(null);
@@ -31,6 +33,12 @@ export function FeaturesSection() {
 
   // Animation values for tap effect
   const tapScale = useSharedValue(1);
+  const tapRotation = useSharedValue(0);
+
+  // Animation values for modal
+  const modalScale = useSharedValue(0.8);
+  const modalTranslateY = useSharedValue(50);
+  const modalOpacity = useSharedValue(0);
 
   const features = [
     {
@@ -60,20 +68,63 @@ export function FeaturesSection() {
     setSelectedFeature(index);
     setIsModalVisible(true);
 
-    // Add tap animation
+    // Enhanced iOS-native tap animation with haptic feedback
+    triggerLight();
     tapScale.value = withSequence(
-      withSpring(0.95, { duration: 100 }),
-      withSpring(1, { duration: 100 })
+      withSpring(0.92, {
+        damping: 15,
+        stiffness: 300,
+      }),
+      withSpring(1, {
+        damping: 20,
+        stiffness: 200,
+      })
     );
+
+    // Subtle rotation for organic feel
+    tapRotation.value = withSequence(
+      withSpring(-2, { damping: 15 }),
+      withSpring(0, { damping: 20 })
+    );
+
+    // Modal entrance animation
+    modalScale.value = withSpring(1, { damping: 20, stiffness: 200 });
+    modalTranslateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+    modalOpacity.value = withTiming(1, {
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+    });
   };
 
   const closeModal = () => {
-    setIsModalVisible(false);
-    setSelectedFeature(null);
+    // Modal exit animation
+    modalScale.value = withSpring(0.8, { damping: 20, stiffness: 200 });
+    modalTranslateY.value = withSpring(50, { damping: 20, stiffness: 200 });
+    modalOpacity.value = withTiming(0, {
+      duration: 200,
+      easing: Easing.in(Easing.cubic),
+    });
+
+    // Delay hiding modal until animation completes
+    setTimeout(() => {
+      setIsModalVisible(false);
+      setSelectedFeature(null);
+    }, 200);
   };
 
   const tapAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: tapScale.value }],
+    transform: [
+      { scale: tapScale.value },
+      { rotate: `${tapRotation.value}deg` },
+    ],
+  }));
+
+  const modalAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: modalOpacity.value,
+    transform: [
+      { scale: modalScale.value },
+      { translateY: modalTranslateY.value },
+    ],
   }));
 
   return (
@@ -118,11 +169,10 @@ export function FeaturesSection() {
       <Modal
         visible={isModalVisible}
         transparent={true}
-        animationType="fade"
         onRequestClose={closeModal}
       >
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
-          <Pressable style={styles.modalContent} onPress={() => {}}>
+          <Animated.View style={[styles.modalContent, modalAnimatedStyle]}>
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>
                 <LinearGradient
@@ -168,7 +218,7 @@ export function FeaturesSection() {
                 <Text style={styles.closeButtonText}>Got it</Text>
               </LinearGradient>
             </TouchableOpacity>
-          </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
 

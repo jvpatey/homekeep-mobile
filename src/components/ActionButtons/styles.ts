@@ -5,7 +5,7 @@ import { DesignSystem } from "../../theme/designSystem";
 export const styles = StyleSheet.create({
   buttonContainer: {
     alignItems: "center",
-    gap: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.lg, // Increased from md to lg for better spacing without footer text
   },
   primaryButton: {
     width: "100%",
@@ -46,11 +46,5 @@ export const styles = StyleSheet.create({
   secondaryButtonText: {
     ...DesignSystem.typography.button,
     textAlign: "center",
-  },
-  footerText: {
-    ...DesignSystem.typography.caption,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.md,
-    opacity: 0.7,
   },
 });
