@@ -1,29 +1,28 @@
 import { StyleSheet } from "react-native";
-import { colors } from "../../theme/colors";
+import { DesignSystem } from "../../theme/designSystem";
 
-// Styles for the welcome text section
+// Styles for the welcome text section - Updated for modern 2025 design
 export const styles = StyleSheet.create({
   textContainer: {
-    paddingHorizontal: 32,
+    paddingHorizontal: DesignSystem.spacing.md,
     alignItems: "center",
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
   headline: {
-    fontSize: 26,
-    lineHeight: 34,
+    ...DesignSystem.typography.h2, // Using design system typography
     textAlign: "center",
-    color: colors.light.text,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    marginBottom: 8,
+    marginBottom: DesignSystem.spacing.sm,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   subtitle: {
-    fontSize: 18,
-    lineHeight: 26,
+    ...DesignSystem.typography.bodyMedium, // Using design system typography
     textAlign: "center",
-    color: colors.light.textSecondary,
-    fontWeight: "400",
-    letterSpacing: 0.1,
+    opacity: 0.9,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

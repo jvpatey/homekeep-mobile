@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { Button, ActivityIndicator } from "react-native-paper";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { AntDesign } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -17,6 +22,7 @@ interface OAuthButtonsProps {
  * OAuthButtons - A component that provides Google OAuth sign-in functionality
  * with haptic feedback, loading states, and error handling. Displays a divider
  * with "or" text and a gradient-styled Google sign-in button.
+ * Updated with modern 2025 design language matching the dashboard
  */
 export function OAuthButtons({
   onSuccess,
@@ -78,24 +84,18 @@ export function OAuthButtons({
       </View>
 
       {/* Google Sign In Button with gradient background */}
-      <LinearGradient
-        colors={accentGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <TouchableOpacity
+        onPress={handleGoogleSignIn}
+        disabled={disabled || loading}
         style={styles.gradientButton}
       >
-        <Button
-          mode="contained"
-          onPress={handleGoogleSignIn}
-          loading={loading}
-          disabled={disabled || loading}
+        <LinearGradient
+          colors={accentGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.googleButton}
-          contentStyle={styles.buttonContent}
-          labelStyle={[
-            styles.buttonLabel,
-            { color: isDark ? colors.text : "white" },
-          ]}
-          icon={() => (
+        >
+          <View style={styles.buttonContent}>
             <View style={styles.googleIconContainer}>
               {loading ? (
                 <ActivityIndicator size={16} color="white" />
@@ -103,11 +103,12 @@ export function OAuthButtons({
                 <AntDesign name="google" size={16} color="white" />
               )}
             </View>
-          )}
-        >
-          {loading ? "Signing in..." : "Continue with Google"}
-        </Button>
-      </LinearGradient>
+            <Text style={[styles.buttonLabel, { color: "white" }]}>
+              {loading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }

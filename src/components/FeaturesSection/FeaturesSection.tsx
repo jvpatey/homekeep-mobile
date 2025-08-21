@@ -11,6 +11,7 @@ import { ActionButtons } from "../ActionButtons/ActionButtons";
 /**
  * FeaturesSection - Displays key app features with animated icons and descriptions
  * Features staggered animations for each feature item and gradient icon backgrounds
+ * Focused on the three main dashboard capabilities users will actually experience
  */
 export function FeaturesSection() {
   const { colors } = useTheme();
@@ -19,18 +20,18 @@ export function FeaturesSection() {
 
   const features = [
     {
-      icon: "calendar-outline",
-      text: "Smart Scheduling",
+      icon: "list-outline",
+      text: "Task Organization",
       animatedStyle: featureAnimatedStyles[0],
     },
     {
-      icon: "notifications-outline",
-      text: "Timely Reminders",
+      icon: "time-outline",
+      text: "Timeline View",
       animatedStyle: featureAnimatedStyles[1],
     },
     {
-      icon: "phone-portrait-outline",
-      text: "Easy Tracking",
+      icon: "trophy-outline",
+      text: "Completion Tracking",
       animatedStyle: featureAnimatedStyles[2],
     },
   ];
@@ -50,11 +51,7 @@ export function FeaturesSection() {
               end={{ x: 1, y: 1 }}
               style={styles.featureIcon}
             >
-              <Ionicons
-                name={feature.icon as any}
-                size={24}
-                color={colors.accent}
-              />
+              <Ionicons name={feature.icon as any} size={24} color="#2E6B5A" />
             </LinearGradient>
             <Text style={[styles.featureText, { color: colors.text }]}>
               {feature.text}

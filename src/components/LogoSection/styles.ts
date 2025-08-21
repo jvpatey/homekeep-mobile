@@ -1,22 +1,25 @@
 import { StyleSheet } from "react-native";
+import { DesignSystem } from "../../theme/designSystem";
 
-// Styles for the logo section
+// Styles for the logo section - Updated for modern 2025 design
 export const styles = StyleSheet.create({
   logoContainer: {
     marginTop: 0,
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
     alignItems: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: DesignSystem.spacing.md,
+    backgroundColor: "transparent", // Remove white background
   },
   logoContainerCompact: {
     marginTop: 0,
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.sm,
     alignItems: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: DesignSystem.spacing.md,
+    backgroundColor: "transparent", // Remove white background
   },
   logo: {
-    width: 200,
-    height: 100,
+    width: 380, // Increased from 320
+    height: 190, // Increased from 160
     resizeMode: "contain",
   },
   logoCompact: {
@@ -25,11 +28,13 @@ export const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   logoText: {
-    fontSize: 24,
-    fontWeight: "600",
-    letterSpacing: 1.2,
-    marginTop: 12,
+    ...DesignSystem.typography.h1, // Using design system typography
     textAlign: "center",
+    marginTop: DesignSystem.spacing.sm, // Reduced from md to bring text closer to logo
     fontFamily: "System",
+    fontWeight: "600", // Reduced from 800 to make it less bold
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

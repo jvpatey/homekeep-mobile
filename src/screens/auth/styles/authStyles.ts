@@ -1,18 +1,22 @@
 import { StyleSheet } from "react-native";
+import { DesignSystem } from "../../../theme/designSystem";
 
 /**
- * Shared styles for authentication screens
- * Provides consistent styling across all auth pages
+ * Shared styles for authentication screens - Updated for modern 2025 design
+ * Provides consistent styling across all auth pages matching the dashboard
  */
 export const authStyles = StyleSheet.create({
   // Container styles
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.xl,
   },
   scrollContent: {
     flexGrow: 1,
@@ -21,165 +25,156 @@ export const authStyles = StyleSheet.create({
   // Header styles
   headerContainer: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: DesignSystem.spacing.xl,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    ...DesignSystem.typography.h2,
     textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: DesignSystem.spacing.sm,
   },
   largeTitle: {
-    fontSize: 28,
-    fontWeight: "700",
+    ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginBottom: 6,
-    letterSpacing: -0.5,
+    marginBottom: DesignSystem.spacing.sm,
   },
   subtitle: {
-    fontSize: 14,
+    ...DesignSystem.typography.body,
     textAlign: "center",
-    fontWeight: "400",
-    lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: DesignSystem.spacing.xs,
   },
   email: {
-    fontSize: 14,
-    fontWeight: "600",
+    ...DesignSystem.typography.smallSemiBold,
     textAlign: "center",
   },
 
   // Form styles
   formCard: {
-    borderRadius: 16,
-    marginBottom: 16,
+    borderRadius: DesignSystem.borders.radius.large,
+    marginBottom: DesignSystem.spacing.md,
+    ...DesignSystem.shadows.medium,
   },
   formContent: {
-    padding: 24,
+    padding: DesignSystem.spacing.lg,
   },
   compactFormContent: {
-    padding: 16,
+    padding: DesignSystem.spacing.md,
   },
   input: {
-    marginBottom: 8,
+    marginBottom: DesignSystem.spacing.sm,
     backgroundColor: "transparent",
-    fontSize: 16,
+    fontSize: DesignSystem.typography.body.fontSize,
   },
   errorText: {
-    fontSize: 13,
+    ...DesignSystem.typography.caption,
     textAlign: "center",
-    marginTop: 8,
+    marginTop: DesignSystem.spacing.sm,
   },
   helperText: {
-    marginBottom: 2,
-    fontSize: 13,
+    marginBottom: DesignSystem.spacing.xs,
+    ...DesignSystem.typography.caption,
   },
 
   // Progress styles
   progressContainer: {
-    marginBottom: 14,
+    marginBottom: DesignSystem.spacing.sm,
   },
   progressLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: 4,
+    ...DesignSystem.typography.captionMedium,
+    marginBottom: DesignSystem.spacing.xs,
     textAlign: "center",
   },
   progressBar: {
     height: 4,
-    borderRadius: 2,
+    borderRadius: DesignSystem.borders.radius.small,
   },
 
   // Button styles
   gradientButton: {
-    borderRadius: 12,
+    borderRadius: DesignSystem.borders.radius.large,
     overflow: "hidden",
+    ...DesignSystem.shadows.medium,
   },
   primaryButton: {
     backgroundColor: "transparent",
-    borderRadius: 12,
+    borderRadius: DesignSystem.borders.radius.large,
     margin: 0,
   },
   buttonContainer: {
-    marginTop: 16,
+    marginTop: DesignSystem.spacing.md,
   },
   buttonContainerWithGap: {
-    marginTop: 16,
-    gap: 12,
+    marginTop: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
   },
   outlineButton: {
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: DesignSystem.borders.widthThick,
   },
   buttonContent: {
-    paddingVertical: 8,
-    height: 56,
+    paddingVertical: DesignSystem.spacing.sm,
+    height: DesignSystem.components.buttonLarge,
     justifyContent: "center",
     alignItems: "center",
   },
   buttonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...DesignSystem.typography.button,
     letterSpacing: 0.5,
   },
   outlineButtonLabel: {
-    fontSize: 16,
+    ...DesignSystem.typography.button,
     fontWeight: "500",
   },
 
   // Link styles
   linkContainer: {
-    marginTop: 20,
+    marginTop: DesignSystem.spacing.lg,
     alignItems: "center",
   },
   linkText: {
-    fontSize: 14,
+    ...DesignSystem.typography.small,
     textAlign: "center",
   },
   link: {
     fontWeight: "600",
   },
   verificationContainer: {
-    marginTop: 8,
+    marginTop: DesignSystem.spacing.sm,
     alignItems: "center",
   },
   verificationText: {
-    fontSize: 14,
+    ...DesignSystem.typography.small,
     textDecorationLine: "underline",
   },
 
   // Configuration card styles
   configCard: {
-    borderRadius: 16,
-    marginBottom: 20,
+    borderRadius: DesignSystem.borders.radius.large,
+    marginBottom: DesignSystem.spacing.lg,
+    ...DesignSystem.shadows.medium,
   },
   configContent: {
-    padding: 20,
+    padding: DesignSystem.spacing.lg,
   },
   configTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
+    ...DesignSystem.typography.h4,
+    marginBottom: DesignSystem.spacing.sm,
     textAlign: "center",
   },
   configText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...DesignSystem.typography.small,
     textAlign: "center",
   },
 
   // Status styles
   statusContainer: {
-    marginTop: 40,
+    marginTop: DesignSystem.spacing.xl,
     alignItems: "center",
     justifyContent: "center",
   },
   message: {
-    fontSize: 16,
+    ...DesignSystem.typography.body,
     textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 20,
+    paddingHorizontal: DesignSystem.spacing.lg,
   },
   successIcon: {
     width: 60,
@@ -187,6 +182,7 @@ export const authStyles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
+    ...DesignSystem.shadows.medium,
   },
   checkmark: {
     fontSize: 30,
@@ -199,6 +195,7 @@ export const authStyles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
+    ...DesignSystem.shadows.medium,
   },
   errorMark: {
     fontSize: 30,
@@ -215,9 +212,8 @@ export const authStyles = StyleSheet.create({
 
   // Footer styles
   footerText: {
-    fontSize: 12,
+    ...DesignSystem.typography.caption,
     textAlign: "center",
-    lineHeight: 16,
-    marginTop: 8,
+    marginTop: DesignSystem.spacing.sm,
   },
 });

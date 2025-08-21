@@ -25,7 +25,6 @@ export function LogoSection({
     <Animated.View
       style={[
         compact ? styles.logoContainerCompact : styles.logoContainer,
-        { backgroundColor: colors.background },
         animatedStyle,
       ]}
     >
@@ -35,7 +34,9 @@ export function LogoSection({
         resizeMode="contain"
       />
       {showText && (
-        <Text style={[styles.logoText, { color: colors.text }]}>HOMEKEEP</Text>
+        <Text style={[styles.logoText, { color: colors.surface }]}>
+          HOMEKEEP
+        </Text>
       )}
     </Animated.View>
   );
