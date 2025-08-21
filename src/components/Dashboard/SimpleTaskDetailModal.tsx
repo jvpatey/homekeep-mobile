@@ -12,22 +12,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme/colors";
 import { DesignSystem } from "../../theme/designSystem";
-import { HOME_MAINTENANCE_CATEGORIES, CategoryKey } from "../../types/task";
+import { Task } from "../../types/task";
 import { useAuth } from "../../context/AuthContext";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 interface SimpleTaskDetailModalProps {
-  task: {
-    id: string;
-    title: string;
-    description?: string;
-    category: CategoryKey;
-    priority: "low" | "medium" | "high" | "urgent";
-    estimated_duration?: number;
-    next_due_date: string;
-    is_completed: boolean;
-  } | null;
+  task: Task | null;
   visible: boolean;
   onClose: () => void;
   onComplete: (taskId: string) => void;
@@ -43,7 +34,72 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
 
   if (!task) return null;
 
-  const category = HOME_MAINTENANCE_CATEGORIES[task.category];
+  // Map category to display info
+  const getCategoryInfo = (category: string) => {
+    const categoryMap: {
+      [key: string]: {
+        icon: string;
+        gradient: [string, string];
+        displayName: string;
+      };
+    } = {
+      HVAC: {
+        icon: "snow-outline",
+        gradient: ["#FF6B6B", "#FF8E8E"],
+        displayName: "HVAC",
+      },
+      PLUMBING: {
+        icon: "water-outline",
+        gradient: ["#4ECDC4", "#6EDDD6"],
+        displayName: "Plumbing",
+      },
+      ELECTRICAL: {
+        icon: "flash-outline",
+        gradient: ["#FFE66D", "#FFF08C"],
+        displayName: "Electrical",
+      },
+      APPLIANCES: {
+        icon: "hardware-chip-outline",
+        gradient: ["#A8E6CF", "#C8F0D9"],
+        displayName: "Appliances",
+      },
+      EXTERIOR: {
+        icon: "home-outline",
+        gradient: ["#FF9A8B", "#FFB3A8"],
+        displayName: "Exterior",
+      },
+      INTERIOR: {
+        icon: "bed-outline",
+        gradient: ["#B8E0D2", "#D0E8DD"],
+        displayName: "Interior",
+      },
+      LANDSCAPING: {
+        icon: "leaf-outline",
+        gradient: ["#95E1D3", "#B0E8DD"],
+        displayName: "Landscaping",
+      },
+      SAFETY: {
+        icon: "shield-checkmark-outline",
+        gradient: ["#F38181", "#F5A0A0"],
+        displayName: "Safety",
+      },
+      GENERAL: {
+        icon: "construct-outline",
+        gradient: ["#C7CEEA", "#D8E0F0"],
+        displayName: "General",
+      },
+    };
+
+    return (
+      categoryMap[category] || {
+        icon: "construct-outline",
+        gradient: ["#C7CEEA", "#D8E0F0"],
+        displayName: category,
+      }
+    );
+  };
+
+  const category = getCategoryInfo(task.category);
   const priorityColors = {
     low: colors.light.success,
     medium: colors.light.warning,
@@ -195,7 +251,8 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
                 About {category.displayName}
               </Text>
               <Text style={styles.categoryDescription}>
-                {category.description}
+                {task.description ||
+                  `Maintenance tasks for ${category.displayName.toLowerCase()} systems and components.`}
               </Text>
             </View>
           </ScrollView>

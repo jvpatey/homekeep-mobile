@@ -6,16 +6,8 @@ export { default as TaskCard } from "./TaskCard";
 export { default as CompletionCelebration } from "./CompletionCelebration";
 export { default as ProfileButton } from "./ProfileButton";
 export { default as SimpleTaskDetailModal } from "./SimpleTaskDetailModal";
+export { ProfileMenu } from "./ProfileMenu";
 
-// Legacy Components (keeping for backward compatibility)
-export { default as DashboardHeader } from "./DashboardHeader";
-export { default as FloatingActionButton } from "./FloatingActionButton";
-export { default as TaskItem } from "./TaskItem";
-export { default as TaskSummaryCards } from "./TaskSummaryCards";
-export { default as TaskTabs } from "./TaskTabs";
-export { default as UpcomingTasks } from "./UpcomingTasks";
-export { default as CompletedTasks } from "./CompletedTasks";
-export { default as IncompleteTasks } from "./IncompleteTasks";
-export { default as ProfileMenu } from "./ProfileMenu";
-export { default as PriorityBadge } from "./PriorityBadge";
-export { default as StackedTaskItem } from "./StackedTaskItem";
+// Components needed by other screens
+export { TaskItem } from "./TaskItem";
+export { PriorityBadge } from "./PriorityBadge";

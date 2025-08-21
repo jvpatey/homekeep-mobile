@@ -131,7 +131,6 @@ const CompletionCelebration: React.FC<CompletionCelebrationProps> = ({
                   styles.confetti,
                   {
                     left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1000}ms`,
                     transform: [
                       { rotate: `${Math.random() * 360}deg` },
                       { scale: Math.random() * 0.5 + 0.5 },

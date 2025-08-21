@@ -18,7 +18,6 @@ export type RootStackParamList = {
  */
 export type AppStackParamList = {
   Dashboard: undefined; // Main dashboard for authenticated users
-  NewDashboard: undefined; // New timeline-based dashboard
   TaskDetail: { taskId: string }; // Task detail view
   CreateTask: undefined; // Add new task
   EditTask: { taskId: string }; // Edit existing task

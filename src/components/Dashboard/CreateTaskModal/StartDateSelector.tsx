@@ -89,7 +89,7 @@ export function StartDateSelector({
                 {
                   color:
                     startDate.toDateString() === option.date.toDateString()
-                      ? colors.onPrimary
+                      ? colors.primary
                       : colors.text,
                 },
               ]}
@@ -152,7 +152,7 @@ export function StartDateSelector({
               onPress={() => setShowDatePicker(false)}
             >
               <Text
-                style={[styles.datePickerDoneText, { color: colors.onPrimary }]}
+                style={[styles.datePickerDoneText, { color: colors.primary }]}
               >
                 Done
               </Text>

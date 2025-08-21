@@ -44,10 +44,10 @@ export const priorities = [
 ];
 
 export const intervalOptions = [
-  { id: "weekly", name: "Weekly", description: "Every week" },
-  { id: "monthly", name: "Monthly", description: "Every month" },
-  { id: "yearly", name: "Yearly", description: "Every year" },
-  { id: "custom", name: "Custom", description: "Custom interval" },
+  { id: "weekly" as const, name: "Weekly", description: "Every week" },
+  { id: "monthly" as const, name: "Monthly", description: "Every month" },
+  { id: "yearly" as const, name: "Yearly", description: "Every year" },
+  { id: "custom" as const, name: "Custom", description: "Custom interval" },
 ];
 
 export const intervalValueExamples = {

@@ -7,7 +7,9 @@ import { intervalOptions, intervalValueExamples } from "./data";
 interface IntervalSelectorProps {
   selectedInterval: string;
   intervalValue: number;
-  onSelectInterval: (interval: string) => void;
+  onSelectInterval: (
+    interval: "weekly" | "monthly" | "yearly" | "custom"
+  ) => void;
   onIntervalValueChange: (value: number) => void;
   error?: string;
 }
@@ -60,7 +62,7 @@ export function IntervalSelector({
                 {
                   color:
                     selectedInterval === option.id
-                      ? colors.onPrimary
+                      ? colors.primary
                       : colors.text,
                 },
               ]}
@@ -73,7 +75,7 @@ export function IntervalSelector({
                 {
                   color:
                     selectedInterval === option.id
-                      ? colors.onPrimary
+                      ? colors.primary
                       : colors.textSecondary,
                 },
               ]}

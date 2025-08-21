@@ -66,10 +66,12 @@ export function CreateTaskModal({
     instructions: "",
   });
 
-  const [errors, setErrors] = useState<Partial<TaskSeriesForm>>({});
+  const [errors, setErrors] = useState<
+    Partial<{ [K in keyof TaskSeriesForm]: string }>
+  >({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<TaskSeriesForm> = {};
+    const newErrors: Partial<{ [K in keyof TaskSeriesForm]: string }> = {};
 
     if (!form.title.trim()) {
       newErrors.title = "Task title is required";
@@ -79,11 +81,11 @@ export function CreateTaskModal({
       newErrors.category = "Please select a category";
     }
 
-    if (form.estimatedDuration <= 0) {
+    if (!form.estimatedDuration || form.estimatedDuration <= 0) {
       newErrors.estimatedDuration = "Duration must be greater than 0";
     }
 
-    if (form.intervalValue <= 0) {
+    if (!form.intervalValue || form.intervalValue <= 0) {
       newErrors.intervalValue = "Interval value must be greater than 0";
     }
 
@@ -200,22 +202,24 @@ export function CreateTaskModal({
             value={form.estimatedDuration.toString()}
             onChangeText={(text) => {
               const num = parseInt(text) || 0;
-              updateForm("estimatedDuration", num);
+              setForm((prev) => ({ ...prev, estimatedDuration: num }));
             }}
             placeholder="e.g., 30"
             keyboardType="numeric"
-            error={errors.estimatedDuration}
+            error={errors.estimatedDuration?.toString()}
             required
           />
 
           <IntervalSelector
             selectedInterval={form.interval}
             intervalValue={form.intervalValue}
-            onSelectInterval={(interval) => updateForm("interval", interval)}
+            onSelectInterval={(
+              interval: "weekly" | "monthly" | "yearly" | "custom"
+            ) => setForm((prev) => ({ ...prev, interval }))}
             onIntervalValueChange={(value) =>
-              updateForm("intervalValue", value)
+              setForm((prev) => ({ ...prev, intervalValue: value }))
             }
-            error={errors.intervalValue}
+            error={errors.intervalValue?.toString()}
           />
 
           <StartDateSelector

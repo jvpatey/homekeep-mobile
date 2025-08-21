@@ -1,180 +1,197 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { StatusBar } from "expo-status-bar";
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  RefreshControl,
-  Dimensions,
-} from "react-native";
-import { PaperProvider } from "react-native-paper";
-import { useTheme } from "../context/ThemeContext";
-import { useDynamicSpacing } from "../hooks";
-import { useTasks } from "../context/TasksContext";
-import { DashboardHeader } from "../components/Dashboard/DashboardHeader";
-import { TaskSummaryCards } from "../components/Dashboard/TaskSummaryCards";
-import { TaskTabs } from "../components/Dashboard/TaskTabs";
-import { FloatingActionButton } from "../components/Dashboard/FloatingActionButton";
-import { CalendarView } from "../components/Calendar/CalendarView";
-import { useNavigation } from "@react-navigation/native";
-import { TouchableOpacity, Text } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
+import React, { useState } from "react";
+import { View, StyleSheet, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../theme/colors";
+import { NewDashboard } from "../components/Dashboard";
+import { Task, HOME_MAINTENANCE_CATEGORIES } from "../types/task";
 
-// DashboardScreen - The main dashboard for authenticated users
+// Sample data for demonstration
+const sampleTasks: Task[] = [
+  {
+    id: "1",
+    user_id: "user1",
+    title: "Change HVAC air filter",
+    description: "Replace the air filter in the main HVAC unit",
+    category: "HVAC",
+    priority: "high",
+    estimated_duration: 15,
+    is_recurring: true,
+    recurrence_type: "monthly",
+    next_due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "2",
+    user_id: "user1",
+    title: "Clean kitchen drain",
+    description: "Remove buildup and clean the kitchen sink drain",
+    category: "PLUMBING",
+    priority: "medium",
+    estimated_duration: 30,
+    is_recurring: true,
+    recurrence_type: "monthly",
+    next_due_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "3",
+    user_id: "user1",
+    title: "Test smoke detectors",
+    description: "Test all smoke detectors and replace batteries if needed",
+    category: "SAFETY",
+    priority: "urgent",
+    estimated_duration: 20,
+    is_recurring: true,
+    recurrence_type: "monthly",
+    next_due_date: new Date().toISOString(), // Today
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "4",
+    user_id: "user1",
+    title: "Clean refrigerator coils",
+    description: "Vacuum the condenser coils behind the refrigerator",
+    category: "APPLIANCES",
+    priority: "low",
+    estimated_duration: 45,
+    is_recurring: true,
+    recurrence_type: "quarterly",
+    next_due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "5",
+    user_id: "user1",
+    title: "Inspect roof for damage",
+    description: "Check for missing shingles or other roof damage",
+    category: "EXTERIOR",
+    priority: "high",
+    estimated_duration: 60,
+    is_recurring: true,
+    recurrence_type: "yearly",
+    next_due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "6",
+    user_id: "user1",
+    title: "Replace light bulbs",
+    description: "Replace any burned out light bulbs throughout the house",
+    category: "ELECTRICAL",
+    priority: "medium",
+    estimated_duration: 25,
+    is_recurring: false,
+    recurrence_type: undefined,
+    next_due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "7",
+    user_id: "user1",
+    title: "Clean gutters",
+    description: "Remove leaves and debris from roof gutters",
+    category: "EXTERIOR",
+    priority: "medium",
+    estimated_duration: 90,
+    is_recurring: true,
+    recurrence_type: "quarterly",
+    next_due_date: new Date(
+      Date.now() + 10 * 24 * 60 * 60 * 1000
+    ).toISOString(), // 10 days from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+  {
+    id: "8",
+    user_id: "user1",
+    title: "Service water heater",
+    description: "Drain and flush the water heater tank",
+    category: "PLUMBING",
+    priority: "high",
+    estimated_duration: 60,
+    is_recurring: true,
+    recurrence_type: "yearly",
+    next_due_date: new Date(
+      Date.now() + 14 * 24 * 60 * 60 * 1000
+    ).toISOString(), // 14 days from now
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_completed: false,
+  },
+];
 
-interface Section {
-  id: string;
-  type: "header" | "body";
-}
-
-export function DashboardScreen() {
-  const { colors, isDark } = useTheme();
-  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
-  const { completedTasks, upcomingTasks, refreshTasks } = useTasks();
+const DashboardScreen: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>(sampleTasks);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [mode, setMode] = useState<"dashboard" | "calendar">("dashboard");
-  const navigation = useNavigation();
 
-  // Side-swipe container setup
-  const screenWidth = Dimensions.get("window").width;
-  const translateX = useSharedValue(0);
-  const sliderStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
+  const handleCompleteTask = (taskId: string) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              is_completed: true,
+              completed_at: new Date().toISOString(),
+            }
+          : task
+      )
+    );
+  };
 
-  useEffect(() => {
-    const target = mode === "dashboard" ? 0 : -screenWidth;
-    translateX.value = withTiming(target, { duration: 260 });
-  }, [mode, screenWidth]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await refreshTasks();
-    } catch (error) {
-      console.error("Error refreshing tasks:", error);
-    } finally {
-      setRefreshing(false);
+  const handleTaskPress = (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      Alert.alert(
+        "Task Details",
+        `${task.title}\n\nCategory: ${task.category}\nPriority: ${
+          task.priority
+        }\nEstimated Duration: ${
+          task.estimated_duration || "Unknown"
+        } minutes\nDue: ${new Date(task.next_due_date).toLocaleDateString()}`,
+        [{ text: "OK" }]
+      );
     }
   };
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
-  // Define sections: header is static, body holds swipeable content
-  const sections: Section[] = useMemo(() => {
-    return [
-      { id: "header", type: "header" },
-      { id: "body", type: "body" },
-    ];
-  }, []);
-
-  const renderSection = useCallback(
-    ({ item }: { item: Section }) => {
-      switch (item.type) {
-        case "header":
-          return (
-            <View>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: colors.primary,
-                  padding: 16,
-                  margin: 16,
-                  borderRadius: 8,
-                  alignItems: "center",
-                }}
-                onPress={() => navigation.navigate("NewDashboard" as never)}
-              >
-                <Text style={{ color: "white", fontWeight: "600" }}>
-                  🚀 Try New Dashboard
-                </Text>
-              </TouchableOpacity>
-              <DashboardHeader
-                onSearchChange={handleSearchChange}
-                searchQuery={searchQuery}
-                mode={mode}
-                onPrimaryToggle={() =>
-                  setMode((m) => (m === "calendar" ? "dashboard" : "calendar"))
-                }
-              />
-            </View>
-          );
-        case "body":
-          return (
-            <View style={{ overflow: "hidden" }}>
-              <Animated.View
-                style={[
-                  {
-                    width: screenWidth * 2,
-                    flexDirection: "row",
-                  },
-                  sliderStyle,
-                ]}
-              >
-                <View style={{ width: screenWidth }}>
-                  {searchQuery.trim().length === 0 && <TaskSummaryCards />}
-                  <TaskTabs searchQuery={searchQuery} />
-                </View>
-                <View style={{ width: screenWidth }}>
-                  <CalendarView
-                    searchQuery={searchQuery}
-                    onClearSearch={() => setSearchQuery("")}
-                  />
-                </View>
-              </Animated.View>
-            </View>
-          );
-        default:
-          return null;
-      }
-    },
-    [searchQuery, mode, screenWidth]
-  );
-
-  const keyExtractor = useCallback((item: Section) => item.id, []);
-
   return (
-    <PaperProvider>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar style={isDark ? "light" : "auto"} />
-        <FlatList
-          data={sections}
-          renderItem={renderSection}
-          keyExtractor={keyExtractor}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.contentContainer,
-            {
-              paddingTop: dynamicTopSpacing,
-              paddingBottom: dynamicBottomSpacing + 100, // Extra space for FAB
-            },
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
-        />
-        <FloatingActionButton />
-      </View>
-    </PaperProvider>
+    <SafeAreaView style={styles.container}>
+      <NewDashboard
+        tasks={tasks}
+        onCompleteTask={handleCompleteTask}
+        onTaskPress={handleTaskPress}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+      />
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
-    flexGrow: 1,
+    backgroundColor: colors.light.background,
   },
 });
+
+export default DashboardScreen;

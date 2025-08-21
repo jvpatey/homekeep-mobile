@@ -1,119 +1,63 @@
 import React from "react";
-import { View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet } from "react-native";
 
 interface PriorityBadgeProps {
   priority: string;
   size?: "small" | "medium" | "large";
-  variant?: "header" | "card";
+  variant?: "default" | "card" | "header";
 }
 
 export function PriorityBadge({
   priority,
   size = "medium",
-  variant = "card",
+  variant = "default",
 }: PriorityBadgeProps) {
-  const getPriorityIcon = (priority: string) => {
+  const getPriorityColor = () => {
     switch (priority.toLowerCase()) {
+      case "urgent":
+        return "#E74C3C";
       case "high":
-        return "alert-circle";
+        return "#FF6B35";
       case "medium":
-        return "warning";
+        return "#F2C94C";
       case "low":
-        return "checkmark-circle";
+        return "#27AE60";
       default:
-        return "remove";
+        return "#95A5A6";
     }
   };
 
   const getSizeStyles = () => {
     switch (size) {
       case "small":
-        return {
-          container: {
-            paddingHorizontal: 6,
-            paddingVertical: 3,
-            borderRadius: 8,
-          },
-          text: {
-            fontSize: 10,
-            fontWeight: "600" as const,
-          },
-          icon: 12,
-        };
+        return { paddingHorizontal: 6, paddingVertical: 2, fontSize: 10 };
       case "large":
-        return {
-          container: {
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 12,
-          },
-          text: {
-            fontSize: 14,
-            fontWeight: "700" as const,
-          },
-          icon: 18,
-        };
-      default: // medium
-        return {
-          container: {
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 10,
-          },
-          text: {
-            fontSize: 11,
-            fontWeight: "600" as const,
-          },
-          icon: 14,
-        };
-    }
-  };
-
-  const getVariantStyles = () => {
-    if (variant === "header") {
-      return {
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
-        textColor: "white",
-        iconColor: "white",
-      };
-    } else {
-      return {
-        backgroundColor: "rgba(0, 0, 0, 0.05)",
-        textColor: "#666",
-        iconColor: "#666",
-      };
+        return { paddingHorizontal: 12, paddingVertical: 6, fontSize: 14 };
+      default:
+        return { paddingHorizontal: 8, paddingVertical: 4, fontSize: 12 };
     }
   };
 
   const sizeStyles = getSizeStyles();
-  const variantStyles = getVariantStyles();
 
   return (
     <View
       style={[
+        styles.badge,
         {
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: variantStyles.backgroundColor,
-          alignSelf: "flex-start",
+          backgroundColor: getPriorityColor(),
+          paddingHorizontal: sizeStyles.paddingHorizontal,
+          paddingVertical: sizeStyles.paddingVertical,
         },
-        sizeStyles.container,
       ]}
     >
-      <Ionicons
-        name={getPriorityIcon(priority) as any}
-        size={sizeStyles.icon}
-        color={variantStyles.iconColor}
-        style={{ marginRight: 4 }}
-      />
       <Text
         style={[
+          styles.text,
           {
-            color: variantStyles.textColor,
-            letterSpacing: 0.3,
+            fontSize: sizeStyles.fontSize,
+            color: variant === "card" ? "white" : "white",
           },
-          sizeStyles.text,
         ]}
       >
         {priority.toUpperCase()}
@@ -121,3 +65,15 @@ export function PriorityBadge({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  text: {
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+});

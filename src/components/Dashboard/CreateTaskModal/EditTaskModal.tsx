@@ -18,10 +18,9 @@ import { styles } from "../styles";
 import { FormField } from "./FormField";
 import { CategorySelector } from "./CategorySelector";
 import { PrioritySelector } from "./PrioritySelector";
-import { RecurringTaskToggle } from "./RecurringTaskToggle";
 import { ModalHeader } from "./ModalHeader";
 import { SubmitButton } from "./SubmitButton";
-import { categories, priorities, recurrenceOptions } from "./data";
+import { categories, priorities } from "./data";
 import { Task, UpdateTaskData } from "../../../types/task";
 import { TaskService } from "../../../services/taskService";
 import { startOfDay } from "date-fns";
@@ -36,10 +35,8 @@ interface TaskForm {
   title: string;
   description: string;
   category: string;
-  priority: "low" | "medium" | "high" | "urgent";
+  priority: "low" | "medium" | "high";
   estimatedDuration: string;
-  isRecurring: boolean;
-  recurrenceType: "weekly" | "monthly" | "quarterly" | "yearly";
   dueDate: Date;
 }
 
@@ -60,10 +57,8 @@ export function EditTaskModal({
     title: task.title,
     description: task.description || "",
     category: task.category,
-    priority: task.priority,
+    priority: task.priority === "urgent" ? "high" : task.priority,
     estimatedDuration: task.estimated_duration?.toString() || "",
-    isRecurring: task.is_recurring || false,
-    recurrenceType: task.recurrence_type || "weekly",
     dueDate: new Date(task.next_due_date),
   });
 
@@ -89,67 +84,41 @@ export function EditTaskModal({
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      triggerLight();
-      return;
-    }
-
-    // Check if user is authenticated
-    if (!user) {
-      Alert.alert("Error", "You must be signed in to edit tasks");
-      return;
-    }
+    if (!validateForm()) return;
 
     triggerMedium();
 
     try {
-      const originalDue = startOfDay(new Date(task.next_due_date));
       const updateData: UpdateTaskData = {
         title: form.title.trim(),
-        description: form.description.trim() || undefined,
+        description: form.description.trim(),
         category: form.category,
         priority: form.priority,
         estimated_duration: form.estimatedDuration
           ? parseInt(form.estimatedDuration)
           : undefined,
-        is_recurring: form.isRecurring,
-        recurrence_type: form.recurrenceType,
         next_due_date: startOfDay(form.dueDate).toISOString(),
       };
 
       const { success, error } = await updateTask(task.id, updateData);
 
       if (success) {
-        // If recurring and due date changed, shift future instances by delta
-        if (
-          (task.is_recurring || form.isRecurring) &&
-          originalDue.getTime() !== startOfDay(form.dueDate).getTime()
-        ) {
-          const deltaMs =
-            startOfDay(form.dueDate).getTime() - originalDue.getTime();
-          await TaskService.shiftFutureInstances(
-            task.id,
-            originalDue.toISOString(),
-            deltaMs
-          );
-          await refreshTasks();
-        }
         triggerMedium();
+        await refreshTasks();
         onTaskUpdated();
       } else {
-        console.error("Task update failed:", error);
         Alert.alert("Error", error || "Failed to update task");
       }
-    } catch (err) {
-      console.error("Error updating task:", err);
-      Alert.alert("Error", "An unexpected error occurred");
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to update task");
     }
   };
 
-  const updateForm = (key: keyof TaskForm, value: any) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: undefined }));
+  const updateForm = (field: keyof TaskForm, value: any) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -208,16 +177,6 @@ export function EditTaskModal({
             error={errors.estimatedDuration}
           />
 
-          <RecurringTaskToggle
-            isRecurring={form.isRecurring}
-            onToggleRecurring={(value) => updateForm("isRecurring", value)}
-            recurrenceType={form.recurrenceType}
-            onSelectRecurrenceType={(value) =>
-              updateForm("recurrenceType", value)
-            }
-            recurrenceOptions={recurrenceOptions}
-          />
-
           {/* Date Picker Field */}
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: colors.text }]}>
@@ -254,44 +213,58 @@ export function EditTaskModal({
 
           {showDatePicker && (
             <View
-              style={[
-                styles.datePickerContainer,
-                { backgroundColor: colors.surface },
-              ]}
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                paddingTop: 8,
+                paddingBottom: 16,
+                backgroundColor: colors.surface,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                borderTopWidth: 1,
+                borderColor: colors.border,
+              }}
             >
               <DateTimePicker
                 value={form.dueDate}
                 mode="date"
                 display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
+                onChange={(event: any, selectedDate?: Date) => {
+                  if (Platform.OS !== "ios") {
+                    if (event?.type === "dismissed") {
+                      setShowDatePicker(false);
+                    } else {
+                      updateForm("dueDate", selectedDate || form.dueDate);
+                      setShowDatePicker(false);
+                    }
+                  } else if (selectedDate) {
                     updateForm("dueDate", selectedDate);
                   }
                 }}
-                style={[styles.datePicker, { backgroundColor: colors.surface }]}
-                textColor={colors.text}
-                accentColor={colors.primary}
+                style={{ backgroundColor: colors.surface }}
               />
-              <TouchableOpacity
-                style={[
-                  styles.datePickerDone,
-                  { backgroundColor: colors.primary },
-                ]}
-                onPress={() => setShowDatePicker(false)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.datePickerDoneText}>Done</Text>
-              </TouchableOpacity>
+              {Platform.OS === "ios" && (
+                <TouchableOpacity
+                  style={[
+                    styles.datePickerDone,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={() => setShowDatePicker(false)}
+                >
+                  <Text style={styles.datePickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
-
-          <SubmitButton
-            onPress={handleSubmit}
-            disabled={!isFormValid}
-            title="Update Task"
-          />
         </ScrollView>
+
+        <SubmitButton
+          onPress={handleSubmit}
+          disabled={!isFormValid}
+          title="Update Task"
+        />
       </Animated.View>
     </View>
   );
