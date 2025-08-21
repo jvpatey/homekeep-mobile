@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import { Task } from "../../types/task";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "src/theme/colors";
 
 interface TimelineViewProps {
   tasks: Task[];
@@ -23,6 +24,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   onCompleteTask,
   onTaskPress,
 }) => {
+  const { colors } = useTheme();
   const groupTasksByDate = (tasks: Task[]) => {
     const groups: { [key: string]: Task[] } = {};
 
@@ -85,15 +87,15 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
-        return colors.light.error;
+        return colors.error;
       case "high":
         return "#FF6B35";
       case "medium":
-        return colors.light.warning;
+        return colors.warning;
       case "low":
-        return colors.light.success;
+        return colors.success;
       default:
-        return colors.light.textSecondary;
+        return colors.textSecondary;
     }
   };
 
@@ -109,7 +111,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
           <Ionicons
             name="calendar-outline"
             size={48}
-            color={colors.light.textSecondary}
+            color={colors.textSecondary}
           />
           <Text style={styles.emptyTitle}>No Upcoming Tasks</Text>
           <Text style={styles.emptySubtitle}>You're all caught up!</Text>
@@ -190,7 +192,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
                           <Ionicons
                             name="time-outline"
                             size={12}
-                            color={colors.light.textSecondary}
+                            color={colors.textSecondary}
                           />
                           <Text style={styles.durationText}>
                             {task.estimated_duration}m
@@ -217,13 +219,13 @@ const TimelineView: React.FC<TimelineViewProps> = ({
                         <Ionicons
                           name="checkmark-circle"
                           size={20}
-                          color={colors.light.success}
+                          color={colors.success}
                         />
                       ) : (
                         <Ionicons
                           name="checkmark"
                           size={16}
-                          color={colors.light.surface}
+                          color={colors.surface}
                         />
                       )}
                     </TouchableOpacity>

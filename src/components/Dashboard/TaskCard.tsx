@@ -7,10 +7,11 @@ import {
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import { HOME_MAINTENANCE_CATEGORIES, CategoryKey } from "../../types/task";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "src/theme/colors";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth - 80; // 40px padding on each side for better centering
@@ -38,21 +39,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onComplete,
   onPress,
 }) => {
+  const { colors } = useTheme();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
   const isOverdue = new Date(dueDate) < new Date() && !isCompleted;
 
   const getPriorityColor = () => {
     switch (priority) {
       case "urgent":
-        return colors.light.error;
+        return colors.error;
       case "high":
         return "#FF6B35";
       case "medium":
-        return colors.light.warning;
+        return colors.warning;
       case "low":
-        return colors.light.success;
+        return colors.success;
       default:
-        return colors.light.textSecondary;
+        return colors.textSecondary;
     }
   };
 
@@ -138,7 +140,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <Ionicons
                   name="time-outline"
                   size={16}
-                  color={colors.light.textSecondary}
+                  color={colors.textSecondary}
                 />
                 <Text style={styles.metaText}>
                   {estimatedDuration
@@ -151,7 +153,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <Ionicons
                   name="calendar-outline"
                   size={16}
-                  color={colors.light.textSecondary}
+                  color={colors.textSecondary}
                 />
                 <Text
                   style={[styles.metaText, isOverdue && styles.overdueText]}
@@ -174,14 +176,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <Ionicons
                   name="checkmark-circle"
                   size={24}
-                  color={colors.light.success}
+                  color={colors.success}
                 />
               ) : (
-                <Ionicons
-                  name="checkmark"
-                  size={20}
-                  color={colors.light.surface}
-                />
+                <Ionicons name="checkmark" size={20} color={colors.surface} />
               )}
             </TouchableOpacity>
           </View>

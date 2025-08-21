@@ -8,7 +8,6 @@ import { LogoSection } from "../components/LogoSection/LogoSection";
 import { WelcomeText } from "../components/WelcomeText/WelcomeText";
 import { FeaturesSection } from "../components/FeaturesSection/FeaturesSection";
 import { GradientDivider } from "../components/GradientDivider/GradientDivider";
-import { ThemeToggle } from "../components/ThemeToggle/ThemeToggle";
 
 /**
  * HomeScreen - The main landing page for unauthenticated users
@@ -22,11 +21,6 @@ export function HomeScreen() {
     <PaperProvider>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar style={isDark ? "light" : "auto"} />
-
-        {/* Theme Toggle in Top-Right Corner */}
-        <View style={styles.themeToggleContainer}>
-          <ThemeToggle size={44} />
-        </View>
 
         <ScrollView
           style={styles.scrollView}
@@ -53,12 +47,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  themeToggleContainer: {
-    position: "absolute",
-    top: 60,
-    right: 20,
-    zIndex: 1000,
-  },
+
   scrollView: {
     flex: 1,
   },

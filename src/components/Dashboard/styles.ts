@@ -7,7 +7,6 @@ export const styles = StyleSheet.create({
   // New Dashboard Styles
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
   },
   headerGradient: {
     paddingTop: 52, // Reduced to 52px - just enough for profile button (40px) + 12px margin
@@ -87,7 +86,6 @@ export const styles = StyleSheet.create({
   // Create Task Modal Styles
   createTaskContainer: {
     flex: 1,
-    backgroundColor: "white",
   },
   modalContent: {
     flex: 1,
@@ -96,7 +94,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 100, // Add bottom padding for submit button
   },
   summaryContainer: {
-    backgroundColor: "#F8F9FA",
     borderRadius: 16,
     padding: 20,
     marginTop: 24,

@@ -8,7 +8,7 @@ import {
   FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import TaskCard from "./TaskCard";
 import { Task } from "../../types/task";
@@ -28,6 +28,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
   onCompleteTask,
   onTaskPress,
 }) => {
+  const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -61,16 +62,20 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
     return (
       <View style={styles.emptyContainer}>
         <LinearGradient
-          colors={["#F0F0F0", "#E0E0E0"]}
+          colors={[colors.surface, colors.border]}
           style={styles.emptyGradient}
         >
           <Ionicons
             name="checkmark-circle-outline"
             size={48}
-            color={colors.light.textSecondary}
+            color={colors.textSecondary}
           />
-          <Text style={styles.emptyTitle}>All Caught Up!</Text>
-          <Text style={styles.emptySubtitle}>No tasks due right now</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            All Caught Up!
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+            No tasks due right now
+          </Text>
         </LinearGradient>
       </View>
     );
@@ -80,29 +85,21 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>What's Next</Text>
+        <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
         <View style={styles.navigationButtons}>
           <TouchableOpacity
-            style={styles.navButton}
+            style={[styles.navButton, { backgroundColor: colors.surface }]}
             onPress={scrollToPrevious}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={colors.light.primary}
-            />
+            <Ionicons name="chevron-back" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.navButton}
+            style={[styles.navButton, { backgroundColor: colors.surface }]}
             onPress={scrollToNext}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.light.primary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -148,7 +145,11 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
               key={index}
               style={[
                 styles.paginationDot,
-                index === currentIndex && styles.paginationDotActive,
+                { backgroundColor: colors.border },
+                index === currentIndex && [
+                  styles.paginationDotActive,
+                  { backgroundColor: colors.primary },
+                ],
               ]}
             />
           ))}
@@ -157,7 +158,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
 
       {/* Task Counter */}
       <View style={styles.counterContainer}>
-        <Text style={styles.counterText}>
+        <Text style={[styles.counterText, { color: colors.textSecondary }]}>
           {currentIndex + 1} of {tasks.length}
         </Text>
       </View>
@@ -178,7 +179,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...DesignSystem.typography.h2,
-    color: colors.light.text,
   },
   navigationButtons: {
     flexDirection: "row",
@@ -188,7 +188,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.light.surface,
     justifyContent: "center",
     alignItems: "center",
     ...DesignSystem.shadows.small,
@@ -220,12 +219,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...DesignSystem.typography.h3,
-    color: colors.light.text,
     marginTop: DesignSystem.spacing.md,
   },
   emptySubtitle: {
     ...DesignSystem.typography.body,
-    color: colors.light.textSecondary,
     marginTop: DesignSystem.spacing.xs,
   },
   paginationContainer: {
@@ -239,10 +236,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.light.border,
   },
   paginationDotActive: {
-    backgroundColor: colors.light.primary,
     width: 24,
   },
   counterContainer: {
@@ -251,7 +246,6 @@ const styles = StyleSheet.create({
   },
   counterText: {
     ...DesignSystem.typography.caption,
-    color: colors.light.textSecondary,
   },
 });
 

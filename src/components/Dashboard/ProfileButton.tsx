@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import { useAuth } from "../../context/AuthContext";
 
@@ -19,6 +19,7 @@ interface ProfileButtonProps {
 
 const ProfileButton: React.FC<ProfileButtonProps> = ({ size = 44 }) => {
   const { user, signOut } = useAuth();
+  const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
 
   const getUserInitial = () => {
@@ -58,7 +59,7 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ size = 44 }) => {
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={[colors.light.primary, colors.light.secondary]}
+          colors={[colors.primary, colors.secondary]}
           style={[
             styles.profileAvatar,
             { width: size, height: size, borderRadius: size / 2 },
@@ -80,23 +81,33 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ size = 44 }) => {
           style={styles.menuOverlay}
           onPress={() => setMenuVisible(false)}
         >
-          <View style={styles.menuContainer}>
+          <View
+            style={[styles.menuContainer, { backgroundColor: colors.surface }]}
+          >
             {/* User Profile Section */}
             <View style={styles.profileSection}>
               <LinearGradient
-                colors={[colors.light.primary, colors.light.secondary]}
+                colors={[colors.primary, colors.secondary]}
                 style={styles.menuAvatar}
               >
                 <Text style={styles.menuAvatarInitial}>{getUserInitial()}</Text>
               </LinearGradient>
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{getUserName()}</Text>
-                <Text style={styles.profileEmail}>{getUserEmail()}</Text>
+                <Text style={[styles.profileName, { color: colors.text }]}>
+                  {getUserName()}
+                </Text>
+                <Text
+                  style={[styles.profileEmail, { color: colors.textSecondary }]}
+                >
+                  {getUserEmail()}
+                </Text>
               </View>
             </View>
 
             {/* Divider */}
-            <View style={styles.menuDivider} />
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
 
             {/* Sign Out Button */}
             <TouchableOpacity
@@ -104,14 +115,21 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ size = 44 }) => {
               onPress={handleSignOut}
               activeOpacity={0.7}
             >
-              <View style={styles.signOutIconContainer}>
+              <View
+                style={[
+                  styles.signOutIconContainer,
+                  { backgroundColor: colors.error + "20" },
+                ]}
+              >
                 <Ionicons
                   name="log-out-outline"
                   size={20}
-                  color={colors.light.error}
+                  color={colors.error}
                 />
               </View>
-              <Text style={styles.signOutText}>Sign Out</Text>
+              <Text style={[styles.signOutText, { color: colors.error }]}>
+                Sign Out
+              </Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -153,7 +171,6 @@ const styles = StyleSheet.create({
     paddingRight: 32,
   },
   menuContainer: {
-    backgroundColor: colors.light.surface,
     borderRadius: 20,
     minWidth: 280,
     shadowColor: "#000000",
@@ -194,18 +211,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: -0.2,
     marginBottom: 4,
-    color: colors.light.text,
   },
   profileEmail: {
     fontSize: 14,
     fontWeight: "400",
     letterSpacing: 0.1,
-    color: colors.light.textSecondary,
   },
   menuDivider: {
     height: 1,
     marginHorizontal: 20,
-    backgroundColor: colors.light.border,
   },
   signOutButton: {
     flexDirection: "row",
@@ -220,13 +234,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.light.error + "20",
   },
   signOutText: {
     fontSize: 16,
     fontWeight: "500",
     letterSpacing: 0.1,
-    color: colors.light.error,
   },
 });
 

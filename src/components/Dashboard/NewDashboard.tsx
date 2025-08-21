@@ -9,7 +9,8 @@ import {
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors } from "../../theme/colors";
+import { useTheme } from "../../context/ThemeContext";
+
 import { DesignSystem } from "../../theme/designSystem";
 import { Task } from "../../types/task";
 import HeroCarousel from "./HeroCarousel";
@@ -39,6 +40,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   refreshing = false,
 }) => {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetail, setShowTaskDetail] = useState(false);
@@ -127,7 +129,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -135,15 +137,15 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[colors.light.primary]}
-            tintColor={colors.light.primary}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
         {/* Header Section */}
         <View style={styles.headerSection}>
           <LinearGradient
-            colors={[colors.light.primary, colors.light.secondary]}
+            colors={[colors.primary, colors.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
@@ -155,28 +157,46 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 
             <View style={styles.headerContent}>
               <View style={styles.greetingContainer}>
-                <Text style={styles.greeting}>
+                <Text style={[styles.greeting, { color: colors.surface }]}>
                   {getGreeting()}, {getUserName()}!
                 </Text>
-                <Text style={styles.motivationalMessage}>
+
+                <Text
+                  style={[
+                    styles.motivationalMessage,
+                    { color: colors.surface },
+                  ]}
+                >
                   {getMotivationalMessage()}
                 </Text>
               </View>
 
               <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{upcomingTasks.length}</Text>
-                  <Text style={styles.statLabel}>Due Soon</Text>
+                  <Text style={[styles.statNumber, { color: colors.surface }]}>
+                    {upcomingTasks.length}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: colors.surface }]}>
+                    Due Soon
+                  </Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{completedCount}</Text>
-                  <Text style={styles.statLabel}>Completed</Text>
+                  <Text style={[styles.statNumber, { color: colors.surface }]}>
+                    {completedCount}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: colors.surface }]}>
+                    Completed
+                  </Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{streak}</Text>
-                  <Text style={styles.statLabel}>Day Streak</Text>
+                  <Text style={[styles.statNumber, { color: colors.surface }]}>
+                    {streak}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: colors.surface }]}>
+                    Day Streak
+                  </Text>
                 </View>
               </View>
             </View>
@@ -208,10 +228,10 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={[colors.light.accent, "#FFB347"]}
+          colors={[colors.accent, "#FFB347"]}
           style={styles.floatingActionButtonGradient}
         >
-          <Ionicons name="add" size={28} color={colors.light.surface} />
+          <Ionicons name="add" size={28} color={colors.surface} />
         </LinearGradient>
       </TouchableOpacity>
 
@@ -246,7 +266,6 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
   },
   scrollView: {
     flex: 1,
@@ -266,6 +285,7 @@ const styles = StyleSheet.create({
     right: DesignSystem.spacing.md, // 16px from right
     zIndex: 10,
   },
+
   headerContent: {
     alignItems: "center",
     paddingTop: DesignSystem.spacing.md, // Reduced to 16px - just enough clearance
@@ -276,7 +296,6 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...DesignSystem.typography.h1,
-    color: colors.light.surface,
     textAlign: "center",
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 1 },
@@ -284,7 +303,6 @@ const styles = StyleSheet.create({
   },
   motivationalMessage: {
     ...DesignSystem.typography.body,
-    color: colors.light.surface,
     textAlign: "center",
     marginTop: DesignSystem.spacing.sm,
     opacity: 0.9,
@@ -305,12 +323,10 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     ...DesignSystem.typography.h2,
-    color: colors.light.surface,
     fontWeight: "700",
   },
   statLabel: {
     ...DesignSystem.typography.caption,
-    color: colors.light.surface,
     opacity: 0.8,
     textAlign: "center",
   },
