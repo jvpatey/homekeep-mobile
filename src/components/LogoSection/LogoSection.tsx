@@ -35,7 +35,7 @@ export function LogoSection({
       />
       {showText && (
         <Text style={[styles.logoText, { color: colors.surface }]}>
-          HOMEKEEP
+          HomeKeep
         </Text>
       )}
     </Animated.View>
