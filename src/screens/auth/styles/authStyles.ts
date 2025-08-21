@@ -25,17 +25,19 @@ export const authStyles = StyleSheet.create({
   // Header styles
   headerContainer: {
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.xl,
+    marginBottom: DesignSystem.spacing.lg, // Reduced from xl to lg
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.md,
   },
   title: {
-    ...DesignSystem.typography.h2,
+    ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.xs, // Reduced from sm to xs
   },
   largeTitle: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.xs, // Reduced from sm to xs
   },
   subtitle: {
     ...DesignSystem.typography.body,
@@ -50,24 +52,24 @@ export const authStyles = StyleSheet.create({
   // Form styles
   formCard: {
     borderRadius: DesignSystem.borders.radius.large,
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm, // Reduced from md to sm
     ...DesignSystem.shadows.medium,
   },
   formContent: {
-    padding: DesignSystem.spacing.lg,
+    padding: DesignSystem.spacing.md, // Reduced from lg to md
   },
   compactFormContent: {
     padding: DesignSystem.spacing.md,
   },
   input: {
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.xs, // Reduced from sm to xs
     backgroundColor: "transparent",
     fontSize: DesignSystem.typography.body.fontSize,
   },
   errorText: {
     ...DesignSystem.typography.caption,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.xs, // Reduced from sm to xs
   },
   helperText: {
     marginBottom: DesignSystem.spacing.xs,
@@ -76,7 +78,10 @@ export const authStyles = StyleSheet.create({
 
   // Progress styles
   progressContainer: {
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.xs,
+    marginTop: DesignSystem.spacing.md, // Add space above the progress bar
+    width: "100%", // Make it full width
+    paddingHorizontal: DesignSystem.spacing.md, // Add some horizontal padding
   },
   progressLabel: {
     ...DesignSystem.typography.captionMedium,
@@ -84,8 +89,9 @@ export const authStyles = StyleSheet.create({
     textAlign: "center",
   },
   progressBar: {
-    height: 4,
+    height: 6, // Increased from 4 to 6 for better visibility
     borderRadius: DesignSystem.borders.radius.small,
+    width: "100%", // Ensure full width
   },
 
   // Button styles
@@ -100,10 +106,10 @@ export const authStyles = StyleSheet.create({
     margin: 0,
   },
   buttonContainer: {
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.md, // Restored from sm to md for proper spacing
   },
   buttonContainerWithGap: {
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.md, // Restored from sm to md
     gap: DesignSystem.spacing.sm,
   },
   outlineButton: {
@@ -111,7 +117,7 @@ export const authStyles = StyleSheet.create({
     borderWidth: DesignSystem.borders.widthThick,
   },
   buttonContent: {
-    paddingVertical: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.md, // Restored from sm to md for proper button height
     height: DesignSystem.components.buttonLarge,
     justifyContent: "center",
     alignItems: "center",
@@ -127,7 +133,7 @@ export const authStyles = StyleSheet.create({
 
   // Link styles
   linkContainer: {
-    marginTop: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.lg, // Restored from md to lg for proper separation
     alignItems: "center",
   },
   linkText: {
@@ -138,7 +144,7 @@ export const authStyles = StyleSheet.create({
     fontWeight: "600",
   },
   verificationContainer: {
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.xs, // Reduced from sm to xs
     alignItems: "center",
   },
   verificationText: {
@@ -149,15 +155,15 @@ export const authStyles = StyleSheet.create({
   // Configuration card styles
   configCard: {
     borderRadius: DesignSystem.borders.radius.large,
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md, // Reduced from lg to md
     ...DesignSystem.shadows.medium,
   },
   configContent: {
-    padding: DesignSystem.spacing.lg,
+    padding: DesignSystem.spacing.md, // Reduced from lg to md
   },
   configTitle: {
     ...DesignSystem.typography.h4,
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.xs, // Reduced from sm to xs
     textAlign: "center",
   },
   configText: {
@@ -167,7 +173,7 @@ export const authStyles = StyleSheet.create({
 
   // Status styles
   statusContainer: {
-    marginTop: DesignSystem.spacing.xl,
+    marginTop: DesignSystem.spacing.lg, // Reduced from xl to lg
     alignItems: "center",
     justifyContent: "center",
   },
@@ -214,6 +220,6 @@ export const authStyles = StyleSheet.create({
   footerText: {
     ...DesignSystem.typography.caption,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.xs, // Reduced from sm to xs
   },
 });

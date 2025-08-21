@@ -5,6 +5,7 @@ import { DesignSystem } from "../../theme/designSystem";
 export const styles = StyleSheet.create({
   container: {
     marginBottom: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.md, // Added top margin for proper spacing
   },
   dividerContainer: {
     flexDirection: "row",

@@ -135,15 +135,25 @@ export function LoginScreen() {
             style={{
               position: "absolute",
               top: 0,
-              left: 0,
-              padding: DesignSystem.spacing.sm,
+              left: DesignSystem.spacing.md,
               zIndex: 10,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              borderRadius: DesignSystem.borders.radius.large,
+              paddingHorizontal: DesignSystem.spacing.md,
+              paddingVertical: DesignSystem.spacing.sm,
+              ...DesignSystem.shadows.small,
             }}
           >
-            <Text style={{ color: colors.primary, fontSize: 18 }}>← Back</Text>
+            <Text
+              style={{ color: colors.primary, fontSize: 16, fontWeight: "600" }}
+            >
+              ← Back
+            </Text>
           </TouchableOpacity>
 
-          <LogoSection showText={false} compact={true} />
+          <LogoSection showText={false} compact={false} />
 
           <Text style={[authStyles.title, { color: colors.text }]}>
             Welcome Back
@@ -213,7 +223,10 @@ export function LoginScreen() {
           <TouchableOpacity
             onPress={handleSignIn}
             disabled={loading}
-            style={authStyles.gradientButton}
+            style={[
+              authStyles.gradientButton,
+              { marginHorizontal: DesignSystem.spacing.md },
+            ]}
           >
             <LinearGradient
               colors={gradientColors}
@@ -231,7 +244,7 @@ export function LoginScreen() {
         </Animated.View>
 
         {/* OAuth Section */}
-        <OAuthButtons />
+        <OAuthButtons animatedStyle={buttonAnimatedStyle} />
 
         {/* Sign Up Link */}
         <View style={authStyles.linkContainer}>

@@ -7,15 +7,18 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useHaptics } from "../../hooks";
 import { styles } from "./styles";
+import { DesignSystem } from "../../theme/designSystem";
 
 interface OAuthButtonsProps {
   onSuccess?: () => void;
   disabled?: boolean;
+  animatedStyle?: any; // Add animation support
 }
 
 /**
@@ -27,6 +30,7 @@ interface OAuthButtonsProps {
 export function OAuthButtons({
   onSuccess,
   disabled = false,
+  animatedStyle, // Add animation support
 }: OAuthButtonsProps) {
   const { colors } = useTheme();
   const { signInWithGoogle } = useAuth();
@@ -69,7 +73,7 @@ export function OAuthButtons({
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, animatedStyle]}>
       {/* Visual divider with "or" text */}
       <View style={styles.dividerContainer}>
         <View
@@ -87,7 +91,10 @@ export function OAuthButtons({
       <TouchableOpacity
         onPress={handleGoogleSignIn}
         disabled={disabled || loading}
-        style={styles.gradientButton}
+        style={[
+          styles.gradientButton,
+          { marginHorizontal: DesignSystem.spacing.md },
+        ]}
       >
         <LinearGradient
           colors={accentGradient}
@@ -109,6 +116,6 @@ export function OAuthButtons({
           </View>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }
