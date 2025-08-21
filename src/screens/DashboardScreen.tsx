@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
-import { NewDashboard } from "../components/Dashboard";
+import { Dashboard } from "../components/Dashboard";
 import { Task, HOME_MAINTENANCE_CATEGORIES } from "../types/task";
 
 // Sample data for demonstration
@@ -176,7 +176,7 @@ const DashboardScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <NewDashboard
+      <Dashboard
         tasks={tasks}
         onCompleteTask={handleCompleteTask}
         onTaskPress={handleTaskPress}

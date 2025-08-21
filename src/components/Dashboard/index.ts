@@ -1,5 +1,5 @@
-// New Dashboard Components
-export { default as NewDashboard } from "./NewDashboard";
+// Dashboard Components
+export { default as Dashboard } from "./Dashboard";
 export { default as HeroCarousel } from "./HeroCarousel";
 export { default as TimelineView } from "./TimelineView";
 export { default as TaskCard } from "./TaskCard";
