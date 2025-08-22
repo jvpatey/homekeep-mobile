@@ -1,17 +1,27 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import { Task } from "../../types/task";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "src/theme/colors";
+
+const { width: screenWidth } = Dimensions.get("window");
 
 interface TimelineViewProps {
   tasks: Task[];
@@ -25,6 +35,42 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   onTaskPress,
 }) => {
   const { colors } = useTheme();
+
+  // Animation for empty state
+  const iconScale = useSharedValue(1);
+  const iconRotation = useSharedValue(0);
+
+  useEffect(() => {
+    if (tasks.length === 0) {
+      // Subtle breathing animation for empty state
+      iconScale.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 2000 }),
+          withTiming(1, { duration: 2000 })
+        ),
+        -1,
+        true
+      );
+
+      // Gentle rotation
+      iconRotation.value = withRepeat(
+        withSequence(
+          withTiming(5, { duration: 3000 }),
+          withTiming(-5, { duration: 3000 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [tasks.length]);
+
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: iconScale.value },
+      { rotate: `${iconRotation.value}deg` },
+    ],
+  }));
+
   const groupTasksByDate = (tasks: Task[]) => {
     const groups: { [key: string]: Task[] } = {};
 
@@ -105,16 +151,29 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     return (
       <View style={styles.emptyContainer}>
         <LinearGradient
-          colors={["#F8F9FA", "#E9ECEF"]}
+          colors={["#F0F8FF", "#E6F3FF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.emptyGradient}
         >
-          <Ionicons
-            name="calendar-outline"
-            size={48}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.emptyTitle}>No Upcoming Tasks</Text>
-          <Text style={styles.emptySubtitle}>You're all caught up!</Text>
+          <View style={styles.emptyIconContainer}>
+            <LinearGradient
+              colors={["#2563EB", "#3B82F6"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.emptyIconBackground}
+            >
+              <Animated.View style={iconAnimatedStyle}>
+                <Ionicons name="calendar" size={32} color="white" />
+              </Animated.View>
+            </LinearGradient>
+          </View>
+          <Text style={[styles.emptyTitle, { color: "#1E40AF" }]}>
+            No Upcoming Tasks
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: "#3B82F6" }]}>
+            You're all caught up!
+          </Text>
         </LinearGradient>
       </View>
     );
@@ -405,8 +464,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light.success,
   },
   emptyContainer: {
-    flex: 1,
-    marginTop: DesignSystem.spacing.xl,
+    height: 160,
+    marginVertical: DesignSystem.spacing.md,
     marginHorizontal: DesignSystem.spacing.md,
   },
   emptyGradient: {
@@ -414,17 +473,34 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.large,
     justifyContent: "center",
     alignItems: "center",
+    padding: DesignSystem.spacing.md, // Reduced from lg to md for more compact appearance
     ...DesignSystem.shadows.medium,
+  },
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.md,
+  },
+  emptyIconBackground: {
+    flex: 1,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyTitle: {
     ...DesignSystem.typography.h3,
-    color: colors.light.text,
     marginTop: DesignSystem.spacing.md,
+    textAlign: "center",
+    fontWeight: "700",
   },
   emptySubtitle: {
     ...DesignSystem.typography.body,
-    color: colors.light.textSecondary,
     marginTop: DesignSystem.spacing.xs,
+    textAlign: "center",
+    opacity: 0.9,
   },
 });
 

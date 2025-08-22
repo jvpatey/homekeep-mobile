@@ -8,6 +8,13 @@ import {
   FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import TaskCard from "./TaskCard";
@@ -31,6 +38,41 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
   const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Animation for empty state
+  const iconScale = useSharedValue(1);
+  const iconRotation = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (tasks.length === 0) {
+      // Subtle breathing animation for empty state
+      iconScale.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 2000 }),
+          withTiming(1, { duration: 2000 })
+        ),
+        -1,
+        true
+      );
+
+      // Gentle rotation
+      iconRotation.value = withRepeat(
+        withSequence(
+          withTiming(5, { duration: 3000 }),
+          withTiming(-5, { duration: 3000 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [tasks.length]);
+
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: iconScale.value },
+      { rotate: `${iconRotation.value}deg` },
+    ],
+  }));
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -62,18 +104,27 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
     return (
       <View style={styles.emptyContainer}>
         <LinearGradient
-          colors={[colors.surface, colors.border]}
+          colors={["#F0F9FF", "#E0F2FE"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.emptyGradient}
         >
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={48}
-            color={colors.textSecondary}
-          />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          <View style={styles.emptyIconContainer}>
+            <LinearGradient
+              colors={["#0891B2", "#0EA5E9"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.emptyIconBackground}
+            >
+              <Animated.View style={[styles.emptyIcon, iconAnimatedStyle]}>
+                <Ionicons name="checkmark-circle" size={32} color="white" />
+              </Animated.View>
+            </LinearGradient>
+          </View>
+          <Text style={[styles.emptyTitle, { color: "#0C4A6E" }]}>
             All Caught Up!
           </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.emptySubtitle, { color: "#0891B2" }]}>
             No tasks due right now
           </Text>
         </LinearGradient>
@@ -206,8 +257,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyContainer: {
-    height: 200,
-    marginVertical: DesignSystem.spacing.lg,
+    height: 160,
+    marginVertical: DesignSystem.spacing.md,
     marginHorizontal: DesignSystem.spacing.md,
   },
   emptyGradient: {
@@ -215,15 +266,41 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.large,
     justifyContent: "center",
     alignItems: "center",
+    padding: DesignSystem.spacing.md, // Reduced from lg to md for more compact appearance
     ...DesignSystem.shadows.medium,
+  },
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.md,
+  },
+  emptyIconBackground: {
+    flex: 1,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyTitle: {
     ...DesignSystem.typography.h3,
     marginTop: DesignSystem.spacing.md,
+    textAlign: "center",
+    fontWeight: "700",
   },
   emptySubtitle: {
     ...DesignSystem.typography.body,
     marginTop: DesignSystem.spacing.xs,
+    textAlign: "center",
+    opacity: 0.9,
   },
   paginationContainer: {
     flexDirection: "row",

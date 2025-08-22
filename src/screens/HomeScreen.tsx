@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: DesignSystem.spacing.xxl, // Increased from xl to xxl for smoother hero-to-content transition
+    paddingTop: DesignSystem.spacing.lg, // Reduced from xxl to lg for better single-screen fit
   },
 });

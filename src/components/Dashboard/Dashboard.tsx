@@ -9,6 +9,13 @@ import {
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 
 import { DesignSystem } from "../../theme/designSystem";
@@ -49,6 +56,10 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   const [totalCount, setTotalCount] = useState(0);
   const [streak, setStreak] = useState(0);
 
+  // Animation for floating action button when no tasks
+  const fabScale = useSharedValue(1);
+  const fabRotation = useSharedValue(0);
+
   // Filter tasks for different views
   const upcomingTasks = tasks.filter((task) => !task.is_completed);
   const completedTasks = tasks.filter((task) => task.is_completed);
@@ -68,7 +79,38 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
     });
 
     setStreak(recentCompletions.length);
+
+    // Animate FAB when no tasks
+    if (tasks.length === 0) {
+      fabScale.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 1500 }),
+          withTiming(1, { duration: 1500 })
+        ),
+        -1,
+        true
+      );
+
+      fabRotation.value = withRepeat(
+        withSequence(
+          withTiming(10, { duration: 2000 }),
+          withTiming(-10, { duration: 2000 })
+        ),
+        -1,
+        true
+      );
+    } else {
+      fabScale.value = 1;
+      fabRotation.value = 0;
+    }
   }, [tasks, completedTasks]);
+
+  const fabAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: fabScale.value },
+      { rotate: `${fabRotation.value}deg` },
+    ],
+  }));
 
   const handleCompleteTask = (taskId: string) => {
     onCompleteTask(taskId);
@@ -123,7 +165,10 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 
   const getMotivationalMessage = () => {
     if (upcomingTasks.length === 0) {
-      return "All caught up! Great job!";
+      return "Ready to get organized? Add a task to get started! ✨";
+    }
+    if (upcomingTasks.length <= 3) {
+      return "You're almost there! Just a few more tasks to go.";
     }
     return "You have tasks to complete! Let's get started with your first one.";
   };
@@ -222,18 +267,20 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
       </ScrollView>
 
       {/* Floating Action Button - Add Task */}
-      <TouchableOpacity
-        style={styles.floatingActionButton}
-        onPress={() => setShowCreateModal(true)}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[colors.accent, "#FFB347"]}
-          style={styles.floatingActionButtonGradient}
+      <Animated.View style={fabAnimatedStyle}>
+        <TouchableOpacity
+          style={styles.floatingActionButton}
+          onPress={() => setShowCreateModal(true)}
+          activeOpacity={0.8}
         >
-          <Ionicons name="add" size={28} color={colors.surface} />
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={[colors.accent, "#FFB347"]}
+            style={styles.floatingActionButtonGradient}
+          >
+            <Ionicons name="add" size={28} color={colors.surface} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* Task Detail Modal */}
       <SimpleTaskDetailModal
