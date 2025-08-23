@@ -89,7 +89,7 @@ export function StartDateSelector({
                 {
                   color:
                     startDate.toDateString() === option.date.toDateString()
-                      ? colors.primary
+                      ? "white"
                       : colors.text,
                 },
               ]}
@@ -151,9 +151,7 @@ export function StartDateSelector({
               ]}
               onPress={() => setShowDatePicker(false)}
             >
-              <Text
-                style={[styles.datePickerDoneText, { color: colors.primary }]}
-              >
+              <Text style={[styles.datePickerDoneText, { color: "white" }]}>
                 Done
               </Text>
             </TouchableOpacity>

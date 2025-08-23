@@ -9,7 +9,10 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
-import { HOME_MAINTENANCE_CATEGORIES, CategoryKey } from "../../types/task";
+import {
+  HOME_MAINTENANCE_CATEGORIES,
+  CategoryKey,
+} from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "src/theme/colors";
 
@@ -18,30 +21,32 @@ const CARD_WIDTH = screenWidth - 80; // 40px padding on each side for better cen
 
 interface TaskCardProps {
   id: string;
+  instance_id: string;
   title: string;
   category: CategoryKey;
   priority: "low" | "medium" | "high" | "urgent";
-  estimatedDuration?: number;
-  dueDate: string;
-  isCompleted?: boolean;
-  onComplete: (taskId: string) => void;
-  onPress?: (taskId: string) => void;
+  estimated_duration_minutes?: number;
+  due_date: string;
+  is_completed?: boolean;
+  onComplete: (instanceId: string) => void;
+  onPress?: (instanceId: string) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
   id,
+  instance_id,
   title,
   category,
   priority,
-  estimatedDuration,
-  dueDate,
-  isCompleted = false,
+  estimated_duration_minutes,
+  due_date,
+  is_completed = false,
   onComplete,
   onPress,
 }) => {
   const { colors } = useTheme();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
-  const isOverdue = new Date(dueDate) < new Date() && !isCompleted;
+  const isOverdue = new Date(due_date) < new Date() && !is_completed;
 
   const getPriorityColor = () => {
     switch (priority) {
@@ -77,12 +82,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const handleComplete = () => {
-    onComplete(id);
+    onComplete(instance_id);
   };
 
   const handlePress = () => {
     if (onPress) {
-      onPress(id);
+      onPress(instance_id);
     }
   };
 
@@ -90,7 +95,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     <TouchableOpacity
       style={[
         styles.container,
-        isCompleted && styles.completedContainer,
+        is_completed && styles.completedContainer,
         isOverdue && styles.overdueContainer,
       ]}
       onPress={handlePress}
@@ -143,8 +148,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   color={colors.textSecondary}
                 />
                 <Text style={styles.metaText}>
-                  {estimatedDuration
-                    ? `${estimatedDuration} min`
+                  {estimated_duration_minutes
+                    ? `${estimated_duration_minutes} min`
                     : "No time estimate"}
                 </Text>
               </View>
@@ -158,7 +163,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <Text
                   style={[styles.metaText, isOverdue && styles.overdueText]}
                 >
-                  {formatDueDate(dueDate)}
+                  {formatDueDate(due_date)}
                 </Text>
               </View>
             </View>
@@ -167,12 +172,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
             <TouchableOpacity
               style={[
                 styles.completeButton,
-                isCompleted && styles.completedButton,
+                is_completed && styles.completedButton,
               ]}
               onPress={handleComplete}
               activeOpacity={0.8}
             >
-              {isCompleted ? (
+              {is_completed ? (
                 <Ionicons
                   name="checkmark-circle"
                   size={24}

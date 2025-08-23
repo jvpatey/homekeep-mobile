@@ -5,11 +5,9 @@ import { useTheme } from "../../../context/ThemeContext";
 import { intervalOptions, intervalValueExamples } from "./data";
 
 interface IntervalSelectorProps {
-  selectedInterval: string;
+  selectedInterval: number;
   intervalValue: number;
-  onSelectInterval: (
-    interval: "weekly" | "monthly" | "yearly" | "custom"
-  ) => void;
+  onSelectInterval: (interval: number) => void;
   onIntervalValueChange: (value: number) => void;
   error?: string;
 }
@@ -28,6 +26,38 @@ export function IntervalSelector({
       ? intervalValue + 1
       : Math.max(1, intervalValue - 1);
     onIntervalValueChange(newValue);
+  };
+
+  const getIntervalMultiplier = (
+    selectedInterval: number,
+    intervalValue: number
+  ) => {
+    if (selectedInterval === 0) {
+      // Custom interval - show the actual days
+      return intervalValue;
+    } else {
+      // For predefined intervals, calculate the multiplier
+      // e.g., if selectedInterval is 30 (monthly) and intervalValue is 30, show "1"
+      // because 30 days = 1 month
+      if (selectedInterval === 30) return 1; // Monthly
+      if (selectedInterval === 7) return 1; // Weekly
+      if (selectedInterval === 90) return 1; // Quarterly
+      if (selectedInterval === 365) return 1; // Yearly
+      return intervalValue;
+    }
+  };
+
+  const getIntervalLabel = (days: number) => {
+    if (days === 7) return "week";
+    if (days === 30) return "month";
+    if (days === 90) return "quarter";
+    if (days === 365) return "year";
+    return "day";
+  };
+
+  const getIntervalLabelPlural = (days: number) => {
+    const label = getIntervalLabel(days);
+    return intervalValue > 1 ? `${label}s` : label;
   };
 
   return (
@@ -54,16 +84,19 @@ export function IntervalSelector({
                     : colors.border,
               },
             ]}
-            onPress={() => onSelectInterval(option.id)}
+            onPress={() => {
+              onSelectInterval(option.id);
+              // Reset interval value to 1 when selecting a predefined interval
+              if (option.id !== 0) {
+                onIntervalValueChange(1);
+              }
+            }}
           >
             <Text
               style={[
                 styles.intervalOptionText,
                 {
-                  color:
-                    selectedInterval === option.id
-                      ? colors.primary
-                      : colors.text,
+                  color: selectedInterval === option.id ? "white" : colors.text,
                 },
               ]}
             >
@@ -75,7 +108,7 @@ export function IntervalSelector({
                 {
                   color:
                     selectedInterval === option.id
-                      ? colors.primary
+                      ? "white"
                       : colors.textSecondary,
                 },
               ]}
@@ -89,13 +122,8 @@ export function IntervalSelector({
       {/* Interval Value Selection */}
       <View style={styles.intervalValueContainer}>
         <Text style={[styles.intervalValueLabel, { color: colors.text }]}>
-          Every {intervalValue}{" "}
-          {selectedInterval === "weekly"
-            ? "week"
-            : selectedInterval === "monthly"
-            ? "month"
-            : "year"}
-          {intervalValue > 1 ? "s" : ""}
+          Every {getIntervalMultiplier(selectedInterval, intervalValue)}{" "}
+          {getIntervalLabelPlural(selectedInterval)}
         </Text>
 
         <View style={styles.valueControls}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,16 +14,12 @@ import { Ionicons } from "@expo/vector-icons";
 interface CompletionCelebrationProps {
   isVisible: boolean;
   onClose: () => void;
-  completedCount: number;
-  totalCount: number;
   streak?: number;
 }
 
 const CompletionCelebration: React.FC<CompletionCelebrationProps> = ({
   isVisible,
   onClose,
-  completedCount,
-  totalCount,
   streak = 0,
 }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -63,7 +59,7 @@ const CompletionCelebration: React.FC<CompletionCelebrationProps> = ({
     }
   }, [isVisible]);
 
-  const hideCelebration = () => {
+  const hideCelebration = useCallback(() => {
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 0,
@@ -78,18 +74,20 @@ const CompletionCelebration: React.FC<CompletionCelebrationProps> = ({
     ]).start(() => {
       onClose();
     });
-  };
+  }, [scaleAnim, opacityAnim, onClose]);
 
   const getAchievementMessage = () => {
-    if (streak >= 5) return "🔥 On Fire!";
-    if (streak >= 3) return "🚀 Great Streak!";
-    if (completedCount === totalCount) return "🎉 All Done!";
-    if (completedCount >= totalCount * 0.8) return "💪 Almost There!";
-    return "✨ Great Job!";
+    if (streak >= 7) return "🔥 Week Warrior!";
+    if (streak >= 5) return "🚀 On Fire!";
+    if (streak >= 3) return "💪 Streaking!";
+    if (streak >= 2) return "✨ Building Momentum!";
+    return "🎯 Great Start!";
   };
 
-  const getProgressPercentage = () => {
-    return totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const getStreakMessage = () => {
+    if (streak === 0) return "Complete a task to start your streak!";
+    if (streak === 1) return "1 day streak - keep it going!";
+    return `${streak} day${streak !== 1 ? "s" : ""} in a row!`;
   };
 
   if (!isVisible) return null;
@@ -153,42 +151,14 @@ const CompletionCelebration: React.FC<CompletionCelebrationProps> = ({
               {getAchievementMessage()}
             </Text>
 
-            {/* Progress Section */}
-            <View style={styles.progressSection}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressTitle}>Progress</Text>
-                <Text style={styles.progressCount}>
-                  {completedCount} of {totalCount}
-                </Text>
+            {/* Streak Section */}
+            <View style={styles.streakSection}>
+              <View style={styles.streakHeader}>
+                <Ionicons name="flame" size={24} color="#FF6B35" />
+                <Text style={styles.streakTitle}>Your Streak</Text>
               </View>
-
-              {/* Progress Bar */}
-              <View style={styles.progressBarContainer}>
-                <View style={styles.progressBar}>
-                  <Animated.View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${getProgressPercentage()}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.progressPercentage}>
-                  {Math.round(getProgressPercentage())}%
-                </Text>
-              </View>
+              <Text style={styles.streakMessage}>{getStreakMessage()}</Text>
             </View>
-
-            {/* Streak Info */}
-            {streak > 0 && (
-              <View style={styles.streakContainer}>
-                <Ionicons name="flame" size={20} color="#FF6B35" />
-                <Text style={styles.streakText}>
-                  {streak} day{streak !== 1 ? "s" : ""} streak!
-                </Text>
-              </View>
-            )}
 
             {/* Close Button */}
             <TouchableOpacity
@@ -256,61 +226,29 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  progressSection: {
+  streakSection: {
     width: "100%",
     marginBottom: DesignSystem.spacing.lg,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.sm,
   },
-  progressTitle: {
-    ...DesignSystem.typography.bodySemiBold,
-    color: colors.light.surface,
-  },
-  progressCount: {
-    ...DesignSystem.typography.small,
-    color: colors.light.surface,
-    opacity: 0.8,
-  },
-  progressBarContainer: {
+  streakHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.sm,
   },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.light.accent,
-    borderRadius: 4,
-  },
-  progressPercentage: {
-    ...DesignSystem.typography.captionSemiBold,
+  streakTitle: {
+    ...DesignSystem.typography.bodySemiBold,
     color: colors.light.surface,
-    minWidth: 35,
+    fontSize: 18,
   },
-  streakContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.medium,
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  streakText: {
-    ...DesignSystem.typography.bodyMedium,
+  streakMessage: {
+    ...DesignSystem.typography.body,
     color: colors.light.surface,
-    marginLeft: DesignSystem.spacing.xs,
+    textAlign: "center",
+    opacity: 0.9,
   },
+
   closeButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     paddingHorizontal: DesignSystem.spacing.xl,

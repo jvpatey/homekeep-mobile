@@ -4,9 +4,10 @@ import { Chip } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { styles } from "../styles";
+import { MaintenanceCategory } from "../../../types/maintenance";
 
 interface Category {
-  id: string;
+  id: MaintenanceCategory;
   name: string;
   icon: string;
   color: string;
@@ -14,8 +15,8 @@ interface Category {
 
 interface CategorySelectorProps {
   categories: Category[];
-  selectedCategory: string;
-  onSelectCategory: (categoryId: string) => void;
+  selectedCategory: MaintenanceCategory;
+  onSelectCategory: (categoryId: MaintenanceCategory) => void;
   error?: string;
 }
 

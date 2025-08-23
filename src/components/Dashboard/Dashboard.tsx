@@ -19,22 +19,22 @@ import Animated, {
 import { useTheme } from "../../context/ThemeContext";
 
 import { DesignSystem } from "../../theme/designSystem";
-import { Task } from "../../types/task";
+import { MaintenanceTask } from "../../types/maintenance";
 import HeroCarousel from "./HeroCarousel";
 import TimelineView from "./TimelineView";
 import CompletionCelebration from "./CompletionCelebration";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
-import ProfileButton from "./ProfileButton";
+import { ProfileMenu } from "./ProfileMenu";
 import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
 import { CreateTaskModal } from "./CreateTaskModal";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 interface NewDashboardProps {
-  tasks: Task[];
-  onCompleteTask: (taskId: string) => void;
-  onTaskPress?: (taskId: string) => void;
+  tasks: MaintenanceTask[];
+  onCompleteTask: (instanceId: string) => void;
+  onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
 }
@@ -49,11 +49,11 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   const { user } = useAuth();
   const { colors } = useTheme();
   const [showCelebration, setShowCelebration] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
+    null
+  );
   const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
   const [streak, setStreak] = useState(0);
 
   // Animation for floating action button when no tasks
@@ -65,20 +65,60 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   const completedTasks = tasks.filter((task) => task.is_completed);
 
   useEffect(() => {
-    setTotalCount(tasks.length);
-    setCompletedCount(completedTasks.length);
+    // Calculate consecutive day streak
+    const calculateConsecutiveStreak = () => {
+      if (completedTasks.length === 0) return 0;
 
-    // Calculate streak (simplified - you can enhance this logic)
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+      // Sort completed tasks by completion date (newest first)
+      const sortedCompletions = completedTasks
+        .filter((task) => task.completed_at)
+        .sort(
+          (a, b) =>
+            new Date(b.completed_at!).getTime() -
+            new Date(a.completed_at!).getTime()
+        );
 
-    const recentCompletions = completedTasks.filter((task) => {
-      const completedDate = new Date(task.completed_at || "");
-      return completedDate >= yesterday;
-    });
+      if (sortedCompletions.length === 0) return 0;
 
-    setStreak(recentCompletions.length);
+      let streak = 0;
+      let currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0); // Start of today
+
+      // Check if we have a completion today
+      const todayCompletion = sortedCompletions.find((task) => {
+        const completionDate = new Date(task.completed_at!);
+        completionDate.setHours(0, 0, 0, 0);
+        return completionDate.getTime() === currentDate.getTime();
+      });
+
+      if (todayCompletion) {
+        streak = 1;
+        currentDate.setDate(currentDate.getDate() - 1); // Move to yesterday
+
+        // Count consecutive days backwards
+        for (let i = 1; i <= 365; i++) {
+          // Max 1 year streak
+          const checkDate = new Date(currentDate);
+          checkDate.setDate(checkDate.getDate() - i);
+
+          const hasCompletion = sortedCompletions.some((task) => {
+            const completionDate = new Date(task.completed_at!);
+            completionDate.setHours(0, 0, 0, 0);
+            return completionDate.getTime() === checkDate.getTime();
+          });
+
+          if (hasCompletion) {
+            streak++;
+          } else {
+            break; // Streak broken
+          }
+        }
+      }
+
+      return streak;
+    };
+
+    setStreak(calculateConsecutiveStreak());
 
     // Animate FAB when no tasks
     if (tasks.length === 0) {
@@ -112,17 +152,17 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
     ],
   }));
 
-  const handleCompleteTask = (taskId: string) => {
-    onCompleteTask(taskId);
+  const handleCompleteTask = async (instanceId: string) => {
+    await onCompleteTask(instanceId);
 
-    // Show celebration after a short delay
+    // Show celebration after completion is processed
     setTimeout(() => {
       setShowCelebration(true);
-    }, 300);
+    }, 500);
   };
 
-  const handleTaskPress = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
+  const handleTaskPress = (instanceId: string) => {
+    const task = tasks.find((t) => t.instance_id === instanceId);
     if (task) {
       setSelectedTask(task);
       setShowTaskDetail(true);
@@ -131,6 +171,10 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 
   const handleCloseCelebration = () => {
     setShowCelebration(false);
+    // Refresh tasks after celebration closes to ensure UI is updated
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const handleTaskCreated = () => {
@@ -197,7 +241,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           >
             {/* Profile Button - Top Right */}
             <View style={styles.profileButtonContainer}>
-              <ProfileButton size={40} />
+              <ProfileMenu onRefresh={onRefresh} />
             </View>
 
             <View style={styles.headerContent}>
@@ -228,10 +272,10 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: colors.surface }]}>
-                    {completedCount}
+                    {tasks.filter((task) => !task.is_completed).length}
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.surface }]}>
-                    Completed
+                    Active Routines
                   </Text>
                 </View>
                 <View style={styles.statDivider} />
@@ -302,8 +346,6 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
       <CompletionCelebration
         isVisible={showCelebration}
         onClose={handleCloseCelebration}
-        completedCount={completedCount}
-        totalCount={totalCount}
         streak={streak}
       />
     </View>

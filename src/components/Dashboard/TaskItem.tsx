@@ -2,14 +2,14 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
-import { Task } from "../../types/task";
+import { MaintenanceTask } from "../../types/maintenance";
 
 interface TaskItemProps {
-  task: Task;
-  onPress: (taskId: string) => void;
+  task: MaintenanceTask;
+  onPress: (instanceId: string) => void;
   onDelete?: (taskId: string, taskTitle: string) => void;
-  onComplete?: (taskId: string) => void;
-  onUncomplete?: (taskId: string) => void;
+  onComplete?: (instanceId: string) => void;
+  onUncomplete?: (instanceId: string) => void;
   getCategoryColor: (category: string) => string;
   formatDueDate: (dateString: string) => string;
   showDeleteButton?: boolean;
@@ -32,18 +32,18 @@ export function TaskItem({
   const isIncompleteView = variant === "incomplete" && !isCompleted;
 
   const handlePress = () => {
-    onPress(task.instance_id || task.id);
+    onPress(task.instance_id);
   };
 
   const handleComplete = () => {
     if (onComplete) {
-      onComplete(task.instance_id || task.id);
+      onComplete(task.instance_id);
     }
   };
 
   const handleDelete = () => {
     if (onDelete) {
-      onDelete(task.instance_id || task.id, task.title);
+      onDelete(task.id, task.title);
     }
   };
 
@@ -98,7 +98,7 @@ export function TaskItem({
               ]}
               numberOfLines={1}
             >
-              {formatDueDate(task.next_due_date)}
+              {formatDueDate(task.due_date)}
             </Text>
           </View>
         </View>
@@ -117,7 +117,7 @@ export function TaskItem({
           {isCompleted && onUncomplete && (
             <TouchableOpacity
               style={[styles.actionButton, styles.uncompleteButton]}
-              onPress={() => onUncomplete(task.instance_id || task.id)}
+              onPress={() => onUncomplete(task.instance_id)}
               activeOpacity={0.8}
             >
               <Ionicons name="refresh" size={20} color="white" />

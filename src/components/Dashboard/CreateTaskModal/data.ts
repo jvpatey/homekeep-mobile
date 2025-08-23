@@ -1,6 +1,13 @@
-// Data for the CreateTaskModal - Updated for new TaskSeries structure
+// Data for the CreateTaskModal - Updated for new Maintenance Routine structure
 
-export const categories = [
+import { MaintenanceCategory, Priority } from "../../../types/maintenance";
+
+export const categories: Array<{
+  id: MaintenanceCategory;
+  name: string;
+  icon: string;
+  color: string;
+}> = [
   { id: "HVAC", name: "HVAC", icon: "snow-outline", color: "#FF6B6B" },
   { id: "PLUMBING", name: "Plumbing", icon: "water-outline", color: "#4ECDC4" },
   {
@@ -37,22 +44,29 @@ export const categories = [
   },
 ];
 
-export const priorities = [
+export const priorities: Array<{
+  id: Priority;
+  name: string;
+  color: string;
+}> = [
   { id: "low", name: "Low", color: "#95A5A6" },
   { id: "medium", name: "Medium", color: "#3498DB" },
   { id: "high", name: "High", color: "#E74C3C" },
+  { id: "urgent", name: "Urgent", color: "#C0392B" },
 ];
 
 export const intervalOptions = [
-  { id: "weekly" as const, name: "Weekly", description: "Every week" },
-  { id: "monthly" as const, name: "Monthly", description: "Every month" },
-  { id: "yearly" as const, name: "Yearly", description: "Every year" },
-  { id: "custom" as const, name: "Custom", description: "Custom interval" },
+  { id: 7, name: "Weekly", description: "Every week" },
+  { id: 30, name: "Monthly", description: "Every month" },
+  { id: 90, name: "Quarterly", description: "Every 3 months" },
+  { id: 365, name: "Yearly", description: "Every year" },
+  { id: 0, name: "Custom", description: "Custom interval in days" },
 ];
 
 export const intervalValueExamples = {
-  weekly: "e.g., every 2 weeks",
-  monthly: "e.g., every 3 months",
-  yearly: "e.g., every 2 years",
-  custom: "e.g., every 6 months",
+  7: "e.g., every 2 weeks (14 days)",
+  30: "e.g., every 3 months (90 days)",
+  90: "e.g., every 6 months (180 days)",
+  365: "e.g., every 2 years (730 days)",
+  0: "e.g., every 6 months (180 days)",
 };

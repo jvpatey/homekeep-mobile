@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { TaskService } from "../services/taskService";
+import { MaintenanceService } from "../services/maintenanceService";
 import {
-  Task,
-  CreateTaskData,
-  UpdateTaskData,
-  TaskFilters,
-} from "../types/task";
+  MaintenanceTask,
+  CreateMaintenanceRoutineData,
+  UpdateMaintenanceRoutineData,
+  MaintenanceFilters,
+} from "../types/maintenance";
 import { useAuth } from "../context/AuthContext";
 import { TimeRange } from "../context/TasksContext";
 
 // UseTasksReturn - interface for the return value of the useTasks hook
 interface UseTasksReturn {
-  tasks: Task[];
-  upcomingTasks: Task[];
-  overdueTasks: Task[];
-  completedTasks: Task[];
+  tasks: MaintenanceTask[];
+  upcomingTasks: MaintenanceTask[];
+  overdueTasks: MaintenanceTask[];
+  completedTasks: MaintenanceTask[];
   loading: boolean;
   error: string | null;
   timeRange: TimeRange;
@@ -26,23 +26,25 @@ interface UseTasksReturn {
     dueToday: number;
     thisWeek: number;
     completionRate: number;
+    activeRoutines: number;
+    totalInstances: number;
   };
   createTask: (
-    taskData: CreateTaskData
+    taskData: CreateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
   updateTask: (
     taskId: string,
-    updates: UpdateTaskData
+    updates: UpdateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
   completeTask: (
-    taskId: string
+    instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
   uncompleteTask: (
-    taskId: string
+    instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (
-    taskIds: string[]
+    instanceIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
   deleteAllTasks: () => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;
@@ -51,13 +53,13 @@ interface UseTasksReturn {
   refreshStats: () => Promise<void>;
 }
 
-// useTasks - custom hook for managing tasks
-export function useTasks(filters?: TaskFilters): UseTasksReturn {
+// useTasks - custom hook for managing maintenance tasks
+export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
-  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<MaintenanceTask[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<MaintenanceTask[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<MaintenanceTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>(30);
@@ -68,10 +70,12 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     dueToday: 0,
     thisWeek: 0,
     completionRate: 0,
+    activeRoutines: 0,
+    totalInstances: 0,
   });
   const [lookbackDays, setLookbackDays] = useState<number | "all">(14);
 
-  // loadTasks - load tasks from the database
+  // loadTasks - load maintenance tasks from the database
   const loadTasks = useCallback(async () => {
     if (!user) return;
 
@@ -80,7 +84,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
 
     try {
       console.log(
-        `🔄 useTasks: Loading tasks with filter = ${
+        `🔄 useTasks: Loading maintenance tasks with filter = ${
           timeRange === "all" ? "All Tasks" : `${timeRange} days`
         }`
       );
@@ -91,11 +95,11 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         completedResult,
         statsResult,
       ] = await Promise.all([
-        TaskService.getTasks(filters), // series templates (for editing etc.)
-        TaskService.getUpcomingInstances(timeRange),
-        TaskService.getOverdueInstances(lookbackDays),
-        TaskService.getCompletedInstances(lookbackDays),
-        TaskService.getTaskStats(),
+        MaintenanceService.getMaintenanceTasks(filters),
+        MaintenanceService.getUpcomingTasks(timeRange),
+        MaintenanceService.getOverdueTasks(lookbackDays),
+        MaintenanceService.getCompletedTasks(lookbackDays),
+        MaintenanceService.getMaintenanceStats(),
       ]);
 
       if (tasksResult.error) throw tasksResult.error;
@@ -120,36 +124,38 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           dueToday: 0,
           thisWeek: 0,
           completionRate: 0,
+          activeRoutines: 0,
+          totalInstances: 0,
         }
       );
 
       // Global totals regardless of UI filters
       console.log(
-        `📦 User totals — tasks: ${
+        `📦 User totals — routines: ${
           tasksResult.data?.length || 0
         }, upcoming: ${upcomingCount}, overdue: ${overdueCount}, completed: ${completedCount}`
       );
 
       console.log(
-        `✅ useTasks: Loaded ${upcomingCount} upcoming, ${overdueCount} overdue, ${completedCount} completed tasks`
+        `✅ useTasks: Loaded ${upcomingCount} upcoming, ${overdueCount} overdue, ${completedCount} completed maintenance tasks`
       );
     } catch (err: any) {
-      setError(err.message || "Failed to load tasks");
-      console.error("❌ useTasks: Error loading tasks:", err);
+      setError(err.message || "Failed to load maintenance tasks");
+      console.error("❌ useTasks: Error loading maintenance tasks:", err);
     } finally {
       setLoading(false);
     }
   }, [user, filters, timeRange, lookbackDays]);
 
-  // createTask - create a new task
+  // createTask - create a new maintenance routine
   const createTask = useCallback(
-    async (taskData: CreateTaskData) => {
+    async (taskData: CreateMaintenanceRoutineData) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };
       }
 
       try {
-        const { data, error } = await TaskService.createTask(taskData);
+        const { data, error } = await MaintenanceService.createMaintenanceRoutine(taskData);
 
         if (error) throw error;
 
@@ -158,23 +164,23 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to create task";
-        console.error("Error creating task:", err);
+        const errorMessage = err.message || "Failed to create maintenance routine";
+        console.error("Error creating maintenance routine:", err);
         return { success: false, error: errorMessage };
       }
     },
     [user, loadTasks]
   );
 
-  // updateTask - update a task
+  // updateTask - update a maintenance routine
   const updateTask = useCallback(
-    async (taskId: string, updates: UpdateTaskData) => {
+    async (taskId: string, updates: UpdateMaintenanceRoutineData) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };
       }
 
       try {
-        const { data, error } = await TaskService.updateTask(taskId, updates);
+        const { data, error } = await MaintenanceService.updateMaintenanceRoutine(taskId, updates);
 
         if (error) throw error;
 
@@ -188,88 +194,16 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         );
 
         // Handle completion status changes
-        if (updates.is_completed !== undefined) {
-          if (updates.is_completed) {
-            // Task was completed - remove from upcoming, add to completed
+        if (updates.is_active !== undefined) {
+          // If routine is deactivated, remove from upcoming and overdue lists
+          if (!updates.is_active) {
             setUpcomingTasks((prev) =>
               prev.filter((task) => task.id !== taskId)
             );
-            setCompletedTasks((prev) => {
-              const existingTask = prev.find((task) => task.id === taskId);
-              if (existingTask) {
-                return prev.map((task) =>
-                  task.id === taskId
-                    ? {
-                        ...task,
-                        ...updates,
-                        updated_at: new Date().toISOString(),
-                      }
-                    : task
-                );
-              } else {
-                const task = tasks.find((t) => t.id === taskId);
-                if (task) {
-                  return [
-                    ...prev,
-                    {
-                      ...task,
-                      ...updates,
-                      updated_at: new Date().toISOString(),
-                    },
-                  ];
-                }
-                return prev;
-              }
-            });
-          } else {
-            // Task was uncompleted - remove from completed, add to upcoming
-            setCompletedTasks((prev) =>
+            setOverdueTasks((prev) =>
               prev.filter((task) => task.id !== taskId)
             );
-            setUpcomingTasks((prev) => {
-              const existingTask = prev.find((task) => task.id === taskId);
-              if (existingTask) {
-                return prev.map((task) =>
-                  task.id === taskId
-                    ? {
-                        ...task,
-                        ...updates,
-                        updated_at: new Date().toISOString(),
-                      }
-                    : task
-                );
-              } else {
-                const task = tasks.find((t) => t.id === taskId);
-                if (task) {
-                  return [
-                    ...prev,
-                    {
-                      ...task,
-                      ...updates,
-                      updated_at: new Date().toISOString(),
-                    },
-                  ];
-                }
-                return prev;
-              }
-            });
           }
-        } else {
-          // Regular update - update in both lists if present
-          setUpcomingTasks((prev) =>
-            prev.map((task) =>
-              task.id === taskId
-                ? { ...task, ...updates, updated_at: new Date().toISOString() }
-                : task
-            )
-          );
-          setCompletedTasks((prev) =>
-            prev.map((task) =>
-              task.id === taskId
-                ? { ...task, ...updates, updated_at: new Date().toISOString() }
-                : task
-            )
-          );
         }
 
         // Refresh stats
@@ -277,36 +211,23 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to update task";
-        console.error("Error updating task:", err);
+        const errorMessage = err.message || "Failed to update maintenance routine";
+        console.error("Error updating maintenance routine:", err);
         return { success: false, error: errorMessage };
       }
     },
     [user, tasks]
   );
 
-  // completeTask - mark a task or instance as completed
+  // completeTask - mark a routine instance as completed
   const completeTask = useCallback(
-    async (taskId: string) => {
+    async (instanceId: string) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };
       }
 
       try {
-        // Prefer completing an instance if we can map the id
-        const candidate =
-          upcomingTasks.find(
-            (t) => t.instance_id === taskId || t.id === taskId
-          ) ||
-          overdueTasks.find((t) => t.instance_id === taskId || t.id === taskId);
-
-        let result: any;
-        if (candidate?.instance_id) {
-          result = await TaskService.completeInstance(candidate.instance_id);
-        } else {
-          // Fallback to completing the template task
-          result = await TaskService.completeTask(taskId);
-        }
+        const result = await MaintenanceService.completeInstance(instanceId);
 
         if (result.error) throw result.error;
 
@@ -315,57 +236,40 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to complete task";
-        console.error("Error completing task:", err);
+        const errorMessage = err.message || "Failed to complete maintenance task";
+        console.error("Error completing maintenance task:", err);
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks, upcomingTasks, overdueTasks]
+    [user, loadTasks]
   );
 
-  // uncompleteTask - mark a task/instance as incomplete
+  // uncompleteTask - mark a routine instance as incomplete
   const uncompleteTask = useCallback(
-    async (taskId: string) => {
+    async (instanceId: string) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };
       }
 
       try {
-        const candidate =
-          completedTasks.find(
-            (t) => t.instance_id === taskId || t.id === taskId
-          ) ||
-          upcomingTasks.find(
-            (t) => t.instance_id === taskId || t.id === taskId
-          );
+        const result = await MaintenanceService.uncompleteInstance(instanceId);
 
-        let error: any = null;
-        if (candidate?.instance_id) {
-          const res = await TaskService.uncompleteInstance(
-            candidate.instance_id
-          );
-          error = res.error;
-        } else {
-          const res = await TaskService.uncompleteTask(taskId);
-          error = res.error;
-        }
-
-        if (error) throw error;
+        if (result.error) throw result.error;
 
         // Refresh all task data to ensure consistency
         await loadTasks();
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to uncomplete task";
-        console.error("Error uncompleting task:", err);
+        const errorMessage = err.message || "Failed to uncomplete maintenance task";
+        console.error("Error uncompleting maintenance task:", err);
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks, completedTasks, upcomingTasks]
+    [user, loadTasks]
   );
 
-  // deleteTask - delete a task
+  // deleteTask - delete a maintenance routine
   const deleteTask = useCallback(
     async (taskId: string) => {
       if (!user) {
@@ -373,58 +277,20 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       }
 
       try {
-        // If taskId matches an instance in any list, delete the instance instead of the series
-        const instanceCandidate =
-          upcomingTasks.find(
-            (t) => t.instance_id === taskId || t.id === taskId
-          ) ||
-          overdueTasks.find(
-            (t) => t.instance_id === taskId || t.id === taskId
-          ) ||
-          completedTasks.find(
-            (t) => t.instance_id === taskId || t.id === taskId
-          );
+        const result = await MaintenanceService.deleteMaintenanceRoutine(taskId);
 
-        let error: any = null;
-        if (
-          instanceCandidate?.instance_id &&
-          instanceCandidate.instance_id === taskId
-        ) {
-          const res = await TaskService.deleteInstance(
-            instanceCandidate.instance_id
-          );
-          error = res.error;
-          if (!error) {
-            console.log(
-              `🗑️ Deleted occurrence ${instanceCandidate.instance_id} of task ${instanceCandidate.id} (${instanceCandidate.title})`
-            );
-          }
-        } else {
-          const res = await TaskService.deleteTask(taskId);
-          error = res.error;
-          if (!error) {
-            console.log(`🗑️ Deleted entire series task ${taskId}`);
-          }
-        }
-
-        if (error) throw error;
+        if (result.error) throw result.error;
 
         // Remove from local state
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
         setUpcomingTasks((prev) =>
-          prev.filter(
-            (task) => task.id !== taskId && task.instance_id !== taskId
-          )
+          prev.filter((task) => task.id !== taskId)
         );
         setOverdueTasks((prev) =>
-          prev.filter(
-            (task) => task.id !== taskId && task.instance_id !== taskId
-          )
+          prev.filter((task) => task.id !== taskId)
         );
         setCompletedTasks((prev) =>
-          prev.filter(
-            (task) => task.id !== taskId && task.instance_id !== taskId
-          )
+          prev.filter((task) => task.id !== taskId)
         );
 
         // Refresh stats
@@ -432,52 +298,44 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to delete task";
-        console.error("Error deleting task:", err);
+        const errorMessage = err.message || "Failed to delete maintenance routine";
+        console.error("Error deleting maintenance routine:", err);
         return { success: false, error: errorMessage };
       }
     },
-    [user, upcomingTasks, overdueTasks, completedTasks]
+    [user]
   );
 
-  // bulkCompleteTasks - mark multiple tasks/instances as completed
+  // bulkCompleteTasks - mark multiple routine instances as completed
   const bulkCompleteTasks = useCallback(
-    async (taskIds: string[]) => {
+    async (instanceIds: string[]) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };
       }
 
-      if (!taskIds.length) {
+      if (!instanceIds.length) {
         return { success: true };
       }
 
       try {
-        // Complete each as instance if possible
-        for (const id of taskIds) {
-          const candidate =
-            upcomingTasks.find((t) => t.instance_id === id || t.id === id) ||
-            overdueTasks.find((t) => t.instance_id === id || t.id === id);
-          if (candidate?.instance_id) {
-            await TaskService.completeInstance(candidate.instance_id);
-          } else {
-            await TaskService.completeTask(id);
-          }
-        }
+        const result = await MaintenanceService.bulkCompleteInstances(instanceIds);
+
+        if (result.error) throw result.error;
 
         // Refresh all task data to ensure consistency
         await loadTasks();
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to complete tasks";
-        console.error("Error bulk completing tasks:", err);
+        const errorMessage = err.message || "Failed to complete maintenance tasks";
+        console.error("Error bulk completing maintenance tasks:", err);
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks, upcomingTasks, overdueTasks]
+    [user, loadTasks]
   );
 
-  // refreshTasks - refresh the tasks
+  // refreshTasks - refresh the maintenance tasks
   const refreshTasks = useCallback(async () => {
     await loadTasks();
   }, [loadTasks]);
@@ -487,7 +345,7 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     if (!user) return;
 
     try {
-      const { data, error } = await TaskService.getTaskStats();
+      const { data, error } = await MaintenanceService.getMaintenanceStats();
 
       if (error) throw error;
 
@@ -499,6 +357,8 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
           dueToday: 0,
           thisWeek: 0,
           completionRate: 0,
+          activeRoutines: 0,
+          totalInstances: 0,
         }
       );
     } catch (err: any) {
@@ -506,14 +366,14 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
     }
   }, [user]);
 
-  // delete all tasks (series + instances) for current user
+  // delete all maintenance routines and instances for current user
   const deleteAllTasks = useCallback(async () => {
     if (!user) {
       return { success: false, error: "User not authenticated" };
     }
     try {
-      const { error, tasksDeleted, instancesDeleted } =
-        await TaskService.deleteAllTasks();
+      const { error, routinesDeleted, instancesDeleted } =
+        await MaintenanceService.deleteAllMaintenanceData();
       if (error) throw error;
       // Clear local state
       setTasks([]);
@@ -522,14 +382,14 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
       setCompletedTasks([]);
       await refreshStats();
       console.log(
-        `🗑️ Deleted all tasks: ${tasksDeleted || 0} tasks and ${
+        `🗑️ Deleted all maintenance routines: ${routinesDeleted || 0} routines and ${
           instancesDeleted || 0
         } instances`
       );
       return { success: true };
     } catch (err: any) {
-      const errorMessage = err.message || "Failed to delete all tasks";
-      console.error("Error deleting all tasks:", err);
+      const errorMessage = err.message || "Failed to delete all maintenance routines";
+      console.error("Error deleting all maintenance routines:", err);
       return { success: false, error: errorMessage };
     }
   }, [user, refreshStats]);
@@ -550,6 +410,8 @@ export function useTasks(filters?: TaskFilters): UseTasksReturn {
         dueToday: 0,
         thisWeek: 0,
         completionRate: 0,
+        activeRoutines: 0,
+        totalInstances: 0,
       });
     }
   }, [user, loadTasks]);

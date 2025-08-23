@@ -24,21 +24,25 @@ import { StartDateSelector } from "./StartDateSelector";
 import { ModalHeader } from "./ModalHeader";
 import { SubmitButton } from "./SubmitButton";
 import { categories, priorities } from "./data";
+import {
+  CreateMaintenanceRoutineData,
+  MaintenanceCategory,
+  Priority,
+} from "../../../types/maintenance";
 
 interface CreateTaskModalProps {
   onClose: () => void;
   onTaskCreated: () => void;
 }
 
-interface TaskSeriesForm {
+interface MaintenanceRoutineForm {
   title: string;
-  category: string;
-  interval: "weekly" | "monthly" | "yearly" | "custom";
-  intervalValue: number;
+  category: MaintenanceCategory;
+  interval_days: number;
   startDate: Date;
-  priority: "low" | "medium" | "high";
-  estimatedDuration: number;
-  instructions?: string;
+  priority: Priority;
+  estimated_duration_minutes: number;
+  description?: string;
 }
 
 export function CreateTaskModal({
@@ -51,27 +55,31 @@ export function CreateTaskModal({
   const { colors } = useTheme();
   const modalAnimatedStyle = useSimpleAnimation(0, 400, 20);
 
-  const [form, setForm] = useState<TaskSeriesForm>({
+  const [form, setForm] = useState<MaintenanceRoutineForm>({
     title: "",
-    category: "",
-    interval: "monthly",
-    intervalValue: 1,
+    category: "GENERAL" as MaintenanceCategory,
+    interval_days: 30,
     startDate: (() => {
       const today = new Date();
       today.setHours(9, 0, 0, 0);
       return today;
     })(),
-    priority: "medium",
-    estimatedDuration: 30,
-    instructions: "",
+    priority: "medium" as Priority,
+    estimated_duration_minutes: 30,
+    description: "",
   });
 
+  // Separate state for interval management
+  const [selectedInterval, setSelectedInterval] = useState<number>(30); // 30 = Monthly
+  const [intervalValue, setIntervalValue] = useState<number>(1); // Multiplier
+
   const [errors, setErrors] = useState<
-    Partial<{ [K in keyof TaskSeriesForm]: string }>
+    Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<{ [K in keyof TaskSeriesForm]: string }> = {};
+    const newErrors: Partial<{ [K in keyof MaintenanceRoutineForm]: string }> =
+      {};
 
     if (!form.title.trim()) {
       newErrors.title = "Task title is required";
@@ -81,12 +89,15 @@ export function CreateTaskModal({
       newErrors.category = "Please select a category";
     }
 
-    if (!form.estimatedDuration || form.estimatedDuration <= 0) {
-      newErrors.estimatedDuration = "Duration must be greater than 0";
+    if (
+      !form.estimated_duration_minutes ||
+      form.estimated_duration_minutes <= 0
+    ) {
+      newErrors.estimated_duration_minutes = "Duration must be greater than 0";
     }
 
-    if (!form.intervalValue || form.intervalValue <= 0) {
-      newErrors.intervalValue = "Interval value must be greater than 0";
+    if (!form.interval_days || form.interval_days <= 0) {
+      newErrors.interval_days = "Interval must be greater than 0";
     }
 
     setErrors(newErrors);
@@ -100,38 +111,44 @@ export function CreateTaskModal({
     }
 
     try {
-      triggerLight();
+      // Calculate the actual interval_days based on selected interval and multiplier
+      let actualIntervalDays: number;
+      if (selectedInterval === 0) {
+        // Custom interval - use the intervalValue directly as days
+        actualIntervalDays = intervalValue;
+      } else {
+        // For predefined intervals, multiply the base interval by the multiplier
+        actualIntervalDays = selectedInterval * intervalValue;
+      }
 
-      // TODO: Implement actual task creation with new data structure
-      // For now, just show success and close
-      Alert.alert(
-        "Task Series Created!",
-        `"${form.title}" has been scheduled to repeat every ${
-          form.intervalValue
-        } ${
-          form.interval === "weekly"
-            ? "week"
-            : form.interval === "monthly"
-            ? "month"
-            : "year"
-        }${form.intervalValue > 1 ? "s" : ""}.`,
-        [
-          {
-            text: "Great!",
-            onPress: () => {
-              onTaskCreated();
-              onClose();
-            },
-          },
-        ]
-      );
+      const taskData: CreateMaintenanceRoutineData = {
+        title: form.title.trim(),
+        category: form.category,
+        priority: form.priority,
+        estimated_duration_minutes: form.estimated_duration_minutes,
+        interval_days: actualIntervalDays,
+        start_date: form.startDate.toISOString(),
+        description: form.description?.trim() || undefined,
+      };
+
+      const result = await createTask(taskData);
+
+      if (result.success) {
+        triggerLight();
+        onTaskCreated();
+      } else {
+        Alert.alert("Error", result.error || "Failed to create task");
+      }
     } catch (error) {
-      console.error("Error creating task series:", error);
-      Alert.alert("Error", "Failed to create task series. Please try again.");
+      console.error("Error creating task:", error);
+      Alert.alert("Error", "Failed to create task");
     }
   };
 
-  const updateForm = (field: keyof TaskSeriesForm, value: any) => {
+  const updateForm = (
+    field: keyof MaintenanceRoutineForm,
+    value: MaintenanceRoutineForm[keyof MaintenanceRoutineForm]
+  ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -139,7 +156,25 @@ export function CreateTaskModal({
     }
   };
 
-  const isFormValid = form.title && form.category && form.estimatedDuration > 0;
+  const isFormValid =
+    form.title && form.category && form.estimated_duration_minutes > 0;
+
+  const getIntervalLabel = (interval: number) => {
+    switch (interval) {
+      case 0:
+        return "day";
+      case 7:
+        return "week";
+      case 30:
+        return "month";
+      case 90:
+        return "quarter";
+      case 365:
+        return "year";
+      default:
+        return "day";
+    }
+  };
 
   return (
     <Modal
@@ -174,9 +209,9 @@ export function CreateTaskModal({
           <CategorySelector
             categories={categories}
             selectedCategory={form.category}
-            onSelectCategory={(categoryId) =>
-              updateForm("category", categoryId)
-            }
+            onSelectCategory={(categoryId) => {
+              updateForm("category", categoryId);
+            }}
             error={errors.category}
           />
 
@@ -190,8 +225,8 @@ export function CreateTaskModal({
 
           <FormField
             label="Instructions (Optional)"
-            value={form.instructions || ""}
-            onChangeText={(text) => updateForm("instructions", text)}
+            value={form.description || ""}
+            onChangeText={(text) => updateForm("description", text)}
             placeholder="Add detailed instructions for this task..."
             multiline
             numberOfLines={3}
@@ -199,27 +234,25 @@ export function CreateTaskModal({
 
           <FormField
             label="Estimated Duration (minutes)"
-            value={form.estimatedDuration.toString()}
+            value={form.estimated_duration_minutes.toString()}
             onChangeText={(text) => {
               const num = parseInt(text) || 0;
-              setForm((prev) => ({ ...prev, estimatedDuration: num }));
+              setForm((prev) => ({ ...prev, estimated_duration_minutes: num }));
             }}
             placeholder="e.g., 30"
             keyboardType="numeric"
-            error={errors.estimatedDuration?.toString()}
+            error={errors.estimated_duration_minutes?.toString()}
             required
           />
 
           <IntervalSelector
-            selectedInterval={form.interval}
-            intervalValue={form.intervalValue}
-            onSelectInterval={(
-              interval: "weekly" | "monthly" | "yearly" | "custom"
-            ) => setForm((prev) => ({ ...prev, interval }))}
-            onIntervalValueChange={(value) =>
-              setForm((prev) => ({ ...prev, intervalValue: value }))
+            selectedInterval={selectedInterval}
+            intervalValue={intervalValue}
+            onSelectInterval={(interval: number) =>
+              setSelectedInterval(interval)
             }
-            error={errors.intervalValue?.toString()}
+            onIntervalValueChange={(value) => setIntervalValue(value)}
+            error={errors.interval_days?.toString()}
           />
 
           <StartDateSelector
@@ -238,13 +271,9 @@ export function CreateTaskModal({
               Task Series Summary
             </Text>
             <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
-              "{form.title}" will be scheduled every {form.intervalValue}{" "}
-              {form.interval === "weekly"
-                ? "week"
-                : form.interval === "monthly"
-                ? "month"
-                : "year"}
-              {form.intervalValue > 1 ? "s" : ""} starting{" "}
+              "{form.title}" will be scheduled every {intervalValue}{" "}
+              {getIntervalLabel(selectedInterval)}
+              {intervalValue > 1 ? "s" : ""} starting{" "}
               {form.startDate.toLocaleDateString()}.
             </Text>
           </View>

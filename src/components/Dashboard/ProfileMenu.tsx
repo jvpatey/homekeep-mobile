@@ -23,7 +23,11 @@ import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { AvatarCustomizationModal } from "../AvatarCustomizationModal";
 import { styles } from "./styles";
 
-export function ProfileMenu() {
+interface ProfileMenuProps {
+  onRefresh?: () => void;
+}
+
+export function ProfileMenu({ onRefresh }: ProfileMenuProps) {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
@@ -123,6 +127,10 @@ export function ProfileMenu() {
                 "Deleted",
                 "All tasks and history have been deleted."
               );
+              // Refresh the dashboard data after successful deletion
+              if (onRefresh) {
+                onRefresh();
+              }
             }
           },
         },

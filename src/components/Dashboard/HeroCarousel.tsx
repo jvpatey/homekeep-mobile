@@ -18,16 +18,16 @@ import Animated, {
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
 import TaskCard from "./TaskCard";
-import { Task } from "../../types/task";
+import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth - 80; // 40px padding on each side
 
 interface HeroCarouselProps {
-  tasks: Task[];
-  onCompleteTask: (taskId: string) => void;
-  onTaskPress?: (taskId: string) => void;
+  tasks: MaintenanceTask[];
+  onCompleteTask: (instanceId: string) => void;
+  onTaskPress?: (instanceId: string) => void;
 }
 
 const HeroCarousel: React.FC<HeroCarouselProps> = ({
@@ -171,12 +171,13 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
             <View style={styles.cardContainer}>
               <TaskCard
                 id={task.id}
+                instance_id={task.instance_id}
                 title={task.title}
                 category={task.category as any}
                 priority={task.priority}
-                estimatedDuration={task.estimated_duration}
-                dueDate={task.next_due_date}
-                isCompleted={task.is_completed}
+                estimated_duration_minutes={task.estimated_duration_minutes}
+                due_date={task.due_date}
+                is_completed={task.is_completed}
                 onComplete={onCompleteTask}
                 onPress={onTaskPress}
               />

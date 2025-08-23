@@ -12,16 +12,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme/colors";
 import { DesignSystem } from "../../theme/designSystem";
-import { Task } from "../../types/task";
+import { MaintenanceTask } from "../../types/maintenance";
 import { useAuth } from "../../context/AuthContext";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 interface SimpleTaskDetailModalProps {
-  task: Task | null;
+  task: MaintenanceTask | null;
   visible: boolean;
   onClose: () => void;
-  onComplete: (taskId: string) => void;
+  onComplete: (instanceId: string) => void;
 }
 
 const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
@@ -223,7 +223,7 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Estimated Time</Text>
                   <Text style={styles.detailValue}>
-                    {formatTime(task.estimated_duration)}
+                    {formatTime(task.estimated_duration_minutes)}
                   </Text>
                 </View>
               </View>
@@ -239,7 +239,7 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Due Date</Text>
                   <Text style={styles.detailValue}>
-                    {formatDate(task.next_due_date)}
+                    {formatDate(task.due_date)}
                   </Text>
                 </View>
               </View>

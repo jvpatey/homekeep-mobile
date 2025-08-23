@@ -3,40 +3,38 @@ import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 import { Dashboard } from "../components/Dashboard";
-import { Task } from "../types/task";
+import { MaintenanceTask } from "../types/maintenance";
+import { useTasks } from "../hooks/useTasks";
 
 const DashboardScreen: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const {
+    tasks,
+    upcomingTasks,
+    completedTasks,
+    completeTask,
+    loading,
+    refreshTasks,
+  } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
-  const handleCompleteTask = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              is_completed: true,
-              completed_at: new Date().toISOString(),
-            }
-          : task
-      )
-    );
+  const handleCompleteTask = async (instanceId: string) => {
+    await completeTask(instanceId);
+    // Refresh tasks after completion to update UI
+    await refreshTasks();
   };
 
-  const handleTaskPress = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
+  const handleTaskPress = (instanceId: string) => {
+    const task = upcomingTasks.find((t) => t.instance_id === instanceId);
     if (task) {
       // Task detail modal will be handled by the Dashboard component
       console.log("Task pressed:", task.title);
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await refreshTasks();
+    setRefreshing(false);
   };
 
   return (

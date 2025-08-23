@@ -1,6 +1,5 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { FilteredTasksScreen } from "../screens/FilteredTasksScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import { TasksProvider } from "../context/TasksContext";
 import { AppStackParamList } from "./types";
@@ -23,7 +22,6 @@ export function AppNavigator() {
       >
         {/* Main app screens - add more authenticated screens here as the app grows */}
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="FilteredTasks" component={FilteredTasksScreen} />
       </Stack.Navigator>
     </TasksProvider>
   );

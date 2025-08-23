@@ -17,16 +17,16 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
-import { Task } from "../../types/task";
+import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "src/theme/colors";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 interface TimelineViewProps {
-  tasks: Task[];
-  onCompleteTask: (taskId: string) => void;
-  onTaskPress?: (taskId: string) => void;
+  tasks: MaintenanceTask[];
+  onCompleteTask: (instanceId: string) => void;
+  onTaskPress?: (instanceId: string) => void;
 }
 
 const TimelineView: React.FC<TimelineViewProps> = ({
@@ -71,11 +71,11 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     ],
   }));
 
-  const groupTasksByDate = (tasks: Task[]) => {
-    const groups: { [key: string]: Task[] } = {};
+  const groupTasksByDate = (tasks: MaintenanceTask[]) => {
+    const groups: { [key: string]: MaintenanceTask[] } = {};
 
     tasks.forEach((task) => {
-      const date = new Date(task.next_due_date);
+      const date = new Date(task.due_date);
       const dateKey = date.toDateString();
 
       if (!groups[dateKey]) {
@@ -96,8 +96,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
           if (priorityDiff !== 0) return priorityDiff;
 
           return (
-            new Date(a.next_due_date).getTime() -
-            new Date(b.next_due_date).getTime()
+            new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
           );
         }),
       }));
@@ -246,7 +245,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
                         />
                         <Text style={styles.priorityText}>{task.priority}</Text>
                       </View>
-                      {task.estimated_duration && (
+                      {task.estimated_duration_minutes && (
                         <View style={styles.durationBadge}>
                           <Ionicons
                             name="time-outline"
@@ -254,7 +253,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
                             color={colors.textSecondary}
                           />
                           <Text style={styles.durationText}>
-                            {task.estimated_duration}m
+                            {task.estimated_duration_minutes}m
                           </Text>
                         </View>
                       )}
@@ -263,7 +262,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
 
                   <View style={styles.taskFooter}>
                     <Text style={styles.taskTime}>
-                      {formatTime(task.next_due_date)}
+                      {formatTime(task.due_date)}
                     </Text>
 
                     <TouchableOpacity
@@ -271,7 +270,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
                         styles.completeButton,
                         task.is_completed && styles.completedButton,
                       ]}
-                      onPress={() => onCompleteTask(task.id)}
+                      onPress={() => onCompleteTask(task.instance_id)}
                       activeOpacity={0.8}
                     >
                       {task.is_completed ? (
