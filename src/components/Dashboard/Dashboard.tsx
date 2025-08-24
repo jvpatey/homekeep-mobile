@@ -28,6 +28,7 @@ import { useAuth } from "../../context/AuthContext";
 import { ProfileMenu } from "./ProfileMenu";
 import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
 import { CreateTaskModal } from "./CreateTaskModal";
+import StreakPopup from "./StreakPopup";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -59,6 +60,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   );
   const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showStreakPopup, setShowStreakPopup] = useState(false);
   const [streak, setStreak] = useState(0);
 
   // Animation for floating action button when no tasks
@@ -290,14 +292,18 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
                   </Text>
                 </TouchableOpacity>
                 <View style={styles.statDivider} />
-                <View style={styles.statItem}>
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() => setShowStreakPopup(true)}
+                  activeOpacity={0.7}
+                >
                   <Text style={[styles.statNumber, { color: colors.surface }]}>
                     {streak}
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.surface }]}>
                     Day Streak
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
           </LinearGradient>
@@ -359,6 +365,14 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
         onClose={handleCloseCelebration}
         streak={streak}
       />
+
+      {/* Streak Popup */}
+      {showStreakPopup && (
+        <StreakPopup
+          streak={streak}
+          onClose={() => setShowStreakPopup(false)}
+        />
+      )}
     </View>
   );
 };
