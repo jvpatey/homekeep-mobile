@@ -28,6 +28,9 @@ import { useAuth } from "../../context/AuthContext";
 import { ProfileMenu } from "./ProfileMenu";
 import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
 import { CreateTaskModal } from "./CreateTaskModal";
+import { useNavigation } from "@react-navigation/native";
+import { AppStackParamList } from "../../navigation/types";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -48,6 +51,8 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
 }) => {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
@@ -270,14 +275,20 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
                   </Text>
                 </View>
                 <View style={styles.statDivider} />
-                <View style={styles.statItem}>
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() => {
+                    navigation.navigate("CompletionHistory");
+                  }}
+                  activeOpacity={0.7}
+                >
                   <Text style={[styles.statNumber, { color: colors.surface }]}>
-                    {tasks.filter((task) => !task.is_completed).length}
+                    {completedTasks.length}
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.surface }]}>
-                    Active Routines
+                    Completed
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: colors.surface }]}>

@@ -18,6 +18,7 @@ export type RootStackParamList = {
  */
 export type AppStackParamList = {
   Dashboard: undefined; // Main dashboard for authenticated users
+  CompletionHistory: undefined; // Completion history screen
 };
 
 /**
