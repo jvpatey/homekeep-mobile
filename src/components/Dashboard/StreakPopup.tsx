@@ -117,7 +117,7 @@ const StreakPopup: React.FC<StreakPopupProps> = ({ streak, onClose }) => {
           <View style={styles.content}>
             {/* Streak Icon */}
             <View style={styles.streakIcon}>
-              <Ionicons name="flame" size={48} color="#FF6B35" />
+              <Ionicons name="flame" size={48} color="white" />
             </View>
 
             {/* Streak Number */}

@@ -29,6 +29,7 @@ import { ProfileMenu } from "./ProfileMenu";
 import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
 import { CreateTaskModal } from "./CreateTaskModal";
 import StreakPopup from "./StreakPopup";
+import DueSoonPopup from "./DueSoonPopup";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -61,6 +62,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showStreakPopup, setShowStreakPopup] = useState(false);
+  const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
 
   // Animation for floating action button when no tasks
@@ -70,6 +72,21 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
   // Filter tasks for different views
   const upcomingTasks = tasks.filter((task) => !task.is_completed);
   const completedTasks = tasks.filter((task) => task.is_completed);
+
+  // Filter for "due soon" tasks (within next 7 days or overdue)
+  const dueSoonTasks = tasks.filter((task) => {
+    if (task.is_completed) return false;
+
+    const dueDate = new Date(task.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Include overdue tasks and tasks due within 7 days
+    return diffDays <= 7;
+  });
 
   useEffect(() => {
     // Calculate consecutive day streak
@@ -268,14 +285,18 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
               </View>
 
               <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() => setShowDueSoonPopup(true)}
+                  activeOpacity={0.7}
+                >
                   <Text style={[styles.statNumber, { color: colors.surface }]}>
-                    {upcomingTasks.length}
+                    {dueSoonTasks.length}
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.surface }]}>
                     Due Soon
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <View style={styles.statDivider} />
                 <TouchableOpacity
                   style={styles.statItem}
@@ -371,6 +392,14 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
         <StreakPopup
           streak={streak}
           onClose={() => setShowStreakPopup(false)}
+        />
+      )}
+
+      {/* Due Soon Popup */}
+      {showDueSoonPopup && (
+        <DueSoonPopup
+          tasks={dueSoonTasks}
+          onClose={() => setShowDueSoonPopup(false)}
         />
       )}
     </View>
