@@ -1,81 +1,50 @@
 import { StyleSheet } from "react-native";
-import { colors } from "../../theme/colors";
+import { DesignSystem } from "../../theme/designSystem";
 
-// Styles for the action buttons section used in the home screen
+// Styles for action buttons - Updated for modern 2025 design
 export const styles = StyleSheet.create({
   buttonContainer: {
-    gap: 12,
-    marginBottom: 0,
-  },
-  buttonContent: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: DesignSystem.spacing.lg, // Increased from md to lg for better spacing without footer text
   },
   primaryButton: {
-    borderRadius: 20,
-    minHeight: 56,
     width: "100%",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
+    borderRadius: DesignSystem.borders.radius.large,
+    overflow: "hidden",
+    ...DesignSystem.shadows.medium,
   },
   gradientButton: {
-    flex: 1,
-    borderRadius: 20,
-    justifyContent: "center",
+    paddingVertical: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     alignItems: "center",
-    minHeight: 56,
+    justifyContent: "center",
+    minHeight: DesignSystem.components.buttonLarge,
   },
   primaryButtonText: {
+    ...DesignSystem.typography.button,
     color: "white",
-    fontSize: 18,
-    fontWeight: "600",
-    letterSpacing: 0.3,
+    textAlign: "center",
   },
   secondaryButtonContainer: {
-    borderRadius: 20,
-    minHeight: 56,
     width: "100%",
+    borderRadius: DesignSystem.borders.radius.large,
+    overflow: "hidden",
+    ...DesignSystem.shadows.small,
   },
   gradientBorder: {
-    borderRadius: 20,
-    padding: 1.5,
-    width: "100%",
-    minHeight: 56,
+    padding: 2, // Border width
+    borderRadius: DesignSystem.borders.radius.large,
   },
   secondaryButtonInner: {
-    backgroundColor: "transparent",
-    borderRadius: 18.5,
-    minHeight: 53,
-    justifyContent: "center",
+    paddingVertical: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     alignItems: "center",
-    flex: 1,
-  },
-  secondaryButton: {
-    backgroundColor: "transparent",
-    borderRadius: 20,
-    minHeight: 56,
-    borderWidth: 1.5,
-    borderColor: "rgba(46, 196, 182, 0.3)",
-    width: "100%",
+    justifyContent: "center",
+    minHeight: DesignSystem.components.buttonMedium,
+    borderRadius: DesignSystem.borders.radius.large - 2, // Account for border
   },
   secondaryButtonText: {
-    color: colors.light.primary,
-    fontSize: 18,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.light.textSecondary,
+    ...DesignSystem.typography.button,
     textAlign: "center",
-    fontWeight: "400",
-    marginTop: 24,
-    letterSpacing: 0.1,
   },
 });

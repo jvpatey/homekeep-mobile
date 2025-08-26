@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Alert } from "react-native";
-import { Button, TextInput, HelperText, Card } from "react-native-paper";
+import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
+import { TextInput, HelperText } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
@@ -18,11 +18,13 @@ import {
   useAuthInputTheme,
 } from "./hooks";
 import { authStyles } from "./styles/authStyles";
+import { DesignSystem } from "../../theme/designSystem";
 
 /**
  * LoginScreen - Handles user authentication with email/password and OAuth
  * Provides form validation, error handling, and integration with Supabase auth
  * Includes OAuth options and email verification link for password reset
+ * Updated with modern 2025 design language matching the dashboard
  */
 export function LoginScreen() {
   const { colors } = useTheme();
@@ -98,199 +100,165 @@ export function LoginScreen() {
    */
   const handleEmailVerification = () => {
     triggerLight();
-    (navigation as any).navigate("EmailEntry");
+    navigation.navigate("EmailVerification");
+  };
+
+  /**
+   * Navigates to sign up screen
+   */
+  const handleSignUp = () => {
+    triggerLight();
+    navigation.navigate("SignUp");
   };
 
   return (
-    <ScrollView
+    <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{
-        paddingTop: dynamicTopSpacing,
-        paddingBottom: dynamicBottomSpacing,
-        flexGrow: 1,
-      }}
-      showsVerticalScrollIndicator={false}
     >
-      <View style={authStyles.content}>
-        {/* Logo Section */}
-        <LogoSection showText={false} compact={true} />
-
-        {/* Header with welcome message */}
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingTop: dynamicTopSpacing,
+            paddingBottom: dynamicBottomSpacing,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Section */}
         <Animated.View
           style={[authStyles.headerContainer, headerAnimatedStyle]}
         >
-          <Text style={[authStyles.largeTitle, { color: colors.text }]}>
+          <TouchableOpacity
+            onPress={handleBackPress}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: DesignSystem.spacing.md,
+              zIndex: 10,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              borderRadius: DesignSystem.borders.radius.large,
+              paddingHorizontal: DesignSystem.spacing.md,
+              paddingVertical: DesignSystem.spacing.sm,
+              ...DesignSystem.shadows.small,
+            }}
+          >
+            <Text
+              style={{ color: colors.primary, fontSize: 16, fontWeight: "600" }}
+            >
+              ← Back
+            </Text>
+          </TouchableOpacity>
+
+          <LogoSection showText={false} compact={false} />
+
+          <Text style={[authStyles.title, { color: colors.text }]}>
             Welcome Back
           </Text>
           <Text style={[authStyles.subtitle, { color: colors.textSecondary }]}>
-            Sign in to your account
+            Sign in to continue managing your home
           </Text>
         </Animated.View>
 
-        <GradientDivider />
+        {/* Form Section */}
+        <Animated.View style={[authStyles.formCard, formAnimatedStyle]}>
+          <View style={authStyles.formContent}>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={(text) => setFieldValue("email", text)}
+              style={authStyles.input}
+              theme={getInputTheme()}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+            {errors.email && (
+              <HelperText type="error" visible={!!errors.email}>
+                {errors.email}
+              </HelperText>
+            )}
 
-        {!isConfigured ? (
-          // Configuration required message
-          <Animated.View style={[formAnimatedStyle]}>
-            <Card
-              style={[
-                authStyles.configCard,
-                { backgroundColor: colors.surface },
-              ]}
-            >
-              <Card.Content style={authStyles.configContent}>
-                <Text
-                  style={[authStyles.configTitle, { color: colors.primary }]}
-                >
-                  Supabase Setup Required
-                </Text>
-                <Text
-                  style={[
-                    authStyles.configText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  To enable authentication, you need to configure your Supabase
-                  credentials.
-                  {"\n\n"}Check the SUPABASE_SETUP.md file in your project root
-                  for setup instructions.
-                </Text>
-              </Card.Content>
-            </Card>
-          </Animated.View>
-        ) : (
-          // Login form
-          <Animated.View style={[formAnimatedStyle]}>
-            <Card
-              style={[authStyles.formCard, { backgroundColor: colors.surface }]}
-              elevation={2}
-            >
-              <Card.Content style={authStyles.compactFormContent}>
-                {/* Email input */}
-                <TextInput
-                  label="Email"
-                  value={email}
-                  onChangeText={(text) => setFieldValue("email", text)}
-                  mode="outlined"
-                  style={authStyles.input}
-                  error={!!errors.email}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  left={<TextInput.Icon icon="email" />}
-                  theme={getInputTheme(!!errors.email)}
+            <TextInput
+              label="Password"
+              value={password}
+              onChangeText={(text) => setFieldValue("password", text)}
+              style={authStyles.input}
+              theme={getInputTheme()}
+              secureTextEntry={!showPassword}
+              autoComplete="password"
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={handlePasswordToggle}
                 />
-                <HelperText
-                  type="error"
-                  visible={!!errors.email}
-                  style={authStyles.helperText}
-                >
-                  {errors.email}
-                </HelperText>
+              }
+            />
+            {errors.password && (
+              <HelperText type="error" visible={!!errors.password}>
+                {errors.password}
+              </HelperText>
+            )}
 
-                {/* Password input with visibility toggle */}
-                <TextInput
-                  label="Password"
-                  value={password}
-                  onChangeText={(text) => setFieldValue("password", text)}
-                  mode="outlined"
-                  style={authStyles.input}
-                  error={!!errors.password}
-                  secureTextEntry={!showPassword}
-                  left={<TextInput.Icon icon="lock" />}
-                  right={
-                    <TextInput.Icon
-                      icon={showPassword ? "eye-off" : "eye"}
-                      onPress={handlePasswordToggle}
-                    />
-                  }
-                  autoComplete="password"
-                  theme={getInputTheme(!!errors.password)}
-                />
-                <HelperText
-                  type="error"
-                  visible={!!errors.password}
-                  style={authStyles.helperText}
-                >
-                  {errors.password}
-                </HelperText>
-              </Card.Content>
-            </Card>
-          </Animated.View>
-        )}
+            <TouchableOpacity
+              onPress={handleEmailVerification}
+              style={authStyles.verificationContainer}
+            >
+              <Text
+                style={[authStyles.verificationText, { color: colors.primary }]}
+              >
+                Forgot your password?
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
-        {/* Action buttons */}
+        {/* Sign In Button */}
         <Animated.View
-          style={[authStyles.buttonContainerWithGap, buttonAnimatedStyle]}
+          style={[authStyles.buttonContainer, buttonAnimatedStyle]}
         >
-          {isConfigured && (
-            // Sign in button with gradient
+          <TouchableOpacity
+            onPress={handleSignIn}
+            disabled={loading}
+            style={[
+              authStyles.gradientButton,
+              { marginHorizontal: DesignSystem.spacing.md },
+            ]}
+          >
             <LinearGradient
               colors={gradientColors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={authStyles.gradientButton}
+              style={authStyles.primaryButton}
             >
-              <Button
-                mode="contained"
-                onPress={handleSignIn}
-                loading={loading}
-                disabled={loading}
-                style={authStyles.primaryButton}
-                contentStyle={authStyles.buttonContent}
-                labelStyle={[
-                  authStyles.buttonLabel,
-                  { color: isDark ? colors.text : "white" },
-                ]}
-              >
-                Sign In
-              </Button>
+              <View style={authStyles.buttonContent}>
+                <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+                  {loading ? "Signing In..." : "Sign In"}
+                </Text>
+              </View>
             </LinearGradient>
-          )}
-
-          {/* OAuth authentication options */}
-          {isConfigured && (
-            <OAuthButtons
-              disabled={loading}
-              onSuccess={() => {
-                // User will be automatically navigated by AuthContext
-              }}
-            />
-          )}
-
-          {/* Back to home button */}
-          <Button
-            mode="outlined"
-            onPress={handleBackPress}
-            style={[authStyles.outlineButton, { borderColor: colors.primary }]}
-            disabled={loading}
-            contentStyle={authStyles.buttonContent}
-            labelStyle={[
-              authStyles.outlineButtonLabel,
-              { color: colors.primary },
-            ]}
-          >
-            Back to Home
-          </Button>
-
-          {/* Email verification link */}
-          {isConfigured && (
-            <View style={authStyles.verificationContainer}>
-              <Button
-                mode="text"
-                onPress={handleEmailVerification}
-                disabled={loading}
-                labelStyle={[
-                  authStyles.verificationText,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                Need to verify your email?
-              </Button>
-            </View>
-          )}
+          </TouchableOpacity>
         </Animated.View>
-      </View>
-    </ScrollView>
+
+        {/* OAuth Section */}
+        <OAuthButtons animatedStyle={buttonAnimatedStyle} />
+
+        {/* Sign Up Link */}
+        <View style={authStyles.linkContainer}>
+          <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
+            Don't have an account?{" "}
+            <Text
+              style={[authStyles.link, { color: colors.primary }]}
+              onPress={handleSignUp}
+            >
+              Sign up
+            </Text>
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

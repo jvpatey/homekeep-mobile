@@ -1,26 +1,36 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { Button, ActivityIndicator } from "react-native-paper";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useHaptics } from "../../hooks";
 import { styles } from "./styles";
+import { DesignSystem } from "../../theme/designSystem";
 
 interface OAuthButtonsProps {
   onSuccess?: () => void;
   disabled?: boolean;
+  animatedStyle?: any; // Add animation support
 }
 
 /**
  * OAuthButtons - A component that provides Google OAuth sign-in functionality
  * with haptic feedback, loading states, and error handling. Displays a divider
  * with "or" text and a gradient-styled Google sign-in button.
+ * Updated with modern 2025 design language matching the dashboard
  */
 export function OAuthButtons({
   onSuccess,
   disabled = false,
+  animatedStyle, // Add animation support
 }: OAuthButtonsProps) {
   const { colors } = useTheme();
   const { signInWithGoogle } = useAuth();
@@ -63,7 +73,7 @@ export function OAuthButtons({
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, animatedStyle]}>
       {/* Visual divider with "or" text */}
       <View style={styles.dividerContainer}>
         <View
@@ -78,24 +88,21 @@ export function OAuthButtons({
       </View>
 
       {/* Google Sign In Button with gradient background */}
-      <LinearGradient
-        colors={accentGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientButton}
+      <TouchableOpacity
+        onPress={handleGoogleSignIn}
+        disabled={disabled || loading}
+        style={[
+          styles.gradientButton,
+          { marginHorizontal: DesignSystem.spacing.md },
+        ]}
       >
-        <Button
-          mode="contained"
-          onPress={handleGoogleSignIn}
-          loading={loading}
-          disabled={disabled || loading}
+        <LinearGradient
+          colors={accentGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.googleButton}
-          contentStyle={styles.buttonContent}
-          labelStyle={[
-            styles.buttonLabel,
-            { color: isDark ? colors.text : "white" },
-          ]}
-          icon={() => (
+        >
+          <View style={styles.buttonContent}>
             <View style={styles.googleIconContainer}>
               {loading ? (
                 <ActivityIndicator size={16} color="white" />
@@ -103,11 +110,12 @@ export function OAuthButtons({
                 <AntDesign name="google" size={16} color="white" />
               )}
             </View>
-          )}
-        >
-          {loading ? "Signing in..." : "Continue with Google"}
-        </Button>
-      </LinearGradient>
-    </View>
+            <Text style={[styles.buttonLabel, { color: "white" }]}>
+              {loading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }

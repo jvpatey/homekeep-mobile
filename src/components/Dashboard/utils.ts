@@ -1,4 +1,4 @@
-import { useTheme } from "../../../context/ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export const useCategoryColors = () => {
   const { colors } = useTheme();
@@ -45,14 +45,12 @@ export const formatDueDate = (dateString: string): string => {
 
 // sortTasksByPriorityAndDate - Features sorting of tasks by priority and date
 export const sortTasksByPriorityAndDate = (tasks: any[]) => {
-  const priorityOrder = { high: 3, medium: 2, low: 1 };
+  const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
   return [...tasks].sort((a, b) => {
     const priorityDiff =
       priorityOrder[b.priority as keyof typeof priorityOrder] -
       priorityOrder[a.priority as keyof typeof priorityOrder];
     if (priorityDiff !== 0) return priorityDiff;
-    return (
-      new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime()
-    );
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
   });
 };

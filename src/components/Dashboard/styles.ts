@@ -4,599 +4,132 @@ import { DesignSystem } from "../../theme/designSystem";
 const { width } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
-  // Dashboard Header Styles
-  headerContainer: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingBottom: DesignSystem.spacing.lg,
-  },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: DesignSystem.spacing.md,
-  },
-  titleSection: {
-    flex: 1,
-  },
-  greeting: {
-    ...DesignSystem.typography.body,
-    marginBottom: DesignSystem.spacing.xs,
-  },
-  userName: {
-    ...DesignSystem.typography.h1,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.sm,
-  },
-  headerButton: {
-    width: DesignSystem.components.minTouchTarget,
-    height: DesignSystem.components.minTouchTarget,
-    borderRadius: DesignSystem.components.minTouchTarget / 2,
-    alignItems: "center",
-    justifyContent: "center",
-    ...DesignSystem.shadows.small,
-  },
-  searchButton: {
-    width: DesignSystem.components.minTouchTarget,
-    height: DesignSystem.components.minTouchTarget,
-    borderRadius: DesignSystem.components.minTouchTarget / 2,
-    alignItems: "center",
-    justifyContent: "center",
-    ...DesignSystem.shadows.small,
-  },
-  searchContainer: {
-    marginTop: DesignSystem.spacing.md,
-  },
-  searchBar: {
-    borderRadius: DesignSystem.borders.radius.large,
-    elevation: 0,
-    borderWidth: DesignSystem.borders.width,
-  },
-  searchInput: {
-    ...DesignSystem.typography.body,
-  },
-
-  // Task Summary Cards Styles
-  summaryContainer: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    marginBottom: DesignSystem.spacing.lg, // Reduced from xl (32px) to lg (24px)
-  },
-  sectionTitle: {
-    ...DesignSystem.typography.h3,
-    marginBottom: DesignSystem.spacing.md,
-  },
-  cardsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: DesignSystem.spacing.sm,
-  },
-  summaryCard: {
-    flex: 1,
-    minHeight: 80, // Reduced from 120 to 80
-  },
-  cardTouchable: {
-    flex: 1,
-  },
-  cardGradient: {
-    flex: 1,
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.sm + 4, // 12px - reduced from 16px
-    ...DesignSystem.shadows.medium,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: "space-between",
-  },
-  cardHeader: {
-    alignItems: "flex-end",
-  },
-  cardBody: {
-    alignItems: "flex-start",
-  },
-  cardCount: {
-    fontSize: 24, // Reduced from 28
-    fontWeight: "700", // Reduced from 800
-    color: "white",
-    marginBottom: DesignSystem.spacing.xs, // 4px
-    letterSpacing: -0.3,
-  },
-  cardTitle: {
-    ...DesignSystem.typography.captionSemiBold,
-    color: "white",
-    opacity: 0.9,
-  },
-
-  // Upcoming Tasks Styles
-  upcomingContainer: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    marginBottom: DesignSystem.spacing.xl,
-    overflow: "visible",
-  },
-  listHeader: {
-    marginBottom: DesignSystem.spacing.sm,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  markAllIncompleteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  loadingSpinner: {
-    // Animation will be handled by the icon rotation
-  },
-  completeAllButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  filterButtonsContainer: {
-    flexDirection: "row",
-    gap: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.md,
-  },
-  filterButton: {
-    // Individual filter button styling handled by components
-  },
-  seeAllButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  seeAllText: {
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.1,
-  },
-  taskItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    borderRadius: 16,
-    minHeight: 72,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  taskItemLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  categoryIndicator: {
-    width: 4,
-    height: 36,
-    borderRadius: 2,
-    marginRight: 16,
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  taskTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    flex: 1,
-    letterSpacing: -0.1,
-  },
-  priorityIcon: {
-    marginLeft: 8,
-  },
-  taskSubtitle: {
-    fontSize: 15,
-    fontWeight: "400",
-    letterSpacing: 0.1,
-    lineHeight: 20,
-  },
-  taskItemRight: {
-    marginLeft: 16,
-  },
-
-  // Swipe to Delete Styles
-  swipeContainer: {
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: 16, // Match task item border radius
-  },
-  deleteBackground: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 80,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 0, // Lower than task item
-    marginBottom: 8, // Match task item marginBottom
-  },
-  deleteButton: {
-    width: 72,
-    height: 72, // Match exact minHeight of task item
-    borderTopRightRadius: 16, // Match task item border radius
-    borderBottomRightRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  deleteButtonText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-
-  // Tab Styles
-  tabBar: {
-    flexDirection: "row",
-    marginBottom: 16,
-    gap: 8,
-  },
-  tab: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    gap: 6,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.1,
-  },
-  tabBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 20,
-    alignItems: "center",
-  },
-  tabBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.1,
-  },
-
-  // Task Detail Modal Styles
-  taskDetailContainer: {
-    flex: 1,
-  },
-  taskDetailHeader: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-  },
-  taskDetailHeaderContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  taskDetailHeaderLeft: {
-    flex: 1,
-  },
-  taskDetailCategoryBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  taskDetailCategoryText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "white",
-    letterSpacing: 0.5,
-  },
-  taskDetailPriority: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-  taskDetailPriorityText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "white",
-    marginLeft: 4,
-    letterSpacing: 0.3,
-  },
-  taskDetailCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 16,
-  },
-  taskDetailContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
-  },
-  taskDetailTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 24,
-    lineHeight: 34,
-  },
-  taskDetailSection: {
-    marginBottom: 32,
-  },
-  taskDetailSectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-    letterSpacing: 0.2,
-  },
-  taskDetailDescription: {
-    fontSize: 16,
-    lineHeight: 24,
-    letterSpacing: 0.1,
-  },
-  taskDetailGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginHorizontal: -6,
-  },
-  taskDetailGridItem: {
-    width: "48%",
-    marginHorizontal: "1%",
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  taskDetailGridLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 8,
-    marginBottom: 4,
-    textAlign: "center",
-    letterSpacing: 0.2,
-  },
-  taskDetailGridValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    letterSpacing: 0.1,
-  },
-  taskDetailActions: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    paddingBottom: 40,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  taskDetailActionButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginHorizontal: 4,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  taskDetailActionButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "white",
-    marginLeft: 6,
-    letterSpacing: 0.2,
-  },
-  taskDetailCompleteButton: {
-    flex: 1.2, // Slightly larger for primary action
-  },
-
-  // Empty State Styles
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-    opacity: 0.6,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtext: {
-    fontSize: 16,
-    fontWeight: "400",
-    textAlign: "center",
-    opacity: 0.8,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    fontWeight: "400",
-    textAlign: "center",
-    opacity: 0.8,
-  },
-
-  // Section Header Styles
-  sectionHeader: {
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    fontWeight: "400",
-    marginTop: 4,
-    opacity: 0.8,
-  },
-
-  // Loading Styles
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: "400",
-    marginTop: 16,
-  },
-
-  // Container Styles
+  // New Dashboard Styles
   container: {
     flex: 1,
   },
-  listContainer: {
-    flex: 1,
+  headerGradient: {
+    paddingTop: 52, // Reduced to 52px - just enough for profile button (40px) + 12px margin
+    paddingBottom: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.md,
+    position: "relative",
   },
-  listContent: {
-    paddingBottom: 20,
-  },
-  separator: {
-    height: 12,
-  },
-
-  // Floating Action Button Styles
-  fabContainer: {
-    position: "absolute",
-    bottom: 34,
-    right: 32,
-    zIndex: 1000,
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  fabGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  headerContent: {
     alignItems: "center",
-    justifyContent: "center",
+    paddingTop: DesignSystem.spacing.md, // Reduced to 16px - just enough clearance
   },
-
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "white",
+  greetingContainer: {
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.lg,
   },
-  createTaskContainer: {
-    flex: 1,
+  greeting: {
+    ...DesignSystem.typography.h1,
+    color: "white",
+    textAlign: "center",
+    marginBottom: DesignSystem.spacing.xs,
   },
-  modalHeader: {
+  motivationalMessage: {
+    ...DesignSystem.typography.body,
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
+  },
+  statsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: DesignSystem.borders.radius.large,
+    padding: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.md,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
+  statItem: {
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
+    flex: 1,
   },
-  modalTitle: {
-    fontSize: 20,
+  statNumber: {
+    ...DesignSystem.typography.h2,
+    color: "white",
     fontWeight: "700",
-    letterSpacing: -0.3,
   },
-  headerSpacer: {
-    width: 40,
+  statLabel: {
+    ...DesignSystem.typography.caption,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginTop: DesignSystem.spacing.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    marginHorizontal: DesignSystem.spacing.sm,
+  },
+  bottomSpacing: {
+    height: 100,
+  },
+
+  // Floating Action Button
+  floatingActionButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    ...DesignSystem.shadows.large,
+  },
+  floatingActionButtonGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Create Task Modal Styles
+  createTaskContainer: {
+    flex: 1,
   },
   modalContent: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
+    paddingBottom: 100, // Add bottom padding for submit button
   },
-  modalFooter: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    paddingBottom: 34,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+  summaryContainer: {
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 12,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+  },
+  datePickerContainer: {
+    marginTop: 16,
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  datePicker: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    minHeight: 120,
   },
 
   // Form Input Styles
@@ -604,15 +137,6 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
   },
   inputLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-    letterSpacing: 0.1,
-  },
-  formField: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
@@ -663,93 +187,53 @@ export const styles = StyleSheet.create({
     marginBottom: 0,
     borderRadius: 20,
   },
-  recurrenceChip: {
-    marginRight: 0,
-    marginBottom: 0,
-    borderRadius: 20,
-  },
   chipText: {
     fontSize: 14,
     fontWeight: "600",
     letterSpacing: 0.1,
   },
 
-  // Recurring Task Toggle
-  recurringToggle: {
+  // Modal Header Styles
+  modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
-  recurringLeft: {
-    flex: 1,
+  closeButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
   },
-  recurringSubtext: {
-    fontSize: 14,
-    fontWeight: "400",
-    marginTop: 2,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  headerSpacer: {
+    width: 40,
   },
 
-  // Date Picker
-  datePickerButton: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  datePickerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  datePickerText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginLeft: 12,
-  },
-  datePickerContainer: {
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  datePicker: {
-    height: 200,
-    width: "100%",
-  },
-  datePickerDone: {
-    alignSelf: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  datePickerDoneText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+  // Modal Footer Styles
+  modalFooter: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    paddingBottom: 34,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
   },
 
-  // Submit Button
+  // Submit Button Styles
   submitButton: {
     borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
@@ -766,6 +250,35 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
+  // Date Picker Styles
+  datePickerButton: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  datePickerText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 12,
+  },
+  datePickerDone: {
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  datePickerDoneText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
   // Profile Menu Styles
   profileButton: {
     width: 44,
@@ -774,10 +287,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -807,10 +317,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     minWidth: 280,
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 8,

@@ -80,11 +80,6 @@ export function ActionButtons() {
           </View>
         </LinearGradient>
       </TouchableOpacity>
-
-      {/* Footer Text */}
-      <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-        Free to try • No credit card required
-      </Text>
     </Animated.View>
   );
 }

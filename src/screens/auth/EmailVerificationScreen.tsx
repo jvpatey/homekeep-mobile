@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Alert } from "react-native";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { LogoSection } from "../../components/LogoSection/LogoSection";
 import { useDynamicSpacing, useAuthHaptics } from "./hooks";
 import { authStyles } from "./styles/authStyles";
+import { DesignSystem } from "../../theme/designSystem";
 
 type VerificationStatus = "verifying" | "success" | "error";
 
@@ -13,6 +20,7 @@ type VerificationStatus = "verifying" | "success" | "error";
  * EmailVerificationScreen - Handles automatic email verification via deep links
  * Processes verification URLs from email links and automatically signs in users
  * Shows loading, success, and error states during the verification process
+ * Updated with modern 2025 design language matching the dashboard
  */
 export function EmailVerificationScreen() {
   const { colors } = useTheme();
@@ -98,111 +106,152 @@ export function EmailVerificationScreen() {
           triggerSuccess();
           setStatus("success");
           setMessage("Email verified successfully! Welcome to HomeKeep.");
-
-          // The AuthContext will automatically detect the session and redirect to main app
-          // No need to manually navigate since RootNavigator will handle this
         } else {
-          throw new Error("Verification completed but no session created");
+          throw new Error("Verification failed - no session created");
         }
       } catch (error: any) {
         console.error("Email verification error:", error);
         triggerError();
         setStatus("error");
         setMessage(
-          error.message ||
-            "Failed to verify email. Please try signing in manually."
+          error.message || "Failed to verify email. Please try again."
         );
-
-        // Navigate back to auth after a delay to show error message
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Auth" }],
-          });
-        }, 3000);
       }
     };
 
+    // Start verification process
     handleEmailVerification();
-  }, [route.params, supabase, navigation, triggerSuccess, triggerError]);
+  }, [route.params, navigation, supabase.auth, triggerSuccess, triggerError]);
+
+  /**
+   * Handles navigation back to home
+   */
+  const handleBackToHome = () => {
+    navigation.navigate("Home" as any);
+  };
+
+  /**
+   * Handles manual code entry navigation
+   */
+  const handleManualCode = () => {
+    navigation.navigate("CodeVerification" as any);
+  };
+
+  const renderContent = () => {
+    switch (status) {
+      case "verifying":
+        return (
+          <View style={authStyles.statusContainer}>
+            <View
+              style={[
+                authStyles.successIcon,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <ActivityIndicator size={24} color="white" />
+            </View>
+            <Text style={[authStyles.message, { color: colors.text }]}>
+              {message}
+            </Text>
+          </View>
+        );
+
+      case "success":
+        return (
+          <View style={authStyles.statusContainer}>
+            <View
+              style={[
+                authStyles.successIcon,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Text style={authStyles.checkmark}>✓</Text>
+            </View>
+            <Text style={[authStyles.message, { color: colors.text }]}>
+              {message}
+            </Text>
+            <TouchableOpacity
+              onPress={handleBackToHome}
+              style={{
+                marginTop: DesignSystem.spacing.lg,
+                paddingHorizontal: DesignSystem.spacing.lg,
+                paddingVertical: DesignSystem.spacing.md,
+                backgroundColor: colors.primary,
+                borderRadius: DesignSystem.borders.radius.large,
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>
+                Continue to App
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case "error":
+        return (
+          <View style={authStyles.statusContainer}>
+            <View
+              style={[authStyles.errorIcon, { backgroundColor: colors.error }]}
+            >
+              <Text style={authStyles.errorMark}>✕</Text>
+            </View>
+            <Text style={[authStyles.message, { color: colors.text }]}>
+              {message}
+            </Text>
+            <View
+              style={{
+                marginTop: DesignSystem.spacing.lg,
+                gap: DesignSystem.spacing.sm,
+              }}
+            >
+              <TouchableOpacity
+                onPress={handleManualCode}
+                style={{
+                  paddingHorizontal: DesignSystem.spacing.lg,
+                  paddingVertical: DesignSystem.spacing.md,
+                  backgroundColor: colors.primary,
+                  borderRadius: DesignSystem.borders.radius.large,
+                }}
+              >
+                <Text style={{ color: "white", fontWeight: "600" }}>
+                  Enter Code Manually
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleBackToHome}
+                style={{
+                  paddingHorizontal: DesignSystem.spacing.lg,
+                  paddingVertical: DesignSystem.spacing.md,
+                  borderWidth: 1,
+                  borderColor: colors.primary,
+                  borderRadius: DesignSystem.borders.radius.large,
+                }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                  Back to Home
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+    }
+  };
 
   return (
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
-      <View
-        style={[
-          authStyles.content,
-          {
-            paddingTop: dynamicTopSpacing + 40,
-            justifyContent: "center",
-            alignItems: "center",
-          },
-        ]}
-      >
-        <LogoSection showText={true} compact={false} />
-
-        {/* Status display container */}
-        <View style={authStyles.statusContainer}>
-          {status === "verifying" && (
-            <>
-              {/* Loading indicator */}
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[authStyles.title, { color: colors.text }]}>
-                Verifying Email
-              </Text>
-              <Text
-                style={[authStyles.message, { color: colors.textSecondary }]}
-              >
-                {message}
-              </Text>
-            </>
-          )}
-
-          {status === "success" && (
-            <>
-              {/* Success icon */}
-              <View
-                style={[
-                  authStyles.successIcon,
-                  { backgroundColor: colors.primary },
-                ]}
-              >
-                <Text style={authStyles.checkmark}>✓</Text>
-              </View>
-              <Text style={[authStyles.title, { color: colors.text }]}>
-                Email Verified!
-              </Text>
-              <Text
-                style={[authStyles.message, { color: colors.textSecondary }]}
-              >
-                {message}
-              </Text>
-            </>
-          )}
-
-          {status === "error" && (
-            <>
-              {/* Error icon */}
-              <View
-                style={[
-                  authStyles.errorIcon,
-                  { backgroundColor: colors.error },
-                ]}
-              >
-                <Text style={authStyles.errorMark}>✗</Text>
-              </View>
-              <Text style={[authStyles.title, { color: colors.text }]}>
-                Verification Failed
-              </Text>
-              <Text
-                style={[authStyles.message, { color: colors.textSecondary }]}
-              >
-                {message}
-              </Text>
-            </>
-          )}
+      <View style={{ paddingTop: dynamicTopSpacing, flex: 1 }}>
+        {/* Header */}
+        <View style={authStyles.headerContainer}>
+          <LogoSection showText={false} compact={true} />
+          <Text style={[authStyles.title, { color: colors.text }]}>
+            Email Verification
+          </Text>
         </View>
+
+        {/* Content */}
+        {renderContent()}
       </View>
     </View>
   );

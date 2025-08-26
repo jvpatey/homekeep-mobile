@@ -1,19 +1,19 @@
 import React, { createContext, useContext, ReactNode } from "react";
 import { useTasks as useTasksHook } from "../hooks/useTasks";
 import {
-  Task,
-  CreateTaskData,
-  UpdateTaskData,
-  TaskFilters,
-} from "../types/task";
+  MaintenanceTask,
+  CreateMaintenanceRoutineData,
+  UpdateMaintenanceRoutineData,
+  MaintenanceFilters,
+} from "../types/maintenance";
 
 export type TimeRange = 30 | 60 | 90 | 120 | "all";
 
 interface UseTasksReturn {
-  tasks: Task[];
-  upcomingTasks: Task[];
-  overdueTasks: Task[];
-  completedTasks: Task[];
+  tasks: MaintenanceTask[];
+  upcomingTasks: MaintenanceTask[];
+  overdueTasks: MaintenanceTask[];
+  completedTasks: MaintenanceTask[];
   loading: boolean;
   error: string | null;
   timeRange: TimeRange;
@@ -25,23 +25,25 @@ interface UseTasksReturn {
     dueToday: number;
     thisWeek: number;
     completionRate: number;
+    activeRoutines: number;
+    totalInstances: number;
   };
   createTask: (
-    taskData: CreateTaskData
+    taskData: CreateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
   updateTask: (
     taskId: string,
-    updates: UpdateTaskData
+    updates: UpdateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
   completeTask: (
-    taskId: string
+    instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
   uncompleteTask: (
-    taskId: string
+    instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (
-    taskIds: string[]
+    instanceIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
   deleteAllTasks: () => Promise<{ success: boolean; error?: string }>;
   setTimeRange: (range: TimeRange) => void;

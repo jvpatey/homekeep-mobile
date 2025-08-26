@@ -1,31 +1,21 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useTheme } from "../../context/ThemeContext";
-import { PriorityBadge } from "./PriorityBadge";
-import { Task } from "../../types/task";
+import { MaintenanceTask } from "../../types/maintenance";
 
 interface TaskItemProps {
-  task: Task;
-  onPress: (taskId: string) => void;
+  task: MaintenanceTask;
+  onPress: (instanceId: string) => void;
   onDelete?: (taskId: string, taskTitle: string) => void;
-  onComplete?: (taskId: string) => void;
-  onUncomplete?: (taskId: string) => void;
+  onComplete?: (instanceId: string) => void;
+  onUncomplete?: (instanceId: string) => void;
   getCategoryColor: (category: string) => string;
   formatDueDate: (dateString: string) => string;
   showDeleteButton?: boolean;
   variant?: "default" | "incomplete" | "completed";
 }
 
-// TaskItem - Unified component for displaying tasks in both upcoming and completed sections
 export function TaskItem({
   task,
   onPress,
@@ -38,282 +28,146 @@ export function TaskItem({
   variant = "default",
 }: TaskItemProps) {
   const { colors } = useTheme();
-  const translateX = useSharedValue(0);
-
-  // Determine if this is a completed task
   const isCompleted = task.is_completed;
   const isIncompleteView = variant === "incomplete" && !isCompleted;
 
-  // Set up swipe gesture only if delete functionality is enabled
-  const panGesture = showDeleteButton
-    ? Gesture.Pan()
-        .activeOffsetX([-10, 10])
-        .onUpdate((event) => {
-          if (event.translationX < 0) {
-            // Increased swipe distance to accommodate both buttons
-            translateX.value = Math.max(event.translationX, -140);
-          }
-        })
-        .onEnd((event) => {
-          const shouldShowButtons = event.translationX < -30;
-          translateX.value = withTiming(shouldShowButtons ? -140 : 0);
-        })
-    : Gesture.Pan().enabled(false);
+  const handlePress = () => {
+    onPress(task.instance_id);
+  };
 
-  const tapGesture = Gesture.Tap().onEnd(() => {
-    if (translateX.value < -10) {
-      translateX.value = withTiming(0);
-    } else {
-      runOnJS(onPress)(task.instance_id || task.id);
+  const handleComplete = () => {
+    if (onComplete) {
+      onComplete(task.instance_id);
     }
-  });
+  };
 
-  const combinedGesture = Gesture.Exclusive(panGesture, tapGesture);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-    zIndex: translateX.value < -10 ? 2 : 3,
-  }));
-
-  const deleteButtonStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value < -10 ? withTiming(1) : withTiming(0),
-    transform: [
-      { scale: translateX.value < -20 ? withTiming(1) : withTiming(0.8) },
-    ],
-    zIndex: translateX.value < -10 ? 1 : -1,
-  }));
-
-  const completeButtonStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value < -10 ? withTiming(1) : withTiming(0),
-    transform: [
-      { scale: translateX.value < -20 ? withTiming(1) : withTiming(0.8) },
-    ],
-    zIndex: translateX.value < -10 ? 1 : -1,
-  }));
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(task.id, task.title);
+    }
+  };
 
   return (
-    <View style={styles.swipeContainer}>
-      {showDeleteButton && (
-        <Animated.View style={[styles.buttonsBackground, deleteButtonStyle]}>
-          {/* Complete/Uncomplete Button */}
-          {onComplete && onUncomplete && (
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[
+          styles.taskItem,
+          isCompleted && styles.completedTaskItem,
+          isIncompleteView && styles.incompleteTaskItem,
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.taskItemLeft}>
+          {!isCompleted && !isIncompleteView && (
+            <View
+              style={[
+                styles.categoryIndicator,
+                { backgroundColor: getCategoryColor(task.category) },
+              ]}
+            />
+          )}
+          <View style={styles.taskInfo}>
+            <Text
+              style={[
+                styles.taskTitle,
+                {
+                  color: isCompleted
+                    ? colors.success
+                    : isIncompleteView
+                    ? colors.error
+                    : colors.text,
+                  opacity: isCompleted ? 0.8 : 1,
+                  textDecorationLine: isCompleted ? "line-through" : "none",
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {task.title}
+            </Text>
+            <Text
+              style={[
+                styles.taskSubtitle,
+                {
+                  color: isCompleted
+                    ? colors.textSecondary
+                    : isIncompleteView
+                    ? colors.error
+                    : colors.textSecondary,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {formatDueDate(task.due_date)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.taskItemRight}>
+          {!isCompleted && (
             <TouchableOpacity
               style={[styles.actionButton, styles.completeButton]}
-              onPress={() => {
-                translateX.value = withTiming(0);
-                if (isCompleted) {
-                  onUncomplete(task.id);
-                } else {
-                  onComplete(task.id);
-                }
-              }}
-              activeOpacity={0.9}
+              onPress={handleComplete}
+              activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={
-                  isCompleted ? ["#FFA726", "#FF9800"] : ["#4CAF50", "#45A049"]
-                }
-                style={styles.actionGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons
-                  name={isCompleted ? "refresh-outline" : "checkmark-outline"}
-                  size={20}
-                  color="white"
-                />
-              </LinearGradient>
+              <Ionicons name="checkmark" size={20} color="white" />
             </TouchableOpacity>
           )}
 
-          {/* Delete Button */}
-          {onDelete && (
+          {isCompleted && onUncomplete && (
             <TouchableOpacity
-              style={[styles.actionButton]}
-              onPress={() => {
-                translateX.value = withTiming(0);
-                onDelete(task.instance_id || task.id, task.title);
-              }}
-              activeOpacity={0.9}
+              style={[styles.actionButton, styles.uncompleteButton]}
+              onPress={() => onUncomplete(task.instance_id)}
+              activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={["#FF6B6B", "#E74C3C"]}
-                style={styles.actionGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name="trash-outline" size={20} color="white" />
-              </LinearGradient>
+              <Ionicons name="refresh" size={20} color="white" />
             </TouchableOpacity>
           )}
-        </Animated.View>
-      )}
 
-      <GestureDetector gesture={combinedGesture}>
-        <Animated.View style={animatedStyle}>
-          <Animated.View
-            style={[
-              styles.taskItem,
-              {
-                backgroundColor: isCompleted
-                  ? colors.success + "15"
-                  : isIncompleteView
-                  ? colors.error + "15"
-                  : colors.surface,
-              },
-            ]}
-          >
-            {isCompleted && (
-              <View
-                style={[
-                  {
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 4,
-                    backgroundColor: colors.success,
-                    borderTopLeftRadius: 16,
-                    borderBottomLeftRadius: 16,
-                  },
-                ]}
-              />
-            )}
-            {isIncompleteView && (
-              <View
-                style={[
-                  {
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 4,
-                    backgroundColor: colors.error,
-                    borderTopLeftRadius: 16,
-                    borderBottomLeftRadius: 16,
-                  },
-                ]}
-              />
-            )}
-            <View style={styles.taskItemLeft}>
-              {!isCompleted && !isIncompleteView && (
-                <View
-                  style={[
-                    styles.categoryIndicator,
-                    {
-                      backgroundColor: getCategoryColor(task.category),
-                    },
-                  ]}
-                />
-              )}
-              <View style={styles.taskInfo}>
-                <View style={styles.taskTitleRow}>
-                  <Text
-                    style={[
-                      styles.taskTitle,
-                      {
-                        color: isCompleted
-                          ? colors.success
-                          : isIncompleteView
-                          ? colors.error
-                          : colors.text,
-                        opacity: isCompleted ? 0.8 : 1,
-                        lineHeight: 18, // Adjusted for better fit
-                        textDecorationLine: isCompleted
-                          ? "line-through"
-                          : "none",
-                        textDecorationColor: isCompleted
-                          ? colors.success
-                          : "transparent",
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {task.title}
-                  </Text>
-                  <PriorityBadge
-                    priority={task.priority}
-                    size="small"
-                    variant="card"
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.taskSubtitle,
-                    {
-                      color: isCompleted
-                        ? colors.success + "CC"
-                        : isIncompleteView
-                        ? colors.error + "CC"
-                        : colors.textSecondary,
-                      opacity: isCompleted ? 0.8 : 1,
-                      lineHeight: 18, // Adjusted for better fit
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {task.category === "hvac"
-                    ? task.category.toUpperCase()
-                    : task.category.charAt(0).toUpperCase() +
-                      task.category.slice(1).toLowerCase()}{" "}
-                  • {isCompleted ? "Completed" : "Due"}{" "}
-                  {formatDueDate(
-                    isCompleted
-                      ? task.completed_at || task.next_due_date
-                      : task.next_due_date
-                  )}
-                  {task.estimated_duration && ` • ${task.estimated_duration}m`}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.taskItemRight}>
-              {isCompleted ? (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={24}
-                  color={colors.success}
-                />
-              ) : isIncompleteView ? (
-                <Ionicons name="alert-circle" size={22} color={colors.error} />
-              ) : (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              )}
-            </View>
-          </Animated.View>
-        </Animated.View>
-      </GestureDetector>
+          {showDeleteButton && onDelete && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={handleDelete}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={20} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
 
-const styles = {
-  swipeContainer: {
-    position: "relative" as const,
-    marginHorizontal: 6, // Increased margin for better spacing between items
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 8,
   },
-
   taskItem: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 16,
-    height: 72, // Fixed height instead of minHeight
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    overflow: "hidden" as const, // Ensure border doesn't affect layout
+    minHeight: 72,
+    backgroundColor: "white",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  completedTaskItem: {
+    opacity: 0.7,
+  },
+  incompleteTaskItem: {
+    borderWidth: 2,
+    borderColor: "#E74C3C",
   },
   taskItemLeft: {
     flex: 1,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
+    flexDirection: "row",
+    alignItems: "center",
   },
   categoryIndicator: {
     width: 4,
@@ -324,58 +178,42 @@ const styles = {
   taskInfo: {
     flex: 1,
   },
-  taskTitleRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    marginBottom: 4,
-  },
   taskTitle: {
     fontSize: 17,
-    fontWeight: "600" as const,
-    flex: 1,
-    marginRight: 8,
+    fontWeight: "600",
+    marginBottom: 4,
     letterSpacing: -0.1,
   },
   taskSubtitle: {
     fontSize: 15,
-    fontWeight: "400" as const,
+    fontWeight: "400",
     letterSpacing: 0.1,
     lineHeight: 20,
   },
   taskItemRight: {
-    marginLeft: 16,
-  },
-  buttonsBackground: {
-    position: "absolute" as const,
-    right: 8, // 8px from edge
-    top: 8, // 8px from top for separation
-    bottom: 8, // 8px from bottom for separation
-    width: 120, // Two buttons + small margin
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   actionButton: {
-    width: 56,
-    flex: 1, // Take full height of container
-    borderRadius: 12,
-    overflow: "hidden" as const,
-    shadowColor: "#000",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 4,
-    marginVertical: 4, // Small margin for visual separation
-  },
-  actionGradient: {
-    width: 56,
-    flex: 1, // Take full height
-    borderRadius: 12,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
+    elevation: 2,
   },
   completeButton: {
-    marginRight: 8, // Space between complete and delete buttons
+    backgroundColor: "#27AE60",
   },
-};
+  uncompleteButton: {
+    backgroundColor: "#3498DB",
+  },
+  deleteButton: {
+    backgroundColor: "#E74C3C",
+  },
+});

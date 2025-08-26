@@ -1,55 +1,49 @@
 import { StyleSheet } from "react-native";
+import { DesignSystem } from "../../theme/designSystem";
 
+// Styles for OAuth buttons - Updated for modern 2025 design
 export const styles = StyleSheet.create({
   container: {
-    width: "100%",
-    marginVertical: 16,
+    marginBottom: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.md, // Added top margin for proper spacing
   },
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
   dividerLine: {
     flex: 1,
     height: 1,
+    opacity: 0.3,
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  buttonContainer: {
-    gap: 12,
+    ...DesignSystem.typography.small,
+    marginHorizontal: DesignSystem.spacing.md,
+    opacity: 0.7,
   },
   gradientButton: {
-    borderRadius: 12,
+    borderRadius: DesignSystem.borders.radius.large,
     overflow: "hidden",
+    ...DesignSystem.shadows.medium,
   },
   googleButton: {
-    backgroundColor: "transparent",
-    borderRadius: 12,
-    margin: 0,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-    height: 56,
+    paddingVertical: DesignSystem.spacing.md,
+    height: DesignSystem.components.buttonLarge,
     justifyContent: "center",
     alignItems: "center",
+    flexDirection: "row",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...DesignSystem.typography.button,
     letterSpacing: 0.5,
   },
   googleIconContainer: {
-    marginRight: 8,
-  },
-  appleIcon: {
-    fontSize: 18,
-    color: "#FFFFFF",
-    // Apple icon would go here - for now using text
-    width: 18,
-    height: 18,
+    marginRight: DesignSystem.spacing.sm,
   },
 });

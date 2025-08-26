@@ -3,17 +3,18 @@ import { View, Text } from "react-native";
 import { Chip } from "react-native-paper";
 import { useTheme } from "../../../context/ThemeContext";
 import { styles } from "../styles";
+import { Priority } from "../../../types/maintenance";
 
-interface Priority {
-  id: string;
+interface PriorityOption {
+  id: Priority;
   name: string;
   color: string;
 }
 
 interface PrioritySelectorProps {
-  priorities: Priority[];
-  selectedPriority: string;
-  onSelectPriority: (priorityId: string) => void;
+  priorities: PriorityOption[];
+  selectedPriority: Priority;
+  onSelectPriority: (priorityId: Priority) => void;
 }
 
 // PrioritySelector component for the CreateTaskModal
