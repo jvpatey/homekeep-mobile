@@ -36,13 +36,8 @@ export function IntervalSelector({
       // Custom interval - show the actual days
       return intervalValue;
     } else {
-      // For predefined intervals, calculate the multiplier
-      // e.g., if selectedInterval is 30 (monthly) and intervalValue is 30, show "1"
-      // because 30 days = 1 month
-      if (selectedInterval === 30) return 1; // Monthly
-      if (selectedInterval === 7) return 1; // Weekly
-      if (selectedInterval === 90) return 1; // Quarterly
-      if (selectedInterval === 365) return 1; // Yearly
+      // For predefined intervals, return the intervalValue directly
+      // This will show "2" when intervalValue is 2, "3" when it's 3, etc.
       return intervalValue;
     }
   };
