@@ -26,6 +26,7 @@ interface TaskCardProps {
   category: CategoryKey;
   priority: "low" | "medium" | "high" | "urgent";
   estimated_duration_minutes?: number;
+  interval_days: number;
   due_date: string;
   is_completed?: boolean;
   onComplete: (instanceId: string) => void;
@@ -39,6 +40,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   category,
   priority,
   estimated_duration_minutes,
+  interval_days,
   due_date,
   is_completed = false,
   onComplete,
@@ -79,6 +81,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
         day: "numeric",
       });
     }
+  };
+
+  const formatInterval = (intervalDays: number) => {
+    if (intervalDays === 7) return "Weekly";
+    if (intervalDays === 30) return "Monthly";
+    if (intervalDays === 90) return "Quarterly";
+    if (intervalDays === 365) return "Yearly";
+    if (intervalDays === 1) return "Daily";
+    if (intervalDays < 7) return `Every ${intervalDays} days`;
+    if (intervalDays < 30) return `Every ${Math.round(intervalDays / 7)} weeks`;
+    if (intervalDays < 365)
+      return `Every ${Math.round(intervalDays / 30)} months`;
+    return `Every ${Math.round(intervalDays / 365)} years`;
   };
 
   const handleComplete = () => {
@@ -164,6 +179,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   style={[styles.metaText, isOverdue && styles.overdueText]}
                 >
                   {formatDueDate(due_date)}
+                </Text>
+              </View>
+
+              <View style={styles.metaItem}>
+                <Ionicons
+                  name="repeat-outline"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.metaText}>
+                  {formatInterval(interval_days)}
                 </Text>
               </View>
             </View>

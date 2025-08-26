@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Modal,
@@ -31,6 +31,7 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
   onComplete,
 }) => {
   const { user } = useAuth();
+  const [isCompleting, setIsCompleting] = useState(false);
 
   if (!task) return null;
 
@@ -135,8 +136,34 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
     return `${hours}h ${mins}m`;
   };
 
+  const formatInterval = (intervalDays: number) => {
+    if (intervalDays === 7) return "Weekly";
+    if (intervalDays === 30) return "Monthly";
+    if (intervalDays === 90) return "Quarterly";
+    if (intervalDays === 365) return "Yearly";
+    if (intervalDays === 1) return "Daily";
+    if (intervalDays < 7) return `Every ${intervalDays} days`;
+    if (intervalDays < 30) return `Every ${Math.round(intervalDays / 7)} weeks`;
+    if (intervalDays < 365)
+      return `Every ${Math.round(intervalDays / 30)} months`;
+    return `Every ${Math.round(intervalDays / 365)} years`;
+  };
+
   const handleComplete = () => {
-    onComplete(task.id);
+    if (isCompleting) return; // Prevent multiple clicks
+
+    setIsCompleting(true);
+    // Close modal first to prevent re-rendering issues
+    onClose();
+    // Then complete the task
+    setTimeout(() => {
+      onComplete(task.instance_id);
+      setIsCompleting(false);
+    }, 100);
+  };
+
+  const handleClose = () => {
+    // Prevent any layout changes during close
     onClose();
   };
 
@@ -146,6 +173,8 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
+      presentationStyle="overFullScreen"
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
@@ -160,7 +189,7 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
               {/* Close button */}
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={onClose}
+                onPress={handleClose}
                 activeOpacity={0.7}
               >
                 <Ionicons name="close" size={24} color="white" />
@@ -200,7 +229,9 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
           {/* Content */}
           <ScrollView
             style={styles.content}
+            contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
+            bounces={false}
           >
             {/* Description */}
             {task.description && (
@@ -243,6 +274,22 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
                   </Text>
                 </View>
               </View>
+
+              <View style={styles.detailItem}>
+                <View style={styles.detailIconContainer}>
+                  <Ionicons
+                    name="repeat-outline"
+                    size={20}
+                    color={colors.light.accent}
+                  />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Recurrence</Text>
+                  <Text style={styles.detailValue}>
+                    {formatInterval(task.interval_days)}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {/* Category description */}
@@ -260,16 +307,22 @@ const SimpleTaskDetailModal: React.FC<SimpleTaskDetailModalProps> = ({
           {/* Action buttons */}
           <View style={styles.actionsContainer}>
             <TouchableOpacity
-              style={styles.completeButton}
+              style={[
+                styles.completeButton,
+                isCompleting && styles.completeButtonDisabled,
+              ]}
               onPress={handleComplete}
               activeOpacity={0.8}
+              disabled={isCompleting}
             >
               <LinearGradient
                 colors={[colors.light.success, "#4CAF50"]}
                 style={styles.completeButtonGradient}
               >
                 <Ionicons name="checkmark-circle" size={24} color="white" />
-                <Text style={styles.completeButtonText}>Mark as Complete</Text>
+                <Text style={styles.completeButtonText}>
+                  {isCompleting ? "Completing..." : "Mark as Complete"}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -286,10 +339,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.lg,
+    zIndex: 9999,
   },
   modalContainer: {
     width: screenWidth - 40,
-    maxHeight: "80%",
+    height: "85%",
     backgroundColor: colors.light.surface,
     borderRadius: DesignSystem.borders.radius.large,
     overflow: "hidden",
@@ -365,6 +420,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.lg,
+    minHeight: 0, // Prevent flex layout issues
+  },
+  contentContainer: {
+    paddingBottom: DesignSystem.spacing.lg,
   },
   section: {
     marginBottom: DesignSystem.spacing.lg,
@@ -425,6 +484,9 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     overflow: "hidden",
     ...DesignSystem.shadows.medium,
+  },
+  completeButtonDisabled: {
+    opacity: 0.6,
   },
   completeButtonGradient: {
     flexDirection: "row",

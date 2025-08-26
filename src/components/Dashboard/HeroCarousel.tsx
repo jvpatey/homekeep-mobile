@@ -176,6 +176,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
                 category={task.category as any}
                 priority={task.priority}
                 estimated_duration_minutes={task.estimated_duration_minutes}
+                interval_days={task.interval_days}
                 due_date={task.due_date}
                 is_completed={task.is_completed}
                 onComplete={onCompleteTask}
