@@ -9,13 +9,19 @@
     "newArchEnabled": true,
     "scheme": "homekeep",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.homekeep.mobile",
+      "icon": "./assets/icon.png",
+      "splash": {
+        "image": "./assets/splash/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
       "infoPlist": {
         "CFBundleURLTypes": [
           {
