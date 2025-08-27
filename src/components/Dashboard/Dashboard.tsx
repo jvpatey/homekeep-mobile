@@ -30,6 +30,7 @@ import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
 import { CreateTaskModal } from "./CreateTaskModal";
 import StreakPopup from "./StreakPopup";
 import DueSoonPopup from "./DueSoonPopup";
+import { NotificationPermissionRequest } from "../NotificationPermissionRequest";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -265,7 +266,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           >
             {/* Profile Button - Top Right */}
             <View style={styles.profileButtonContainer}>
-              <ProfileMenu onRefresh={onRefresh} />
+              <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
             </View>
 
             <View style={styles.headerContent}>
@@ -402,6 +403,9 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           onClose={() => setShowDueSoonPopup(false)}
         />
       )}
+
+      {/* Notification Permission Request */}
+      <NotificationPermissionRequest />
     </View>
   );
 };

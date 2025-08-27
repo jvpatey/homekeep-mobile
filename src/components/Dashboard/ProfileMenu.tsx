@@ -25,9 +25,10 @@ import { styles } from "./styles";
 
 interface ProfileMenuProps {
   onRefresh?: () => void;
+  navigation: any;
 }
 
-export function ProfileMenu({ onRefresh }: ProfileMenuProps) {
+export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
@@ -250,6 +251,43 @@ export function ProfileMenu({ onRefresh }: ProfileMenuProps) {
               </View>
               <Text style={[styles.menuActionText, { color: colors.text }]}>
                 Customize Avatar
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
+            {/* Notification Settings Button */}
+            <TouchableOpacity
+              style={styles.menuActionButton}
+              onPress={() => {
+                hideMenu();
+                setTimeout(() => {
+                  navigation.navigate("NotificationPreferences");
+                }, 300);
+              }}
+            >
+              <View
+                style={[
+                  styles.menuActionIconContainer,
+                  { backgroundColor: colors.primary + "15" },
+                ]}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.menuActionText, { color: colors.text }]}>
+                Notification Settings
               </Text>
               <Ionicons
                 name="chevron-forward"

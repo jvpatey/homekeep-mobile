@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import { AuthProvider } from "./src/context/AuthContext";
 import { UserPreferencesProvider } from "./src/context/UserPreferencesContext";
+import { NotificationProvider } from "./src/context/NotificationContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 export default function App() {
@@ -13,7 +14,9 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <UserPreferencesProvider>
-              <RootNavigator />
+              <NotificationProvider>
+                <RootNavigator />
+              </NotificationProvider>
             </UserPreferencesProvider>
           </AuthProvider>
         </ThemeProvider>
