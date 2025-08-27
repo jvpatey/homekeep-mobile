@@ -20,7 +20,6 @@ interface NotificationPreferencesScreenProps {
   navigation: any;
 }
 
-
 export function NotificationPreferencesScreen({
   navigation,
 }: NotificationPreferencesScreenProps) {
@@ -30,7 +29,6 @@ export function NotificationPreferencesScreen({
     updateNotificationPreferences,
     updateGlobalNotificationSettings,
     permissionStatus,
-    testNotification,
   } = useNotifications();
   const { triggerLight } = useHaptics();
   const [expandedType, setExpandedType] = useState<string | null>(null);
@@ -310,29 +308,6 @@ export function NotificationPreferencesScreen({
           </View>
         </View>
 
-        {/* Test Notification Button */}
-        {permissionStatus.granted && (
-          <View
-            style={[styles.testSection, { backgroundColor: colors.surface }]}
-          >
-            <TouchableOpacity
-              style={[styles.testButton, { backgroundColor: colors.primary }]}
-              onPress={async () => {
-                await triggerLight();
-                await testNotification();
-              }}
-            >
-              <Ionicons name="send" size={20} color="white" />
-              <Text style={styles.testButtonText}>Send Test Notification</Text>
-            </TouchableOpacity>
-            <Text
-              style={[styles.testDescription, { color: colors.textSecondary }]}
-            >
-              Test your notification setup by sending a sample notification
-            </Text>
-          </View>
-        )}
-
         {/* Permission Status */}
         {!permissionStatus.granted && (
           <View
@@ -363,22 +338,31 @@ export function NotificationPreferencesScreen({
           </View>
         )}
 
-        {/* Notification Type Settings */}
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          Notification Types
-        </Text>
-        <Text
-          style={[styles.sectionDescription, { color: colors.textSecondary }]}
-        >
-          Configure which types of notifications you want to receive
-        </Text>
+        {/* Notification Type Settings - Only show when notifications are enabled */}
+        {notificationSettings.globalEnabled && (
+          <>
+            <Text
+              style={[styles.sectionTitle, { color: colors.textSecondary }]}
+            >
+              Notification Types
+            </Text>
+            <Text
+              style={[
+                styles.sectionDescription,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Configure which types of notifications you want to receive
+            </Text>
 
-        {[
-          "due_soon_reminder",
-          "overdue_reminder",
-          "daily_digest",
-          "weekly_summary",
-        ].map((type) => renderNotificationTypeSection(type))}
+            {[
+              "due_soon_reminder",
+              "overdue_reminder",
+              "daily_digest",
+              "weekly_summary",
+            ].map((type) => renderNotificationTypeSection(type))}
+          </>
+        )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -451,31 +435,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  testSection: {
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-  },
-  testButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  testButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  testDescription: {
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 16,
-  },
+
   permissionSection: {
     marginBottom: 20,
     borderRadius: 16,

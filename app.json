@@ -26,7 +26,9 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "homekeep-oauth",
-            "CFBundleURLSchemes": ["homekeep"]
+            "CFBundleURLSchemes": [
+              "homekeep"
+            ]
           }
         ]
       }
@@ -50,9 +52,17 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff",
-          "sounds": ["./assets/notification-sound.wav"]
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ca79d39b-fef0-44c5-bd84-571cb7297aa3"
+      }
+    },
+    "owner": "jeffreyvpatey"
   }
 }

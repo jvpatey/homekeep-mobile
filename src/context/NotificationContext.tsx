@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { Platform, Alert } from "react-native";
 import { useAuth } from "./AuthContext";
 import {
   NotificationPreferences,
@@ -41,7 +41,6 @@ interface NotificationContextType {
   updateGlobalNotificationSettings: (enabled: boolean) => Promise<void>;
   registerForPushNotifications: () => Promise<ExpoPushToken | null>;
   savePushToken: (token: string) => Promise<void>;
-  testNotification: () => Promise<void>;
 }
 
 // NotificationContext is a context for the notification context
@@ -174,8 +173,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           return null;
         }
 
+        // Get the project ID from app.json
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        if (!projectId) {
+          console.log("No project ID found in app.json");
+          return null;
+        }
+
+        // Get the push token with the project ID
         const token = await Notifications.getExpoPushTokenAsync({
-          projectId: Constants.expoConfig?.extra?.eas?.projectId,
+          projectId: projectId,
         });
 
         setExpoPushToken(token);
@@ -202,42 +209,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
     } catch (error) {
       console.error("Error saving push token:", error);
-    }
-  };
-
-  // Test notification function
-  const testNotification = async () => {
-    if (!expoPushToken) {
-      console.log("No push token available");
-      return;
-    }
-
-    try {
-      // Send a test notification via your edge function
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/send-push-notification`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            userId: user?.id,
-            title: "Test Notification",
-            body: "This is a test notification from HomeKeep!",
-            data: { type: "test" },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        console.log("Test notification sent successfully");
-      } else {
-        console.error("Failed to send test notification");
-      }
-    } catch (error) {
-      console.error("Error sending test notification:", error);
     }
   };
 
@@ -385,7 +356,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     updateGlobalNotificationSettings,
     registerForPushNotifications,
     savePushToken,
-    testNotification,
   };
 
   return (
