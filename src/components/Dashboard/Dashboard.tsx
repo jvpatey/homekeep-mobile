@@ -236,10 +236,48 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
     if (upcomingTasks.length === 0) {
       return "Ready to get organized? Add a task to get started! ✨";
     }
-    if (upcomingTasks.length <= 3) {
-      return "You're almost there! Just a few more tasks to go.";
+
+    // Find the next due task
+    const nextTask = upcomingTasks[0]; // Tasks are already sorted by due date
+    if (!nextTask) {
+      return "Ready to get organized? Add a task to get started! ✨";
     }
-    return "You have tasks to complete! Let's get started with your first one.";
+
+    const nextDueDate = new Date(nextTask.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = nextDueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      // Overdue task
+      return "You have overdue tasks that need attention!";
+    } else if (diffDays === 0) {
+      // Due today
+      return "You have tasks due today! Let's get them done.";
+    } else if (diffDays === 1) {
+      // Due tomorrow
+      return "You have tasks due tomorrow. Time to prepare!";
+    } else if (diffDays <= 7) {
+      // Due this week
+      return `You have tasks due in ${diffDays} days. Getting close!`;
+    } else if (diffDays <= 30) {
+      // Due this month
+      const weeks = Math.ceil(diffDays / 7);
+      return `Your next task is due in ${weeks} week${weeks > 1 ? "s" : ""}.`;
+    } else {
+      // Due far in the future
+      const months = Math.ceil(diffDays / 30);
+      if (months >= 12) {
+        const years = Math.ceil(months / 12);
+        return `Your next task is due in ${years} year${years > 1 ? "s" : ""}.`;
+      } else {
+        return `Your next task is due in ${months} month${
+          months > 1 ? "s" : ""
+        }.`;
+      }
+    }
   };
 
   return (
