@@ -1,7 +1,7 @@
 // Dashboard Components
 export { NewDashboard as Dashboard } from "./Dashboard";
 export { HeroCarousel } from "./HeroCarousel";
-export { TimelineView } from "./TimelineView";
+export { TimelineView } from "./timeline-view";
 export { TaskCard } from "./tasks";
 export { CompletionCelebration } from "./popups";
 export { ProfileButton } from "./profile";

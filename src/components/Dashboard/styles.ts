@@ -110,3 +110,6 @@ export const dashboardStyles = StyleSheet.create({
     height: DesignSystem.spacing.xxl,
   },
 });
+
+// Re-export timeline styles for convenience
+export { timelineStyles } from "./timeline-view/styles";

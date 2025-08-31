@@ -3,7 +3,7 @@ import { View, ScrollView, RefreshControl } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
 import { HeroCarousel } from "./HeroCarousel";
-import { TimelineView } from "./TimelineView";
+import { TimelineView } from "./timeline-view/TimelineView";
 import { useAuth } from "../../context/AuthContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
 import { StreakPopup, DueSoonPopup, CompletionCelebration } from "./popups";
