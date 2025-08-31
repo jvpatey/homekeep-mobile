@@ -9,6 +9,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { DatePickerEvent } from "../../../../types/navigation";
 
 // StartDateSelectorProps
 interface StartDateSelectorProps {
@@ -26,7 +27,7 @@ export function StartDateSelector({
   const { colors } = useTheme();
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (event: DatePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === "ios");
     if (selectedDate) {
       onStartDateChange(selectedDate);

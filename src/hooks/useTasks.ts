@@ -139,9 +139,10 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       console.log(
         `✅ useTasks: Loaded ${upcomingCount} upcoming, ${overdueCount} overdue, ${completedCount} completed maintenance tasks`
       );
-    } catch (err: any) {
-      setError(err.message || "Failed to load maintenance tasks");
-      console.error("❌ useTasks: Error loading maintenance tasks:", err);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "Failed to load maintenance tasks");
+      console.error("❌ useTasks: Error loading maintenance tasks:", error);
     } finally {
       setLoading(false);
     }
@@ -164,10 +165,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         await loadTasks();
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         const errorMessage =
-          err.message || "Failed to create maintenance routine";
-        console.error("Error creating maintenance routine:", err);
+          error.message || "Failed to create maintenance routine";
+        console.error("Error creating maintenance routine:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -213,10 +215,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         await refreshStats();
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         const errorMessage =
-          err.message || "Failed to update maintenance routine";
-        console.error("Error updating maintenance routine:", err);
+          error.message || "Failed to update maintenance routine";
+        console.error("Error updating maintenance routine:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -239,10 +242,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         await loadTasks();
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         const errorMessage =
-          err.message || "Failed to complete maintenance task";
-        console.error("Error completing maintenance task:", err);
+          error.message || "Failed to complete maintenance task";
+        console.error("Error completing maintenance task:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -265,10 +269,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         await loadTasks();
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         const errorMessage =
-          err.message || "Failed to uncomplete maintenance task";
-        console.error("Error uncompleting maintenance task:", err);
+          error.message || "Failed to uncomplete maintenance task";
+        console.error("Error uncompleting maintenance task:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -299,10 +304,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         await refreshStats();
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         const errorMessage =
-          err.message || "Failed to delete maintenance routine";
-        console.error("Error deleting maintenance routine:", err);
+          error.message || "Failed to delete maintenance routine";
+        console.error("Error deleting maintenance routine:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -331,10 +337,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         await loadTasks();
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         const errorMessage =
-          err.message || "Failed to complete maintenance tasks";
-        console.error("Error bulk completing maintenance tasks:", err);
+          error.message || "Failed to complete maintenance tasks";
+        console.error("Error bulk completing maintenance tasks:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -367,8 +374,9 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           totalInstances: 0,
         }
       );
-    } catch (err: any) {
-      console.error("Error refreshing stats:", err);
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error refreshing stats:", error);
     }
   }, [user]);
 
@@ -393,10 +401,11 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         } routines and ${instancesDeleted || 0} instances`
       );
       return { success: true };
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as Error;
       const errorMessage =
-        err.message || "Failed to delete all maintenance routines";
-      console.error("Error deleting all maintenance routines:", err);
+        error.message || "Failed to delete all maintenance routines";
+      console.error("Error deleting all maintenance routines:", error);
       return { success: false, error: errorMessage };
     }
   }, [user, refreshStats]);

@@ -1,4 +1,5 @@
 import { MaintenanceTask } from "../../../types/maintenance";
+import { ThemeColors } from "../../../types/navigation";
 
 // groupTasksByDate function to group the tasks by date
 export const groupTasksByDate = (tasks: MaintenanceTask[]) => {
@@ -60,7 +61,7 @@ export const formatTime = (dateString: string) => {
 };
 
 // getPriorityColor function to get the priority color
-export const getPriorityColor = (priority: string, colors: any) => {
+export const getPriorityColor = (priority: string, colors: ThemeColors) => {
   switch (priority) {
     case "urgent":
       return colors.error;

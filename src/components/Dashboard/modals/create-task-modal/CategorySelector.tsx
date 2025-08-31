@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import { Chip } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
-import { styles } from "../../../dashboard/styles";
+import { styles } from "./styles";
 import { MaintenanceCategory } from "../../../../types/maintenance";
 
 // Category interface

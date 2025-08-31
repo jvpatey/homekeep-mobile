@@ -2,11 +2,12 @@ import {
   MaintenanceTask,
   RoutineInstance,
   MaintenanceRoutine,
+  InstanceWithRoutine,
 } from "../types/maintenance";
 
 export class MaintenanceDataMapper {
   // Maps a routine instance with its routine data to a MaintenanceTask
-  static mapInstanceToTask(instance: any): MaintenanceTask {
+  static mapInstanceToTask(instance: InstanceWithRoutine): MaintenanceTask {
     return {
       id: instance.routine.id,
       instance_id: instance.id,
@@ -30,7 +31,9 @@ export class MaintenanceDataMapper {
   }
 
   // Maps multiple instances to tasks
-  static mapInstancesToTasks(instances: any[]): MaintenanceTask[] {
+  static mapInstancesToTasks(
+    instances: InstanceWithRoutine[]
+  ): MaintenanceTask[] {
     return (instances || []).map(this.mapInstanceToTask);
   }
 }

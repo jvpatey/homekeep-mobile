@@ -10,6 +10,14 @@ import {
   MaintenanceStats,
   MaintenanceCategory,
   Priority,
+  MaintenanceRoutineResponse,
+  MaintenanceRoutinesResponse,
+  RoutineInstanceResponse,
+  RoutineInstancesResponse,
+  MaintenanceTasksResponse,
+  DeleteResponse,
+  ServiceResponse,
+  ServiceError,
 } from "../types/maintenance";
 import { MaintenanceRoutineService } from "./MaintenanceRoutineService";
 import { MaintenanceInstanceService } from "./MaintenanceInstanceService";
@@ -21,14 +29,14 @@ export class MaintenanceService {
   // ===== ROUTINE OPERATIONS =====
   static async createMaintenanceRoutine(
     routineData: CreateMaintenanceRoutineData
-  ): Promise<{ data: MaintenanceRoutine | null; error: any }> {
+  ): Promise<MaintenanceRoutineResponse> {
     return MaintenanceRoutineService.createMaintenanceRoutine(routineData);
   }
 
   // Get all maintenance routines for the current user
   static async getMaintenanceRoutines(
     filters?: Partial<MaintenanceFilters>
-  ): Promise<{ data: MaintenanceRoutine[] | null; error: any }> {
+  ): Promise<MaintenanceRoutinesResponse> {
     return MaintenanceRoutineService.getMaintenanceRoutines(filters);
   }
 
@@ -36,7 +44,7 @@ export class MaintenanceService {
   static async updateMaintenanceRoutine(
     routineId: string,
     updates: UpdateMaintenanceRoutineData
-  ): Promise<{ data: MaintenanceRoutine | null; error: any }> {
+  ): Promise<MaintenanceRoutineResponse> {
     return MaintenanceRoutineService.updateMaintenanceRoutine(
       routineId,
       updates
@@ -46,7 +54,7 @@ export class MaintenanceService {
   // Delete a maintenance routine
   static async deleteMaintenanceRoutine(
     routineId: string
-  ): Promise<{ error: any }> {
+  ): Promise<DeleteResponse> {
     return MaintenanceRoutineService.deleteMaintenanceRoutine(routineId);
   }
 
@@ -56,14 +64,14 @@ export class MaintenanceService {
   static async completeInstance(
     instanceId: string,
     notes?: string
-  ): Promise<{ data: RoutineInstance | null; error: any }> {
+  ): Promise<RoutineInstanceResponse> {
     return MaintenanceInstanceService.completeInstance(instanceId, notes);
   }
 
   // Uncomplete a routine instance
   static async uncompleteInstance(
-    instanceId: string
-  ): Promise<{ data: RoutineInstance | null; error: any }> {
+    instanceId: string,
+  ): Promise<RoutineInstanceResponse> {
     return MaintenanceInstanceService.uncompleteInstance(instanceId);
   }
 
@@ -71,14 +79,14 @@ export class MaintenanceService {
   static async updateInstance(
     instanceId: string,
     updates: UpdateRoutineInstanceData
-  ): Promise<{ data: RoutineInstance | null; error: any }> {
+  ): Promise<RoutineInstanceResponse> {
     return MaintenanceInstanceService.updateInstance(instanceId, updates);
   }
 
   // Bulk complete multiple instances
   static async bulkCompleteInstances(
     instanceIds: string[]
-  ): Promise<{ data: RoutineInstance[] | null; error: any }> {
+  ): Promise<RoutineInstancesResponse> {
     return MaintenanceInstanceService.bulkCompleteInstances(instanceIds);
   }
 
@@ -87,42 +95,42 @@ export class MaintenanceService {
   // Get maintenance tasks (routines + instances) for dashboard
   static async getMaintenanceTasks(
     filters?: MaintenanceFilters
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getMaintenanceTasks(filters);
   }
 
   // Get upcoming maintenance tasks
   static async getUpcomingTasks(
     timeRange: number | "all" = 60
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getUpcomingTasks(timeRange);
   }
 
   // Get overdue maintenance tasks
   static async getOverdueTasks(
     lookbackDays: number | "all" = 14
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getOverdueTasks(lookbackDays);
   }
 
   // Get completed maintenance tasks
   static async getCompletedTasks(
     lookbackDays: number | "all" = 14
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getCompletedTasks(lookbackDays);
   }
 
   // Get tasks by category
   static async getTasksByCategory(
     category: MaintenanceCategory
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getTasksByCategory(category);
   }
 
   // Get tasks by priority
   static async getTasksByPriority(
     priority: Priority
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getTasksByPriority(priority);
   }
 
@@ -131,7 +139,7 @@ export class MaintenanceService {
     startDate: string,
     endDate: string,
     includeCompleted: boolean = true
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return MaintenanceTaskService.getTasksInDateRange(
       startDate,
       endDate,
@@ -142,10 +150,7 @@ export class MaintenanceService {
   // ===== STATISTICS =====
 
   // Get maintenance statistics for dashboard
-  static async getMaintenanceStats(): Promise<{
-    data: MaintenanceStats | null;
-    error: any;
-  }> {
+  static async getMaintenanceStats(): Promise<ServiceResponse<MaintenanceStats>> {
     return MaintenanceStatsService.getMaintenanceStats();
   }
 
@@ -153,7 +158,7 @@ export class MaintenanceService {
 
   // Delete all maintenance data for a user
   static async deleteAllMaintenanceData(): Promise<{
-    error: any;
+    error: ServiceError | null;
     routinesDeleted?: number;
     instancesDeleted?: number;
   }> {
@@ -194,7 +199,12 @@ export class MaintenanceService {
       };
     } catch (error) {
       console.error("Error deleting all maintenance data:", error);
-      return { error };
+      return { 
+        error: { 
+          message: error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error)
+        } 
+      };
     }
   }
 }

@@ -4,6 +4,8 @@ import {
   MaintenanceFilters,
   MaintenanceCategory,
   Priority,
+  MaintenanceTasksResponse,
+  ServiceResponse,
 } from "../types/maintenance";
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
 import { addDays, startOfDay } from "date-fns";
@@ -12,7 +14,7 @@ export class MaintenanceTaskService {
   // Get maintenance tasks (routines + instances) for dashboard
   static async getMaintenanceTasks(
     filters?: MaintenanceFilters
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -72,14 +74,21 @@ export class MaintenanceTaskService {
       return { data: mappedTasks, error: null };
     } catch (error) {
       console.error("Error fetching maintenance tasks:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Get upcoming maintenance tasks
   static async getUpcomingTasks(
     timeRange: number | "all" = 60
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -125,14 +134,21 @@ export class MaintenanceTaskService {
       return { data: mappedTasks, error: null };
     } catch (error) {
       console.error("Error fetching upcoming tasks:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Get overdue maintenance tasks
   static async getOverdueTasks(
     lookbackDays: number | "all" = 14
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -178,14 +194,21 @@ export class MaintenanceTaskService {
       return { data: mappedTasks, error: null };
     } catch (error) {
       console.error("Error fetching overdue tasks:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Get completed maintenance tasks
   static async getCompletedTasks(
     lookbackDays: number | "all" = 14
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -229,21 +252,28 @@ export class MaintenanceTaskService {
       return { data: mappedTasks, error: null };
     } catch (error) {
       console.error("Error fetching completed tasks:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Get tasks by category
   static async getTasksByCategory(
     category: MaintenanceCategory
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return this.getMaintenanceTasks({ category });
   }
 
   // Get tasks by priority
   static async getTasksByPriority(
     priority: Priority
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return this.getMaintenanceTasks({ priority });
   }
 
@@ -252,7 +282,7 @@ export class MaintenanceTaskService {
     startDate: string,
     endDate: string,
     includeCompleted: boolean = true
-  ): Promise<{ data: MaintenanceTask[] | null; error: any }> {
+  ): Promise<MaintenanceTasksResponse> {
     return this.getMaintenanceTasks({
       due_date_from: startDate,
       due_date_to: endDate,

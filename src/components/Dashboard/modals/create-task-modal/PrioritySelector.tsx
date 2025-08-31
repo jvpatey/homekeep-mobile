@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { Chip } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
-import { styles } from "../../../dashboard/styles";
+import { styles } from "./styles";
 import { Priority } from "../../../../types/maintenance";
 
 // PriorityOption interface

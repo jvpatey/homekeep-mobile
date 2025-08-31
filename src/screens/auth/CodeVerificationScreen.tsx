@@ -39,6 +39,9 @@ export function CodeVerificationScreen() {
     setError("");
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase not configured");
+      }
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
@@ -64,12 +67,13 @@ export function CodeVerificationScreen() {
       } else {
         throw new Error("Verification completed but no session created");
       }
-    } catch (error: any) {
-      console.error("Code verification error:", error);
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error("Code verification error:", errorObj);
       triggerError();
 
       let errorMessage = "Invalid or expired code. Please try again.";
-      if (error.message?.includes("expired")) {
+      if (errorObj.message?.includes("expired")) {
         errorMessage =
           "This verification code has expired. Please request a new one.";
       }
@@ -92,6 +96,9 @@ export function CodeVerificationScreen() {
     setError("");
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase not configured");
+      }
       const { error } = await supabase.auth.resend({
         type: "signup",
         email,
@@ -105,8 +112,9 @@ export function CodeVerificationScreen() {
         "Code Resent",
         "A new verification code has been sent to your email."
       );
-    } catch (error: any) {
-      console.error("Resend error:", error);
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error("Resend error:", errorObj);
       setError("Failed to resend code. Please try again.");
     }
   };

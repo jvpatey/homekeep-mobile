@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
-import { styles } from "../../../dashboard/styles";
+import { styles } from "./styles";
 
 // interface ModalHeaderProps
 interface ModalHeaderProps {

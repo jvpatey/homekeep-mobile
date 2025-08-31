@@ -20,6 +20,7 @@ import { DesignSystem } from "../../theme/designSystem";
 import { TaskCard } from "./tasks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
+import { ViewableItemsChangedEvent } from "../../types/navigation";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth - 80;
@@ -76,8 +77,8 @@ export function HeroCarousel({
     ],
   }));
 
-  const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
+  const handleViewableItemsChanged = useCallback(({ viewableItems }: ViewableItemsChangedEvent) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
       setCurrentIndex(viewableItems[0].index);
     }
   }, []);
@@ -169,13 +170,13 @@ export function HeroCarousel({
           viewabilityConfig={{
             itemVisiblePercentThreshold: 50,
           }}
-          renderItem={({ item: task }) => (
+          renderItem={({ item: task }: { item: MaintenanceTask }) => (
             <View style={styles.cardContainer}>
               <TaskCard
                 id={task.id}
                 instance_id={task.instance_id}
                 title={task.title}
-                category={task.category as any}
+                category={task.category}
                 priority={task.priority}
                 estimated_duration_minutes={task.estimated_duration_minutes}
                 interval_days={task.interval_days}

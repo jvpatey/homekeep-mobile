@@ -2,6 +2,10 @@ import { supabase } from "../context/AuthContext";
 import {
   RoutineInstance,
   UpdateRoutineInstanceData,
+  RoutineInstanceResponse,
+  RoutineInstancesResponse,
+  DeleteResponse,
+  ServiceResponse,
 } from "../types/maintenance";
 
 export class MaintenanceInstanceService {
@@ -9,7 +13,7 @@ export class MaintenanceInstanceService {
   static async completeInstance(
     instanceId: string,
     notes?: string
-  ): Promise<{ data: RoutineInstance | null; error: any }> {
+  ): Promise<RoutineInstanceResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -37,14 +41,21 @@ export class MaintenanceInstanceService {
       return { data, error: null };
     } catch (error) {
       console.error("Error completing instance:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Uncomplete a routine instance
   static async uncompleteInstance(
     instanceId: string
-  ): Promise<{ data: RoutineInstance | null; error: any }> {
+  ): Promise<RoutineInstanceResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -65,7 +76,14 @@ export class MaintenanceInstanceService {
       return { data, error: null };
     } catch (error) {
       console.error("Error uncompleting instance:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
@@ -73,7 +91,7 @@ export class MaintenanceInstanceService {
   static async updateInstance(
     instanceId: string,
     updates: UpdateRoutineInstanceData
-  ): Promise<{ data: RoutineInstance | null; error: any }> {
+  ): Promise<RoutineInstanceResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -91,14 +109,21 @@ export class MaintenanceInstanceService {
       return { data, error: null };
     } catch (error) {
       console.error("Error updating instance:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Bulk complete multiple instances
   static async bulkCompleteInstances(
     instanceIds: string[]
-  ): Promise<{ data: RoutineInstance[] | null; error: any }> {
+  ): Promise<RoutineInstancesResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -125,20 +150,27 @@ export class MaintenanceInstanceService {
       return { data, error: null };
     } catch (error) {
       console.error("Error bulk completing instances:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Delete instances by routine IDs
   static async deleteInstancesByRoutineIds(
     routineIds: string[]
-  ): Promise<{ error: any; instancesDeleted?: number }> {
+  ): Promise<DeleteResponse> {
     if (!supabase) {
-      return { error: { message: "Supabase not configured" } };
+      return { data: null, error: { message: "Supabase not configured" } };
     }
 
     if (!routineIds.length) {
-      return { error: null, instancesDeleted: 0 };
+      return { data: null, error: null, instancesDeleted: 0 };
     }
 
     try {
@@ -157,12 +189,20 @@ export class MaintenanceInstanceService {
       if (instErr) throw instErr;
 
       return {
+        data: null,
         error: null,
         instancesDeleted: instCount || 0,
       };
     } catch (error) {
       console.error("Error deleting instances by routine IDs:", error);
-      return { error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 }

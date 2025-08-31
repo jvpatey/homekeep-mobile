@@ -12,7 +12,7 @@ import { useHaptics } from "../../../../hooks/useHaptics";
 import { useTasks } from "../../../../context/TasksContext";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
-import { styles } from "../../styles";
+import { styles } from "./styles";
 import { FormField } from "./FormField";
 import { CategorySelector } from "./CategorySelector";
 import { PrioritySelector } from "./PrioritySelector";

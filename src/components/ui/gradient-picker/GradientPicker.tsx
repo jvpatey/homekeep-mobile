@@ -17,6 +17,7 @@ import {
   useUserPreferences,
 } from "../../../context/UserPreferencesContext";
 import { styles } from "./styles";
+import { ThemeColors } from "../../../types/navigation";
 
 // GradientPickerProps interface for the GradientPicker component
 interface GradientPickerProps {
@@ -86,7 +87,7 @@ interface GradientOptionProps {
   gradient: GradientPreset;
   isSelected: boolean;
   onSelect: (gradient: GradientPreset) => void;
-  colors: any;
+  colors: ThemeColors;
   isDark: boolean;
 }
 

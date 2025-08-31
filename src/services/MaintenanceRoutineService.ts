@@ -4,13 +4,17 @@ import {
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
   MaintenanceFilters,
+  MaintenanceRoutineResponse,
+  MaintenanceRoutinesResponse,
+  DeleteResponse,
+  ServiceResponse,
 } from "../types/maintenance";
 
 export class MaintenanceRoutineService {
   // Create a new maintenance routine
   static async createMaintenanceRoutine(
     routineData: CreateMaintenanceRoutineData
-  ): Promise<{ data: MaintenanceRoutine | null; error: any }> {
+  ): Promise<MaintenanceRoutineResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -43,14 +47,21 @@ export class MaintenanceRoutineService {
       return { data, error: null };
     } catch (error) {
       console.error("Error creating maintenance routine:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Get all maintenance routines for the current user
   static async getMaintenanceRoutines(
     filters?: Partial<MaintenanceFilters>
-  ): Promise<{ data: MaintenanceRoutine[] | null; error: any }> {
+  ): Promise<MaintenanceRoutinesResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -79,7 +90,14 @@ export class MaintenanceRoutineService {
       return { data, error: null };
     } catch (error) {
       console.error("Error fetching maintenance routines:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
@@ -87,7 +105,7 @@ export class MaintenanceRoutineService {
   static async updateMaintenanceRoutine(
     routineId: string,
     updates: UpdateMaintenanceRoutineData
-  ): Promise<{ data: MaintenanceRoutine | null; error: any }> {
+  ): Promise<MaintenanceRoutineResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -108,16 +126,23 @@ export class MaintenanceRoutineService {
       return { data, error: null };
     } catch (error) {
       console.error("Error updating maintenance routine:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Delete a maintenance routine
   static async deleteMaintenanceRoutine(
     routineId: string
-  ): Promise<{ error: any }> {
+  ): Promise<DeleteResponse> {
     if (!supabase) {
-      return { error: { message: "Supabase not configured" } };
+      return { data: null, error: { message: "Supabase not configured" } };
     }
 
     try {
@@ -128,18 +153,22 @@ export class MaintenanceRoutineService {
 
       if (error) throw error;
 
-      return { error: null };
+      return { data: null, error: null };
     } catch (error) {
       console.error("Error deleting maintenance routine:", error);
-      return { error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 
   // Get user's routine IDs for bulk operations
-  static async getUserRoutineIds(): Promise<{
-    data: string[] | null;
-    error: any;
-  }> {
+  static async getUserRoutineIds(): Promise<ServiceResponse<string[]>> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
@@ -158,11 +187,18 @@ export class MaintenanceRoutineService {
 
       if (error) throw error;
 
-      const routineIds = (data || []).map((r: any) => r.id);
+      const routineIds = (data || []).map((r: { id: string }) => r.id);
       return { data: routineIds, error: null };
     } catch (error) {
       console.error("Error fetching user routine IDs:", error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
     }
   }
 }

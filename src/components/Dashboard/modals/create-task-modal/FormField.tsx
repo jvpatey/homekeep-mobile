@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { TextInput } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
-import { styles } from "../../../dashboard/styles";
+import { styles } from "./styles";
 
 interface FormFieldProps {
   label: string;

@@ -21,12 +21,13 @@ import { useTasks } from "../../../context/TasksContext";
 import { useGradients, useHaptics } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
 import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
-import { styles } from "../../dashboard/styles";
+import { styles } from "./styles";
+import { ProfileMenuNavigationProps } from "../../../types/navigation";
 
 // ProfileMenuProps
 interface ProfileMenuProps {
   onRefresh?: () => void;
-  navigation: any;
+  navigation: ProfileMenuNavigationProps['navigation'];
 }
 
 // ProfileMenu component for the Dashboard

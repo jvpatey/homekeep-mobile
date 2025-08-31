@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useGradients } from "../../../../hooks";
-import { styles } from "../../../dashboard/styles";
+import { styles } from "./styles";
 
 // SubmitButtonProps interface
 interface SubmitButtonProps {

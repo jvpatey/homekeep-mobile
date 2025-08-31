@@ -67,6 +67,9 @@ export function EmailVerificationScreen() {
         }
 
         // Verify the email using the token with Supabase
+        if (!supabase) {
+          throw new Error("Supabase not configured");
+        }
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
           type: type as any,
@@ -84,19 +87,20 @@ export function EmailVerificationScreen() {
         } else {
           throw new Error("Verification failed - no session created");
         }
-      } catch (error: any) {
-        console.error("Email verification error:", error);
+      } catch (error) {
+        const errorObj = error as Error;
+        console.error("Email verification error:", errorObj);
         triggerError();
         setStatus("error");
         setMessage(
-          error.message || "Failed to verify email. Please try again."
+          errorObj.message || "Failed to verify email. Please try again."
         );
       }
     };
 
     // Start verification process
     handleEmailVerification();
-  }, [route.params, navigation, supabase.auth, triggerSuccess, triggerError]);
+  }, [route.params, navigation, supabase, triggerSuccess, triggerError]);
 
   // handleBackToHome for the handleBackToHome on the home screen
   const handleBackToHome = () => {

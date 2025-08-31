@@ -1,10 +1,20 @@
+import {
+  NotificationPreferencesNavigationProps,
+  ThemeColors,
+  NotificationSettings,
+  NotificationPreference,
+} from "../../types/navigation";
+
 // NotificationPreferencesScreenProps for the NotificationPreferencesScreenProps on the home screen
 export interface NotificationPreferencesScreenProps {
-  navigation: any;
+  navigation: NotificationPreferencesNavigationProps["navigation"];
 }
 
 // Notification type configuration
-export const getNotificationTypeConfig = (type: string, colors: any) => {
+export const getNotificationTypeConfig = (
+  type: string,
+  colors: ThemeColors
+) => {
   const typeConfig = {
     due_soon_reminder: {
       title: "Due Soon Reminders",
@@ -38,10 +48,11 @@ export const getNotificationTypeConfig = (type: string, colors: any) => {
 // Check if a notification type is enabled for any category
 export const isNotificationTypeEnabled = (
   type: string,
-  notificationSettings: any
+  notificationSettings: NotificationSettings
 ) => {
   return Object.values(notificationSettings.categories).some(
-    (pref: any) => pref && pref[type as keyof typeof pref]
+    (pref: NotificationPreference) =>
+      pref && pref[type as keyof NotificationPreference]
   );
 };
 

@@ -1,4 +1,5 @@
 import { useTheme } from "../../context/ThemeContext";
+import { MaintenanceTask } from "../../types/maintenance";
 
 // useCategoryColors - Features use of the theme colors
 export const useCategoryColors = () => {
@@ -45,7 +46,7 @@ export const formatDueDate = (dateString: string): string => {
 };
 
 // sortTasksByPriorityAndDate - Features sorting of tasks by priority and date
-export const sortTasksByPriorityAndDate = (tasks: any[]) => {
+export const sortTasksByPriorityAndDate = (tasks: MaintenanceTask[]) => {
   const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
   return [...tasks].sort((a, b) => {
     const priorityDiff =
@@ -77,7 +78,7 @@ export const getUserName = (fullName?: string, email?: string) => {
   return "User";
 };
 
-export const getMotivationalMessage = (upcomingTasks: any[]) => {
+export const getMotivationalMessage = (upcomingTasks: MaintenanceTask[]) => {
   if (upcomingTasks.length === 0) {
     return "Ready to get organized? Add a task to get started! ✨";
   }
@@ -125,7 +126,7 @@ export const getMotivationalMessage = (upcomingTasks: any[]) => {
   }
 };
 
-export const calculateConsecutiveStreak = (completedTasks: any[]) => {
+export const calculateConsecutiveStreak = (completedTasks: MaintenanceTask[]) => {
   if (completedTasks.length === 0) return 0;
 
   // Sort completed tasks by completion date (newest first)
@@ -177,7 +178,7 @@ export const calculateConsecutiveStreak = (completedTasks: any[]) => {
   return streak;
 };
 
-export const getDueSoonTasks = (tasks: any[]) => {
+export const getDueSoonTasks = (tasks: MaintenanceTask[]) => {
   return tasks.filter((task) => {
     if (task.is_completed) return false;
 

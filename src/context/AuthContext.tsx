@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { createClient, Session, User } from "@supabase/supabase-js";
+import {
+  createClient,
+  Session,
+  User,
+  SupabaseClient,
+} from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
@@ -24,10 +29,17 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isConfigured: boolean;
-  supabase: any;
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, fullName: string) => Promise<any>;
-  signInWithGoogle: () => Promise<any>;
+  supabase: SupabaseClient | null;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ data: any; error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ data: any; error: any }>;
+  signInWithGoogle: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -168,9 +180,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       return { data, error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Google sign-in error:", error);
-      return { data: null, error };
+      return { data: null, error: error as Error };
     }
   };
 
