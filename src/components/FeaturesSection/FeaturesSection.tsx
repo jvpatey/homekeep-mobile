@@ -154,7 +154,7 @@ export function FeaturesSection() {
                 <Ionicons
                   name={feature.icon as any}
                   size={24}
-                  color="#2E6B5A"
+                  color={colors.primary}
                 />
               </LinearGradient>
               <Text style={[styles.featureText, { color: colors.text }]}>
@@ -184,7 +184,7 @@ export function FeaturesSection() {
                   <Ionicons
                     name={features[selectedFeature].icon as any}
                     size={32}
-                    color="#2E6B5A"
+                    color={colors.primary}
                   />
                 </LinearGradient>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>

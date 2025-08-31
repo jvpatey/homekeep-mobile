@@ -104,14 +104,14 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
     return (
       <View style={styles.emptyContainer}>
         <LinearGradient
-          colors={["#F0F9FF", "#E0F2FE"]}
+          colors={[colors.surface + "20", colors.surface + "10"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.emptyGradient}
         >
           <View style={styles.emptyIconContainer}>
             <LinearGradient
-              colors={["#0891B2", "#0EA5E9"]}
+              colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.emptyIconBackground}
@@ -121,10 +121,10 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
               </Animated.View>
             </LinearGradient>
           </View>
-          <Text style={[styles.emptyTitle, { color: "#0C4A6E" }]}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
             All Caught Up!
           </Text>
-          <Text style={[styles.emptySubtitle, { color: "#0891B2" }]}>
+          <Text style={[styles.emptySubtitle, { color: colors.primary }]}>
             No tasks due right now
           </Text>
         </LinearGradient>

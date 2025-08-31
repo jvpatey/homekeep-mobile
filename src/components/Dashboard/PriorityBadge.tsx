@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 
 interface PriorityBadgeProps {
   priority: string;
@@ -12,18 +13,20 @@ export function PriorityBadge({
   size = "medium",
   variant = "default",
 }: PriorityBadgeProps) {
+  const { colors } = useTheme();
+
   const getPriorityColor = () => {
     switch (priority.toLowerCase()) {
       case "urgent":
-        return "#E74C3C";
+        return colors.error;
       case "high":
-        return "#FF6B35";
+        return colors.warning;
       case "medium":
-        return "#F2C94C";
+        return colors.accent;
       case "low":
-        return "#27AE60";
+        return colors.success;
       default:
-        return "#95A5A6";
+        return colors.textSecondary;
     }
   };
 

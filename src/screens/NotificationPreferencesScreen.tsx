@@ -81,25 +81,25 @@ export function NotificationPreferencesScreen({
         title: "Due Soon Reminders",
         description: "Get notified 1 day before tasks are due",
         icon: "time-outline",
-        color: "#4CAF50",
+        color: colors.success,
       },
       overdue_reminder: {
         title: "Overdue Reminders",
         description: "Get notified when tasks are overdue",
         icon: "warning-outline",
-        color: "#F44336",
+        color: colors.error,
       },
       daily_digest: {
         title: "Daily Digest",
         description: "Receive daily summary of tasks",
         icon: "calendar-outline",
-        color: "#2196F3",
+        color: colors.secondary,
       },
       weekly_summary: {
         title: "Weekly Summary",
         description: "Receive weekly summary of tasks",
         icon: "stats-chart-outline",
-        color: "#9C27B0",
+        color: colors.accent,
       },
     };
 

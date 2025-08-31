@@ -395,7 +395,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={[colors.accent, "#FFB347"]}
+            colors={[colors.accent, colors.primary]}
             style={styles.floatingActionButtonGradient}
           >
             <Ionicons name="add" size={28} color={colors.surface} />

@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../theme/designSystem";
+import { colors } from "../../theme/colors";
 
 // Styles for the features section - Updated for modern 2025 design
 export const styles = StyleSheet.create({
@@ -31,12 +32,12 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: DesignSystem.spacing.md,
-    backgroundColor: "#f0f8f6",
+    backgroundColor: colors.light.surface + "20",
   },
   featureText: {
     ...DesignSystem.typography.captionMedium,
     textAlign: "center",
-    color: "#333",
+    color: colors.light.text,
     fontSize: 10,
     lineHeight: 12,
     fontWeight: "600",
@@ -69,7 +70,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: DesignSystem.spacing.md,
-    backgroundColor: "#f0f8f6",
+    backgroundColor: colors.light.surface + "20",
   },
   modalTitle: {
     ...DesignSystem.typography.h3,
@@ -82,7 +83,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
     marginBottom: DesignSystem.spacing.xl,
-    color: "#666",
+    color: colors.light.textSecondary,
   },
   closeButton: {
     width: "100%",
