@@ -2,7 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DashboardScreen from "../screens/DashboardScreen";
 import { CompletionHistoryScreen } from "../screens/completion-history";
-import { NotificationPreferencesScreen } from "../screens/NotificationPreferencesScreen";
+import { NotificationPreferencesScreen } from "../screens/notification-preferences";
 import { TasksProvider } from "../context/TasksContext";
 import { AppStackParamList } from "./types";
 

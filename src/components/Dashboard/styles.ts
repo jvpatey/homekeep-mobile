@@ -116,3 +116,6 @@ export { timelineStyles } from "./timeline-view/styles";
 
 // Re-export completion history styles for convenience
 export { completionHistoryStyles } from "../../screens/completion-history/styles";
+
+// Re-export notification preferences styles for convenience
+export { notificationPreferencesStyles } from "../../screens/notification-preferences/styles";

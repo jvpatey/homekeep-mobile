@@ -5,21 +5,22 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  StyleSheet,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme } from "../context/ThemeContext";
-import { useNotifications } from "../context/NotificationContext";
-import { useHaptics } from "../hooks";
-import { HOME_MAINTENANCE_CATEGORIES } from "../types/maintenance";
-import { MaintenanceCategory } from "../types/maintenance";
-
-// NotificationPreferencesScreenProps for the NotificationPreferencesScreenProps on the home screen
-interface NotificationPreferencesScreenProps {
-  navigation: any;
-}
+import { useTheme } from "../../context/ThemeContext";
+import { useNotifications } from "../../context/NotificationContext";
+import { useHaptics } from "../../hooks";
+import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
+import { MaintenanceCategory } from "../../types/maintenance";
+import { notificationPreferencesStyles } from "./styles";
+import {
+  NotificationPreferencesScreenProps,
+  getNotificationTypeConfig,
+  isNotificationTypeEnabled,
+  getNotificationTypes,
+} from "./utils";
 
 // NotificationPreferencesScreen for the NotificationPreferencesScreen on the home screen
 export function NotificationPreferencesScreen({
@@ -83,59 +84,31 @@ export function NotificationPreferencesScreen({
 
   // renderNotificationTypeSection for the renderNotificationTypeSection on the home screen
   const renderNotificationTypeSection = (type: string) => {
-    const typeConfig = {
-      due_soon_reminder: {
-        title: "Due Soon Reminders",
-        description: "Get notified 1 day before tasks are due",
-        icon: "time-outline",
-        color: colors.success,
-      },
-      overdue_reminder: {
-        title: "Overdue Reminders",
-        description: "Get notified when tasks are overdue",
-        icon: "warning-outline",
-        color: colors.error,
-      },
-      daily_digest: {
-        title: "Daily Digest",
-        description: "Receive daily summary of tasks",
-        icon: "calendar-outline",
-        color: colors.secondary,
-      },
-      weekly_summary: {
-        title: "Weekly Summary",
-        description: "Receive weekly summary of tasks",
-        icon: "stats-chart-outline",
-        color: colors.accent,
-      },
-    };
-
-    const config = typeConfig[type as keyof typeof typeConfig];
+    const config = getNotificationTypeConfig(type, colors);
     if (!config) return null;
 
     // Check if this type is enabled for any category
-    const isEnabled = Object.values(notificationSettings.categories).some(
-      (pref) => pref && pref[type as keyof typeof pref]
-    );
-
+    const isEnabled = isNotificationTypeEnabled(type, notificationSettings);
     const isExpanded = expandedType === type;
 
     return (
       <View
         key={type}
         style={[
-          styles.notificationTypeSection,
+          notificationPreferencesStyles.notificationTypeSection,
           { backgroundColor: colors.surface },
         ]}
       >
         <TouchableOpacity
-          style={styles.notificationTypeHeader}
+          style={notificationPreferencesStyles.notificationTypeHeader}
           onPress={() => toggleTypeExpansion(type)}
         >
-          <View style={styles.notificationTypeHeaderLeft}>
+          <View
+            style={notificationPreferencesStyles.notificationTypeHeaderLeft}
+          >
             <View
               style={[
-                styles.notificationTypeIcon,
+                notificationPreferencesStyles.notificationTypeIcon,
                 { backgroundColor: config.color + "15" },
               ]}
             >
@@ -145,15 +118,18 @@ export function NotificationPreferencesScreen({
                 color={config.color}
               />
             </View>
-            <View style={styles.notificationTypeInfo}>
+            <View style={notificationPreferencesStyles.notificationTypeInfo}>
               <Text
-                style={[styles.notificationTypeName, { color: colors.text }]}
+                style={[
+                  notificationPreferencesStyles.notificationTypeName,
+                  { color: colors.text },
+                ]}
               >
                 {config.title}
               </Text>
               <Text
                 style={[
-                  styles.notificationTypeDescription,
+                  notificationPreferencesStyles.notificationTypeDescription,
                   { color: colors.textSecondary },
                 ]}
               >
@@ -161,7 +137,9 @@ export function NotificationPreferencesScreen({
               </Text>
             </View>
           </View>
-          <View style={styles.notificationTypeHeaderRight}>
+          <View
+            style={notificationPreferencesStyles.notificationTypeHeaderRight}
+          >
             <Switch
               value={isEnabled}
               onValueChange={(value) =>
@@ -174,21 +152,24 @@ export function NotificationPreferencesScreen({
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={20}
               color={colors.textSecondary}
-              style={styles.expandIcon}
+              style={notificationPreferencesStyles.expandIcon}
             />
           </View>
         </TouchableOpacity>
 
         {isExpanded && (
-          <View style={styles.categoriesContainer}>
+          <View style={notificationPreferencesStyles.categoriesContainer}>
             <Text
-              style={[styles.categoriesTitle, { color: colors.textSecondary }]}
+              style={[
+                notificationPreferencesStyles.categoriesTitle,
+                { color: colors.textSecondary },
+              ]}
             >
               Categories
             </Text>
             <Text
               style={[
-                styles.categoriesDescription,
+                notificationPreferencesStyles.categoriesDescription,
                 { color: colors.textSecondary },
               ]}
             >
@@ -207,11 +188,14 @@ export function NotificationPreferencesScreen({
               if (!preferences) return null;
 
               return (
-                <View key={category} style={styles.categoryRow}>
-                  <View style={styles.categoryRowLeft}>
+                <View
+                  key={category}
+                  style={notificationPreferencesStyles.categoryRow}
+                >
+                  <View style={notificationPreferencesStyles.categoryRowLeft}>
                     <LinearGradient
                       colors={categoryData.gradient}
-                      style={styles.categoryRowIcon}
+                      style={notificationPreferencesStyles.categoryRowIcon}
                     >
                       <Ionicons
                         name={categoryData.icon as any}
@@ -220,7 +204,10 @@ export function NotificationPreferencesScreen({
                       />
                     </LinearGradient>
                     <Text
-                      style={[styles.categoryRowName, { color: colors.text }]}
+                      style={[
+                        notificationPreferencesStyles.categoryRowName,
+                        { color: colors.text },
+                      ]}
                     >
                       {categoryData.displayName}
                     </Text>
@@ -256,30 +243,51 @@ export function NotificationPreferencesScreen({
 
   // return the NotificationPreferencesScreen on the home screen
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        notificationPreferencesStyles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
+      <View
+        style={[
+          notificationPreferencesStyles.header,
+          { backgroundColor: colors.surface },
+        ]}
+      >
         <TouchableOpacity
-          style={styles.backButton}
+          style={notificationPreferencesStyles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            notificationPreferencesStyles.headerTitle,
+            { color: colors.text },
+          ]}
+        >
           Notification Settings
         </Text>
-        <View style={styles.headerSpacer} />
+        <View style={notificationPreferencesStyles.headerSpacer} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={notificationPreferencesStyles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Global Settings */}
         <View
-          style={[styles.globalSection, { backgroundColor: colors.surface }]}
+          style={[
+            notificationPreferencesStyles.globalSection,
+            { backgroundColor: colors.surface },
+          ]}
         >
-          <View style={styles.globalHeader}>
-            <View style={styles.globalHeaderLeft}>
+          <View style={notificationPreferencesStyles.globalHeader}>
+            <View style={notificationPreferencesStyles.globalHeaderLeft}>
               <View
                 style={[
-                  styles.globalIcon,
+                  notificationPreferencesStyles.globalIcon,
                   { backgroundColor: colors.primary + "15" },
                 ]}
               >
@@ -289,13 +297,18 @@ export function NotificationPreferencesScreen({
                   color={colors.primary}
                 />
               </View>
-              <View style={styles.globalInfo}>
-                <Text style={[styles.globalTitle, { color: colors.text }]}>
+              <View style={notificationPreferencesStyles.globalInfo}>
+                <Text
+                  style={[
+                    notificationPreferencesStyles.globalTitle,
+                    { color: colors.text },
+                  ]}
+                >
                   All Notifications
                 </Text>
                 <Text
                   style={[
-                    styles.globalDescription,
+                    notificationPreferencesStyles.globalDescription,
                     { color: colors.textSecondary },
                   ]}
                 >
@@ -320,13 +333,18 @@ export function NotificationPreferencesScreen({
         {!permissionStatus.granted && (
           <View
             style={[
-              styles.permissionSection,
+              notificationPreferencesStyles.permissionSection,
               { backgroundColor: colors.error + "15" },
             ]}
           >
-            <View style={styles.permissionContent}>
+            <View style={notificationPreferencesStyles.permissionContent}>
               <Ionicons name="warning" size={20} color={colors.error} />
-              <Text style={[styles.permissionText, { color: colors.error }]}>
+              <Text
+                style={[
+                  notificationPreferencesStyles.permissionText,
+                  { color: colors.error },
+                ]}
+              >
                 {permissionStatus.canAskAgain
                   ? "Notifications are disabled. Enable them to receive task reminders."
                   : "Notifications are blocked. Please enable them in device settings."}
@@ -335,12 +353,16 @@ export function NotificationPreferencesScreen({
             {permissionStatus.canAskAgain && (
               <TouchableOpacity
                 style={[
-                  styles.permissionButton,
+                  notificationPreferencesStyles.permissionButton,
                   { backgroundColor: colors.error },
                 ]}
                 onPress={requestPermissions}
               >
-                <Text style={styles.permissionButtonText}>Enable</Text>
+                <Text
+                  style={notificationPreferencesStyles.permissionButtonText}
+                >
+                  Enable
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -350,223 +372,30 @@ export function NotificationPreferencesScreen({
         {notificationSettings.globalEnabled && (
           <>
             <Text
-              style={[styles.sectionTitle, { color: colors.textSecondary }]}
+              style={[
+                notificationPreferencesStyles.sectionTitle,
+                { color: colors.textSecondary },
+              ]}
             >
               Notification Types
             </Text>
             <Text
               style={[
-                styles.sectionDescription,
+                notificationPreferencesStyles.sectionDescription,
                 { color: colors.textSecondary },
               ]}
             >
               Configure which types of notifications you want to receive
             </Text>
 
-            {[
-              "due_soon_reminder",
-              "overdue_reminder",
-              "daily_digest",
-              "weekly_summary",
-            ].map((type) => renderNotificationTypeSection(type))}
+            {getNotificationTypes().map((type) =>
+              renderNotificationTypeSection(type)
+            )}
           </>
         )}
 
-        <View style={styles.bottomSpacer} />
+        <View style={notificationPreferencesStyles.bottomSpacer} />
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)",
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  globalSection: {
-    marginTop: 20,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-  globalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  globalHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  globalIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  globalInfo: {
-    flex: 1,
-  },
-  globalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  globalDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  permissionSection: {
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  permissionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  permissionText: {
-    fontSize: 14,
-    marginLeft: 12,
-    flex: 1,
-    lineHeight: 20,
-  },
-  permissionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  permissionButtonText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    marginTop: 20,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  notificationTypeSection: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  notificationTypeHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 20,
-  },
-  notificationTypeHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  notificationTypeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  notificationTypeInfo: {
-    flex: 1,
-  },
-  notificationTypeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  notificationTypeDescription: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  notificationTypeHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  expandIcon: {
-    marginLeft: 12,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  categoriesTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  categoriesDescription: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 16,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-  },
-  categoryRowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  categoryRowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  categoryRowName: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  bottomSpacer: {
-    height: 40,
-  },
-});
