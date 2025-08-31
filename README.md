@@ -283,22 +283,3 @@ The app uses Supabase with the following main tables:
 2. **Submit**: `npm run submit:ios`
 3. **Review**: Wait for Apple's review (1-3 days)
 4. **Live**: App appears on App Store
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🔗 Related Documentation
-
-- [Expo Documentation](https://docs.expo.dev/)
-- [React Native Documentation](https://reactnative.dev/)
-- [Supabase Documentation](https://supabase.com/docs)
-- [React Navigation Documentation](https://reactnavigation.org/)
