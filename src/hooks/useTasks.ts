@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { MaintenanceService } from "../services/maintenanceService";
+import { MaintenanceService } from "../services/MaintenanceService";
 import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
@@ -155,7 +155,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       }
 
       try {
-        const { data, error } = await MaintenanceService.createMaintenanceRoutine(taskData);
+        const { data, error } =
+          await MaintenanceService.createMaintenanceRoutine(taskData);
 
         if (error) throw error;
 
@@ -164,7 +165,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to create maintenance routine";
+        const errorMessage =
+          err.message || "Failed to create maintenance routine";
         console.error("Error creating maintenance routine:", err);
         return { success: false, error: errorMessage };
       }
@@ -180,7 +182,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       }
 
       try {
-        const { data, error } = await MaintenanceService.updateMaintenanceRoutine(taskId, updates);
+        const { data, error } =
+          await MaintenanceService.updateMaintenanceRoutine(taskId, updates);
 
         if (error) throw error;
 
@@ -211,7 +214,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to update maintenance routine";
+        const errorMessage =
+          err.message || "Failed to update maintenance routine";
         console.error("Error updating maintenance routine:", err);
         return { success: false, error: errorMessage };
       }
@@ -236,7 +240,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to complete maintenance task";
+        const errorMessage =
+          err.message || "Failed to complete maintenance task";
         console.error("Error completing maintenance task:", err);
         return { success: false, error: errorMessage };
       }
@@ -261,7 +266,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to uncomplete maintenance task";
+        const errorMessage =
+          err.message || "Failed to uncomplete maintenance task";
         console.error("Error uncompleting maintenance task:", err);
         return { success: false, error: errorMessage };
       }
@@ -277,28 +283,25 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       }
 
       try {
-        const result = await MaintenanceService.deleteMaintenanceRoutine(taskId);
+        const result = await MaintenanceService.deleteMaintenanceRoutine(
+          taskId
+        );
 
         if (result.error) throw result.error;
 
         // Remove from local state
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setUpcomingTasks((prev) =>
-          prev.filter((task) => task.id !== taskId)
-        );
-        setOverdueTasks((prev) =>
-          prev.filter((task) => task.id !== taskId)
-        );
-        setCompletedTasks((prev) =>
-          prev.filter((task) => task.id !== taskId)
-        );
+        setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
+        setOverdueTasks((prev) => prev.filter((task) => task.id !== taskId));
+        setCompletedTasks((prev) => prev.filter((task) => task.id !== taskId));
 
         // Refresh stats
         await refreshStats();
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to delete maintenance routine";
+        const errorMessage =
+          err.message || "Failed to delete maintenance routine";
         console.error("Error deleting maintenance routine:", err);
         return { success: false, error: errorMessage };
       }
@@ -318,7 +321,9 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       }
 
       try {
-        const result = await MaintenanceService.bulkCompleteInstances(instanceIds);
+        const result = await MaintenanceService.bulkCompleteInstances(
+          instanceIds
+        );
 
         if (result.error) throw result.error;
 
@@ -327,7 +332,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         return { success: true };
       } catch (err: any) {
-        const errorMessage = err.message || "Failed to complete maintenance tasks";
+        const errorMessage =
+          err.message || "Failed to complete maintenance tasks";
         console.error("Error bulk completing maintenance tasks:", err);
         return { success: false, error: errorMessage };
       }
@@ -382,13 +388,14 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       setCompletedTasks([]);
       await refreshStats();
       console.log(
-        `🗑️ Deleted all maintenance routines: ${routinesDeleted || 0} routines and ${
-          instancesDeleted || 0
-        } instances`
+        `🗑️ Deleted all maintenance routines: ${
+          routinesDeleted || 0
+        } routines and ${instancesDeleted || 0} instances`
       );
       return { success: true };
     } catch (err: any) {
-      const errorMessage = err.message || "Failed to delete all maintenance routines";
+      const errorMessage =
+        err.message || "Failed to delete all maintenance routines";
       console.error("Error deleting all maintenance routines:", err);
       return { success: false, error: errorMessage };
     }
