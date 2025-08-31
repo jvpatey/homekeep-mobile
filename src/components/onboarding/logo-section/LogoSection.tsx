@@ -26,7 +26,7 @@ export function LogoSection({
       ]}
     >
       <Image
-        source={require("../../../assets/images/homekeep-logo.png")}
+        source={require("../../../../assets/images/homekeep-logo.png")}
         style={compact ? styles.logoCompact : styles.logo}
         resizeMode="contain"
       />
