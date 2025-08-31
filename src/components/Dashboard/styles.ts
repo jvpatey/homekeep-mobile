@@ -113,3 +113,6 @@ export const dashboardStyles = StyleSheet.create({
 
 // Re-export timeline styles for convenience
 export { timelineStyles } from "./timeline-view/styles";
+
+// Re-export completion history styles for convenience
+export { completionHistoryStyles } from "../../screens/completion-history/styles";
