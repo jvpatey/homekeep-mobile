@@ -1,7 +1,8 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import DashboardScreen from "../screens/DashboardScreen";
-import CompletionHistoryScreen from "../screens/CompletionHistoryScreen";
+import { DashboardScreen } from "../screens/DashboardScreen";
+import { CompletionHistoryScreen } from "../screens/completion-history";
+import { NotificationPreferencesScreen } from "../screens/notification-preferences";
 import { TasksProvider } from "../context/TasksContext";
 import { AppStackParamList } from "./types";
 
@@ -18,14 +19,18 @@ export function AppNavigator() {
       <Stack.Navigator
         initialRouteName="Dashboard"
         screenOptions={{
-          headerShown: false, // Hide headers for a cleaner app experience
+          headerShown: false,
         }}
       >
-        {/* Main app screens - add more authenticated screens here as the app grows */}
+        {/* Main app screens */}
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
         <Stack.Screen
           name="CompletionHistory"
           component={CompletionHistoryScreen}
+        />
+        <Stack.Screen
+          name="NotificationPreferences"
+          component={NotificationPreferencesScreen}
         />
       </Stack.Navigator>
     </TasksProvider>

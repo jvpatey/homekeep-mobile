@@ -4,17 +4,12 @@ import { StyleSheet, ScrollView, View, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../context/ThemeContext";
 import { useDynamicSpacing } from "../hooks";
-import { LogoSection } from "../components/LogoSection/LogoSection";
-import { WelcomeText } from "../components/WelcomeText/WelcomeText";
-import { FeaturesSection } from "../components/FeaturesSection/FeaturesSection";
-import { GradientDivider } from "../components/GradientDivider/GradientDivider";
+import { LogoSection } from "../components/onboarding";
+import { WelcomeText } from "../components/onboarding";
+import { FeaturesSection } from "../components/onboarding";
 import { DesignSystem } from "../theme/designSystem";
 
-/**
- * HomeScreen - The main landing page for unauthenticated users
- * Features responsive design, theme-aware styling, and animated components
- * Updated with modern 2025 design language matching the dashboard
- */
+// HomeScreen for the HomeScreen on the home screen
 export function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
@@ -58,7 +53,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     paddingTop: DesignSystem.spacing.xxxl,
-    paddingBottom: DesignSystem.spacing.xxxl, // Increased from xxl to xxxl for bigger hero
+    paddingBottom: DesignSystem.spacing.xxxl,
     paddingHorizontal: DesignSystem.spacing.md,
   },
   heroContent: {
@@ -69,6 +64,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: DesignSystem.spacing.lg, // Reduced from xxl to lg for better single-screen fit
+    paddingTop: DesignSystem.spacing.lg,
   },
 });

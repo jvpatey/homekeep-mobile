@@ -1,10 +1,7 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Dimensions } from "react-native";
 
-/**
- * Custom hook for dynamic spacing based on screen size
- * Provides consistent spacing across different device sizes
- */
+// useDynamicSpacing hook for the useDynamicSpacing on the home screen
 export function useDynamicSpacing() {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = Dimensions.get("window");

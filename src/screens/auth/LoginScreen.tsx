@@ -6,29 +6,23 @@ import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { GradientDivider } from "../../components/GradientDivider/GradientDivider";
-import { LogoSection } from "../../components/LogoSection/LogoSection";
-import { OAuthButtons } from "../../components/OAuthButtons/OAuthButtons";
+import { LogoSection } from "../../components/onboarding";
+import { OAuthButtons } from "../../components/auth";
 import {
   useAuthStaggeredAnimation,
-  useDynamicSpacing,
   useAuthHaptics,
   useAuthForm,
   useAuthGradient,
   useAuthInputTheme,
 } from "./hooks";
+import { useDynamicSpacing } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
-/**
- * LoginScreen - Handles user authentication with email/password and OAuth
- * Provides form validation, error handling, and integration with Supabase auth
- * Includes OAuth options and email verification link for password reset
- * Updated with modern 2025 design language matching the dashboard
- */
+// LoginScreen for the LoginScreen on the home screen
 export function LoginScreen() {
   const { colors } = useTheme();
-  const { isConfigured, signIn } = useAuth();
+  const { signIn } = useAuth();
   const navigation = useNavigation();
 
   // Shared hooks
@@ -52,9 +46,7 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  /**
-   * Handles the sign-in process with validation and error handling
-   */
+  // handleSignIn for the handleSignIn on the home screen
   const handleSignIn = async () => {
     triggerMedium();
 
@@ -79,36 +71,28 @@ export function LoginScreen() {
     }
   };
 
-  /**
-   * Handles back navigation with haptic feedback
-   */
+  // handleBackPress for the handleBackPress on the home screen
   const handleBackPress = () => {
     triggerLight();
     navigation.goBack();
   };
 
-  /**
-   * Handles password visibility toggle with haptic feedback
-   */
+  // handlePasswordToggle for the handlePasswordToggle on the home screen
   const handlePasswordToggle = () => {
     triggerLight();
     setShowPassword(!showPassword);
   };
 
-  /**
-   * Navigates to email entry for verification
-   */
+  // handleEmailVerification for the handleEmailVerification on the home screen
   const handleEmailVerification = () => {
     triggerLight();
-    navigation.navigate("EmailVerification");
+    navigation.navigate("EmailVerification" as any);
   };
 
-  /**
-   * Navigates to sign up screen
-   */
+  // handleSignUp for the handleSignUp on the home screen
   const handleSignUp = () => {
     triggerLight();
-    navigation.navigate("SignUp");
+    navigation.navigate("SignUp" as any);
   };
 
   return (

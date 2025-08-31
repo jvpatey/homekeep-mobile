@@ -1,0 +1,1 @@
+export { SimpleTaskDetailModal } from "./SimpleTaskDetailModal";

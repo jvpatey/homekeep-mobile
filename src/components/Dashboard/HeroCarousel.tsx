@@ -17,24 +17,27 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
-import TaskCard from "./TaskCard";
+import { TaskCard } from "./tasks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
+import { ViewableItemsChangedEvent } from "../../types/navigation";
 
 const { width: screenWidth } = Dimensions.get("window");
-const CARD_WIDTH = screenWidth - 80; // 40px padding on each side
+const CARD_WIDTH = screenWidth - 80;
 
+// HeroCarouselProps interface for the HeroCarousel component
 interface HeroCarouselProps {
   tasks: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
 }
 
-const HeroCarousel: React.FC<HeroCarouselProps> = ({
+// HeroCarousel component for the Dashboard
+export function HeroCarousel({
   tasks,
   onCompleteTask,
   onTaskPress,
-}) => {
+}: HeroCarouselProps) {
   const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -74,8 +77,8 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
     ],
   }));
 
-  const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
+  const handleViewableItemsChanged = useCallback(({ viewableItems }: ViewableItemsChangedEvent) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
       setCurrentIndex(viewableItems[0].index);
     }
   }, []);
@@ -85,7 +88,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
       flatListRef.current.scrollToIndex({
         index,
         animated: true,
-        viewPosition: 0.5, // This ensures the item is centered
+        viewPosition: 0.5,
       });
     }
   }, []);
@@ -104,14 +107,14 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
     return (
       <View style={styles.emptyContainer}>
         <LinearGradient
-          colors={["#F0F9FF", "#E0F2FE"]}
+          colors={[colors.surface + "20", colors.surface + "10"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.emptyGradient}
         >
           <View style={styles.emptyIconContainer}>
             <LinearGradient
-              colors={["#0891B2", "#0EA5E9"]}
+              colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.emptyIconBackground}
@@ -121,10 +124,10 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
               </Animated.View>
             </LinearGradient>
           </View>
-          <Text style={[styles.emptyTitle, { color: "#0C4A6E" }]}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
             All Caught Up!
           </Text>
-          <Text style={[styles.emptySubtitle, { color: "#0891B2" }]}>
+          <Text style={[styles.emptySubtitle, { color: colors.primary }]}>
             No tasks due right now
           </Text>
         </LinearGradient>
@@ -167,13 +170,13 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
           viewabilityConfig={{
             itemVisiblePercentThreshold: 50,
           }}
-          renderItem={({ item: task }) => (
+          renderItem={({ item: task }: { item: MaintenanceTask }) => (
             <View style={styles.cardContainer}>
               <TaskCard
                 id={task.id}
                 instance_id={task.instance_id}
                 title={task.title}
-                category={task.category as any}
+                category={task.category}
                 priority={task.priority}
                 estimated_duration_minutes={task.estimated_duration_minutes}
                 interval_days={task.interval_days}
@@ -217,7 +220,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -268,7 +271,7 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.large,
     justifyContent: "center",
     alignItems: "center",
-    padding: DesignSystem.spacing.md, // Reduced from lg to md for more compact appearance
+    padding: DesignSystem.spacing.md,
     ...DesignSystem.shadows.medium,
   },
   emptyIconContainer: {
@@ -327,5 +330,3 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.caption,
   },
 });
-
-export default HeroCarousel;

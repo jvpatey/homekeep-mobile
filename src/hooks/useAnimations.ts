@@ -6,10 +6,7 @@ import {
 } from "react-native-reanimated";
 import { useEffect } from "react";
 
-/**
- * Custom hook for simple fade-in and slide-up animations
- * Used for single elements like logos, buttons, or simple content
- */
+// useSimpleAnimation hook for the useSimpleAnimation on the home screen
 export function useSimpleAnimation(
   delay: number = 0,
   duration: number = 600,
@@ -31,10 +28,7 @@ export function useSimpleAnimation(
   return animatedStyle;
 }
 
-/**
- * Custom hook for staggered text animations (headline + subtitle)
- * Used for welcome text sections and similar content
- */
+// useTextAnimation hook for the useTextAnimation on the home screen
 export function useTextAnimation() {
   const headlineOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
@@ -65,10 +59,7 @@ export function useTextAnimation() {
   };
 }
 
-/**
- * Custom hook for staggered feature animations
- * Used for feature cards, lists, or any grouped content
- */
+// useFeatureAnimation hook for the useFeatureAnimation on the home screen
 export function useFeatureAnimation(
   count: number = 3,
   baseDelay: number = 600
@@ -98,10 +89,7 @@ export function useFeatureAnimation(
   return animatedStyles;
 }
 
-/**
- * Custom hook for button animations with longer delays
- * Used for action buttons that appear after other content
- */
+// useButtonAnimation hook for the useButtonAnimation on the home screen
 export function useButtonAnimation(delay: number = 1100) {
   return useSimpleAnimation(delay, 600, 25);
 }

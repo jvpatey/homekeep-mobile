@@ -9,7 +9,7 @@ export interface MaintenanceRoutine {
   priority: Priority;
   estimated_duration_minutes: number;
   interval_days: number;
-  start_date: string; // ISO date string
+  start_date: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -18,7 +18,7 @@ export interface MaintenanceRoutine {
 export interface RoutineInstance {
   id: string;
   routine_id: string;
-  due_date: string; // ISO date string
+  due_date: string;
   completed_at?: string;
   is_completed: boolean;
   is_overdue: boolean;
@@ -273,3 +273,44 @@ export const INTERVAL_OPTIONS = {
 } as const;
 
 export type IntervalKey = keyof typeof INTERVAL_OPTIONS;
+
+// Service response interfaces to replace 'any' types
+export interface ServiceResponse<T> {
+  data: T | null;
+  error: ServiceError | null;
+}
+
+export interface ServiceError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
+// Specific response types for different operations
+export interface MaintenanceRoutineResponse
+  extends ServiceResponse<MaintenanceRoutine> {}
+export interface MaintenanceRoutinesResponse
+  extends ServiceResponse<MaintenanceRoutine[]> {}
+export interface RoutineInstanceResponse
+  extends ServiceResponse<RoutineInstance> {}
+export interface RoutineInstancesResponse
+  extends ServiceResponse<RoutineInstance[]> {}
+export interface MaintenanceTasksResponse
+  extends ServiceResponse<MaintenanceTask[]> {}
+export interface CountResponse extends ServiceResponse<number> {}
+export interface DeleteResponse extends ServiceResponse<null> {
+  instancesDeleted?: number;
+}
+
+// Data mapper interfaces
+export interface InstanceWithRoutine {
+  id: string;
+  routine: MaintenanceRoutine;
+  due_date: string;
+  is_completed: boolean;
+  is_overdue: boolean;
+  completed_at?: string;
+  notes?: string;
+  created_at: string;
+}

@@ -15,7 +15,7 @@ export { useHaptics } from "./useHaptics";
 // Spacing hooks
 export { useDynamicSpacing } from "./useDynamicSpacing";
 
-// Auth-specific hooks (keeping these separate for now)
+// Auth-specific hooks
 export * from "../screens/auth/hooks";
 
 // Task management hooks

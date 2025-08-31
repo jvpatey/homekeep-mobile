@@ -1,9 +1,6 @@
 import { useTheme } from "../../../context/ThemeContext";
 
-/**
- * Custom hook for gradient colors used across auth screens
- * Provides consistent gradient styling based on theme
- */
+// useAuthGradient hook for the useAuthGradient on the home screen
 export function useAuthGradient() {
   const { colors, isDark } = useTheme();
 

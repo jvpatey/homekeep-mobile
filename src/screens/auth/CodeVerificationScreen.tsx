@@ -6,39 +6,28 @@ import Animated from "react-native-reanimated";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { LogoSection } from "../../components/LogoSection/LogoSection";
-import { useAuthAnimation, useDynamicSpacing, useAuthHaptics } from "./hooks";
+import { LogoSection } from "../../components/onboarding";
+import { useAuthAnimation, useAuthHaptics } from "./hooks";
+import { useDynamicSpacing } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
-/**
- * CodeVerificationScreen - Handles email verification code input and validation
- * Allows users to enter a 6-digit verification code sent to their email
- * and provides options to resend the code if needed.
- * Updated with modern 2025 design language matching the dashboard
- */
+// CodeVerificationScreen for the CodeVerificationScreen on the home screen
 export function CodeVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
-
-  // Shared hooks
   const formAnimatedStyle = useAuthAnimation();
   const { dynamicTopSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
-
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Get email from route params (passed from signup)
   const params = route.params as any;
   const email = params?.email || "";
 
-  /**
-   * Validates and submits the verification code
-   */
+  // handleVerifyCode for the handleVerifyCode on the home screen
   const handleVerifyCode = async () => {
     if (!code || code.length !== 6) {
       setError("Please enter a valid 6-digit code");
@@ -50,6 +39,9 @@ export function CodeVerificationScreen() {
     setError("");
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase not configured");
+      }
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
@@ -75,12 +67,13 @@ export function CodeVerificationScreen() {
       } else {
         throw new Error("Verification completed but no session created");
       }
-    } catch (error: any) {
-      console.error("Code verification error:", error);
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error("Code verification error:", errorObj);
       triggerError();
 
       let errorMessage = "Invalid or expired code. Please try again.";
-      if (error.message?.includes("expired")) {
+      if (errorObj.message?.includes("expired")) {
         errorMessage =
           "This verification code has expired. Please request a new one.";
       }
@@ -91,22 +84,21 @@ export function CodeVerificationScreen() {
     }
   };
 
-  /**
-   * Handles back navigation with haptic feedback
-   */
+  // handleBackPress for the handleBackPress on the home screen
   const handleBackPress = () => {
     triggerLight();
     navigation.goBack();
   };
 
-  /**
-   * Handles resending the verification code
-   */
+  // handleResendCode for the handleResendCode on the home screen
   const handleResendCode = async () => {
     triggerLight();
     setError("");
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase not configured");
+      }
       const { error } = await supabase.auth.resend({
         type: "signup",
         email,
@@ -120,20 +112,20 @@ export function CodeVerificationScreen() {
         "Code Resent",
         "A new verification code has been sent to your email."
       );
-    } catch (error: any) {
-      console.error("Resend error:", error);
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error("Resend error:", errorObj);
       setError("Failed to resend code. Please try again.");
     }
   };
 
-  /**
-   * Handles navigation to sign in
-   */
+  // handleSignIn for the handleSignIn on the home screen
   const handleSignIn = () => {
     triggerLight();
-    navigation.navigate("Login");
+    navigation.navigate("Login" as any);
   };
 
+  // getInputTheme for the getInputTheme on the home screen
   const getInputTheme = () => ({
     colors: {
       primary: colors.primary,

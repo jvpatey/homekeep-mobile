@@ -4,11 +4,12 @@ import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
-  MaintenanceFilters,
 } from "../types/maintenance";
 
+// TimeRange type for the time range
 export type TimeRange = 30 | 60 | 90 | 120 | "all";
 
+// UseTasksReturn type for the useTasks return
 interface UseTasksReturn {
   tasks: MaintenanceTask[];
   upcomingTasks: MaintenanceTask[];
@@ -52,12 +53,15 @@ interface UseTasksReturn {
   refreshStats: () => Promise<void>;
 }
 
+// TasksContext context for the tasks context
 const TasksContext = createContext<UseTasksReturn | undefined>(undefined);
 
+// TasksProviderProps type for the tasks provider props
 interface TasksProviderProps {
   children: ReactNode;
 }
 
+// TasksProvider provider for the tasks context
 export function TasksProvider({ children }: TasksProviderProps) {
   const tasksHookValue = useTasksHook();
 
@@ -68,6 +72,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
   );
 }
 
+// useTasks hook for the useTasks on the home screen
 export function useTasks(): UseTasksReturn {
   const context = useContext(TasksContext);
   if (!context) {

@@ -6,36 +6,30 @@ import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { GradientDivider } from "../../components/GradientDivider/GradientDivider";
-import { LogoSection } from "../../components/LogoSection/LogoSection";
-import { OAuthButtons } from "../../components/OAuthButtons/OAuthButtons";
+import { LogoSection } from "../../components/onboarding";
+import { OAuthButtons } from "../../components/auth";
 import {
   useAuthStaggeredAnimation,
-  useDynamicSpacing,
   useAuthHaptics,
   useAuthForm,
   useAuthGradient,
   useAuthInputTheme,
 } from "./hooks";
+import { useDynamicSpacing } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
-/**
- * SignUpScreen - Handles user registration with comprehensive form validation
- * Provides progress tracking, field validation, and integration with Supabase auth
- * Includes OAuth options and automatic profile creation via database triggers
- * Updated with modern 2025 design language matching the dashboard
- */
+// SignUpScreen for the SignUpScreen on the home screen
 export function SignUpScreen() {
   const { colors } = useTheme();
-  const { isConfigured, signUp } = useAuth();
+  const { signUp } = useAuth();
   const navigation = useNavigation();
 
   // Shared hooks
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
-  const { gradientColors, isDark } = useAuthGradient();
+  const { gradientColors } = useAuthGradient();
   const { getInputTheme } = useAuthInputTheme();
   const { headerAnimatedStyle, formAnimatedStyle, buttonAnimatedStyle } =
     useAuthStaggeredAnimation();
@@ -57,18 +51,14 @@ export function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  /**
-   * Calculates form completion progress based on filled fields
-   */
+  // getFormProgress for the getFormProgress on the home screen
   const getFormProgress = () => {
     const fields = [fullName, email, password, confirmPassword];
     const filledFields = fields.filter((field) => field.trim() !== "").length;
     return filledFields / fields.length;
   };
 
-  /**
-   * Handles the sign-up process with validation and error handling
-   */
+  // handleSignUp for the handleSignUp on the home screen
   const handleSignUp = async () => {
     triggerMedium();
 
@@ -108,36 +98,28 @@ export function SignUpScreen() {
     }
   };
 
-  /**
-   * Handles back navigation with haptic feedback
-   */
+  // handleBackPress for the handleBackPress on the home screen
   const handleBackPress = () => {
     triggerLight();
     navigation.goBack();
   };
 
-  /**
-   * Handles password visibility toggle with haptic feedback
-   */
+  // handlePasswordToggle for the handlePasswordToggle on the home screen
   const handlePasswordToggle = () => {
     triggerLight();
     setShowPassword(!showPassword);
   };
 
-  /**
-   * Handles confirm password visibility toggle with haptic feedback
-   */
+  // handleConfirmPasswordToggle for the handleConfirmPasswordToggle on the home screen
   const handleConfirmPasswordToggle = () => {
     triggerLight();
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  /**
-   * Navigates to sign in screen
-   */
+  // handleSignIn for the handleSignIn on the home screen
   const handleSignIn = () => {
     triggerLight();
-    navigation.navigate("Login");
+    navigation.navigate("Login" as any);
   };
 
   return (

@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { createClient, Session, User } from "@supabase/supabase-js";
+import {
+  createClient,
+  Session,
+  User,
+  SupabaseClient,
+} from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
@@ -24,19 +29,23 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isConfigured: boolean;
-  supabase: any; // Expose supabase client
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, fullName: string) => Promise<any>;
-  signInWithGoogle: () => Promise<any>;
+  supabase: SupabaseClient | null;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ data: any; error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ data: any; error: any }>;
+  signInWithGoogle: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * Custom hook to access the authentication context
- * @throws Error if used outside of AuthProvider
- */
+// useAuth hook for the useAuth on the home screen
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -49,11 +58,7 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-/**
- * AuthProvider - Provides authentication context and methods for the app
- * Handles Supabase authentication, session management, and OAuth flows
- * Supports email/password and Google OAuth sign-in methods
- */
+// AuthProvider component for the AuthProvider on the home screen
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -61,7 +66,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     if (!supabase) {
-      // If Supabase is not configured, just set loading to false
       setLoading(false);
       return;
     }
@@ -85,9 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  /**
-   * Sign in with email and password
-   */
+  // signIn function for the signIn on the home screen
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -100,10 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { data, error };
   };
 
-  /**
-   * Sign up with email, password, and full name
-   * Creates user profile automatically via database trigger
-   */
+  // signUp function for the signUp on the home screen
   const signUp = async (email: string, password: string, fullName: string) => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -119,7 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       options: {
         emailRedirectTo: redirectTo,
         data: {
-          full_name: fullName, // This will be used by the database trigger
+          full_name: fullName,
         },
       },
     });
@@ -133,9 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { data: authData, error: null };
   };
 
-  /**
-   * Sign in with Google OAuth for mobile platforms
-   */
+  // signInWithGoogle function for the signInWithGoogle on the home screen
   const signInWithGoogle = async () => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -152,13 +149,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         provider: "google",
         options: {
           redirectTo,
-          skipBrowserRedirect: true, // Always skip browser redirect for mobile
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) throw error;
 
-      // Open auth URL in browser and handle callback
+      // open auth URL in browser and handle callback
       if (data?.url) {
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
@@ -166,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
 
         if (result.type === "success" && result.url) {
-          // Extract the session from the callback URL
+          // extract the session from the callback URL
           const url = new URL(result.url);
           const access_token = url.searchParams.get("access_token");
           const refresh_token = url.searchParams.get("refresh_token");
@@ -183,15 +180,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       return { data, error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Google sign-in error:", error);
-      return { data: null, error };
+      return { data: null, error: error as Error };
     }
   };
 
-  /**
-   * Sign out the current user
-   */
+  // signOut function for the signOut on the home screen
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -202,7 +197,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     session,
     loading,
     isConfigured: hasValidCredentials,
-    supabase, // Expose supabase client
+    supabase,
     signIn,
     signUp,
     signInWithGoogle,

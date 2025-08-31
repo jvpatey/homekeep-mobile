@@ -12,44 +12,43 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// ThemeProvider provider for the theme context
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useColorScheme();
-  const [theme, setTheme] = useState<Theme>("light"); // Start with light as default
+  const [theme, setTheme] = useState<Theme>("light");
 
   // Function to detect system theme using multiple methods
   const detectSystemTheme = (): Theme => {
-    // Method 1: useColorScheme hook (works in most cases)
     if (systemColorScheme) {
       return systemColorScheme;
     }
 
-    // Method 2: Appearance API (more reliable in Expo Go)
     try {
       const appearanceTheme = Appearance.getColorScheme();
       if (appearanceTheme) {
         return appearanceTheme;
       }
     } catch (error) {
-      // Silently handle errors in production
+      // silently handle errors in production
     }
 
-    // Method 3: Fallback to light theme
+    // fallback to light theme
     return "light";
   };
 
-  // Update theme when system preference changes
+  // update theme when system preference changes
   useEffect(() => {
     const detectedTheme = detectSystemTheme();
     setTheme(detectedTheme);
   }, [systemColorScheme]);
 
-  // Set initial theme when component mounts
+  // set initial theme when component mounts
   useEffect(() => {
     const detectedTheme = detectSystemTheme();
     setTheme(detectedTheme);
   }, []);
 
-  // Listen for appearance changes (more reliable than useColorScheme in Expo Go)
+  // listen for appearance changes
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
       if (colorScheme) {
@@ -74,6 +73,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// useTheme hook for the useTheme on the home screen
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {

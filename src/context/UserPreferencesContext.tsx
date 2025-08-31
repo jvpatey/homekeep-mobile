@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Modern gradient presets following 2025 design trends
+// Gradient presets for the gradient picker
 export const GRADIENT_PRESETS = {
   ocean: {
     id: "ocean",
@@ -75,25 +75,31 @@ export const GRADIENT_PRESETS = {
   },
 } as const;
 
+// GradientPreset type for the gradient preset
 export type GradientPreset =
   (typeof GRADIENT_PRESETS)[keyof typeof GRADIENT_PRESETS];
 
+// UserPreferencesContextType type for the user preferences context
 interface UserPreferencesContextType {
   selectedGradient: GradientPreset;
   updateGradient: (gradient: GradientPreset) => Promise<void>;
   loading: boolean;
 }
 
+// UserPreferencesContext context for the user preferences context
 const UserPreferencesContext = createContext<
   UserPreferencesContextType | undefined
 >(undefined);
 
+// STORAGE_KEY for the user preferences
 const STORAGE_KEY = "@user_preferences";
 
+// UserPreferencesProviderProps type for the user preferences provider props
 interface UserPreferencesProviderProps {
   children: React.ReactNode;
 }
 
+// UserPreferencesProvider provider for the user preferences context
 export function UserPreferencesProvider({
   children,
 }: UserPreferencesProviderProps) {
@@ -102,6 +108,7 @@ export function UserPreferencesProvider({
   );
   const [loading, setLoading] = useState(true);
 
+  // loadPreferences function for the loadPreferences on the home screen
   useEffect(() => {
     loadPreferences();
   }, []);
@@ -131,6 +138,7 @@ export function UserPreferencesProvider({
     }
   };
 
+  // updateGradient function for the updateGradient on the home screen
   const updateGradient = async (gradient: GradientPreset) => {
     try {
       setSelectedGradient(gradient);
@@ -141,6 +149,7 @@ export function UserPreferencesProvider({
     }
   };
 
+  // value for the user preferences context
   const value = {
     selectedGradient,
     updateGradient,
@@ -154,6 +163,7 @@ export function UserPreferencesProvider({
   );
 }
 
+// useUserPreferences hook for the useUserPreferences on the home screen
 export function useUserPreferences() {
   const context = useContext(UserPreferencesContext);
   if (context === undefined) {
