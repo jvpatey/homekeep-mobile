@@ -1,21 +1,17 @@
-// Design System - 2025 UI Standards
-// Following 8pt grid system and modern typography scales
+// DesignSystem for the home screen
 
 export const DesignSystem = {
-  // SPACING - 8pt grid system
   spacing: {
-    xs: 4, // 0.25rem
-    sm: 8, // 0.5rem
-    md: 16, // 1rem
-    lg: 24, // 1.5rem
-    xl: 32, // 2rem
-    xxl: 40, // 2.5rem
-    xxxl: 48, // 3rem
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    xxl: 40,
+    xxxl: 48,
   },
 
-  // TYPOGRAPHY - Optimized for mobile readability
   typography: {
-    // Headers
     h1: {
       fontSize: 32,
       fontWeight: "800" as const,
@@ -41,7 +37,6 @@ export const DesignSystem = {
       letterSpacing: -0.1,
     },
 
-    // Body text
     body: {
       fontSize: 16,
       fontWeight: "400" as const,
@@ -61,7 +56,6 @@ export const DesignSystem = {
       letterSpacing: -0.1,
     },
 
-    // Small text
     small: {
       fontSize: 14,
       fontWeight: "400" as const,
@@ -81,7 +75,6 @@ export const DesignSystem = {
       letterSpacing: -0.1,
     },
 
-    // Caption
     caption: {
       fontSize: 12,
       fontWeight: "400" as const,
@@ -101,7 +94,6 @@ export const DesignSystem = {
       letterSpacing: 0,
     },
 
-    // Button text
     button: {
       fontSize: 16,
       fontWeight: "600" as const,
@@ -116,35 +108,27 @@ export const DesignSystem = {
     },
   },
 
-  // COMPONENT SIZING
   components: {
-    // Minimum touch targets (44pt iOS standard)
     minTouchTarget: 44,
 
-    // Button heights
     buttonLarge: 52,
     buttonMedium: 44,
     buttonSmall: 36,
 
-    // Input heights
     inputLarge: 52,
     inputMedium: 44,
 
-    // Card spacing
     cardPadding: 20,
     cardRadius: 16,
     cardRadiusSmall: 12,
 
-    // List item heights
     listItemMinHeight: 60,
     listItemPadding: 16,
 
-    // Tab heights
     tabHeight: 44,
     tabPadding: 16,
   },
 
-  // SHADOWS - Consistent elevation system
   shadows: {
     small: {
       shadowColor: "#000",
@@ -169,7 +153,6 @@ export const DesignSystem = {
     },
   },
 
-  // BORDERS
   borders: {
     width: 1,
     widthThick: 2,
@@ -183,7 +166,7 @@ export const DesignSystem = {
   },
 } as const;
 
-// Helper function to get spacing values
+// getSpacing for the home screen
 export const getSpacing = (size: keyof typeof DesignSystem.spacing) => {
   return DesignSystem.spacing[size];
 };

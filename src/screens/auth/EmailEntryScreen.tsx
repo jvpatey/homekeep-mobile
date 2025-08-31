@@ -1,32 +1,25 @@
-import React, { useState } from "react";
-import { View, Text, Alert, TouchableOpacity } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
-import { LogoSection } from "../../components/LogoSection/LogoSection";
+import { LogoSection } from "../../components/onboarding";
 import {
   useAuthAnimation,
-  useDynamicSpacing,
   useAuthHaptics,
   useAuthForm,
   useAuthGradient,
   useAuthInputTheme,
 } from "./hooks";
+import { useDynamicSpacing } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
-/**
- * EmailEntryScreen - Handles email entry for verification or password reset
- * Allows users to enter their email address to receive verification codes
- * Updated with modern 2025 design language matching the dashboard
- */
+// EmailEntryScreen for the EmailEntryScreen on the home screen
 export function EmailEntryScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
-
-  // Shared hooks
-  const formAnimatedStyle = useAuthAnimation();
   const { dynamicTopSpacing } = useDynamicSpacing();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
   const { gradientColors } = useAuthGradient();
@@ -39,9 +32,7 @@ export function EmailEntryScreen() {
 
   const email = getFieldValue("email");
 
-  /**
-   * Validates and processes the email entry
-   */
+  // handleContinue for the handleContinue on the home screen
   const handleContinue = () => {
     if (!validateForm()) {
       triggerError();
@@ -52,9 +43,7 @@ export function EmailEntryScreen() {
     (navigation as any).navigate("CodeVerification", { email });
   };
 
-  /**
-   * Handles back navigation with haptic feedback
-   */
+  // handleBackPress for the handleBackPress on the home screen
   const handleBackPress = () => {
     triggerLight();
     navigation.goBack();

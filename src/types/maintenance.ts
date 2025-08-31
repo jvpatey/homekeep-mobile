@@ -9,7 +9,7 @@ export interface MaintenanceRoutine {
   priority: Priority;
   estimated_duration_minutes: number;
   interval_days: number;
-  start_date: string; // ISO date string
+  start_date: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -18,7 +18,7 @@ export interface MaintenanceRoutine {
 export interface RoutineInstance {
   id: string;
   routine_id: string;
-  due_date: string; // ISO date string
+  due_date: string;
   completed_at?: string;
   is_completed: boolean;
   is_overdue: boolean;
@@ -29,7 +29,7 @@ export interface RoutineInstance {
 export interface MaintenanceTask {
   // Combined view for the dashboard - routine + instance data
   id: string; // routine ID
-  instance_id: string; // instance ID
+  instance_id: string; // instance ID 
   user_id: string;
   title: string;
   description?: string;

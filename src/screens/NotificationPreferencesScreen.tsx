@@ -16,10 +16,12 @@ import { useHaptics } from "../hooks";
 import { HOME_MAINTENANCE_CATEGORIES } from "../types/maintenance";
 import { MaintenanceCategory } from "../types/maintenance";
 
+// NotificationPreferencesScreenProps for the NotificationPreferencesScreenProps on the home screen
 interface NotificationPreferencesScreenProps {
   navigation: any;
 }
 
+// NotificationPreferencesScreen for the NotificationPreferencesScreen on the home screen
 export function NotificationPreferencesScreen({
   navigation,
 }: NotificationPreferencesScreenProps) {
@@ -33,11 +35,13 @@ export function NotificationPreferencesScreen({
   const { triggerLight } = useHaptics();
   const [expandedType, setExpandedType] = useState<string | null>(null);
 
+  // handleGlobalToggle for the handleGlobalToggle on the home screen
   const handleGlobalToggle = async (enabled: boolean) => {
     await triggerLight();
     await updateGlobalNotificationSettings(enabled);
   };
 
+  // handleNotificationTypeToggle for the handleNotificationTypeToggle on the home screen
   const handleNotificationTypeToggle = async (
     type: string,
     enabled: boolean
@@ -52,10 +56,12 @@ export function NotificationPreferencesScreen({
     });
   };
 
+  // toggleTypeExpansion for the toggleTypeExpansion on the home screen
   const toggleTypeExpansion = (type: string) => {
     setExpandedType(expandedType === type ? null : type);
   };
 
+  // requestPermissions for the requestPermissions on the home screen
   const requestPermissions = async () => {
     if (!permissionStatus.granted && permissionStatus.canAskAgain) {
       Alert.alert(
@@ -75,6 +81,7 @@ export function NotificationPreferencesScreen({
     }
   };
 
+  // renderNotificationTypeSection for the renderNotificationTypeSection on the home screen
   const renderNotificationTypeSection = (type: string) => {
     const typeConfig = {
       due_soon_reminder: {
@@ -247,6 +254,7 @@ export function NotificationPreferencesScreen({
     );
   };
 
+  // return the NotificationPreferencesScreen on the home screen
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.surface }]}>

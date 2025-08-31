@@ -6,7 +6,7 @@ export const colors = {
     background: "#F7F9FA",
     surface: "#FFFFFF",
     text: "#222222",
-    textSecondary: "#4A4A4A", // Improved contrast - darker than before
+    textSecondary: "#4A4A4A",
     border: "#E0E0E0",
     success: "#27AE60",
     warning: "#F2C94C",

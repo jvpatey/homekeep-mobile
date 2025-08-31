@@ -6,10 +6,7 @@ import {
 } from "react-native-reanimated";
 import { useEffect } from "react";
 
-/**
- * Custom hook for form animation used across auth screens
- * Provides consistent entrance animations for forms and content
- */
+// useAuthAnimation hook for the useAuthAnimation on the home screen
 export function useAuthAnimation(delay: number = 200, duration: number = 600) {
   const formOpacity = useSharedValue(0);
   const formTranslateY = useSharedValue(30);
@@ -27,10 +24,7 @@ export function useAuthAnimation(delay: number = 200, duration: number = 600) {
   return formAnimatedStyle;
 }
 
-/**
- * Custom hook for complex staggered animations used in auth screens
- * Provides animations for header, form, and button sections with staggered timing
- */
+// useAuthStaggeredAnimation hook for the useAuthStaggeredAnimation on the home screen
 export function useAuthStaggeredAnimation() {
   // Animation values for different sections
   const headerOpacity = useSharedValue(0);
@@ -41,7 +35,7 @@ export function useAuthStaggeredAnimation() {
   const buttonTranslateY = useSharedValue(20);
 
   useEffect(() => {
-    // Staggered animations for smooth entrance
+    // staggered animations for smooth entrance
     headerOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
     headerTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
 

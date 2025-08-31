@@ -1,9 +1,6 @@
 import { useTheme } from "../../../context/ThemeContext";
 
-/**
- * Custom hook for input theming used across auth screens
- * Provides consistent input styling based on theme and error states
- */
+// useAuthInputTheme hook for the useAuthInputTheme on the home screen
 export function useAuthInputTheme() {
   const { colors } = useTheme();
 

@@ -1,28 +1,22 @@
 import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
-import { Dashboard } from "../components/Dashboard";
-import { MaintenanceTask } from "../types/maintenance";
+import { Dashboard } from "../components/dashboard";
 import { useTasks } from "../hooks/useTasks";
 
-const DashboardScreen: React.FC = () => {
-  const {
-    tasks,
-    upcomingTasks,
-    completedTasks,
-    completeTask,
-    loading,
-    refreshTasks,
-  } = useTasks();
+export function DashboardScreen() {
+  const { tasks, upcomingTasks, completeTask, refreshTasks } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
+  // handleCompleteTask for the handleCompleteTask on the home screen
   const handleCompleteTask = async (instanceId: string) => {
     await completeTask(instanceId);
     // Refresh tasks after completion to update UI
     await refreshTasks();
   };
 
+  // handleTaskPress for the handleTaskPress on the home screen
   const handleTaskPress = (instanceId: string) => {
     const task = upcomingTasks.find((t) => t.instance_id === instanceId);
     if (task) {
@@ -31,6 +25,7 @@ const DashboardScreen: React.FC = () => {
     }
   };
 
+  // handleRefresh for the handleRefresh on the home screen
   const handleRefresh = async () => {
     setRefreshing(true);
     await refreshTasks();
@@ -48,7 +43,7 @@ const DashboardScreen: React.FC = () => {
       />
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -56,5 +51,3 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light.background,
   },
 });
-
-export default DashboardScreen;

@@ -4,19 +4,18 @@ import { DesignSystem } from "../../theme/designSystem";
 const { width } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
-  // New Dashboard Styles
   container: {
     flex: 1,
   },
   headerGradient: {
-    paddingTop: 52, // Reduced to 52px - just enough for profile button (40px) + 12px margin
+    paddingTop: 52,
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
   },
   headerContent: {
     alignItems: "center",
-    paddingTop: DesignSystem.spacing.md, // Reduced to 16px - just enough clearance
+    paddingTop: DesignSystem.spacing.md,
   },
   greetingContainer: {
     alignItems: "center",
@@ -91,7 +90,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 100, // Add bottom padding for submit button
+    paddingBottom: 100,
   },
   summaryContainer: {
     borderRadius: 16,

@@ -11,8 +11,9 @@ import {
   MaintenanceCategory,
   Priority,
 } from "../types/maintenance";
-import { addDays, startOfDay, endOfDay, isToday, isThisWeek } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 
+// MaintenanceService for the MaintenanceService on the home screen
 export class MaintenanceService {
   // Create a new maintenance routine
   static async createMaintenanceRoutine(
@@ -32,6 +33,7 @@ export class MaintenanceService {
         throw new Error("User not authenticated");
       }
 
+      // routineWithUserId for the routineWithUserId on the home screen
       const routineWithUserId = {
         ...routineData,
         user_id: user.id,
@@ -39,6 +41,7 @@ export class MaintenanceService {
         updated_at: new Date().toISOString(),
       };
 
+      // data and error for the data and error on the home screen
       const { data, error } = await supabase
         .from("maintenance_routines")
         .insert([routineWithUserId])
@@ -736,7 +739,7 @@ export class MaintenanceService {
         if (instCountErr) throw instCountErr;
         instancesCount = instCount || 0;
 
-        // Delete instances first (cascade should handle this, but being explicit)
+        // Delete instances first
         const { error: instErr } = await supabase
           .from("routine_instances")
           .delete()

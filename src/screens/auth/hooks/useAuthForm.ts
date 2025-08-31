@@ -23,10 +23,7 @@ interface UseAuthFormReturn {
   getFieldValue: (fieldName: string) => string;
 }
 
-/**
- * Custom hook for form management used across auth screens
- * Provides consistent form validation, error handling, and state management
- */
+// useAuthForm hook for the useAuthForm on the home screen
 export function useAuthForm(
   initialFields: Record<string, ValidationRules>
 ): UseAuthFormReturn {
@@ -53,6 +50,7 @@ export function useAuthForm(
     }));
   };
 
+  // validateField function for the validateField on the home screen
   const validateField = (fieldName: string): boolean => {
     const field = fields[fieldName];
     if (!field) return true;
@@ -94,12 +92,14 @@ export function useAuthForm(
     return !error;
   };
 
+  // validateForm function for the validateForm on the home screen
   const validateForm = (): boolean => {
     const fieldNames = Object.keys(fields);
     const validations = fieldNames.map((fieldName) => validateField(fieldName));
     return validations.every((isValid) => isValid);
   };
 
+  // clearErrors function for the clearErrors on the home screen
   const clearErrors = () => {
     setFields((prev) => {
       const updatedFields = { ...prev };
@@ -113,10 +113,12 @@ export function useAuthForm(
     });
   };
 
+  // getFieldValue function for the getFieldValue on the home screen
   const getFieldValue = (fieldName: string): string => {
     return fields[fieldName]?.value || "";
   };
 
+  // errors function for the errors on the home screen
   const errors = Object.keys(fields).reduce((acc, fieldName) => {
     acc[fieldName] = fields[fieldName].error;
     return acc;

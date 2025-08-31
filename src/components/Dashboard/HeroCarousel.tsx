@@ -17,24 +17,26 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
-import TaskCard from "./TaskCard";
+import { TaskCard } from "./tasks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width: screenWidth } = Dimensions.get("window");
-const CARD_WIDTH = screenWidth - 80; // 40px padding on each side
+const CARD_WIDTH = screenWidth - 80;
 
+// HeroCarouselProps interface for the HeroCarousel component
 interface HeroCarouselProps {
   tasks: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
 }
 
-const HeroCarousel: React.FC<HeroCarouselProps> = ({
+// HeroCarousel component for the Dashboard
+export function HeroCarousel({
   tasks,
   onCompleteTask,
   onTaskPress,
-}) => {
+}: HeroCarouselProps) {
   const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -85,7 +87,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
       flatListRef.current.scrollToIndex({
         index,
         animated: true,
-        viewPosition: 0.5, // This ensures the item is centered
+        viewPosition: 0.5,
       });
     }
   }, []);
@@ -217,7 +219,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.large,
     justifyContent: "center",
     alignItems: "center",
-    padding: DesignSystem.spacing.md, // Reduced from lg to md for more compact appearance
+    padding: DesignSystem.spacing.md,
     ...DesignSystem.shadows.medium,
   },
   emptyIconContainer: {
@@ -327,5 +329,3 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.caption,
   },
 });
-
-export default HeroCarousel;

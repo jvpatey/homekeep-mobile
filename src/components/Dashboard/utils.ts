@@ -1,8 +1,10 @@
 import { useTheme } from "../../context/ThemeContext";
 
+// useCategoryColors - Features use of the theme colors
 export const useCategoryColors = () => {
   const { colors } = useTheme();
 
+  // getCategoryColor - Features getting the category color
   const getCategoryColor = (category: string): string => {
     const categoryColors: { [key: string]: string } = {
       hvac: "#FF6B6B",
@@ -20,7 +22,6 @@ export const useCategoryColors = () => {
     };
     return categoryColors[category] || colors.primary;
   };
-
   return { getCategoryColor };
 };
 

@@ -17,20 +17,16 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-
 import { DesignSystem } from "../../theme/designSystem";
 import { MaintenanceTask } from "../../types/maintenance";
-import HeroCarousel from "./HeroCarousel";
-import TimelineView from "./TimelineView";
-import CompletionCelebration from "./CompletionCelebration";
+import { HeroCarousel } from "./HeroCarousel";
+import { TimelineView } from "./TimelineView";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
-import { ProfileMenu } from "./ProfileMenu";
-import SimpleTaskDetailModal from "./SimpleTaskDetailModal";
-import { CreateTaskModal } from "./CreateTaskModal";
-import StreakPopup from "./StreakPopup";
-import DueSoonPopup from "./DueSoonPopup";
-import { NotificationPermissionRequest } from "../NotificationPermissionRequest";
+import { ProfileMenu } from "./profile";
+import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
+import { StreakPopup, DueSoonPopup, CompletionCelebration } from "./popups";
+import { NotificationPermissionRequest } from "../ui";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -45,13 +41,13 @@ interface NewDashboardProps {
   refreshing?: boolean;
 }
 
-const NewDashboard: React.FC<NewDashboardProps> = ({
+export function NewDashboard({
   tasks,
   onCompleteTask,
   onTaskPress,
   onRefresh,
   refreshing = false,
-}) => {
+}: NewDashboardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const navigation =
@@ -446,7 +442,7 @@ const NewDashboard: React.FC<NewDashboardProps> = ({
       <NotificationPermissionRequest />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -548,5 +544,3 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-
-export default NewDashboard;

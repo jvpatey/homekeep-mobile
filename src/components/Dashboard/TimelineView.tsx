@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -21,28 +20,28 @@ import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "src/theme/colors";
 
-const { width: screenWidth } = Dimensions.get("window");
-
+// TimelineViewProps interface for the TimelineView component
 interface TimelineViewProps {
   tasks: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
 }
 
-const TimelineView: React.FC<TimelineViewProps> = ({
+// TimelineView component for the Dashboard
+export function TimelineView({
   tasks,
   onCompleteTask,
   onTaskPress,
-}) => {
+}: TimelineViewProps) {
   const { colors } = useTheme();
 
   // Animation for empty state
   const iconScale = useSharedValue(1);
   const iconRotation = useSharedValue(0);
 
+  // useEffect hook to animate the empty state
   useEffect(() => {
     if (tasks.length === 0) {
-      // Subtle breathing animation for empty state
       iconScale.value = withRepeat(
         withSequence(
           withTiming(1.05, { duration: 2000 }),
@@ -64,6 +63,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     }
   }, [tasks.length]);
 
+  // iconAnimatedStyle function to animate the icon
   const iconAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
       { scale: iconScale.value },
@@ -71,6 +71,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     ],
   }));
 
+  // groupTasksByDate function to group the tasks by date
   const groupTasksByDate = (tasks: MaintenanceTask[]) => {
     const groups: { [key: string]: MaintenanceTask[] } = {};
 
@@ -102,6 +103,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
       }));
   };
 
+  // formatDate function to format the date
   const formatDate = (date: Date) => {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -120,6 +122,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     }
   };
 
+  // formatTime function to format the time
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString("en-US", {
@@ -129,6 +132,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     });
   };
 
+  // getPriorityColor function to get the priority color
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "urgent":
@@ -144,6 +148,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     }
   };
 
+  // groupedTasks function to group the tasks by date
   const groupedTasks = groupTasksByDate(tasks);
 
   if (tasks.length === 0) {
@@ -296,7 +301,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({
       </ScrollView>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -472,7 +477,7 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.large,
     justifyContent: "center",
     alignItems: "center",
-    padding: DesignSystem.spacing.md, // Reduced from lg to md for more compact appearance
+    padding: DesignSystem.spacing.md,
     ...DesignSystem.shadows.medium,
   },
   emptyIconContainer: {
@@ -502,5 +507,3 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 });
-
-export default TimelineView;

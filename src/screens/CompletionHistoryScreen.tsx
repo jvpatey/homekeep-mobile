@@ -31,7 +31,7 @@ interface GroupedRoutine {
   nextDueDate?: string;
 }
 
-const CompletionHistoryScreen: React.FC = () => {
+export function CompletionHistoryScreen() {
   const { colors } = useTheme();
   const { completedTasks, tasks } = useTasks();
   const navigation =
@@ -303,7 +303,7 @@ const CompletionHistoryScreen: React.FC = () => {
       />
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -499,5 +499,3 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
-
-export default CompletionHistoryScreen;

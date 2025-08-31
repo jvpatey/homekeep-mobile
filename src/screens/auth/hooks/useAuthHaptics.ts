@@ -1,9 +1,6 @@
 import * as Haptics from "expo-haptics";
 
-/**
- * Custom hook for haptic feedback used across auth screens
- * Provides consistent haptic feedback for user interactions
- */
+// useAuthHaptics hook for the useAuthHaptics on the home screen
 export function useAuthHaptics() {
   const triggerSuccess = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

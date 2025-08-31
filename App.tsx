@@ -7,6 +7,7 @@ import { UserPreferencesProvider } from "./src/context/UserPreferencesContext";
 import { NotificationProvider } from "./src/context/NotificationContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
+// Main App component
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

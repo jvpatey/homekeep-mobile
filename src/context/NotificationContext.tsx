@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform, Alert } from "react-native";
+import { Platform } from "react-native";
 import { useAuth } from "./AuthContext";
 import {
   NotificationPreferences,
@@ -43,12 +43,12 @@ interface NotificationContextType {
   savePushToken: (token: string) => Promise<void>;
 }
 
-// NotificationContext is a context for the notification context
+// NotificationContext context for the notification context
 const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined
 );
 
-// useNotifications is a hook that returns the notification context
+// useNotifications hook for the useNotifications on the home screen
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -59,12 +59,12 @@ export function useNotifications() {
   return context;
 }
 
-// NotificationProviderProps is a type for the notification provider props
+// NotificationProviderProps type for the notification provider props
 interface NotificationProviderProps {
   children: React.ReactNode;
 }
 
-// NotificationProvider is a provider for the notification context
+// NotificationProvider provider for the notification context
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const { user, supabase } = useAuth();
   const [expoPushToken, setExpoPushToken] = useState<ExpoPushToken | null>(
@@ -84,7 +84,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       categories: {} as Record<MaintenanceCategory, NotificationPreferences>,
     });
 
-  // Initialize default notification preferences for all categories
+  // initializeDefaultPreferences function for the initializeDefaultPreferences on the home screen
   const initializeDefaultPreferences = (): Record<
     MaintenanceCategory,
     NotificationPreferences
@@ -101,14 +101,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         overdue_reminder: true,
         daily_digest: false,
         weekly_summary: false,
-        reminder_hours_before: 24, // 1 day before
+        reminder_hours_before: 24,
       };
     });
 
     return defaultPrefs;
   };
 
-  // Check current permission status
+  // checkPermissionStatus function for the checkPermissionStatus on the home screen
   const checkPermissionStatus = async () => {
     const { status, canAskAgain } = await Notifications.getPermissionsAsync();
 
@@ -121,7 +121,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     return { status, canAskAgain };
   };
 
-  // Request notification permissions
+  // requestPermissions function for the requestPermissions on the home screen
   const requestPermissions =
     async (): Promise<NotificationPermissionStatus> => {
       if (Device.isDevice) {
@@ -163,7 +163,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
     };
 
-  // Register for push notifications
+  // registerForPushNotifications function for the registerForPushNotifications on the home screen
   const registerForPushNotifications =
     async (): Promise<ExpoPushToken | null> => {
       try {
@@ -193,7 +193,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
     };
 
-  // Save push token to user profile
+  // savePushToken function for the savePushToken on the home screen
   const savePushToken = async (token: string) => {
     if (!user || !supabase) return;
 
@@ -212,7 +212,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   };
 
-  // Update notification preferences for a specific category
+  // updateNotificationPreferences function for the updateNotificationPreferences on the home screen
   const updateNotificationPreferences = async (
     category: MaintenanceCategory,
     preferences: Partial<NotificationPreferences>
@@ -227,7 +227,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         updated_at: new Date().toISOString(),
       };
 
-      // Update local state
+      // update local state
       setNotificationSettings((prev) => ({
         ...prev,
         categories: {
@@ -312,7 +312,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
     const responseListener =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        // Handle notification tap - navigate to dashboard
+        // handle notification tap - navigate to dashboard
         console.log("Notification tapped:", response);
       });
 
