@@ -18,7 +18,7 @@ import { DesignSystem } from "../../theme/designSystem";
 interface OAuthButtonsProps {
   onSuccess?: () => void;
   disabled?: boolean;
-  animatedStyle?: any; // This is for Animated.View style prop
+  animatedStyle?: any; // This is for Animated.View style prop - should be left typed as any
 }
 
 // OAuthButtons - A component that provides Google OAuth sign-in functionality
