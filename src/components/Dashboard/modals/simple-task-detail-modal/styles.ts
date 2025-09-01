@@ -92,19 +92,21 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.lg,
-    minHeight: 0, // Prevent flex layout issues
+    paddingBottom: DesignSystem.spacing.lg,
+    minHeight: 0,
   },
   contentContainer: {
-    paddingBottom: DesignSystem.spacing.lg,
+    flexGrow: 1,
+    paddingBottom: 0,
   },
   section: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.xl,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: colors.light.text,
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
   },
   descriptionText: {
     fontSize: 16,
@@ -112,12 +114,12 @@ export const styles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   detailsGrid: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.xl,
   },
   detailItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.lg,
   },
   detailIconContainer: {
     width: 48,
@@ -150,7 +152,10 @@ export const styles = StyleSheet.create({
   actionsContainer: {
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingBottom: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.light.border,
+    backgroundColor: colors.light.surface,
   },
   completeButton: {
     borderRadius: DesignSystem.borders.radius.medium,

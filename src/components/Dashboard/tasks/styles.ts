@@ -102,7 +102,7 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#4CAF50",
     justifyContent: "center",
     alignItems: "center",
     ...DesignSystem.shadows.medium,

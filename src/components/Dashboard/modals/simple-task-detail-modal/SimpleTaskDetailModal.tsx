@@ -283,17 +283,6 @@ export function SimpleTaskDetailModal({
                 </View>
               </View>
             </View>
-
-            {/* Category description */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                About {category.displayName}
-              </Text>
-              <Text style={styles.categoryDescription}>
-                {task.description ||
-                  `Maintenance tasks for ${category.displayName.toLowerCase()} systems and components.`}
-              </Text>
-            </View>
           </ScrollView>
 
           {/* Action buttons */}
