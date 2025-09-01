@@ -59,12 +59,15 @@ export function NewDashboard({
   }, [completedTasks]);
 
   const handleCompleteTask = async (instanceId: string) => {
-    await onCompleteTask(instanceId);
+    try {
+      await onCompleteTask(instanceId);
 
-    // Show celebration after completion is processed
-    setTimeout(() => {
+      // Show celebration after successful completion
       setShowCelebration(true);
-    }, 500);
+    } catch (error) {
+      console.error("Error completing task:", error);
+      // Handle error appropriately
+    }
   };
 
   const handleTaskPress = (instanceId: string) => {

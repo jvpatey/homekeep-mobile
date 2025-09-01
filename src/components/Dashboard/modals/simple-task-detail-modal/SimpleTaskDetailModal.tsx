@@ -141,17 +141,22 @@ export function SimpleTaskDetailModal({
     return `Every ${Math.round(intervalDays / 365)} years`;
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (isCompleting) return; // Prevent multiple clicks
 
     setIsCompleting(true);
-    // Close modal first to prevent re-rendering issues
-    onClose();
-    // Then complete the task
-    setTimeout(() => {
-      onComplete(task.instance_id);
+
+    try {
+      // Complete the task first
+      await onComplete(task.instance_id);
+
+      // Then close the modal after successful completion
+      onClose();
+    } catch (error) {
+      console.error("Error completing task:", error);
+      // Reset completion state on error
       setIsCompleting(false);
-    }, 100);
+    }
   };
 
   const handleClose = () => {

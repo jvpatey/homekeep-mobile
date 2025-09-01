@@ -93,8 +93,12 @@ export const getMotivationalMessage = (upcomingTasks: MaintenanceTask[]) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const diffTime = nextDueDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Reset the due date to start of day for accurate comparison
+  const dueDateStart = new Date(nextDueDate);
+  dueDateStart.setHours(0, 0, 0, 0);
+
+  const diffTime = dueDateStart.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) {
     // Overdue task
@@ -126,7 +130,9 @@ export const getMotivationalMessage = (upcomingTasks: MaintenanceTask[]) => {
   }
 };
 
-export const calculateConsecutiveStreak = (completedTasks: MaintenanceTask[]) => {
+export const calculateConsecutiveStreak = (
+  completedTasks: MaintenanceTask[]
+) => {
   if (completedTasks.length === 0) return 0;
 
   // Sort completed tasks by completion date (newest first)
