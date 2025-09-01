@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useGradients } from "../../../../hooks";
+import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
 
 // SubmitButtonProps interface
@@ -18,11 +19,18 @@ export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
   const { primaryGradient } = useGradients();
 
   return (
-    <View style={styles.modalFooter}>
+    <View style={[
+      styles.modalFooter,
+      { backgroundColor: colors.surface, borderTopColor: colors.border }
+    ]}>
       <TouchableOpacity
         onPress={onPress}
-        style={[styles.submitButton, { opacity: disabled ? 0.6 : 1 }]}
+        style={[
+          styles.submitButton,
+          { opacity: disabled ? 0.6 : 1 }
+        ]}
         disabled={disabled}
+        activeOpacity={0.8}
       >
         <LinearGradient
           colors={primaryGradient}

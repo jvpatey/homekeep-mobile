@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
-import { TextInput } from "react-native-paper";
+import { TextInput, HelperText } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
 import { styles } from "./styles";
 
@@ -30,6 +30,17 @@ export function FormField({
 }: FormFieldProps) {
   const { colors } = useTheme();
 
+  const getInputTheme = () => ({
+    colors: {
+      primary: colors.primary,
+      outline: error ? colors.error : colors.border,
+      surface: colors.surface,
+      background: colors.surface,
+      onSurface: colors.text,
+      onSurfaceVariant: colors.textSecondary,
+    },
+  });
+
   return (
     <View style={styles.inputGroup}>
       <Text style={[styles.inputLabel, { color: colors.text }]}>
@@ -41,7 +52,11 @@ export function FormField({
         placeholder={placeholder}
         style={[
           multiline ? styles.textArea : styles.textInput,
-          { backgroundColor: colors.surface },
+          {
+            backgroundColor: colors.surface,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          },
         ]}
         textColor={colors.text}
         placeholderTextColor={colors.textSecondary}
@@ -50,9 +65,14 @@ export function FormField({
         multiline={multiline}
         numberOfLines={numberOfLines}
         keyboardType={keyboardType}
+        theme={getInputTheme()}
+        dense={false}
+        outlineStyle={{ borderRadius: 8 }}
       />
       {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <HelperText type="error" visible={!!error} style={styles.helperText}>
+          {error}
+        </HelperText>
       )}
     </View>
   );

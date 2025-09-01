@@ -30,38 +30,39 @@ export function PrioritySelector({
     <View style={styles.inputGroup}>
       <Text style={[styles.inputLabel, { color: colors.text }]}>Priority</Text>
       <View style={styles.chipContainer}>
-        {priorities.map((priority) => (
-          <Chip
-            key={priority.id}
-            selected={selectedPriority === priority.id}
-            onPress={() => onSelectPriority(priority.id)}
-            style={[
-              styles.priorityChip,
-              {
-                backgroundColor:
-                  selectedPriority === priority.id
-                    ? priority.color + "20"
+        {priorities.map((priority) => {
+          const isSelected = selectedPriority === priority.id;
+          return (
+            <Chip
+              key={priority.id}
+              selected={isSelected}
+              onPress={() => onSelectPriority(priority.id)}
+              style={[
+                styles.priorityChip,
+                {
+                  backgroundColor: isSelected 
+                    ? priority.color + "15" 
                     : colors.surface,
-                borderWidth: 1,
-                borderColor:
-                  selectedPriority === priority.id
-                    ? priority.color + "40"
+                  borderColor: isSelected 
+                    ? priority.color 
                     : colors.border,
-              },
-            ]}
-            textStyle={[
-              styles.chipText,
-              {
-                color:
-                  selectedPriority === priority.id
-                    ? priority.color
+                  transform: [{ scale: isSelected ? 1.02 : 1 }],
+                },
+              ]}
+              textStyle={[
+                styles.chipText,
+                {
+                  color: isSelected 
+                    ? priority.color 
                     : colors.textSecondary,
-              },
-            ]}
-          >
-            {priority.name}
-          </Chip>
-        ))}
+                  fontWeight: isSelected ? "700" : "600",
+                },
+              ]}
+            >
+              {priority.name}
+            </Chip>
+          );
+        })}
       </View>
     </View>
   );

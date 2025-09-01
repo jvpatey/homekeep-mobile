@@ -9,6 +9,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { DesignSystem } from "../../../../theme/designSystem";
 import { DatePickerEvent } from "../../../../types/navigation";
 
 // StartDateSelectorProps
@@ -68,39 +69,40 @@ export function StartDateSelector({
 
       {/* Quick Date Options */}
       <View style={styles.quickOptionsContainer}>
-        {getQuickDateOptions().map((option) => (
-          <TouchableOpacity
-            key={option.label}
-            style={[
-              styles.quickOption,
-              {
-                backgroundColor:
-                  startDate.toDateString() === option.date.toDateString()
+        {getQuickDateOptions().map((option) => {
+          const isSelected = startDate.toDateString() === option.date.toDateString();
+          return (
+            <TouchableOpacity
+              key={option.label}
+              style={[
+                styles.quickOption,
+                {
+                  backgroundColor: isSelected
                     ? colors.primary
                     : colors.surface,
-                borderColor:
-                  startDate.toDateString() === option.date.toDateString()
+                  borderColor: isSelected
                     ? colors.primary
                     : colors.border,
-              },
-            ]}
-            onPress={() => onStartDateChange(option.date)}
-          >
-            <Text
-              style={[
-                styles.quickOptionText,
-                {
-                  color:
-                    startDate.toDateString() === option.date.toDateString()
-                      ? "white"
-                      : colors.text,
+                  transform: [{ scale: isSelected ? 1.02 : 1 }],
+                  ...DesignSystem.shadows.small,
                 },
               ]}
+              onPress={() => onStartDateChange(option.date)}
             >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.quickOptionText,
+                  {
+                    color: isSelected ? "white" : colors.text,
+                    fontWeight: isSelected ? "700" : "600",
+                  },
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Custom Date Selection */}
@@ -112,7 +114,11 @@ export function StartDateSelector({
         <TouchableOpacity
           style={[
             styles.dateButton,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            { 
+              backgroundColor: colors.surface, 
+              borderColor: colors.border,
+              ...DesignSystem.shadows.small,
+            },
           ]}
           onPress={() => setShowDatePicker(true)}
         >
@@ -133,7 +139,11 @@ export function StartDateSelector({
         <View
           style={[
             styles.datePickerContainer,
-            { backgroundColor: colors.background },
+            { 
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              ...DesignSystem.shadows.medium,
+            },
           ]}
         >
           <DateTimePicker
@@ -171,85 +181,85 @@ export function StartDateSelector({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
   label: {
-    fontSize: 16,
+    fontSize: DesignSystem.typography.bodyMedium.fontSize,
     fontWeight: "600",
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.md,
+    color: "#1F2937",
   },
   quickOptionsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
+    gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
   },
   quickOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.round,
     borderWidth: 2,
+    transition: "all 0.2s ease",
   },
   quickOptionText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: DesignSystem.typography.small.fontSize,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   customDateContainer: {
-    marginBottom: 8,
+    marginBottom: DesignSystem.spacing.sm,
   },
   customDateLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 8,
+    fontSize: DesignSystem.typography.small.fontSize,
+    fontWeight: "600",
+    marginBottom: DesignSystem.spacing.sm,
+    color: "#374151",
   },
   dateButton: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: 2,
+    gap: DesignSystem.spacing.sm,
+    transition: "all 0.2s ease",
   },
   dateButtonText: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: DesignSystem.typography.body.fontSize,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   datePickerContainer: {
-    marginTop: 16,
+    marginTop: DesignSystem.spacing.md,
     alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
+    padding: DesignSystem.spacing.lg,
+    borderRadius: DesignSystem.borders.radius.large,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   datePicker: {
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: DesignSystem.borders.radius.medium,
     minHeight: 120,
   },
   datePickerDone: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    marginTop: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.medium,
     alignItems: "center",
+    ...DesignSystem.shadows.small,
   },
   datePickerDoneText: {
-    fontSize: 16,
+    fontSize: DesignSystem.typography.body.fontSize,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
   errorText: {
-    fontSize: 12,
-    color: "#E74C3C",
-    marginTop: 8,
+    fontSize: DesignSystem.typography.caption.fontSize,
+    color: "#EF4444",
+    marginTop: DesignSystem.spacing.sm,
+    fontWeight: "500",
   },
 });
