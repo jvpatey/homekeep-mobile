@@ -6,7 +6,7 @@ import { DesignSystem } from "../../../../theme/designSystem";
 import {
   intervalOptions,
   intervalValueExamples,
-} from "../../../dashboard/modals/create-task-modal/data";
+} from "../../../Dashboard/modals/create-task-modal/data";
 
 // IntervalSelectorProps
 interface IntervalSelectorProps {
@@ -204,7 +204,6 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: 2,
     alignItems: "center",
-    transition: "all 0.2s ease",
   },
   intervalOptionText: {
     fontSize: DesignSystem.typography.caption.fontSize,
@@ -247,7 +246,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    transition: "all 0.2s ease",
   },
   valueDisplay: {
     fontSize: DesignSystem.typography.h3.fontSize,

@@ -1,14 +1,14 @@
 // UI Components
-export * from './ui';
+export * from "./ui";
 
 // Feature-specific Components
-export * from './dashboard';
+export * from "./Dashboard";
 
 // Modal Components
-export * from './modals';
+export * from "./modals";
 
 // Auth Components
-export * from './auth';
+export * from "./auth";
 
 // Onboarding Components
-export * from './onboarding';
+export * from "./onboarding";

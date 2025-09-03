@@ -11,4 +11,4 @@ export {
   priorities,
   intervalOptions,
   intervalValueExamples,
-} from "../../../dashboard/modals/create-task-modal/data";
+} from "../../../Dashboard/modals/create-task-modal/data";

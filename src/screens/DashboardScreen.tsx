@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
-import { Dashboard } from "../components/dashboard";
+import { Dashboard } from "../components/Dashboard";
 import { useTasks } from "../hooks/useTasks";
 
 export function DashboardScreen() {

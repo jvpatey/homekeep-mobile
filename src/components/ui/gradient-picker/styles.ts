@@ -1,6 +1,26 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+
+  headerContainer: {
+    marginBottom: 16,
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+
+  subtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+
   gradientContainer: {
     paddingHorizontal: 20,
     paddingVertical: 8,

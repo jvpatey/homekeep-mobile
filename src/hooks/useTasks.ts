@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { MaintenanceService } from "../services/MaintenanceService";
+import { MaintenanceService } from "../services/maintenanceService";
 import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,

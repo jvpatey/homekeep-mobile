@@ -1,5 +1,5 @@
 // Main maintenance service that orchestrates all operations
-export { MaintenanceService } from "./MaintenanceService";
+export { MaintenanceService } from "./maintenanceService";
 
 // Specialized services for specific concerns
 export { MaintenanceRoutineService } from "./MaintenanceRoutineService";

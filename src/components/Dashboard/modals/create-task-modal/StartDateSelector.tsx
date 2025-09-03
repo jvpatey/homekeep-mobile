@@ -70,19 +70,16 @@ export function StartDateSelector({
       {/* Quick Date Options */}
       <View style={styles.quickOptionsContainer}>
         {getQuickDateOptions().map((option) => {
-          const isSelected = startDate.toDateString() === option.date.toDateString();
+          const isSelected =
+            startDate.toDateString() === option.date.toDateString();
           return (
             <TouchableOpacity
               key={option.label}
               style={[
                 styles.quickOption,
                 {
-                  backgroundColor: isSelected
-                    ? colors.primary
-                    : colors.surface,
-                  borderColor: isSelected
-                    ? colors.primary
-                    : colors.border,
+                  backgroundColor: isSelected ? colors.primary : colors.surface,
+                  borderColor: isSelected ? colors.primary : colors.border,
                   transform: [{ scale: isSelected ? 1.02 : 1 }],
                   ...DesignSystem.shadows.small,
                 },
@@ -114,8 +111,8 @@ export function StartDateSelector({
         <TouchableOpacity
           style={[
             styles.dateButton,
-            { 
-              backgroundColor: colors.surface, 
+            {
+              backgroundColor: colors.surface,
               borderColor: colors.border,
               ...DesignSystem.shadows.small,
             },
@@ -139,7 +136,7 @@ export function StartDateSelector({
         <View
           style={[
             styles.datePickerContainer,
-            { 
+            {
               backgroundColor: colors.background,
               borderColor: colors.border,
               ...DesignSystem.shadows.medium,
@@ -200,7 +197,6 @@ const styles = StyleSheet.create({
     paddingVertical: DesignSystem.spacing.sm,
     borderRadius: DesignSystem.borders.radius.round,
     borderWidth: 2,
-    transition: "all 0.2s ease",
   },
   quickOptionText: {
     fontSize: DesignSystem.typography.small.fontSize,
@@ -223,7 +219,6 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: 2,
     gap: DesignSystem.spacing.sm,
-    transition: "all 0.2s ease",
   },
   dateButtonText: {
     flex: 1,
