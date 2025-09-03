@@ -41,13 +41,14 @@
       "package": "com.homekeep.mobile"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
       "expo-web-browser",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font"
     ],
     "extra": {
       "eas": {
