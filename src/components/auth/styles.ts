@@ -46,4 +46,11 @@ export const styles = StyleSheet.create({
   googleIconContainer: {
     marginRight: DesignSystem.spacing.sm,
   },
+  appleButton: {
+    paddingVertical: DesignSystem.spacing.md,
+    height: DesignSystem.components.buttonLarge,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+  },
 });

@@ -8,6 +8,7 @@ import {
 import "react-native-url-polyfill/auto";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -40,6 +41,7 @@ interface AuthContextType {
     fullName: string
   ) => Promise<{ data: any; error: any }>;
   signInWithGoogle: () => Promise<{ data: any; error: any }>;
+  signInWithApple: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -186,6 +188,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // signInWithApple function for Apple Sign-In
+  const signInWithApple = async () => {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      // Check if Apple Sign-In is available
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        return {
+          data: null,
+          error: { message: "Apple Sign-In is not available on this device" },
+        };
+      }
+
+      // Request Apple Sign-In
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        return {
+          data: null,
+          error: { message: "No identity token received from Apple" },
+        };
+      }
+
+      // Sign in with Supabase using the Apple credential
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+
+      return { data, error };
+    } catch (error: any) {
+      console.error("Apple sign-in error:", error);
+
+      // Handle user cancellation
+      if (error.code === "ERR_REQUEST_CANCELED") {
+        return { data: null, error: null }; // User canceled, not an error
+      }
+
+      return { data: null, error: error as Error };
+    }
+  };
+
   // signOut function for the signOut on the home screen
   const signOut = async () => {
     if (!supabase) return;
@@ -201,6 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithApple,
     signOut,
   };
 

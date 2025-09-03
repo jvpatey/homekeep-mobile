@@ -26,9 +26,7 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "homekeep-oauth",
-            "CFBundleURLSchemes": [
-              "homekeep"
-            ]
+            "CFBundleURLSchemes": ["homekeep"]
           }
         ]
       }
@@ -46,15 +44,14 @@
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
+      "expo-apple-authentication",
       "expo-web-browser",
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "sounds": ["./assets/notification-sound.wav"]
         }
       ]
     ],
