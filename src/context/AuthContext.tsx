@@ -9,6 +9,7 @@ import "react-native-url-polyfill/auto";
 import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -24,6 +25,12 @@ const hasValidCredentials =
 export const supabase = hasValidCredentials
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
+
+// Configure Google Sign-In
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+});
 
 interface AuthContextType {
   user: User | null;
@@ -134,56 +141,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { data: authData, error: null };
   };
 
-  // signInWithGoogle function for the signInWithGoogle on the home screen
+  // signInWithGoogle function using native Google Sign-In SDK
   const signInWithGoogle = async () => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
     try {
-      // Create redirect URI for OAuth callback
-      const redirectTo = makeRedirectUri({
-        scheme: "homekeep",
-        path: "/auth/callback",
+      // Check if your device supports Google Play
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
       });
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Get the users ID token
+      const { idToken } = await GoogleSignin.signIn();
+
+      // Create a Google credential with the token
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: "google",
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
+        token: idToken,
       });
 
-      if (error) throw error;
+      return { data, error };
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
 
-      // open auth URL in browser and handle callback
-      if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectTo
-        );
-
-        if (result.type === "success" && result.url) {
-          // extract the session from the callback URL
-          const url = new URL(result.url);
-          const access_token = url.searchParams.get("access_token");
-          const refresh_token = url.searchParams.get("refresh_token");
-
-          if (access_token && refresh_token) {
-            const { data: sessionData, error: sessionError } =
-              await supabase.auth.setSession({
-                access_token,
-                refresh_token,
-              });
-            return { data: sessionData, error: sessionError };
-          }
-        }
+      // Handle user cancellation
+      if (error.code === "SIGN_IN_CANCELLED") {
+        return { data: null, error: null }; // User canceled, not an error
       }
 
-      return { data, error: null };
-    } catch (error) {
-      console.error("Google sign-in error:", error);
       return { data: null, error: error as Error };
     }
   };
