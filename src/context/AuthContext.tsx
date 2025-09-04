@@ -26,11 +26,18 @@ export const supabase = hasValidCredentials
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Configure Google Sign-In
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-});
+// Configure Google Sign-In with proper error handling
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+if (googleWebClientId && googleIosClientId) {
+  GoogleSignin.configure({
+    webClientId: googleWebClientId,
+    iosClientId: googleIosClientId,
+  });
+} else {
+  console.warn("Google Sign-In not configured: Missing environment variables");
+}
 
 interface AuthContextType {
   user: User | null;
@@ -147,6 +154,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
+    if (!googleWebClientId || !googleIosClientId) {
+      return {
+        data: null,
+        error: {
+          message: "Google Sign-In not configured. Please contact support.",
+        },
+      };
+    }
+
     try {
       // Check if your device supports Google Play
       await GoogleSignin.hasPlayServices({
@@ -155,6 +171,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Get the users ID token
       const { idToken } = await GoogleSignin.signIn();
+
+      if (!idToken) {
+        return {
+          data: null,
+          error: { message: "Failed to get Google ID token" },
+        };
+      }
 
       // Create a Google credential with the token
       const { data, error } = await supabase.auth.signInWithIdToken({
@@ -169,6 +192,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Handle user cancellation
       if (error.code === "SIGN_IN_CANCELLED") {
         return { data: null, error: null }; // User canceled, not an error
+      }
+
+      // Handle network errors
+      if (error.code === "NETWORK_ERROR") {
+        return {
+          data: null,
+          error: {
+            message:
+              "Network error. Please check your connection and try again.",
+          },
+        };
       }
 
       return { data: null, error: error as Error };
