@@ -27,6 +27,12 @@
           {
             "CFBundleURLName": "homekeep-oauth",
             "CFBundleURLSchemes": ["homekeep"]
+          },
+          {
+            "CFBundleURLName": "google-signin",
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.1049706905325-7mk4gr41dtvt9up7k83n5gg38a78lda1"
+            ]
           }
         ],
         "ITSAppUsesNonExemptEncryption": false,

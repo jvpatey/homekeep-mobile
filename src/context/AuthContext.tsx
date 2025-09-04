@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import {
   createClient,
   Session,
@@ -164,10 +165,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
-      // Check if your device supports Google Play
-      await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true,
-      });
+      // Check if Google Sign-In is available
+      const isSignedIn = await GoogleSignin.isSignedIn();
+      if (isSignedIn) {
+        await GoogleSignin.signOut();
+      }
+
+      // Check if your device supports Google Play (Android only)
+      if (Platform.OS === "android") {
+        await GoogleSignin.hasPlayServices({
+          showPlayServicesUpdateDialog: true,
+        });
+      }
 
       // Get the users ID token
       const { idToken } = await GoogleSignin.signIn();
@@ -190,12 +199,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error("Google sign-in error:", error);
 
       // Handle user cancellation
-      if (error.code === "SIGN_IN_CANCELLED") {
+      if (error.code === "SIGN_IN_CANCELLED" || error.code === "-5") {
         return { data: null, error: null }; // User canceled, not an error
       }
 
       // Handle network errors
-      if (error.code === "NETWORK_ERROR") {
+      if (error.code === "NETWORK_ERROR" || error.code === "-1009") {
         return {
           data: null,
           error: {
@@ -205,7 +214,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
       }
 
-      return { data: null, error: error as Error };
+      // Handle configuration errors
+      if (error.code === "SIGN_IN_REQUIRED" || error.code === "-4") {
+        return {
+          data: null,
+          error: {
+            message:
+              "Google Sign-In configuration error. Please contact support.",
+          },
+        };
+      }
+
+      return {
+        data: null,
+        error: {
+          message: `Sign-in failed: ${error.message || "Unknown error"}`,
+        },
+      };
     }
   };
 
