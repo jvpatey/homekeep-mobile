@@ -23,7 +23,7 @@ import { SubmitButton } from "./SubmitButton";
 import {
   categories,
   priorities,
-} from "../../../dashboard/modals/create-task-modal/data";
+} from "../../../Dashboard/modals/create-task-modal/data";
 import {
   CreateMaintenanceRoutineData,
   MaintenanceCategory,

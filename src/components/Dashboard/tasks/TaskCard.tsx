@@ -2,6 +2,11 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
 import {
   HOME_MAINTENANCE_CATEGORIES,
@@ -42,6 +47,10 @@ export function TaskCard({
   const { colors } = useTheme();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
   const isOverdue = new Date(due_date) < new Date() && !is_completed;
+
+  // Animation values
+  const cardScale = useSharedValue(1);
+  const buttonScale = useSharedValue(1);
 
   const getPriorityColor = () => {
     switch (priority) {
@@ -103,21 +112,49 @@ export function TaskCard({
     }
   };
 
+  // Animation handlers
+  const handleCardPressIn = () => {
+    cardScale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+  };
+
+  const handleCardPressOut = () => {
+    cardScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  const handleButtonPressIn = () => {
+    buttonScale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
+  };
+
+  const handleButtonPressOut = () => {
+    buttonScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  // Animated styles
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   return (
-    <TouchableOpacity
-      style={[
-        styles.container,
-        is_completed && styles.completedContainer,
-        isOverdue && styles.overdueContainer,
-      ]}
-      onPress={handlePress}
-      activeOpacity={0.9}
-    >
-      <LinearGradient
-        colors={categoryInfo.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBackground}
+    <Animated.View style={cardAnimatedStyle}>
+      <TouchableOpacity
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surface,
+            borderColor: categoryInfo.color,
+            borderWidth: 2,
+          },
+          is_completed && styles.completedContainer,
+          isOverdue && styles.overdueContainer,
+        ]}
+        onPress={handlePress}
+        onPressIn={handleCardPressIn}
+        onPressOut={handleCardPressOut}
+        activeOpacity={0.9}
       >
         <View style={styles.content}>
           {/* Header */}
@@ -126,10 +163,12 @@ export function TaskCard({
               <Ionicons
                 name={categoryInfo.icon as any}
                 size={24}
-                color="white"
+                color={categoryInfo.color}
                 style={styles.categoryIcon}
               />
-              <Text style={styles.categoryText}>
+              <Text
+                style={[styles.categoryText, { color: categoryInfo.color }]}
+              >
                 {categoryInfo.displayName}
               </Text>
             </View>
@@ -141,12 +180,19 @@ export function TaskCard({
                   { backgroundColor: getPriorityColor() },
                 ]}
               />
-              <Text style={styles.priorityText}>{priority.toUpperCase()}</Text>
+              <Text
+                style={[styles.priorityText, { color: colors.textSecondary }]}
+              >
+                {priority.toUpperCase()}
+              </Text>
             </View>
           </View>
 
           {/* Title */}
-          <Text style={styles.title} numberOfLines={2}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={2}
+          >
             {title}
           </Text>
 
@@ -159,7 +205,9 @@ export function TaskCard({
                   size={16}
                   color={colors.textSecondary}
                 />
-                <Text style={styles.metaText}>
+                <Text
+                  style={[styles.metaText, { color: colors.textSecondary }]}
+                >
                   {estimated_duration_minutes
                     ? `${estimated_duration_minutes} min`
                     : "No time estimate"}
@@ -173,7 +221,11 @@ export function TaskCard({
                   color={colors.textSecondary}
                 />
                 <Text
-                  style={[styles.metaText, isOverdue && styles.overdueText]}
+                  style={[
+                    styles.metaText,
+                    { color: colors.textSecondary },
+                    isOverdue && styles.overdueText,
+                  ]}
                 >
                   {formatDueDate(due_date)}
                 </Text>
@@ -185,34 +237,44 @@ export function TaskCard({
                   size={16}
                   color={colors.textSecondary}
                 />
-                <Text style={styles.metaText}>
+                <Text
+                  style={[styles.metaText, { color: colors.textSecondary }]}
+                >
                   {formatInterval(interval_days)}
                 </Text>
               </View>
             </View>
 
             {/* Completion Button */}
-            <TouchableOpacity
-              style={[
-                styles.completeButton,
-                is_completed && styles.completedButton,
-              ]}
-              onPress={handleComplete}
-              activeOpacity={0.8}
-            >
-              {is_completed ? (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={24}
-                  color={colors.success}
-                />
-              ) : (
-                <Ionicons name="checkmark" size={20} color={colors.surface} />
-              )}
-            </TouchableOpacity>
+            <Animated.View style={buttonAnimatedStyle}>
+              <TouchableOpacity
+                style={[
+                  styles.completeButton,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: is_completed ? colors.success : colors.primary,
+                    borderWidth: 2,
+                  },
+                ]}
+                onPress={handleComplete}
+                onPressIn={handleButtonPressIn}
+                onPressOut={handleButtonPressOut}
+                activeOpacity={0.8}
+              >
+                {is_completed ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color={colors.success}
+                  />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }

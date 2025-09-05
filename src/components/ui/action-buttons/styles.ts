@@ -10,10 +10,6 @@ export const styles = StyleSheet.create({
   primaryButton: {
     width: "100%",
     borderRadius: DesignSystem.borders.radius.large,
-    overflow: "hidden",
-    ...DesignSystem.shadows.medium,
-  },
-  gradientButton: {
     paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.lg,
     alignItems: "center",
@@ -25,23 +21,14 @@ export const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
   },
-  secondaryButtonContainer: {
+  secondaryButton: {
     width: "100%",
     borderRadius: DesignSystem.borders.radius.large,
-    overflow: "hidden",
-    ...DesignSystem.shadows.small,
-  },
-  gradientBorder: {
-    padding: 2,
-    borderRadius: DesignSystem.borders.radius.large,
-  },
-  secondaryButtonInner: {
     paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.lg,
     alignItems: "center",
     justifyContent: "center",
     minHeight: DesignSystem.components.buttonMedium,
-    borderRadius: DesignSystem.borders.radius.large - 2,
   },
   secondaryButtonText: {
     ...DesignSystem.typography.button,

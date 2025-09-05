@@ -6,8 +6,7 @@ import {
   SupabaseClient,
 } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
-import { makeRedirectUri } from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -24,6 +23,7 @@ export const supabase = hasValidCredentials
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -39,7 +39,7 @@ interface AuthContextType {
     password: string,
     fullName: string
   ) => Promise<{ data: any; error: any }>;
-  signInWithGoogle: () => Promise<{ data: any; error: any }>;
+  signInWithApple: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -132,56 +132,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { data: authData, error: null };
   };
 
-  // signInWithGoogle function for the signInWithGoogle on the home screen
-  const signInWithGoogle = async () => {
+
+  // signInWithApple function for Apple Sign-In
+  const signInWithApple = async () => {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
     try {
-      // Create redirect URI for OAuth callback
-      const redirectTo = makeRedirectUri({
-        scheme: "homekeep",
-        path: "/auth/callback",
-      });
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) throw error;
-
-      // open auth URL in browser and handle callback
-      if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectTo
-        );
-
-        if (result.type === "success" && result.url) {
-          // extract the session from the callback URL
-          const url = new URL(result.url);
-          const access_token = url.searchParams.get("access_token");
-          const refresh_token = url.searchParams.get("refresh_token");
-
-          if (access_token && refresh_token) {
-            const { data: sessionData, error: sessionError } =
-              await supabase.auth.setSession({
-                access_token,
-                refresh_token,
-              });
-            return { data: sessionData, error: sessionError };
-          }
-        }
+      // Check if Apple Sign-In is available
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        return {
+          data: null,
+          error: { message: "Apple Sign-In is not available on this device" },
+        };
       }
 
-      return { data, error: null };
-    } catch (error) {
-      console.error("Google sign-in error:", error);
+      // Request Apple Sign-In
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        return {
+          data: null,
+          error: { message: "No identity token received from Apple" },
+        };
+      }
+
+      // Sign in with Supabase using the Apple credential
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+
+      return { data, error };
+    } catch (error: any) {
+      console.error("Apple sign-in error:", error);
+
+      // Handle user cancellation
+      if (error.code === "ERR_REQUEST_CANCELED") {
+        return { data: null, error: null }; // User canceled, not an error
+      }
+
       return { data: null, error: error as Error };
     }
   };
@@ -200,7 +197,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     supabase,
     signIn,
     signUp,
-    signInWithGoogle,
+    signInWithApple,
     signOut,
   };
 

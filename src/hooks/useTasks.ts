@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { MaintenanceService } from "../services/MaintenanceService";
+import { MaintenanceService } from "../services/maintenanceService";
 import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
@@ -88,6 +88,9 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           timeRange === "all" ? "All Tasks" : `${timeRange} days`
         }`
       );
+      // First, update overdue status in the database
+      await MaintenanceService.updateOverdueStatus();
+
       const [
         tasksResult,
         upcomingResult,

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { LogoSection } from "../../components/onboarding";
@@ -18,7 +19,7 @@ import { DesignSystem } from "../../theme/designSystem";
 
 // EmailEntryScreen for the EmailEntryScreen on the home screen
 export function EmailEntryScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const navigation = useNavigation();
   const { dynamicTopSpacing } = useDynamicSpacing();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
@@ -53,6 +54,7 @@ export function EmailEntryScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <View style={{ paddingTop: dynamicTopSpacing, flex: 1 }}>
         {/* Header */}
         <View style={authStyles.headerContainer}>
@@ -64,6 +66,9 @@ export function EmailEntryScreen() {
               left: 0,
               padding: DesignSystem.spacing.sm,
               zIndex: 10,
+              backgroundColor: colors.surface + "E6", // 90% opacity
+              borderRadius: DesignSystem.borders.radius.large,
+              ...DesignSystem.shadows.small,
             }}
           >
             <Text style={{ color: colors.primary, fontSize: 18 }}>← Back</Text>
@@ -106,22 +111,21 @@ export function EmailEntryScreen() {
             onPress={handleContinue}
             disabled={!email || !!errors.email}
             style={[
-              authStyles.gradientButton,
-              { opacity: !email || !!errors.email ? 0.6 : 1 },
+              authStyles.primaryButton,
+              {
+                backgroundColor: colors.primary,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                opacity: !email || !!errors.email ? 0.6 : 1,
+              },
             ]}
           >
-            <LinearGradient
-              colors={gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={authStyles.primaryButton}
-            >
-              <View style={authStyles.buttonContent}>
-                <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                  Continue
-                </Text>
-              </View>
-            </LinearGradient>
+            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+              Continue
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

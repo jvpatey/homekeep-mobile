@@ -34,73 +34,45 @@ export function TimelineView({
 }: TimelineViewProps) {
   const { colors } = useTheme();
 
-  // Animation for empty state
-  const iconScale = useSharedValue(1);
-  const iconRotation = useSharedValue(0);
-
-  // useEffect hook to animate the empty state
-  useEffect(() => {
-    if (tasks.length === 0) {
-      iconScale.value = withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 2000 }),
-          withTiming(1, { duration: 2000 })
-        ),
-        -1,
-        true
-      );
-
-      // Gentle rotation
-      iconRotation.value = withRepeat(
-        withSequence(
-          withTiming(5, { duration: 3000 }),
-          withTiming(-5, { duration: 3000 })
-        ),
-        -1,
-        true
-      );
-    }
-  }, [tasks.length]);
-
-  // iconAnimatedStyle function to animate the icon
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: iconScale.value },
-      { rotate: `${iconRotation.value}deg` },
-    ],
-  }));
+  // Removed animations for cleaner experience
 
   // groupedTasks function to group the tasks by date
   const groupedTasks = groupTasksByDate(tasks);
 
   if (tasks.length === 0) {
     return (
-      <View style={timelineStyles.emptyContainer}>
-        <LinearGradient
-          colors={["#F0F8FF", "#E6F3FF"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={timelineStyles.emptyGradient}
-        >
-          <View style={timelineStyles.emptyIconContainer}>
-            <LinearGradient
-              colors={["#2563EB", "#3B82F6"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={timelineStyles.emptyIconBackground}
-            >
-              <Animated.View style={iconAnimatedStyle}>
-                <Ionicons name="calendar" size={32} color="white" />
-              </Animated.View>
-            </LinearGradient>
+      <View
+        style={[
+          timelineStyles.emptyContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={timelineStyles.emptyIconContainer}>
+          <View
+            style={[
+              timelineStyles.emptyIconBackground,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.primary,
+              },
+            ]}
+          >
+            <View style={timelineStyles.emptyIcon}>
+              <Ionicons name="calendar" size={32} color={colors.primary} />
+            </View>
           </View>
-          <Text style={[timelineStyles.emptyTitle, { color: "#1E40AF" }]}>
-            No Upcoming Tasks
-          </Text>
-          <Text style={[timelineStyles.emptySubtitle, { color: "#3B82F6" }]}>
-            You're all caught up!
-          </Text>
-        </LinearGradient>
+        </View>
+        <Text style={[timelineStyles.emptyTitle, { color: colors.text }]}>
+          No Upcoming Tasks
+        </Text>
+        <Text
+          style={[
+            timelineStyles.emptySubtitle,
+            { color: colors.textSecondary },
+          ]}
+        >
+          You're all caught up!
+        </Text>
       </View>
     );
   }
@@ -108,8 +80,14 @@ export function TimelineView({
   return (
     <View style={timelineStyles.container}>
       <View style={timelineStyles.header}>
-        <Text style={timelineStyles.title}>Timeline</Text>
-        <Text style={timelineStyles.subtitle}>Upcoming tasks</Text>
+        <Text style={[timelineStyles.title, { color: colors.text }]}>
+          Timeline
+        </Text>
+        <Text
+          style={[timelineStyles.subtitle, { color: colors.textSecondary }]}
+        >
+          Upcoming tasks
+        </Text>
       </View>
 
       <ScrollView
@@ -121,15 +99,27 @@ export function TimelineView({
           <View key={groupIndex} style={timelineStyles.dateGroup}>
             {/* Date Header */}
             <View style={timelineStyles.dateHeader}>
-              <View style={timelineStyles.dateIndicator}>
+              <View
+                style={[
+                  timelineStyles.dateIndicator,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
                 <Text style={timelineStyles.dateNumber}>{date.getDate()}</Text>
                 <Text style={timelineStyles.dateMonth}>
                   {date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </View>
               <View style={timelineStyles.dateInfo}>
-                <Text style={timelineStyles.dateText}>{formatDate(date)}</Text>
-                <Text style={timelineStyles.taskCount}>
+                <Text style={[timelineStyles.dateText, { color: colors.text }]}>
+                  {formatDate(date)}
+                </Text>
+                <Text
+                  style={[
+                    timelineStyles.taskCount,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {tasks.length} task{tasks.length !== 1 ? "s" : ""}
                 </Text>
               </View>
@@ -148,20 +138,46 @@ export function TimelineView({
               >
                 {/* Timeline Line */}
                 <View style={timelineStyles.timelineLine}>
-                  <View style={timelineStyles.timelineDot} />
+                  <View
+                    style={[
+                      timelineStyles.timelineDot,
+                      {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.surface,
+                      },
+                    ]}
+                  />
                   {taskIndex !== tasks.length - 1 && (
-                    <View style={timelineStyles.timelineConnector} />
+                    <View
+                      style={[
+                        timelineStyles.timelineConnector,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
                   )}
                 </View>
 
                 {/* Task Content */}
-                <View style={timelineStyles.taskContent}>
+                <View
+                  style={[
+                    timelineStyles.taskContent,
+                    { backgroundColor: colors.surface },
+                  ]}
+                >
                   <View style={timelineStyles.taskHeader}>
-                    <Text style={timelineStyles.taskTitle} numberOfLines={1}>
+                    <Text
+                      style={[timelineStyles.taskTitle, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
                       {task.title}
                     </Text>
                     <View style={timelineStyles.taskMeta}>
-                      <View style={timelineStyles.priorityBadge}>
+                      <View
+                        style={[
+                          timelineStyles.priorityBadge,
+                          { backgroundColor: colors.background },
+                        ]}
+                      >
                         <View
                           style={[
                             timelineStyles.priorityDot,
@@ -173,18 +189,33 @@ export function TimelineView({
                             },
                           ]}
                         />
-                        <Text style={timelineStyles.priorityText}>
+                        <Text
+                          style={[
+                            timelineStyles.priorityText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           {task.priority}
                         </Text>
                       </View>
                       {task.estimated_duration_minutes && (
-                        <View style={timelineStyles.durationBadge}>
+                        <View
+                          style={[
+                            timelineStyles.durationBadge,
+                            { backgroundColor: colors.background },
+                          ]}
+                        >
                           <Ionicons
                             name="time-outline"
                             size={12}
                             color={colors.textSecondary}
                           />
-                          <Text style={timelineStyles.durationText}>
+                          <Text
+                            style={[
+                              timelineStyles.durationText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             {task.estimated_duration_minutes}m
                           </Text>
                         </View>
@@ -193,14 +224,25 @@ export function TimelineView({
                   </View>
 
                   <View style={timelineStyles.taskFooter}>
-                    <Text style={timelineStyles.taskTime}>
+                    <Text
+                      style={[
+                        timelineStyles.taskTime,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {formatTime(task.due_date)}
                     </Text>
 
                     <TouchableOpacity
                       style={[
                         timelineStyles.completeButton,
-                        task.is_completed && timelineStyles.completedButton,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: task.is_completed
+                            ? colors.success
+                            : colors.primary,
+                          borderWidth: 2,
+                        },
                       ]}
                       onPress={() => onCompleteTask(task.instance_id)}
                       activeOpacity={0.8}
@@ -215,7 +257,7 @@ export function TimelineView({
                         <Ionicons
                           name="checkmark"
                           size={16}
-                          color={colors.surface}
+                          color={colors.primary}
                         />
                       )}
                     </TouchableOpacity>

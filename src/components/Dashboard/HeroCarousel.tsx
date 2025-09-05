@@ -43,45 +43,16 @@ export function HeroCarousel({
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Animation for empty state
-  const iconScale = useSharedValue(1);
-  const iconRotation = useSharedValue(0);
+  // Removed animations for cleaner experience
 
-  React.useEffect(() => {
-    if (tasks.length === 0) {
-      // Subtle breathing animation for empty state
-      iconScale.value = withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 2000 }),
-          withTiming(1, { duration: 2000 })
-        ),
-        -1,
-        true
-      );
-
-      // Gentle rotation
-      iconRotation.value = withRepeat(
-        withSequence(
-          withTiming(5, { duration: 3000 }),
-          withTiming(-5, { duration: 3000 })
-        ),
-        -1,
-        true
-      );
-    }
-  }, [tasks.length]);
-
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: iconScale.value },
-      { rotate: `${iconRotation.value}deg` },
-    ],
-  }));
-
-  const handleViewableItemsChanged = useCallback(({ viewableItems }: ViewableItemsChangedEvent) => {
-    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
-      setCurrentIndex(viewableItems[0].index);
-    }
-  }, []);
+  const handleViewableItemsChanged = useCallback(
+    ({ viewableItems }: ViewableItemsChangedEvent) => {
+      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+        setCurrentIndex(viewableItems[0].index);
+      }
+    },
+    []
+  );
 
   const scrollToIndex = useCallback((index: number) => {
     if (flatListRef.current) {
@@ -105,32 +76,37 @@ export function HeroCarousel({
 
   if (tasks.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <LinearGradient
-          colors={[colors.surface + "20", colors.surface + "10"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.emptyGradient}
-        >
-          <View style={styles.emptyIconContainer}>
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.emptyIconBackground}
-            >
-              <Animated.View style={[styles.emptyIcon, iconAnimatedStyle]}>
-                <Ionicons name="checkmark-circle" size={32} color="white" />
-              </Animated.View>
-            </LinearGradient>
+      <View
+        style={[
+          styles.emptyContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.emptyIconContainer}>
+          <View
+            style={[
+              styles.emptyIconBackground,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.primary,
+              },
+            ]}
+          >
+            <View style={styles.emptyIcon}>
+              <Ionicons
+                name="checkmark-circle"
+                size={32}
+                color={colors.primary}
+              />
+            </View>
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            All Caught Up!
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.primary }]}>
-            No tasks due right now
-          </Text>
-        </LinearGradient>
+        </View>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          All Caught Up!
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+          No tasks due right now
+        </Text>
       </View>
     );
   }
@@ -262,31 +238,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyContainer: {
-    height: 160,
-    marginVertical: DesignSystem.spacing.md,
+    height: 180,
+    marginVertical: DesignSystem.spacing.lg,
     marginHorizontal: DesignSystem.spacing.md,
-  },
-  emptyGradient: {
-    flex: 1,
     borderRadius: DesignSystem.borders.radius.large,
     justifyContent: "center",
     alignItems: "center",
-    padding: DesignSystem.spacing.md,
-    ...DesignSystem.shadows.medium,
+    paddingVertical: DesignSystem.spacing.xl,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.lg,
   },
   emptyIconBackground: {
     flex: 1,
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyIcon: {
     width: 60,
@@ -297,15 +282,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...DesignSystem.typography.h3,
-    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
     textAlign: "center",
     fontWeight: "700",
   },
   emptySubtitle: {
     ...DesignSystem.typography.body,
-    marginTop: DesignSystem.spacing.xs,
     textAlign: "center",
-    opacity: 0.9,
+    opacity: 0.8,
   },
   paginationContainer: {
     flexDirection: "row",

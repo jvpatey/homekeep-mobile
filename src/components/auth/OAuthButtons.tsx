@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useHaptics } from "../../hooks";
@@ -28,28 +29,28 @@ export function OAuthButtons({
   animatedStyle,
 }: OAuthButtonsProps) {
   const { colors } = useTheme();
-  const { signInWithGoogle } = useAuth();
-  const { accentGradient, isDark } = useGradients();
+  const { signInWithApple } = useAuth();
+  const { isDark } = useGradients();
   const { triggerMedium, triggerError, triggerSuccess } = useHaptics();
-  const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
-  // Handles Google OAuth sign-in process with haptic feedback and error handling
-  const handleGoogleSignIn = async () => {
+  // Handles Apple OAuth sign-in process with haptic feedback and error handling
+  const handleAppleSignIn = async () => {
     if (disabled) return;
 
     // Provide haptic feedback for button press
     triggerMedium();
-    setLoading(true);
+    setAppleLoading(true);
 
     try {
-      const { data, error } = await signInWithGoogle();
+      const { data, error } = await signInWithApple();
 
       if (error) {
         // Haptic feedback for error
         triggerError();
         Alert.alert(
           "Sign In Error",
-          error.message || "Failed to sign in with Google"
+          error.message || "Failed to sign in with Apple"
         );
       } else if (data?.session) {
         // Haptic feedback for success
@@ -61,7 +62,7 @@ export function OAuthButtons({
       triggerError();
       Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
-      setLoading(false);
+      setAppleLoading(false);
     }
   };
 
@@ -80,34 +81,37 @@ export function OAuthButtons({
         />
       </View>
 
-      {/* Google Sign In Button with gradient background */}
+      {/* Apple Sign In Button */}
       <TouchableOpacity
-        onPress={handleGoogleSignIn}
-        disabled={disabled || loading}
+        onPress={handleAppleSignIn}
+        disabled={disabled || appleLoading}
         style={[
-          styles.gradientButton,
-          { marginHorizontal: DesignSystem.spacing.md },
+          styles.appleButton,
+          {
+            backgroundColor: colors.surface,
+            borderWidth: 2,
+            borderColor: colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 3,
+            marginHorizontal: DesignSystem.spacing.md,
+          },
         ]}
       >
-        <LinearGradient
-          colors={accentGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.googleButton}
-        >
-          <View style={styles.buttonContent}>
-            <View style={styles.googleIconContainer}>
-              {loading ? (
-                <ActivityIndicator size={16} color="white" />
-              ) : (
-                <AntDesign name="google" size={16} color="white" />
-              )}
-            </View>
-            <Text style={[styles.buttonLabel, { color: "white" }]}>
-              {loading ? "Signing in..." : "Continue with Google"}
-            </Text>
+        <View style={styles.buttonContent}>
+          <View style={styles.googleIconContainer}>
+            {appleLoading ? (
+              <ActivityIndicator size={16} color={colors.text} />
+            ) : (
+              <AntDesign name="apple1" size={16} color={colors.text} />
+            )}
           </View>
-        </LinearGradient>
+          <Text style={[styles.buttonLabel, { color: colors.text }]}>
+            {appleLoading ? "Signing in..." : "Continue with Apple"}
+          </Text>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );

@@ -1,0 +1,40 @@
+name: Scheduled Notifications
+
+on:
+  schedule:
+    # Daily at 8 AM UTC (morning digest)
+    - cron: "0 8 * * *"
+    # Daily at 6 PM UTC (evening reminders)
+    - cron: "0 18 * * *"
+    # Weekly on Mondays at 9 AM UTC (weekly summary)
+    - cron: "0 9 * * 1"
+
+jobs:
+  send-notifications:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Morning Notifications
+        if: github.event.schedule == '0 8 * * *'
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/scheduled-notifications?type=daily" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+
+      - name: Send Evening Notifications
+        if: github.event.schedule == '0 18 * * *'
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/scheduled-notifications?type=due_soon" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+
+      - name: Send Weekly Summary
+        if: github.event.schedule == '0 9 * * 1'
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/scheduled-notifications?type=weekly" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+            

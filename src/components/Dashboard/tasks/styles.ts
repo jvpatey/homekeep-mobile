@@ -11,7 +11,11 @@ export const styles = StyleSheet.create({
     height: 200,
     borderRadius: DesignSystem.borders.radius.large,
     marginHorizontal: DesignSystem.spacing.md,
-    ...DesignSystem.shadows.large,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   completedContainer: {
     opacity: 0.7,
@@ -20,14 +24,10 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FF6B6B",
   },
-  gradientBackground: {
-    flex: 1,
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.lg,
-  },
   content: {
     flex: 1,
     justifyContent: "space-between",
+    padding: DesignSystem.spacing.lg,
   },
   header: {
     flexDirection: "row",
@@ -43,10 +43,7 @@ export const styles = StyleSheet.create({
   },
   categoryText: {
     ...DesignSystem.typography.smallSemiBold,
-    color: "white",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: "600",
   },
   priorityContainer: {
     flexDirection: "row",
@@ -60,17 +57,11 @@ export const styles = StyleSheet.create({
   },
   priorityText: {
     ...DesignSystem.typography.captionSemiBold,
-    color: "white",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: "600",
   },
   title: {
     ...DesignSystem.typography.h3,
-    color: "white",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: "700",
     flex: 1,
   },
   footer: {
@@ -88,27 +79,23 @@ export const styles = StyleSheet.create({
   },
   metaText: {
     ...DesignSystem.typography.small,
-    color: "white",
     marginLeft: DesignSystem.spacing.xs,
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: "500",
   },
   overdueText: {
-    color: colors.light.error,
     fontWeight: "600",
   },
   completeButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
-    ...DesignSystem.shadows.medium,
-  },
-  completedButton: {
-    backgroundColor: colors.light.success,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
 

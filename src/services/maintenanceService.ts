@@ -70,7 +70,7 @@ export class MaintenanceService {
 
   // Uncomplete a routine instance
   static async uncompleteInstance(
-    instanceId: string,
+    instanceId: string
   ): Promise<RoutineInstanceResponse> {
     return MaintenanceInstanceService.uncompleteInstance(instanceId);
   }
@@ -150,7 +150,9 @@ export class MaintenanceService {
   // ===== STATISTICS =====
 
   // Get maintenance statistics for dashboard
-  static async getMaintenanceStats(): Promise<ServiceResponse<MaintenanceStats>> {
+  static async getMaintenanceStats(): Promise<
+    ServiceResponse<MaintenanceStats>
+  > {
     return MaintenanceStatsService.getMaintenanceStats();
   }
 
@@ -199,12 +201,19 @@ export class MaintenanceService {
       };
     } catch (error) {
       console.error("Error deleting all maintenance data:", error);
-      return { 
-        error: { 
-          message: error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error)
-        } 
+      return {
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
       };
     }
+  }
+
+  // ===== UTILITY OPERATIONS =====
+  // Update overdue status for all routine instances
+  static async updateOverdueStatus(): Promise<ServiceResponse<null>> {
+    return MaintenanceTaskService.updateOverdueStatus();
   }
 }

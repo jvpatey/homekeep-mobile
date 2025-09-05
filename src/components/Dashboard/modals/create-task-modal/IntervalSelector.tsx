@@ -2,10 +2,11 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { DesignSystem } from "../../../../theme/designSystem";
 import {
   intervalOptions,
   intervalValueExamples,
-} from "../../../dashboard/modals/create-task-modal/data";
+} from "../../../Dashboard/modals/create-task-modal/data";
 
 // IntervalSelectorProps
 interface IntervalSelectorProps {
@@ -15,6 +16,7 @@ interface IntervalSelectorProps {
   onIntervalValueChange: (value: number) => void;
   error?: string;
 }
+
 // IntervalSelector component
 export function IntervalSelector({
   selectedInterval,
@@ -66,59 +68,64 @@ export function IntervalSelector({
 
       {/* Interval Type Selection */}
       <View style={styles.intervalTypeContainer}>
-        {intervalOptions.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={[
-              styles.intervalOption,
-              {
-                backgroundColor:
-                  selectedInterval === option.id
-                    ? colors.primary
-                    : colors.surface,
-                borderColor:
-                  selectedInterval === option.id
-                    ? colors.primary
-                    : colors.border,
-              },
-            ]}
-            onPress={() => {
-              onSelectInterval(option.id);
-              // Reset interval value to 1 when selecting a predefined interval
-              if (option.id !== 0) {
-                onIntervalValueChange(1);
-              }
-            }}
-          >
-            <Text
+        {intervalOptions.map((option) => {
+          const isSelected = selectedInterval === option.id;
+          return (
+            <TouchableOpacity
+              key={option.id}
               style={[
-                styles.intervalOptionText,
+                styles.intervalOption,
                 {
-                  color: selectedInterval === option.id ? "white" : colors.text,
+                  backgroundColor: isSelected ? colors.primary : colors.surface,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                  transform: [{ scale: isSelected ? 1.02 : 1 }],
+                  ...DesignSystem.shadows.small,
                 },
               ]}
+              onPress={() => {
+                onSelectInterval(option.id);
+                // Reset interval value to 1 when selecting a predefined interval
+                if (option.id !== 0) {
+                  onIntervalValueChange(1);
+                }
+              }}
             >
-              {option.name}
-            </Text>
-            <Text
-              style={[
-                styles.intervalDescription,
-                {
-                  color:
-                    selectedInterval === option.id
-                      ? "white"
+              <Text
+                style={[
+                  styles.intervalOptionText,
+                  {
+                    color: isSelected ? "white" : colors.text,
+                    fontWeight: isSelected ? "700" : "600",
+                  },
+                ]}
+              >
+                {option.name}
+              </Text>
+              <Text
+                style={[
+                  styles.intervalDescription,
+                  {
+                    color: isSelected
+                      ? "rgba(255, 255, 255, 0.9)"
                       : colors.textSecondary,
-                },
-              ]}
-            >
-              {option.description}
-            </Text>
-          </TouchableOpacity>
-        ))}
+                    fontWeight: isSelected ? "500" : "400",
+                  },
+                ]}
+              >
+                {option.description}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Interval Value Selection */}
-      <View style={styles.intervalValueContainer}>
+      <View
+        style={[
+          styles.intervalValueContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <Text style={[styles.intervalValueLabel, { color: colors.text }]}>
           Every {getIntervalMultiplier(selectedInterval, intervalValue)}{" "}
           {getIntervalLabelPlural(selectedInterval)}
@@ -126,7 +133,14 @@ export function IntervalSelector({
 
         <View style={styles.valueControls}>
           <TouchableOpacity
-            style={[styles.valueButton, { backgroundColor: colors.surface }]}
+            style={[
+              styles.valueButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                ...DesignSystem.shadows.small,
+              },
+            ]}
             onPress={() => handleIntervalValueChange(false)}
           >
             <Ionicons name="remove" size={20} color={colors.text} />
@@ -137,7 +151,14 @@ export function IntervalSelector({
           </Text>
 
           <TouchableOpacity
-            style={[styles.valueButton, { backgroundColor: colors.surface }]}
+            style={[
+              styles.valueButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                ...DesignSystem.shadows.small,
+              },
+            ]}
             onPress={() => handleIntervalValueChange(true)}
           >
             <Ionicons name="add" size={20} color={colors.text} />
@@ -162,77 +183,87 @@ export function IntervalSelector({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
   label: {
-    fontSize: 16,
+    fontSize: DesignSystem.typography.bodyMedium.fontSize,
     fontWeight: "600",
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.md,
+    color: "#1F2937",
   },
   intervalTypeContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 20,
+    gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.lg,
   },
   intervalOption: {
     flex: 1,
     minWidth: 80,
-    padding: 12,
-    borderRadius: 12,
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: 2,
     alignItems: "center",
   },
   intervalOptionText: {
-    fontSize: 14,
+    fontSize: DesignSystem.typography.caption.fontSize,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: DesignSystem.spacing.xs,
+    letterSpacing: 0.1,
+    textAlign: "center",
   },
   intervalDescription: {
-    fontSize: 12,
+    fontSize: DesignSystem.typography.caption.fontSize,
     textAlign: "center",
+    letterSpacing: 0.1,
+    lineHeight: 14,
   },
   intervalValueContainer: {
     alignItems: "center",
-    padding: 16,
+    padding: DesignSystem.spacing.lg,
     backgroundColor: "rgba(0,0,0,0.02)",
-    borderRadius: 12,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: 1,
+    ...DesignSystem.shadows.small,
   },
   intervalValueLabel: {
-    fontSize: 16,
+    fontSize: DesignSystem.typography.bodyMedium.fontSize,
     fontWeight: "600",
-    marginBottom: 16,
+    marginBottom: DesignSystem.spacing.md,
     textAlign: "center",
+    color: "#1F2937",
   },
   valueControls: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    marginBottom: 12,
+    gap: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
   },
   valueButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
   },
   valueDisplay: {
-    fontSize: 24,
+    fontSize: DesignSystem.typography.h3.fontSize,
     fontWeight: "700",
-    minWidth: 40,
+    minWidth: 44,
     textAlign: "center",
+    color: "#1F2937",
   },
   exampleText: {
-    fontSize: 12,
+    fontSize: DesignSystem.typography.caption.fontSize,
     fontStyle: "italic",
     textAlign: "center",
+    color: "#6B7280",
   },
   errorText: {
-    fontSize: 12,
-    color: "#E74C3C",
-    marginTop: 8,
+    fontSize: DesignSystem.typography.caption.fontSize,
+    color: "#EF4444",
+    marginTop: DesignSystem.spacing.sm,
+    fontWeight: "500",
   },
 });

@@ -100,27 +100,6 @@ function GradientOption({
 }: GradientOptionProps) {
   // Animation values for the gradient option
   const scale = useSharedValue(1);
-  const borderOpacity = useSharedValue(isSelected ? 1 : 0);
-  const checkOpacity = useSharedValue(isSelected ? 1 : 0);
-
-  // useEffect hook to handle the selection of the gradient option
-  React.useEffect(() => {
-    borderOpacity.value = withTiming(isSelected ? 1 : 0, { duration: 200 });
-    checkOpacity.value = withTiming(isSelected ? 1 : 0, { duration: 200 });
-  }, [isSelected]);
-
-  const animatedContainerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const animatedBorderStyle = useAnimatedStyle(() => ({
-    opacity: borderOpacity.value,
-  }));
-
-  const animatedCheckStyle = useAnimatedStyle(() => ({
-    opacity: checkOpacity.value,
-    transform: [{ scale: checkOpacity.value }],
-  }));
 
   // handlePress function to handle the press of the gradient option
   const handlePress = () => {
@@ -136,41 +115,33 @@ function GradientOption({
       onPress={handlePress}
       style={styles.gradientOption}
     >
-      <Animated.View style={[styles.gradientWrapper, animatedContainerStyle]}>
-        {/* Selection Border */}
-        <Animated.View
-          style={[
-            styles.selectionBorder,
-            { borderColor: colors.primary },
-            animatedBorderStyle,
-          ]}
-        />
-
+      <Animated.View
+        style={[
+          styles.gradientWrapper,
+          { transform: [{ scale: scale.value }] },
+        ]}
+      >
         {/* Gradient Circle */}
         <LinearGradient
           colors={gradient.colors}
           style={styles.gradientCircle}
           start={gradient.start}
           end={gradient.end}
-        >
-          {/* Selection Checkmark */}
-          <Animated.View style={[styles.checkContainer, animatedCheckStyle]}>
-            <View
-              style={[
-                styles.checkBackground,
-                { backgroundColor: colors.surface },
-              ]}
-            >
-              <Ionicons name="checkmark" size={16} color={colors.primary} />
-            </View>
-          </Animated.View>
-        </LinearGradient>
-
-        {/* Gradient Name */}
-        <Text style={[styles.gradientName, { color: colors.text }]}>
-          {gradient.name}
-        </Text>
+        />
       </Animated.View>
+
+      {/* Gradient Name */}
+      <Text
+        style={[
+          styles.gradientName,
+          {
+            color: isSelected ? colors.primary : colors.text,
+            fontWeight: isSelected ? "600" : "500",
+          },
+        ]}
+      >
+        {gradient.name}
+      </Text>
     </TouchableOpacity>
   );
 }

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
 import { TextInput, HelperText } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
@@ -21,7 +22,7 @@ import { DesignSystem } from "../../theme/designSystem";
 
 // LoginScreen for the LoginScreen on the home screen
 export function LoginScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { signIn } = useAuth();
   const navigation = useNavigation();
 
@@ -29,7 +30,7 @@ export function LoginScreen() {
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
-  const { gradientColors, isDark } = useAuthGradient();
+  const { gradientColors } = useAuthGradient();
   const { getInputTheme } = useAuthInputTheme();
   const { headerAnimatedStyle, formAnimatedStyle, buttonAnimatedStyle } =
     useAuthStaggeredAnimation();
@@ -99,6 +100,7 @@ export function LoginScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         style={authStyles.scrollView}
         contentContainerStyle={[
@@ -123,7 +125,7 @@ export function LoginScreen() {
               zIndex: 10,
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backgroundColor: colors.surface + "E6", // 90% opacity
               borderRadius: DesignSystem.borders.radius.large,
               paddingHorizontal: DesignSystem.spacing.md,
               paddingVertical: DesignSystem.spacing.sm,
@@ -208,22 +210,21 @@ export function LoginScreen() {
             onPress={handleSignIn}
             disabled={loading}
             style={[
-              authStyles.gradientButton,
-              { marginHorizontal: DesignSystem.spacing.md },
+              authStyles.primaryButton,
+              {
+                backgroundColor: colors.primary,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                marginHorizontal: DesignSystem.spacing.md,
+              },
             ]}
           >
-            <LinearGradient
-              colors={gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={authStyles.primaryButton}
-            >
-              <View style={authStyles.buttonContent}>
-                <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                  {loading ? "Signing In..." : "Sign In"}
-                </Text>
-              </View>
-            </LinearGradient>
+            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+              {loading ? "Signing In..." : "Sign In"}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
 

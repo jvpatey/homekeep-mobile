@@ -170,34 +170,52 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         const permissionResult = await requestPermissions();
 
         if (!permissionResult.granted) {
+          console.log("Notification permissions not granted");
           return null;
         }
 
         // Get the project ID from app.json
         const projectId = Constants.expoConfig?.extra?.eas?.projectId;
         if (!projectId) {
-          console.log("No project ID found in app.json");
+          console.error(
+            "No project ID found in app.json - push notifications will not work"
+          );
           return null;
         }
+
+        console.log(
+          "Registering for push notifications with project ID:",
+          projectId
+        );
 
         // Get the push token with the project ID
         const token = await Notifications.getExpoPushTokenAsync({
           projectId: projectId,
         });
 
+        console.log("Push token generated successfully:", token.data);
         setExpoPushToken(token);
         return token;
       } catch (error) {
         console.error("Error registering for push notifications:", error);
+        // Log more specific error information
+        if (error instanceof Error) {
+          console.error("Error message:", error.message);
+          console.error("Error stack:", error.stack);
+        }
         return null;
       }
     };
 
   // savePushToken function for the savePushToken on the home screen
   const savePushToken = async (token: string) => {
-    if (!user || !supabase) return;
+    if (!user || !supabase) {
+      console.log("Cannot save push token: user or supabase not available");
+      return;
+    }
 
     try {
+      console.log("Saving push token to database for user:", user.id);
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
         push_token: token,
@@ -205,7 +223,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       });
 
       if (error) {
-        console.error("Error saving push token:", error);
+        console.error("Error saving push token to database:", error);
+      } else {
+        console.log("Push token saved successfully to database");
       }
     } catch (error) {
       console.error("Error saving push token:", error);
@@ -363,4 +383,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       {children}
     </NotificationContext.Provider>
   );
+}
+
+// useNotification hook for the notification context
+export function useNotification() {
+  const context = useContext(NotificationContext);
+  if (context === undefined) {
+    throw new Error(
+      "useNotification must be used within a NotificationProvider"
+    );
+  }
+  return context;
 }

@@ -37,49 +37,50 @@ export function CategorySelector({
         Category <Text style={styles.required}>*</Text>
       </Text>
       <View style={styles.chipContainer}>
-        {categories.map((category) => (
-          <Chip
-            key={category.id}
-            selected={selectedCategory === category.id}
-            onPress={() => onSelectCategory(category.id)}
-            style={[
-              styles.categoryChip,
-              {
-                backgroundColor:
-                  selectedCategory === category.id
-                    ? category.color + "20"
+        {categories.map((category) => {
+          const isSelected = selectedCategory === category.id;
+          return (
+            <Chip
+              key={category.id}
+              selected={isSelected}
+              onPress={() => onSelectCategory(category.id)}
+              style={[
+                styles.categoryChip,
+                {
+                  backgroundColor: isSelected 
+                    ? category.color + "15" 
                     : colors.surface,
-                borderWidth: 1,
-                borderColor:
-                  selectedCategory === category.id
-                    ? category.color + "40"
+                  borderColor: isSelected 
+                    ? category.color 
                     : colors.border,
-              },
-            ]}
-            textStyle={[
-              styles.chipText,
-              {
-                color:
-                  selectedCategory === category.id
-                    ? category.color
+                  transform: [{ scale: isSelected ? 1.02 : 1 }],
+                },
+              ]}
+              textStyle={[
+                styles.chipText,
+                {
+                  color: isSelected 
+                    ? category.color 
                     : colors.textSecondary,
-              },
-            ]}
-            icon={() => (
-              <Ionicons
-                name={category.icon as any}
-                size={16}
-                color={
-                  selectedCategory === category.id
-                    ? category.color
-                    : colors.textSecondary
-                }
-              />
-            )}
-          >
-            {category.name}
-          </Chip>
-        ))}
+                  fontWeight: isSelected ? "700" : "600",
+                },
+              ]}
+              icon={() => (
+                <Ionicons
+                  name={category.icon as any}
+                  size={18}
+                  color={
+                    isSelected
+                      ? category.color
+                      : colors.textSecondary
+                  }
+                />
+              )}
+            >
+              {category.name === "HVAC" ? "HVAC" : category.name}
+            </Chip>
+          );
+        })}
       </View>
       {error && (
         <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>

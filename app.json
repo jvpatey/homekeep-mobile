@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "homekeep",
     "splash": {
@@ -26,11 +26,18 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "homekeep-oauth",
+            "CFBundleURLSchemes": ["homekeep"]
+          },
+          {
+            "CFBundleURLName": "google-signin",
             "CFBundleURLSchemes": [
-              "homekeep"
+              "com.googleusercontent.apps.1049706905325-7mk4gr41dtvt9up7k83n5gg38a78lda1"
             ]
           }
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["https", "http"],
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -39,24 +46,35 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.homekeep.mobile"
+      "package": "com.homekeep.mobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "homekeep"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
-      "@react-native-google-signin/google-signin",
+      "expo-apple-authentication",
       "expo-web-browser",
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/icon.png",
           "color": "#ffffff",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

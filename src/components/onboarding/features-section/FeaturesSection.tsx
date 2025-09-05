@@ -136,22 +136,30 @@ export function FeaturesSection() {
             <Animated.View
               style={[
                 styles.featureItem,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
                 feature.animatedStyle,
                 tapAnimatedStyle,
               ]}
             >
-              <LinearGradient
-                colors={iconGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.featureIcon}
+              <View
+                style={[
+                  styles.featureIcon,
+                  {
+                    backgroundColor: colors.background,
+                    borderWidth: 2,
+                    borderColor: colors.primary,
+                  },
+                ]}
               >
                 <Ionicons
                   name={feature.icon as any}
                   size={24}
                   color={colors.primary}
                 />
-              </LinearGradient>
+              </View>
               <Text style={[styles.featureText, { color: colors.text }]}>
                 {feature.text}
               </Text>
@@ -167,21 +175,31 @@ export function FeaturesSection() {
         onRequestClose={closeModal}
       >
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
-          <Animated.View style={[styles.modalContent, modalAnimatedStyle]}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.surface },
+              modalAnimatedStyle,
+            ]}
+          >
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>
-                <LinearGradient
-                  colors={iconGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.modalIcon}
+                <View
+                  style={[
+                    styles.modalIcon,
+                    {
+                      backgroundColor: colors.background,
+                      borderWidth: 2,
+                      borderColor: colors.primary,
+                    },
+                  ]}
                 >
                   <Ionicons
                     name={features[selectedFeature].icon as any}
                     size={32}
                     color={colors.primary}
                   />
-                </LinearGradient>
+                </View>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>
                   {features[selectedFeature].text}
                 </Text>
@@ -200,18 +218,23 @@ export function FeaturesSection() {
             )}
 
             <TouchableOpacity
-              style={styles.closeButton}
+              style={[
+                styles.closeButton,
+                {
+                  backgroundColor: colors.primary,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                },
+              ]}
               onPress={closeModal}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.closeButtonGradient}
-              >
-                <Text style={styles.closeButtonText}>Got it</Text>
-              </LinearGradient>
+              <Text style={[styles.closeButtonText, { color: "white" }]}>
+                Got it
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         </Pressable>

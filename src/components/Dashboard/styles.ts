@@ -13,6 +13,11 @@ export const headerStyles = StyleSheet.create({
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   profileButtonContainer: {
     position: "absolute",
@@ -30,10 +35,13 @@ export const headerStyles = StyleSheet.create({
   },
   greeting: {
     ...DesignSystem.typography.h1,
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     textAlign: "center",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   motivationalMessage: {
     ...DesignSystem.typography.body,
@@ -46,10 +54,14 @@ export const headerStyles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
+    padding: DesignSystem.spacing.lg,
     gap: DesignSystem.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   statItem: {
     alignItems: "center",
@@ -57,7 +69,9 @@ export const headerStyles = StyleSheet.create({
   },
   statNumber: {
     ...DesignSystem.typography.h2,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   statLabel: {
     ...DesignSystem.typography.caption,
@@ -66,7 +80,7 @@ export const headerStyles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
 });
 
@@ -76,25 +90,12 @@ export const fabStyles = StyleSheet.create({
     position: "absolute",
     bottom: DesignSystem.spacing.xl,
     right: DesignSystem.spacing.xl,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  floatingActionButtonGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1000,
   },
 });
 

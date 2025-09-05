@@ -289,4 +289,29 @@ export class MaintenanceTaskService {
       show_completed: includeCompleted,
     });
   }
+
+  // Update overdue status for all routine instances
+  static async updateOverdueStatus(): Promise<ServiceResponse<null>> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const { error } = await supabase.rpc("update_overdue_status");
+
+      if (error) throw error;
+
+      return { data: null, error: null };
+    } catch (error) {
+      console.error("Error updating overdue status:", error);
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
+    }
+  }
 }

@@ -2,56 +2,42 @@ import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
+    paddingHorizontal: 20,
     paddingVertical: 8,
   },
 
   headerContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    alignItems: "center",
+    marginBottom: 16,
   },
 
   title: {
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    marginBottom: 6,
-    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 4,
   },
 
   subtitle: {
     fontSize: 14,
-    fontWeight: "400",
-    lineHeight: 20,
-    textAlign: "center",
-    opacity: 0.8,
+    opacity: 0.7,
   },
 
   gradientContainer: {
     paddingHorizontal: 20,
-    gap: 12,
+    paddingVertical: 8,
+    gap: 16,
   },
 
   gradientOption: {
     alignItems: "center",
     justifyContent: "center",
+    padding: 4,
   },
 
   gradientWrapper: {
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-  },
-
-  selectionBorder: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
-    top: -3,
-    left: -3,
-    zIndex: 1,
+    padding: 4,
   },
 
   gradientCircle: {
@@ -69,29 +55,6 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     position: "relative",
-  },
-
-  checkContainer: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    zIndex: 2,
-  },
-
-  checkBackground: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
 
   gradientName: {

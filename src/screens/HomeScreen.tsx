@@ -16,20 +16,24 @@ export function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Hero Section with Gradient Background */}
-      <LinearGradient
-        colors={[colors.primary, colors.secondary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroSection}
+      {/* Hero Section with Minimalist Design */}
+      <View
+        style={[
+          styles.heroSection,
+          {
+            backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          },
+        ]}
       >
         <View style={styles.heroContent}>
           <LogoSection showText={true} compact={false} />
           <WelcomeText />
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -55,6 +59,11 @@ const styles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.xxxl,
     paddingBottom: DesignSystem.spacing.xxxl,
     paddingHorizontal: DesignSystem.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   heroContent: {
     alignItems: "center",

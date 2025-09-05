@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
 import { TextInput, HelperText, ProgressBar } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
@@ -21,7 +22,7 @@ import { DesignSystem } from "../../theme/designSystem";
 
 // SignUpScreen for the SignUpScreen on the home screen
 export function SignUpScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { signUp } = useAuth();
   const navigation = useNavigation();
 
@@ -126,6 +127,7 @@ export function SignUpScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         style={authStyles.scrollView}
         contentContainerStyle={[
@@ -150,7 +152,7 @@ export function SignUpScreen() {
               zIndex: 10,
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backgroundColor: colors.surface + "E6", // 90% opacity
               borderRadius: DesignSystem.borders.radius.large,
               paddingHorizontal: DesignSystem.spacing.md,
               paddingVertical: DesignSystem.spacing.sm,
@@ -269,22 +271,21 @@ export function SignUpScreen() {
             onPress={handleSignUp}
             disabled={loading}
             style={[
-              authStyles.gradientButton,
-              { marginHorizontal: DesignSystem.spacing.md },
+              authStyles.primaryButton,
+              {
+                backgroundColor: colors.primary,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                marginHorizontal: DesignSystem.spacing.md,
+              },
             ]}
           >
-            <LinearGradient
-              colors={gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={authStyles.primaryButton}
-            >
-              <View style={authStyles.buttonContent}>
-                <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                  {loading ? "Creating Account..." : "Create Account"}
-                </Text>
-              </View>
-            </LinearGradient>
+            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+              {loading ? "Creating Account..." : "Create Account"}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
 

@@ -38,11 +38,15 @@ export function DashboardHeader({
 
   return (
     <View style={headerStyles.headerSection}>
-      <LinearGradient
-        colors={[colors.primary, colors.secondary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={headerStyles.headerGradient}
+      <View
+        style={[
+          headerStyles.headerGradient,
+          {
+            backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          },
+        ]}
       >
         {/* Profile Button - Top Right */}
         <View style={headerStyles.profileButtonContainer}>
@@ -51,32 +55,46 @@ export function DashboardHeader({
 
         <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
-            <Text style={[headerStyles.greeting, { color: colors.surface }]}>
+            <Text style={[headerStyles.greeting, { color: colors.text }]}>
               {greeting}, {userName}!
             </Text>
 
             <Text
               style={[
                 headerStyles.motivationalMessage,
-                { color: colors.surface },
+                { color: colors.textSecondary },
               ]}
             >
               {motivationalMessage}
             </Text>
           </View>
 
-          <View style={headerStyles.statsContainer}>
+          <View
+            style={[
+              headerStyles.statsContainer,
+              {
+                backgroundColor: colors.background,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <TouchableOpacity
               style={headerStyles.statItem}
               onPress={onShowDueSoonPopup}
               activeOpacity={0.7}
             >
               <Text
-                style={[headerStyles.statNumber, { color: colors.surface }]}
+                style={[headerStyles.statNumber, { color: colors.primary }]}
               >
                 {dueSoonCount}
               </Text>
-              <Text style={[headerStyles.statLabel, { color: colors.surface }]}>
+              <Text
+                style={[
+                  headerStyles.statLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 Due Soon
               </Text>
             </TouchableOpacity>
@@ -89,11 +107,16 @@ export function DashboardHeader({
               activeOpacity={0.7}
             >
               <Text
-                style={[headerStyles.statNumber, { color: colors.surface }]}
+                style={[headerStyles.statNumber, { color: colors.success }]}
               >
                 {completedCount}
               </Text>
-              <Text style={[headerStyles.statLabel, { color: colors.surface }]}>
+              <Text
+                style={[
+                  headerStyles.statLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 Completed
               </Text>
             </TouchableOpacity>
@@ -103,18 +126,21 @@ export function DashboardHeader({
               onPress={onShowStreakPopup}
               activeOpacity={0.7}
             >
-              <Text
-                style={[headerStyles.statNumber, { color: colors.surface }]}
-              >
+              <Text style={[headerStyles.statNumber, { color: colors.accent }]}>
                 {streak}
               </Text>
-              <Text style={[headerStyles.statLabel, { color: colors.surface }]}>
+              <Text
+                style={[
+                  headerStyles.statLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 Day Streak
               </Text>
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 }

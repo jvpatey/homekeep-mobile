@@ -8,6 +8,7 @@ import Animated, {
   withRepeat,
   withTiming,
   withSequence,
+  withSpring,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { fabStyles } from "./styles";
@@ -23,56 +24,45 @@ export function FloatingActionButton({
 }: FloatingActionButtonProps) {
   const { colors } = useTheme();
 
-  // Animation for floating action button when no tasks
-  const fabScale = useSharedValue(1);
-  const fabRotation = useSharedValue(0);
+  // Animation for button press feedback only
+  const pressScale = useSharedValue(1);
 
-  useEffect(() => {
-    // Animate FAB when no tasks
-    if (!hasTasks) {
-      fabScale.value = withRepeat(
-        withSequence(
-          withTiming(1.1, { duration: 1500 }),
-          withTiming(1, { duration: 1500 })
-        ),
-        -1,
-        true
-      );
-
-      fabRotation.value = withRepeat(
-        withSequence(
-          withTiming(10, { duration: 2000 }),
-          withTiming(-10, { duration: 2000 })
-        ),
-        -1,
-        true
-      );
-    } else {
-      fabScale.value = 1;
-      fabRotation.value = 0;
-    }
-  }, [hasTasks]);
+  // Removed animations for cleaner experience
 
   const fabAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: fabScale.value },
-      { rotate: `${fabRotation.value}deg` },
-    ],
+    transform: [{ scale: pressScale.value }],
   }));
+
+  const handlePressIn = () => {
+    pressScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
 
   return (
     <Animated.View style={fabAnimatedStyle}>
       <TouchableOpacity
-        style={fabStyles.floatingActionButton}
+        style={[
+          fabStyles.floatingActionButton,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.primary,
+            borderWidth: 2,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 6,
+          },
+        ]}
         onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={[colors.accent, colors.primary]}
-          style={fabStyles.floatingActionButtonGradient}
-        >
-          <Ionicons name="add" size={28} color={colors.surface} />
-        </LinearGradient>
+        <Ionicons name="add" size={28} color={colors.primary} />
       </TouchableOpacity>
     </Animated.View>
   );

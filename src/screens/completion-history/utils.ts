@@ -8,14 +8,18 @@ export interface GroupedRoutine {
   estimatedDuration: number;
   intervalDays: number;
   completedInstances: MaintenanceTask[];
+  pastDueInstances: MaintenanceTask[];
   totalInstances: number;
   completionRate: number;
   latestCompletion?: string;
   nextDueDate?: string;
 }
 
-// groupTasksByRoutine function to group completed tasks by routine
-export const groupTasksByRoutine = (completedTasks: MaintenanceTask[]) => {
+// groupTasksByRoutine function to group completed and past due tasks by routine
+export const groupTasksByRoutine = (
+  completedTasks: MaintenanceTask[],
+  pastDueTasks: MaintenanceTask[] = []
+) => {
   const groups: { [key: string]: GroupedRoutine } = {};
 
   // Group completed tasks by routine
@@ -30,11 +34,32 @@ export const groupTasksByRoutine = (completedTasks: MaintenanceTask[]) => {
         estimatedDuration: task.estimated_duration_minutes,
         intervalDays: task.interval_days,
         completedInstances: [],
+        pastDueInstances: [],
         totalInstances: 0,
         completionRate: 0,
       };
     }
     groups[routineId].completedInstances.push(task);
+  });
+
+  // Group past due tasks by routine
+  pastDueTasks.forEach((task) => {
+    const routineId = task.id;
+    if (!groups[routineId]) {
+      groups[routineId] = {
+        routineId,
+        title: task.title,
+        category: task.category,
+        priority: task.priority,
+        estimatedDuration: task.estimated_duration_minutes,
+        intervalDays: task.interval_days,
+        completedInstances: [],
+        pastDueInstances: [],
+        totalInstances: 0,
+        completionRate: 0,
+      };
+    }
+    groups[routineId].pastDueInstances.push(task);
   });
 
   // Calculate statistics for each routine
@@ -46,9 +71,18 @@ export const groupTasksByRoutine = (completedTasks: MaintenanceTask[]) => {
         new Date(a.completed_at || "").getTime()
     );
 
+    // Sort past due instances by due date (newest first)
+    routine.pastDueInstances.sort(
+      (a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
+    );
+
     // Calculate completion rate and find latest completion
-    routine.totalInstances = routine.completedInstances.length;
-    routine.completionRate = 100; // All instances are completed
+    routine.totalInstances =
+      routine.completedInstances.length + routine.pastDueInstances.length;
+    routine.completionRate =
+      routine.totalInstances > 0
+        ? (routine.completedInstances.length / routine.totalInstances) * 100
+        : 0;
     routine.latestCompletion = routine.completedInstances[0]?.completed_at;
 
     // Calculate next due date based on latest completion and interval

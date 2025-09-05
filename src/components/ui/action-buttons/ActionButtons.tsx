@@ -35,48 +35,42 @@ export function ActionButtons() {
     <Animated.View style={[styles.buttonContainer, animatedStyle]}>
       <TouchableOpacity
         onPress={handleCreateAccount}
-        style={styles.primaryButton}
+        style={[
+          styles.primaryButton,
+          {
+            backgroundColor: colors.primary,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 6,
+          },
+        ]}
       >
-        <LinearGradient
-          colors={primaryGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientButton}
-        >
-          <Text
-            style={[
-              styles.primaryButtonText,
-              { color: isDark ? colors.text : "white" },
-            ]}
-          >
-            Create Account
-          </Text>
-        </LinearGradient>
+        <Text style={[styles.primaryButtonText, { color: "white" }]}>
+          Create Account
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={handleSignIn}
-        style={styles.secondaryButtonContainer}
+        style={[
+          styles.secondaryButton,
+          {
+            backgroundColor: colors.surface,
+            borderWidth: 2,
+            borderColor: colors.primary,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 3,
+          },
+        ]}
       >
-        <LinearGradient
-          colors={primaryGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBorder}
-        >
-          <View
-            style={[
-              styles.secondaryButtonInner,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <Text
-              style={[styles.secondaryButtonText, { color: colors.primary }]}
-            >
-              Sign In
-            </Text>
-          </View>
-        </LinearGradient>
+        <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
+          Sign In
+        </Text>
       </TouchableOpacity>
     </Animated.View>
   );
