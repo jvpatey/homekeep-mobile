@@ -27,7 +27,7 @@ import { ProfileMenuNavigationProps } from "../../../types/navigation";
 // ProfileMenuProps
 interface ProfileMenuProps {
   onRefresh?: () => void;
-  navigation: ProfileMenuNavigationProps['navigation'];
+  navigation: ProfileMenuNavigationProps["navigation"];
 }
 
 // ProfileMenu component for the Dashboard

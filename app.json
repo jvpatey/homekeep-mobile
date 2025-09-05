@@ -37,6 +37,9 @@
         ],
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["https", "http"]
+      },
+      "notification": {
+        "iosDisplayInForeground": true
       }
     },
     "android": {
