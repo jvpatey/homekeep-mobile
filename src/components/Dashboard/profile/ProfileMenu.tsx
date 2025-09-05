@@ -36,7 +36,8 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { user, signOut } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
   const { primaryGradient } = useGradients();
-  const { selectedGradient } = useUserPreferences();
+  const { selectedGradient, loading: preferencesLoading } =
+    useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
   const [menuVisible, setMenuVisible] = useState(false);
   const [customizationModalVisible, setCustomizationModalVisible] =
@@ -153,10 +154,11 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     setCustomizationModalVisible(false);
   };
 
-  // Use custom gradient if available, otherwise fall back to primary gradient
-  const avatarGradient = selectedGradient
-    ? selectedGradient.colors
-    : primaryGradient;
+  // Use custom gradient if available and not loading, otherwise fall back to primary gradient
+  const avatarGradient =
+    !preferencesLoading && selectedGradient
+      ? selectedGradient.colors
+      : primaryGradient;
 
   return (
     <>
@@ -167,8 +169,10 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
         <LinearGradient
           colors={avatarGradient}
           style={styles.profileAvatar}
-          start={selectedGradient?.start || { x: 0, y: 0 }}
-          end={selectedGradient?.end || { x: 1, y: 1 }}
+          start={
+            (!preferencesLoading && selectedGradient?.start) || { x: 0, y: 0 }
+          }
+          end={(!preferencesLoading && selectedGradient?.end) || { x: 1, y: 1 }}
         >
           <Text style={styles.profileInitial}>{getUserInitial()}</Text>
         </LinearGradient>
@@ -193,8 +197,18 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
               <LinearGradient
                 colors={avatarGradient}
                 style={styles.menuAvatar}
-                start={selectedGradient?.start || { x: 0, y: 0 }}
-                end={selectedGradient?.end || { x: 1, y: 1 }}
+                start={
+                  (!preferencesLoading && selectedGradient?.start) || {
+                    x: 0,
+                    y: 0,
+                  }
+                }
+                end={
+                  (!preferencesLoading && selectedGradient?.end) || {
+                    x: 1,
+                    y: 1,
+                  }
+                }
               >
                 <Text style={styles.menuAvatarInitial}>{getUserInitial()}</Text>
               </LinearGradient>

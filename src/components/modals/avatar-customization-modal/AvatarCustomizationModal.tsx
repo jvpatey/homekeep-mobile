@@ -42,7 +42,8 @@ export function AvatarCustomizationModal({
 }: AvatarCustomizationModalProps) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const { selectedGradient } = useUserPreferences();
+  const { selectedGradient, loading: preferencesLoading } =
+    useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
 
   const [previewGradient, setPreviewGradient] =
@@ -64,6 +65,13 @@ export function AvatarCustomizationModal({
       translateY.value = withTiming(screenHeight, { duration: 250 });
     }
   }, [visible]);
+
+  // Update preview gradient when selectedGradient changes and loading is complete
+  React.useEffect(() => {
+    if (!preferencesLoading && selectedGradient) {
+      setPreviewGradient(selectedGradient);
+    }
+  }, [selectedGradient, preferencesLoading]);
 
   // getUserInitial function to get the user's initial from Supabase
   const getUserInitial = () => {
