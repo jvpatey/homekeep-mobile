@@ -263,10 +263,7 @@ export function CompletionHistoryScreen() {
               return (
                 <View
                   key={instance.instance_id}
-                  style={[
-                    completionHistoryStyles.instanceItem,
-                    { backgroundColor: "rgba(239, 68, 68, 0.05)" },
-                  ]}
+                  style={completionHistoryStyles.instanceItem}
                 >
                   <View style={completionHistoryStyles.instanceHeader}>
                     <Text
