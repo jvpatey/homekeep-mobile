@@ -16,48 +16,54 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useColorScheme();
   const [theme, setTheme] = useState<Theme>("light");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Function to detect system theme using multiple methods
   const detectSystemTheme = (): Theme => {
-    if (systemColorScheme) {
+    // First try useColorScheme hook
+    if (
+      systemColorScheme &&
+      (systemColorScheme === "light" || systemColorScheme === "dark")
+    ) {
       return systemColorScheme;
     }
 
+    // Fallback to Appearance API
     try {
       const appearanceTheme = Appearance.getColorScheme();
-      if (appearanceTheme) {
+      if (
+        appearanceTheme &&
+        (appearanceTheme === "light" || appearanceTheme === "dark")
+      ) {
         return appearanceTheme;
       }
     } catch (error) {
-      // silently handle errors in production
+      console.warn("Failed to get appearance theme:", error);
     }
 
-    // fallback to light theme
+    // Final fallback to light theme
     return "light";
   };
 
-  // update theme when system preference changes
+  // Initialize theme on mount and when system scheme changes
   useEffect(() => {
     const detectedTheme = detectSystemTheme();
     setTheme(detectedTheme);
+    setIsInitialized(true);
   }, [systemColorScheme]);
 
-  // set initial theme when component mounts
+  // Listen for appearance changes after initialization
   useEffect(() => {
-    const detectedTheme = detectSystemTheme();
-    setTheme(detectedTheme);
-  }, []);
+    if (!isInitialized) return;
 
-  // listen for appearance changes
-  useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      if (colorScheme) {
+      if (colorScheme && (colorScheme === "light" || colorScheme === "dark")) {
         setTheme(colorScheme);
       }
     });
 
     return () => subscription?.remove();
-  }, []);
+  }, [isInitialized]);
 
   const themeColors = colors[theme];
   const isDark = theme === "dark";

@@ -64,6 +64,9 @@ export function EmailEntryScreen() {
               left: 0,
               padding: DesignSystem.spacing.sm,
               zIndex: 10,
+              backgroundColor: colors.surface + "E6", // 90% opacity
+              borderRadius: DesignSystem.borders.radius.large,
+              ...DesignSystem.shadows.small,
             }}
           >
             <Text style={{ color: colors.primary, fontSize: 18 }}>← Back</Text>

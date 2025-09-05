@@ -123,7 +123,7 @@ export function LoginScreen() {
               zIndex: 10,
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backgroundColor: colors.surface + "E6", // 90% opacity
               borderRadius: DesignSystem.borders.radius.large,
               paddingHorizontal: DesignSystem.spacing.md,
               paddingVertical: DesignSystem.spacing.sm,

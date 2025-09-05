@@ -136,6 +136,7 @@ export function FeaturesSection() {
             <Animated.View
               style={[
                 styles.featureItem,
+                { backgroundColor: colors.surface },
                 feature.animatedStyle,
                 tapAnimatedStyle,
               ]}
@@ -167,7 +168,13 @@ export function FeaturesSection() {
         onRequestClose={closeModal}
       >
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
-          <Animated.View style={[styles.modalContent, modalAnimatedStyle]}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.surface },
+              modalAnimatedStyle,
+            ]}
+          >
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>
                 <LinearGradient
