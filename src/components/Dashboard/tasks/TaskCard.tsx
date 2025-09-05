@@ -119,6 +119,17 @@ export function TaskCard({
         end={{ x: 1, y: 1 }}
         style={styles.gradientBackground}
       >
+        {/* Modern subtle scrim overlay */}
+        <LinearGradient
+          colors={[
+            "rgba(0, 0, 0, 0.12)",
+            "rgba(0, 0, 0, 0.05)",
+            "rgba(0, 0, 0, 0.18)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.gradientOverlay}
+        />
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
@@ -195,7 +206,8 @@ export function TaskCard({
             <TouchableOpacity
               style={[
                 styles.completeButton,
-                is_completed && styles.completedButton,
+                { backgroundColor: colors.primary },
+                is_completed && { backgroundColor: colors.success },
               ]}
               onPress={handleComplete}
               activeOpacity={0.8}

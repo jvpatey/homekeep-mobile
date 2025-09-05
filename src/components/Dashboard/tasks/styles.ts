@@ -29,6 +29,14 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
   },
+  gradientOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: DesignSystem.borders.radius.large,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -44,9 +52,9 @@ export const styles = StyleSheet.create({
   categoryText: {
     ...DesignSystem.typography.smallSemiBold,
     color: "white",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1.5,
   },
   priorityContainer: {
     flexDirection: "row",
@@ -61,15 +69,15 @@ export const styles = StyleSheet.create({
   priorityText: {
     ...DesignSystem.typography.captionSemiBold,
     color: "white",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1.5,
   },
   title: {
     ...DesignSystem.typography.h3,
     color: "white",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 0.5 },
     textShadowRadius: 2,
     flex: 1,
   },
@@ -90,9 +98,9 @@ export const styles = StyleSheet.create({
     ...DesignSystem.typography.small,
     color: "white",
     marginLeft: DesignSystem.spacing.xs,
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1.5,
   },
   overdueText: {
     color: colors.light.error,
@@ -102,13 +110,9 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#4CAF50",
     justifyContent: "center",
     alignItems: "center",
     ...DesignSystem.shadows.medium,
-  },
-  completedButton: {
-    backgroundColor: colors.light.success,
   },
 });
 
