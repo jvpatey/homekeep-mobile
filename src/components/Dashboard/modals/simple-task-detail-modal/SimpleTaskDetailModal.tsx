@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { View, Modal, Text, TouchableOpacity, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../../../../theme/colors";
 import { MaintenanceTask } from "../../../../types/maintenance";
 import { useAuth } from "../../../../context/AuthContext";
-import { styles } from "./styles";
+import { useTheme } from "../../../../context/ThemeContext";
+import { createStyles } from "./styles";
 
 // SimpleTaskDetailModalProps
 interface SimpleTaskDetailModalProps {
@@ -23,7 +23,9 @@ export function SimpleTaskDetailModal({
   onComplete,
 }: SimpleTaskDetailModalProps) {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [isCompleting, setIsCompleting] = useState(false);
+  const styles = createStyles(colors);
 
   if (!task) return null;
 
@@ -94,10 +96,10 @@ export function SimpleTaskDetailModal({
 
   const category = getCategoryInfo(task.category);
   const priorityColors = {
-    low: colors.light.success,
-    medium: colors.light.warning,
-    high: colors.light.accent,
-    urgent: colors.light.error,
+    low: colors.success,
+    medium: colors.warning,
+    high: colors.accent,
+    urgent: colors.error,
   };
 
   const formatDate = (dateString: string) => {
@@ -174,7 +176,9 @@ export function SimpleTaskDetailModal({
       presentationStyle="overFullScreen"
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View
+          style={[styles.modalContainer, { backgroundColor: colors.surface }]}
+        >
           {/* Header with gradient */}
           <LinearGradient
             colors={category.gradient}
@@ -245,7 +249,7 @@ export function SimpleTaskDetailModal({
                   <Ionicons
                     name="time-outline"
                     size={20}
-                    color={colors.light.primary}
+                    color={colors.primary}
                   />
                 </View>
                 <View style={styles.detailContent}>
@@ -261,7 +265,7 @@ export function SimpleTaskDetailModal({
                   <Ionicons
                     name="calendar-outline"
                     size={20}
-                    color={colors.light.secondary}
+                    color={colors.secondary}
                   />
                 </View>
                 <View style={styles.detailContent}>
@@ -277,7 +281,7 @@ export function SimpleTaskDetailModal({
                   <Ionicons
                     name="repeat-outline"
                     size={20}
-                    color={colors.light.accent}
+                    color={colors.accent}
                   />
                 </View>
                 <View style={styles.detailContent}>
@@ -302,7 +306,7 @@ export function SimpleTaskDetailModal({
               disabled={isCompleting}
             >
               <LinearGradient
-                colors={[colors.light.success, "#4CAF50"]}
+                colors={[colors.success, "#4CAF50"]}
                 style={styles.completeButtonGradient}
               >
                 <Ionicons name="checkmark-circle" size={24} color="white" />

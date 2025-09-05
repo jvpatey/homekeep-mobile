@@ -51,15 +51,12 @@ export function DashboardHeader({
 
         <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
-            <Text style={[headerStyles.greeting, { color: colors.surface }]}>
+            <Text style={[headerStyles.greeting, { color: "white" }]}>
               {greeting}, {userName}!
             </Text>
 
             <Text
-              style={[
-                headerStyles.motivationalMessage,
-                { color: colors.surface },
-              ]}
+              style={[headerStyles.motivationalMessage, { color: "white" }]}
             >
               {motivationalMessage}
             </Text>
@@ -71,12 +68,10 @@ export function DashboardHeader({
               onPress={onShowDueSoonPopup}
               activeOpacity={0.7}
             >
-              <Text
-                style={[headerStyles.statNumber, { color: colors.surface }]}
-              >
+              <Text style={[headerStyles.statNumber, { color: "white" }]}>
                 {dueSoonCount}
               </Text>
-              <Text style={[headerStyles.statLabel, { color: colors.surface }]}>
+              <Text style={[headerStyles.statLabel, { color: "white" }]}>
                 Due Soon
               </Text>
             </TouchableOpacity>
@@ -88,12 +83,10 @@ export function DashboardHeader({
               }}
               activeOpacity={0.7}
             >
-              <Text
-                style={[headerStyles.statNumber, { color: colors.surface }]}
-              >
+              <Text style={[headerStyles.statNumber, { color: "white" }]}>
                 {completedCount}
               </Text>
-              <Text style={[headerStyles.statLabel, { color: colors.surface }]}>
+              <Text style={[headerStyles.statLabel, { color: "white" }]}>
                 Completed
               </Text>
             </TouchableOpacity>
@@ -103,12 +96,10 @@ export function DashboardHeader({
               onPress={onShowStreakPopup}
               activeOpacity={0.7}
             >
-              <Text
-                style={[headerStyles.statNumber, { color: colors.surface }]}
-              >
+              <Text style={[headerStyles.statNumber, { color: "white" }]}>
                 {streak}
               </Text>
-              <Text style={[headerStyles.statLabel, { color: colors.surface }]}>
+              <Text style={[headerStyles.statLabel, { color: "white" }]}>
                 Day Streak
               </Text>
             </TouchableOpacity>

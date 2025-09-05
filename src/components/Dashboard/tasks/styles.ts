@@ -11,7 +11,11 @@ export const styles = StyleSheet.create({
     height: 200,
     borderRadius: DesignSystem.borders.radius.large,
     marginHorizontal: DesignSystem.spacing.md,
-    ...DesignSystem.shadows.large,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 12,
   },
   completedContainer: {
     opacity: 0.7,
@@ -112,7 +116,13 @@ export const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    ...DesignSystem.shadows.medium,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
 });
 

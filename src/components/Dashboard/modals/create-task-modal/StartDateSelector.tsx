@@ -150,8 +150,8 @@ export function StartDateSelector({
             onChange={handleDateChange}
             minimumDate={new Date()}
             textColor={colors.text}
-            themeVariant={colors.background === "#FFFFFF" ? "light" : "dark"}
-            style={styles.datePicker}
+            themeVariant={colors.background === "#F7F9FA" ? "light" : "dark"}
+            style={[styles.datePicker, { backgroundColor: colors.surface }]}
           />
           {Platform.OS === "ios" && (
             <TouchableOpacity
@@ -184,7 +184,6 @@ const styles = StyleSheet.create({
     fontSize: DesignSystem.typography.bodyMedium.fontSize,
     fontWeight: "600",
     marginBottom: DesignSystem.spacing.md,
-    color: "#1F2937",
   },
   quickOptionsContainer: {
     flexDirection: "row",
@@ -210,7 +209,6 @@ const styles = StyleSheet.create({
     fontSize: DesignSystem.typography.small.fontSize,
     fontWeight: "600",
     marginBottom: DesignSystem.spacing.sm,
-    color: "#374151",
   },
   dateButton: {
     flexDirection: "row",
@@ -234,7 +232,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   datePicker: {
-    backgroundColor: "white",
     borderRadius: DesignSystem.borders.radius.medium,
     minHeight: 120,
   },
@@ -253,7 +250,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: DesignSystem.typography.caption.fontSize,
-    color: "#EF4444",
     marginTop: DesignSystem.spacing.sm,
     fontWeight: "500",
   },

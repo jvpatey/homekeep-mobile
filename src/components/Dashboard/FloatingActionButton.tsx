@@ -8,6 +8,7 @@ import Animated, {
   withRepeat,
   withTiming,
   withSequence,
+  withSpring,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { fabStyles } from "./styles";
@@ -26,6 +27,7 @@ export function FloatingActionButton({
   // Animation for floating action button when no tasks
   const fabScale = useSharedValue(1);
   const fabRotation = useSharedValue(0);
+  const pressScale = useSharedValue(1);
 
   useEffect(() => {
     // Animate FAB when no tasks
@@ -55,16 +57,26 @@ export function FloatingActionButton({
 
   const fabAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: fabScale.value },
+      { scale: fabScale.value * pressScale.value },
       { rotate: `${fabRotation.value}deg` },
     ],
   }));
+
+  const handlePressIn = () => {
+    pressScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
 
   return (
     <Animated.View style={fabAnimatedStyle}>
       <TouchableOpacity
         style={fabStyles.floatingActionButton}
         onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         activeOpacity={0.8}
       >
         <LinearGradient
