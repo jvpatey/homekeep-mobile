@@ -19,27 +19,32 @@ export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
   const { primaryGradient } = useGradients();
 
   return (
-    <View style={[
-      styles.modalFooter,
-      { backgroundColor: colors.surface, borderTopColor: colors.border }
-    ]}>
+    <View
+      style={[
+        styles.modalFooter,
+        { backgroundColor: colors.surface, borderTopColor: colors.border },
+      ]}
+    >
       <TouchableOpacity
         onPress={onPress}
         style={[
           styles.submitButton,
-          { opacity: disabled ? 0.6 : 1 }
+          {
+            backgroundColor: colors.primary,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 6,
+            opacity: disabled ? 0.6 : 1,
+          },
         ]}
         disabled={disabled}
         activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={primaryGradient}
-          style={styles.submitGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.submitButtonText}>{title}</Text>
-        </LinearGradient>
+        <Text style={[styles.submitButtonText, { color: "white" }]}>
+          {title}
+        </Text>
       </TouchableOpacity>
     </View>
   );

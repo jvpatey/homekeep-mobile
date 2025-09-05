@@ -33,6 +33,7 @@ export const createStyles = (colors: any) =>
       paddingTop: DesignSystem.spacing.xl,
       paddingBottom: DesignSystem.spacing.lg,
       paddingHorizontal: DesignSystem.spacing.lg,
+      borderBottomWidth: 1,
     },
     headerContent: {
       alignItems: "center",
@@ -44,27 +45,43 @@ export const createStyles = (colors: any) =>
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
       alignItems: "center",
       justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
     },
     categorySection: {
       alignItems: "center",
       marginBottom: DesignSystem.spacing.md,
     },
+    categoryIconContainer: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: DesignSystem.spacing.sm,
+      borderWidth: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
     categoryIcon: {
-      marginBottom: DesignSystem.spacing.xs,
+      // No margin needed since container handles spacing
     },
     categoryName: {
       fontSize: 16,
       fontWeight: "600",
-      color: "white",
       letterSpacing: 0.5,
     },
     taskTitle: {
       fontSize: 24,
       fontWeight: "700",
-      color: "white",
       textAlign: "center",
       marginBottom: DesignSystem.spacing.md,
       lineHeight: 30,
@@ -72,10 +89,14 @@ export const createStyles = (colors: any) =>
     priorityContainer: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
       paddingHorizontal: DesignSystem.spacing.md,
       paddingVertical: DesignSystem.spacing.sm,
       borderRadius: DesignSystem.borders.radius.medium,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
     },
     priorityDot: {
       width: 8,
@@ -86,7 +107,6 @@ export const createStyles = (colors: any) =>
     priorityText: {
       fontSize: 14,
       fontWeight: "600",
-      color: "white",
     },
     content: {
       flex: 1,
@@ -158,19 +178,15 @@ export const createStyles = (colors: any) =>
       backgroundColor: colors.surface,
     },
     completeButton: {
-      borderRadius: DesignSystem.borders.radius.medium,
-      overflow: "hidden",
-      ...DesignSystem.shadows.medium,
-    },
-    completeButtonDisabled: {
-      opacity: 0.6,
-    },
-    completeButtonGradient: {
+      borderRadius: DesignSystem.borders.radius.large,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       paddingVertical: DesignSystem.spacing.lg,
       paddingHorizontal: DesignSystem.spacing.lg,
+    },
+    completeButtonDisabled: {
+      opacity: 0.6,
     },
     completeButtonText: {
       fontSize: 18,

@@ -206,18 +206,13 @@ export const styles = StyleSheet.create({
   },
   submitButton: {
     borderRadius: DesignSystem.borders.radius.large,
-    overflow: "hidden",
-    ...DesignSystem.shadows.medium,
-  },
-  submitGradient: {
-    borderRadius: DesignSystem.borders.radius.large,
     paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.lg,
     alignItems: "center",
+    justifyContent: "center",
     minHeight: DesignSystem.components.buttonLarge,
   },
   submitButtonText: {
-    color: "white",
     fontSize: DesignSystem.typography.button.fontSize,
     fontWeight: "700",
     letterSpacing: 0.5,

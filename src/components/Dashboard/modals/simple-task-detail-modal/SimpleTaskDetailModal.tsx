@@ -179,53 +179,78 @@ export function SimpleTaskDetailModal({
         <View
           style={[styles.modalContainer, { backgroundColor: colors.surface }]}
         >
-          {/* Header with gradient */}
-          <LinearGradient
-            colors={category.gradient}
-            style={styles.headerGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          {/* Minimalist Header */}
+          <View
+            style={[
+              styles.headerGradient,
+              {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.border,
+              },
+            ]}
           >
             <View style={styles.headerContent}>
               {/* Close button */}
               <TouchableOpacity
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: colors.background },
+                ]}
                 onPress={handleClose}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={24} color="white" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
 
               {/* Category icon and name */}
               <View style={styles.categorySection}>
-                <Ionicons
-                  name={category.icon as any}
-                  size={48}
-                  color="white"
-                  style={styles.categoryIcon}
-                />
-                <Text style={styles.categoryName}>{category.displayName}</Text>
+                <View
+                  style={[
+                    styles.categoryIconContainer,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: priorityColors[task.priority],
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={category.icon as any}
+                    size={32}
+                    color={priorityColors[task.priority]}
+                    style={styles.categoryIcon}
+                  />
+                </View>
+                <Text style={[styles.categoryName, { color: colors.text }]}>
+                  {category.displayName}
+                </Text>
               </View>
 
               {/* Task title */}
-              <Text style={styles.taskTitle}>{task.title}</Text>
+              <Text style={[styles.taskTitle, { color: colors.text }]}>
+                {task.title}
+              </Text>
 
               {/* Priority badge */}
-              <View style={styles.priorityContainer}>
+              <View
+                style={[
+                  styles.priorityContainer,
+                  { backgroundColor: colors.background },
+                ]}
+              >
                 <View
                   style={[
                     styles.priorityDot,
                     { backgroundColor: priorityColors[task.priority] },
                   ]}
                 />
-                <Text style={styles.priorityText}>
+                <Text style={[styles.priorityText, { color: colors.text }]}>
                   {task.priority.charAt(0).toUpperCase() +
                     task.priority.slice(1)}{" "}
                   Priority
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Content */}
           <ScrollView
@@ -299,21 +324,24 @@ export function SimpleTaskDetailModal({
             <TouchableOpacity
               style={[
                 styles.completeButton,
+                {
+                  backgroundColor: colors.success,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  elevation: 6,
+                },
                 isCompleting && styles.completeButtonDisabled,
               ]}
               onPress={handleComplete}
               activeOpacity={0.8}
               disabled={isCompleting}
             >
-              <LinearGradient
-                colors={[colors.success, "#4CAF50"]}
-                style={styles.completeButtonGradient}
-              >
-                <Ionicons name="checkmark-circle" size={24} color="white" />
-                <Text style={styles.completeButtonText}>
-                  {isCompleting ? "Completing..." : "Mark as Complete"}
-                </Text>
-              </LinearGradient>
+              <Ionicons name="checkmark-circle" size={24} color="white" />
+              <Text style={styles.completeButtonText}>
+                {isCompleting ? "Completing..." : "Mark as Complete"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
