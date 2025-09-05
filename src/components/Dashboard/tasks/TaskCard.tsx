@@ -143,6 +143,11 @@ export function TaskCard({
       <TouchableOpacity
         style={[
           styles.container,
+          {
+            backgroundColor: colors.surface,
+            borderColor: categoryInfo.color,
+            borderWidth: 2,
+          },
           is_completed && styles.completedContainer,
           isOverdue && styles.overdueContainer,
         ]}
@@ -151,128 +156,121 @@ export function TaskCard({
         onPressOut={handleCardPressOut}
         activeOpacity={0.9}
       >
-        <LinearGradient
-          colors={categoryInfo.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
-        >
-          {/* Modern subtle scrim overlay */}
-          <LinearGradient
-            colors={[
-              "rgba(0, 0, 0, 0.12)",
-              "rgba(0, 0, 0, 0.05)",
-              "rgba(0, 0, 0, 0.18)",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.gradientOverlay}
-          />
-          <View style={styles.content}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.categoryContainer}>
-                <Ionicons
-                  name={categoryInfo.icon as any}
-                  size={24}
-                  color="white"
-                  style={styles.categoryIcon}
-                />
-                <Text style={styles.categoryText}>
-                  {categoryInfo.displayName}
-                </Text>
-              </View>
-
-              <View style={styles.priorityContainer}>
-                <View
-                  style={[
-                    styles.priorityDot,
-                    { backgroundColor: getPriorityColor() },
-                  ]}
-                />
-                <Text style={styles.priorityText}>
-                  {priority.toUpperCase()}
-                </Text>
-              </View>
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.categoryContainer}>
+              <Ionicons
+                name={categoryInfo.icon as any}
+                size={24}
+                color={categoryInfo.color}
+                style={styles.categoryIcon}
+              />
+              <Text
+                style={[styles.categoryText, { color: categoryInfo.color }]}
+              >
+                {categoryInfo.displayName}
+              </Text>
             </View>
 
-            {/* Title */}
-            <Text style={styles.title} numberOfLines={2}>
-              {title}
-            </Text>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-              <View style={styles.metaInfo}>
-                <View style={styles.metaItem}>
-                  <Ionicons
-                    name="time-outline"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                  <Text style={styles.metaText}>
-                    {estimated_duration_minutes
-                      ? `${estimated_duration_minutes} min`
-                      : "No time estimate"}
-                  </Text>
-                </View>
-
-                <View style={styles.metaItem}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                  <Text
-                    style={[styles.metaText, isOverdue && styles.overdueText]}
-                  >
-                    {formatDueDate(due_date)}
-                  </Text>
-                </View>
-
-                <View style={styles.metaItem}>
-                  <Ionicons
-                    name="repeat-outline"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                  <Text style={styles.metaText}>
-                    {formatInterval(interval_days)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Completion Button */}
-              <Animated.View style={buttonAnimatedStyle}>
-                <TouchableOpacity
-                  style={[
-                    styles.completeButton,
-                    { backgroundColor: colors.primary },
-                    is_completed && { backgroundColor: colors.success },
-                  ]}
-                  onPress={handleComplete}
-                  onPressIn={handleButtonPressIn}
-                  onPressOut={handleButtonPressOut}
-                  activeOpacity={0.8}
-                >
-                  {is_completed ? (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color={colors.success}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={colors.surface}
-                    />
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
+            <View style={styles.priorityContainer}>
+              <View
+                style={[
+                  styles.priorityDot,
+                  { backgroundColor: getPriorityColor() },
+                ]}
+              />
+              <Text
+                style={[styles.priorityText, { color: colors.textSecondary }]}
+              >
+                {priority.toUpperCase()}
+              </Text>
             </View>
           </View>
-        </LinearGradient>
+
+          {/* Title */}
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={2}
+          >
+            {title}
+          </Text>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <View style={styles.metaInfo}>
+              <View style={styles.metaItem}>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <Text
+                  style={[styles.metaText, { color: colors.textSecondary }]}
+                >
+                  {estimated_duration_minutes
+                    ? `${estimated_duration_minutes} min`
+                    : "No time estimate"}
+                </Text>
+              </View>
+
+              <View style={styles.metaItem}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.metaText,
+                    { color: colors.textSecondary },
+                    isOverdue && styles.overdueText,
+                  ]}
+                >
+                  {formatDueDate(due_date)}
+                </Text>
+              </View>
+
+              <View style={styles.metaItem}>
+                <Ionicons
+                  name="repeat-outline"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <Text
+                  style={[styles.metaText, { color: colors.textSecondary }]}
+                >
+                  {formatInterval(interval_days)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Completion Button */}
+            <Animated.View style={buttonAnimatedStyle}>
+              <TouchableOpacity
+                style={[
+                  styles.completeButton,
+                  { backgroundColor: colors.primary },
+                  is_completed && { backgroundColor: colors.success },
+                ]}
+                onPress={handleComplete}
+                onPressIn={handleButtonPressIn}
+                onPressOut={handleButtonPressOut}
+                activeOpacity={0.8}
+              >
+                {is_completed ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color={colors.success}
+                  />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color={colors.surface} />
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
