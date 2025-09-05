@@ -13,6 +13,11 @@ export const headerStyles = StyleSheet.create({
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   profileButtonContainer: {
     position: "absolute",
@@ -49,17 +54,14 @@ export const headerStyles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
+    padding: DesignSystem.spacing.lg,
     gap: DesignSystem.spacing.md,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   statItem: {
     alignItems: "center",
@@ -78,7 +80,7 @@ export const headerStyles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
 });
 
