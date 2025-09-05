@@ -195,22 +195,21 @@ export function CodeVerificationScreen() {
             onPress={handleVerifyCode}
             disabled={loading || code.length !== 6}
             style={[
-              authStyles.gradientButton,
-              { opacity: code.length !== 6 ? 0.6 : 1 },
+              authStyles.primaryButton,
+              {
+                backgroundColor: colors.primary,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                opacity: code.length !== 6 ? 0.6 : 1,
+              },
             ]}
           >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={authStyles.primaryButton}
-            >
-              <View style={authStyles.buttonContent}>
-                <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                  {loading ? "Verifying..." : "Verify Code"}
-                </Text>
-              </View>
-            </LinearGradient>
+            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+              {loading ? "Verifying..." : "Verify Code"}
+            </Text>
           </TouchableOpacity>
         </View>
 

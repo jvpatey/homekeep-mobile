@@ -36,10 +36,8 @@
           }
         ],
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["https", "http"]
-      },
-      "notification": {
-        "iosDisplayInForeground": true
+        "LSApplicationQueriesSchemes": ["https", "http"],
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -68,7 +66,14 @@
     "plugins": [
       "expo-apple-authentication",
       "expo-web-browser",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff",
+          "defaultChannel": "default"
+        }
+      ],
       "expo-font"
     ],
     "extra": {
