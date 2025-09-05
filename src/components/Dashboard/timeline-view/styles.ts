@@ -159,12 +159,13 @@ export const timelineStyles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.light.primary,
     justifyContent: "center",
     alignItems: "center",
-  },
-  completedButton: {
-    backgroundColor: colors.light.success,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyContainer: {
     height: 160,

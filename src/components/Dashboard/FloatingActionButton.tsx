@@ -73,18 +73,25 @@ export function FloatingActionButton({
   return (
     <Animated.View style={fabAnimatedStyle}>
       <TouchableOpacity
-        style={fabStyles.floatingActionButton}
+        style={[
+          fabStyles.floatingActionButton,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.primary,
+            borderWidth: 2,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 6,
+          },
+        ]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={[colors.accent, colors.primary]}
-          style={fabStyles.floatingActionButtonGradient}
-        >
-          <Ionicons name="add" size={28} color={colors.surface} />
-        </LinearGradient>
+        <Ionicons name="add" size={28} color={colors.primary} />
       </TouchableOpacity>
     </Animated.View>
   );

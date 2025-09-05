@@ -268,7 +268,13 @@ export function TimelineView({
                     <TouchableOpacity
                       style={[
                         timelineStyles.completeButton,
-                        task.is_completed && timelineStyles.completedButton,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: task.is_completed
+                            ? colors.success
+                            : colors.primary,
+                          borderWidth: 2,
+                        },
                       ]}
                       onPress={() => onCompleteTask(task.instance_id)}
                       activeOpacity={0.8}
@@ -283,7 +289,7 @@ export function TimelineView({
                         <Ionicons
                           name="checkmark"
                           size={16}
-                          color={colors.surface}
+                          color={colors.primary}
                         />
                       )}
                     </TouchableOpacity>

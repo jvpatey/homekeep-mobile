@@ -250,8 +250,11 @@ export function TaskCard({
               <TouchableOpacity
                 style={[
                   styles.completeButton,
-                  { backgroundColor: colors.primary },
-                  is_completed && { backgroundColor: colors.success },
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: is_completed ? colors.success : colors.primary,
+                    borderWidth: 2,
+                  },
                 ]}
                 onPress={handleComplete}
                 onPressIn={handleButtonPressIn}
@@ -265,7 +268,7 @@ export function TaskCard({
                     color={colors.success}
                   />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={colors.surface} />
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
                 )}
               </TouchableOpacity>
             </Animated.View>

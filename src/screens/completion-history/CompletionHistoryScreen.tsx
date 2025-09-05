@@ -269,43 +269,41 @@ export function CompletionHistoryScreen() {
       ]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
-      {/* Hero Header */}
-      <View style={completionHistoryStyles.heroSection}>
-        <LinearGradient
-          colors={[colors.primary, colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={completionHistoryStyles.heroGradient}
+      {/* Minimalist Header */}
+      <View
+        style={[
+          completionHistoryStyles.heroSection,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        {/* Back Button */}
+        <TouchableOpacity
+          style={[
+            completionHistoryStyles.backButton,
+            { backgroundColor: colors.background },
+          ]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
         >
-          {/* Back Button */}
-          <TouchableOpacity
-            style={completionHistoryStyles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.surface} />
-          </TouchableOpacity>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
 
-          {/* Header Content */}
-          <View style={completionHistoryStyles.heroContent}>
-            <Text
-              style={[
-                completionHistoryStyles.heroTitle,
-                { color: colors.surface },
-              ]}
-            >
-              Completion History
-            </Text>
-            <Text
-              style={[
-                completionHistoryStyles.heroSubtitle,
-                { color: colors.surface },
-              ]}
-            >
-              {groupedRoutines.length} routines completed
-            </Text>
-          </View>
-        </LinearGradient>
+        {/* Header Content */}
+        <View style={completionHistoryStyles.heroContent}>
+          <Text
+            style={[completionHistoryStyles.heroTitle, { color: colors.text }]}
+          >
+            Completion History
+          </Text>
+          <Text
+            style={[
+              completionHistoryStyles.heroSubtitle,
+              { color: colors.textSecondary },
+            ]}
+          >
+            {groupedRoutines.length} routines completed
+          </Text>
+        </View>
       </View>
 
       {/* Routines List */}
