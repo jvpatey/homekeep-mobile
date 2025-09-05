@@ -210,22 +210,21 @@ export function LoginScreen() {
             onPress={handleSignIn}
             disabled={loading}
             style={[
-              authStyles.gradientButton,
-              { marginHorizontal: DesignSystem.spacing.md },
+              authStyles.primaryButton,
+              {
+                backgroundColor: colors.primary,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                marginHorizontal: DesignSystem.spacing.md,
+              },
             ]}
           >
-            <LinearGradient
-              colors={gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={authStyles.primaryButton}
-            >
-              <View style={authStyles.buttonContent}>
-                <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                  {loading ? "Signing In..." : "Sign In"}
-                </Text>
-              </View>
-            </LinearGradient>
+            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+              {loading ? "Signing In..." : "Sign In"}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
 

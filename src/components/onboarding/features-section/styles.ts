@@ -22,7 +22,12 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: DesignSystem.borders.radius.large,
     padding: DesignSystem.spacing.lg,
-    ...DesignSystem.shadows.medium,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   featureIcon: {
     width: 56,
@@ -31,13 +36,19 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: DesignSystem.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   featureText: {
     ...DesignSystem.typography.captionMedium,
     textAlign: "center",
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
   // modalOverlay function to animate the modal overlay
   modalOverlay: {
@@ -66,6 +77,11 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: DesignSystem.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalTitle: {
     ...DesignSystem.typography.h3,
@@ -81,9 +97,6 @@ export const styles = StyleSheet.create({
   closeButton: {
     width: "100%",
     borderRadius: DesignSystem.borders.radius.large,
-    overflow: "hidden",
-  },
-  closeButtonGradient: {
     paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.xl,
     alignItems: "center",
@@ -91,7 +104,6 @@ export const styles = StyleSheet.create({
   },
   closeButtonText: {
     ...DesignSystem.typography.button,
-    color: "white",
     fontWeight: "600",
   },
 });

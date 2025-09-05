@@ -92,15 +92,13 @@ export const authStyles = StyleSheet.create({
   },
 
   // Button styles
-  gradientButton: {
-    borderRadius: DesignSystem.borders.radius.large,
-    overflow: "hidden",
-    ...DesignSystem.shadows.medium,
-  },
   primaryButton: {
-    backgroundColor: "transparent",
     borderRadius: DesignSystem.borders.radius.large,
-    margin: 0,
+    paddingVertical: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: DesignSystem.components.buttonLarge,
   },
   buttonContainer: {
     marginTop: DesignSystem.spacing.md,

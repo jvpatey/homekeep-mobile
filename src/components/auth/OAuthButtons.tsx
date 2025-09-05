@@ -86,29 +86,32 @@ export function OAuthButtons({
         onPress={handleAppleSignIn}
         disabled={disabled || appleLoading}
         style={[
-          styles.gradientButton,
-          { marginHorizontal: DesignSystem.spacing.md },
+          styles.appleButton,
+          {
+            backgroundColor: colors.surface,
+            borderWidth: 2,
+            borderColor: colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 3,
+            marginHorizontal: DesignSystem.spacing.md,
+          },
         ]}
       >
-        <LinearGradient
-          colors={isDark ? ["#000000", "#333333"] : ["#000000", "#1a1a1a"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.appleButton}
-        >
-          <View style={styles.buttonContent}>
-            <View style={styles.googleIconContainer}>
-              {appleLoading ? (
-                <ActivityIndicator size={16} color="white" />
-              ) : (
-                <AntDesign name="apple1" size={16} color="white" />
-              )}
-            </View>
-            <Text style={[styles.buttonLabel, { color: "white" }]}>
-              {appleLoading ? "Signing in..." : "Continue with Apple"}
-            </Text>
+        <View style={styles.buttonContent}>
+          <View style={styles.googleIconContainer}>
+            {appleLoading ? (
+              <ActivityIndicator size={16} color={colors.text} />
+            ) : (
+              <AntDesign name="apple1" size={16} color={colors.text} />
+            )}
           </View>
-        </LinearGradient>
+          <Text style={[styles.buttonLabel, { color: colors.text }]}>
+            {appleLoading ? "Signing in..." : "Continue with Apple"}
+          </Text>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );

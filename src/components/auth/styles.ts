@@ -22,12 +22,8 @@ export const styles = StyleSheet.create({
     marginHorizontal: DesignSystem.spacing.md,
     opacity: 0.7,
   },
-  gradientButton: {
-    borderRadius: DesignSystem.borders.radius.large,
-    overflow: "hidden",
-    ...DesignSystem.shadows.medium,
-  },
   googleButton: {
+    borderRadius: DesignSystem.borders.radius.large,
     paddingVertical: DesignSystem.spacing.md,
     height: DesignSystem.components.buttonLarge,
     justifyContent: "center",
@@ -38,17 +34,22 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    flex: 1,
   },
   buttonLabel: {
     ...DesignSystem.typography.button,
     letterSpacing: 0.5,
+    flex: 1,
+    textAlign: "center",
   },
   googleIconContainer: {
     marginRight: DesignSystem.spacing.sm,
   },
   appleButton: {
+    borderRadius: DesignSystem.borders.radius.large,
     paddingVertical: DesignSystem.spacing.md,
-    height: DesignSystem.components.buttonLarge,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    minHeight: DesignSystem.components.buttonLarge,
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",

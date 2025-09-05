@@ -13,18 +13,14 @@ export function WelcomeText() {
   return (
     <View style={styles.textContainer}>
       <Animated.Text
-        style={[
-          styles.headline,
-          { color: colors.surface },
-          headlineAnimatedStyle,
-        ]}
+        style={[styles.headline, { color: colors.text }, headlineAnimatedStyle]}
       >
         Never miss home maintenance again.
       </Animated.Text>
       <Animated.Text
         style={[
           styles.subtitle,
-          { color: colors.surface, opacity: 0.9 },
+          { color: colors.textSecondary },
           subtitleAnimatedStyle,
         ]}
       >
