@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Platform } from "react-native";
 import {
   createClient,
   Session,
@@ -7,10 +6,7 @@ import {
   SupabaseClient,
 } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
-import { makeRedirectUri } from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -27,18 +23,6 @@ export const supabase = hasValidCredentials
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Configure Google Sign-In with proper error handling
-const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-
-if (googleWebClientId && googleIosClientId) {
-  GoogleSignin.configure({
-    webClientId: googleWebClientId,
-    iosClientId: googleIosClientId,
-  });
-} else {
-  console.warn("Google Sign-In not configured: Missing environment variables");
-}
 
 interface AuthContextType {
   user: User | null;
@@ -55,7 +39,6 @@ interface AuthContextType {
     password: string,
     fullName: string
   ) => Promise<{ data: any; error: any }>;
-  signInWithGoogle: () => Promise<{ data: any; error: any }>;
   signInWithApple: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
 }
@@ -149,90 +132,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { data: authData, error: null };
   };
 
-  // signInWithGoogle function using native Google Sign-In SDK
-  const signInWithGoogle = async () => {
-    if (!supabase) {
-      return { data: null, error: { message: "Supabase not configured" } };
-    }
-
-    if (!googleWebClientId || !googleIosClientId) {
-      return {
-        data: null,
-        error: {
-          message: "Google Sign-In not configured. Please contact support.",
-        },
-      };
-    }
-
-    try {
-      // Check if Google Sign-In is available
-      const isSignedIn = await GoogleSignin.isSignedIn();
-      if (isSignedIn) {
-        await GoogleSignin.signOut();
-      }
-
-      // Check if your device supports Google Play (Android only)
-      if (Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices({
-          showPlayServicesUpdateDialog: true,
-        });
-      }
-
-      // Get the users ID token
-      const { idToken } = await GoogleSignin.signIn();
-
-      if (!idToken) {
-        return {
-          data: null,
-          error: { message: "Failed to get Google ID token" },
-        };
-      }
-
-      // Create a Google credential with the token
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: "google",
-        token: idToken,
-      });
-
-      return { data, error };
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
-
-      // Handle user cancellation
-      if (error.code === "SIGN_IN_CANCELLED" || error.code === "-5") {
-        return { data: null, error: null }; // User canceled, not an error
-      }
-
-      // Handle network errors
-      if (error.code === "NETWORK_ERROR" || error.code === "-1009") {
-        return {
-          data: null,
-          error: {
-            message:
-              "Network error. Please check your connection and try again.",
-          },
-        };
-      }
-
-      // Handle configuration errors
-      if (error.code === "SIGN_IN_REQUIRED" || error.code === "-4") {
-        return {
-          data: null,
-          error: {
-            message:
-              "Google Sign-In configuration error. Please contact support.",
-          },
-        };
-      }
-
-      return {
-        data: null,
-        error: {
-          message: `Sign-in failed: ${error.message || "Unknown error"}`,
-        },
-      };
-    }
-  };
 
   // signInWithApple function for Apple Sign-In
   const signInWithApple = async () => {
@@ -298,7 +197,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     supabase,
     signIn,
     signUp,
-    signInWithGoogle,
     signInWithApple,
     signOut,
   };

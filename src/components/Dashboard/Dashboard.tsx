@@ -16,6 +16,8 @@ import {
   getMotivationalMessage,
   calculateConsecutiveStreak,
   getDueSoonTasks,
+  getUpcomingTasks,
+  getPastDueTasks,
 } from "./utils";
 import { dashboardStyles } from "./styles";
 
@@ -47,10 +49,11 @@ export function NewDashboard({
   const [streak, setStreak] = useState(0);
 
   // Filter tasks for different views
-  const upcomingTasks = tasks.filter((task) => !task.is_completed);
+  const upcomingTasks = getUpcomingTasks(tasks);
   const completedTasks = tasks.filter((task) => task.is_completed);
+  const pastDueTasks = getPastDueTasks(tasks);
 
-  // Filter for "due soon" tasks (within next 7 days or overdue)
+  // Filter for "due soon" tasks (within next 7 days, excluding past due)
   const dueSoonTasks = getDueSoonTasks(tasks);
 
   useEffect(() => {

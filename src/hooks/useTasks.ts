@@ -88,6 +88,9 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           timeRange === "all" ? "All Tasks" : `${timeRange} days`
         }`
       );
+      // First, update overdue status in the database
+      await MaintenanceService.updateOverdueStatus();
+
       const [
         tasksResult,
         upcomingResult,

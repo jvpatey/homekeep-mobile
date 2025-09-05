@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../hooks/useTasks";
+import { getPastDueTasks } from "../../components/Dashboard/utils";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -27,8 +28,9 @@ export function CompletionHistoryScreen() {
   );
 
   useEffect(() => {
-    setGroupedRoutines(groupTasksByRoutine(completedTasks));
-  }, [completedTasks]);
+    const pastDueTasks = getPastDueTasks(tasks);
+    setGroupedRoutines(groupTasksByRoutine(completedTasks, pastDueTasks));
+  }, [completedTasks, tasks]);
 
   const toggleRoutineExpansion = (routineId: string) => {
     const newExpanded = new Set(expandedRoutines);
@@ -65,9 +67,22 @@ export function CompletionHistoryScreen() {
                 { color: colors.textSecondary },
               ]}
             >
-              {routine.totalInstances} completed
+              {routine.completedInstances.length} completed
             </Text>
           </View>
+          {routine.pastDueInstances.length > 0 && (
+            <View style={completionHistoryStyles.progressStat}>
+              <Ionicons name="close-circle" size={16} color="#EF4444" />
+              <Text
+                style={[
+                  completionHistoryStyles.progressText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {routine.pastDueInstances.length} past due
+              </Text>
+            </View>
+          )}
           {routine.intervalDays > 0 && (
             <View style={completionHistoryStyles.progressStat}>
               <Ionicons name="refresh" size={16} color={colors.textSecondary} />
@@ -167,7 +182,7 @@ export function CompletionHistoryScreen() {
                 { color: colors.text },
               ]}
             >
-              Completion History
+              Task History
             </Text>
             {item.completedInstances.map((instance, index) => (
               <View
@@ -181,7 +196,7 @@ export function CompletionHistoryScreen() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    {formatDate(instance.completed_at || "")}
+                    Completed: {formatDate(instance.completed_at || "")}
                   </Text>
                   <View style={completionHistoryStyles.instancePriority}>
                     <Ionicons
@@ -189,6 +204,26 @@ export function CompletionHistoryScreen() {
                       size={16}
                       color="#10B981"
                     />
+                  </View>
+                </View>
+              </View>
+            ))}
+            {item.pastDueInstances.map((instance, index) => (
+              <View
+                key={instance.instance_id}
+                style={completionHistoryStyles.instanceItem}
+              >
+                <View style={completionHistoryStyles.instanceHeader}>
+                  <Text
+                    style={[
+                      completionHistoryStyles.instanceDate,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Past Due: {formatDate(instance.due_date)}
+                  </Text>
+                  <View style={completionHistoryStyles.instancePriority}>
+                    <Ionicons name="close-circle" size={16} color="#EF4444" />
                   </View>
                 </View>
               </View>

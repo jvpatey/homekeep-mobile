@@ -29,43 +29,10 @@ export function OAuthButtons({
   animatedStyle,
 }: OAuthButtonsProps) {
   const { colors } = useTheme();
-  const { signInWithGoogle, signInWithApple } = useAuth();
-  const { accentGradient, isDark } = useGradients();
+  const { signInWithApple } = useAuth();
+  const { isDark } = useGradients();
   const { triggerMedium, triggerError, triggerSuccess } = useHaptics();
-  const [loading, setLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-
-  // Handles Google OAuth sign-in process with haptic feedback and error handling
-  const handleGoogleSignIn = async () => {
-    if (disabled) return;
-
-    // Provide haptic feedback for button press
-    triggerMedium();
-    setLoading(true);
-
-    try {
-      const { data, error } = await signInWithGoogle();
-
-      if (error) {
-        // Haptic feedback for error
-        triggerError();
-        Alert.alert(
-          "Sign In Error",
-          error.message || "Failed to sign in with Google"
-        );
-      } else if (data?.session) {
-        // Haptic feedback for success
-        triggerSuccess();
-        onSuccess?.();
-      }
-    } catch (error) {
-      // Handle unexpected errors
-      triggerError();
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handles Apple OAuth sign-in process with haptic feedback and error handling
   const handleAppleSignIn = async () => {
@@ -114,46 +81,13 @@ export function OAuthButtons({
         />
       </View>
 
-      {/* Google Sign In Button with gradient background */}
-      <TouchableOpacity
-        onPress={handleGoogleSignIn}
-        disabled={disabled || loading}
-        style={[
-          styles.gradientButton,
-          { marginHorizontal: DesignSystem.spacing.md },
-        ]}
-      >
-        <LinearGradient
-          colors={accentGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.googleButton}
-        >
-          <View style={styles.buttonContent}>
-            <View style={styles.googleIconContainer}>
-              {loading ? (
-                <ActivityIndicator size={16} color="white" />
-              ) : (
-                <AntDesign name="google" size={16} color="white" />
-              )}
-            </View>
-            <Text style={[styles.buttonLabel, { color: "white" }]}>
-              {loading ? "Signing in..." : "Continue with Google"}
-            </Text>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* Apple Sign In Button with custom styling to match Google button */}
+      {/* Apple Sign In Button */}
       <TouchableOpacity
         onPress={handleAppleSignIn}
         disabled={disabled || appleLoading}
         style={[
           styles.gradientButton,
-          {
-            marginHorizontal: DesignSystem.spacing.md,
-            marginTop: DesignSystem.spacing.sm,
-          },
+          { marginHorizontal: DesignSystem.spacing.md },
         ]}
       >
         <LinearGradient

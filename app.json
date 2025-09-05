@@ -63,7 +63,6 @@
       "favicon": "./assets/icon.png"
     },
     "plugins": [
-      "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
       "expo-web-browser",
       "expo-notifications",
