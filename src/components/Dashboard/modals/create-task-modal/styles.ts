@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.lg,
   },
 
-  // Modal header styles - Enhanced with modern design and gradient
+  // Modal header styles - Minimalist design
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -20,22 +20,25 @@ export const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingVertical: DesignSystem.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
-    ...DesignSystem.shadows.medium,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   modalTitle: {
     ...DesignSystem.typography.h2,
     fontWeight: "700",
-    color: "white",
     letterSpacing: -0.3,
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   closeButton: {
     padding: DesignSystem.spacing.sm,
     borderRadius: DesignSystem.borders.radius.medium,
-    ...DesignSystem.shadows.small,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerSpacer: {
     width: 40,
@@ -169,27 +172,27 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // Summary section styles - Enhanced card design
+  // Summary section styles - Minimalist design
   summaryContainer: {
-    backgroundColor: "#F8FAFC",
     borderRadius: DesignSystem.borders.radius.large,
     padding: DesignSystem.spacing.lg,
     marginTop: DesignSystem.spacing.lg,
     marginBottom: DesignSystem.spacing.lg,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...DesignSystem.shadows.small,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   summaryTitle: {
     fontSize: DesignSystem.typography.h4.fontSize,
     fontWeight: "700",
     marginBottom: DesignSystem.spacing.sm,
-    color: "#1F2937",
   },
   summaryText: {
     fontSize: DesignSystem.typography.body.fontSize,
     lineHeight: 24,
-    color: "#4B5563",
   },
 
   // Submit button styles - Enhanced with modern design

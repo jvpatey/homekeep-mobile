@@ -1,9 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
-import { useGradients } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
 
@@ -16,27 +14,29 @@ interface ModalHeaderProps {
 // ModalHeader component for the CreateTaskModal
 export function ModalHeader({ title, onClose }: ModalHeaderProps) {
   const { colors } = useTheme();
-  const { primaryGradient } = useGradients();
 
   return (
-    <LinearGradient
-      colors={primaryGradient}
-      style={styles.modalHeader}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <View
+      style={[
+        styles.modalHeader,
+        {
+          backgroundColor: colors.surface,
+          borderBottomColor: colors.border,
+        }
+      ]}
     >
       <TouchableOpacity
         onPress={onClose}
         style={[
           styles.closeButton,
-          { backgroundColor: "rgba(255, 255, 255, 0.2)" },
+          { backgroundColor: colors.background },
         ]}
         activeOpacity={0.7}
       >
-        <Ionicons name="close" size={24} color="white" />
+        <Ionicons name="close" size={24} color={colors.text} />
       </TouchableOpacity>
-      <Text style={styles.modalTitle}>{title}</Text>
+      <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
       <View style={styles.headerSpacer} />
-    </LinearGradient>
+    </View>
   );
 }
