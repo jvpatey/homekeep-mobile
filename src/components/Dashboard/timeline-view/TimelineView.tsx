@@ -89,7 +89,9 @@ export function TimelineView({
               end={{ x: 1, y: 1 }}
               style={timelineStyles.emptyIconBackground}
             >
-              <Animated.View style={iconAnimatedStyle}>
+              <Animated.View
+                style={[timelineStyles.emptyIcon, iconAnimatedStyle]}
+              >
                 <Ionicons name="calendar" size={32} color="white" />
               </Animated.View>
             </LinearGradient>

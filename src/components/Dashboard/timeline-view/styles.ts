@@ -193,6 +193,13 @@ export const timelineStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  emptyIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   emptyTitle: {
     ...DesignSystem.typography.h3,
     marginTop: DesignSystem.spacing.md,
