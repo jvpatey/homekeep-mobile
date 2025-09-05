@@ -24,42 +24,13 @@ export function FloatingActionButton({
 }: FloatingActionButtonProps) {
   const { colors } = useTheme();
 
-  // Animation for floating action button when no tasks
-  const fabScale = useSharedValue(1);
-  const fabRotation = useSharedValue(0);
+  // Animation for button press feedback only
   const pressScale = useSharedValue(1);
 
-  useEffect(() => {
-    // Animate FAB when no tasks
-    if (!hasTasks) {
-      fabScale.value = withRepeat(
-        withSequence(
-          withTiming(1.1, { duration: 1500 }),
-          withTiming(1, { duration: 1500 })
-        ),
-        -1,
-        true
-      );
-
-      fabRotation.value = withRepeat(
-        withSequence(
-          withTiming(10, { duration: 2000 }),
-          withTiming(-10, { duration: 2000 })
-        ),
-        -1,
-        true
-      );
-    } else {
-      fabScale.value = 1;
-      fabRotation.value = 0;
-    }
-  }, [hasTasks]);
+  // Removed animations for cleaner experience
 
   const fabAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: fabScale.value * pressScale.value },
-      { rotate: `${fabRotation.value}deg` },
-    ],
+    transform: [{ scale: pressScale.value }],
   }));
 
   const handlePressIn = () => {

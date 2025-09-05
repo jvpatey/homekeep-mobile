@@ -34,77 +34,45 @@ export function TimelineView({
 }: TimelineViewProps) {
   const { colors } = useTheme();
 
-  // Animation for empty state
-  const iconScale = useSharedValue(1);
-  const iconRotation = useSharedValue(0);
-
-  // useEffect hook to animate the empty state
-  useEffect(() => {
-    if (tasks.length === 0) {
-      iconScale.value = withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 2000 }),
-          withTiming(1, { duration: 2000 })
-        ),
-        -1,
-        true
-      );
-
-      // Gentle rotation
-      iconRotation.value = withRepeat(
-        withSequence(
-          withTiming(5, { duration: 3000 }),
-          withTiming(-5, { duration: 3000 })
-        ),
-        -1,
-        true
-      );
-    }
-  }, [tasks.length]);
-
-  // iconAnimatedStyle function to animate the icon
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: iconScale.value },
-      { rotate: `${iconRotation.value}deg` },
-    ],
-  }));
+  // Removed animations for cleaner experience
 
   // groupedTasks function to group the tasks by date
   const groupedTasks = groupTasksByDate(tasks);
 
   if (tasks.length === 0) {
     return (
-      <View style={timelineStyles.emptyContainer}>
-        <LinearGradient
-          colors={["#F0F8FF", "#E6F3FF"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={timelineStyles.emptyGradient}
-        >
-          <View style={timelineStyles.emptyIconContainer}>
-            <LinearGradient
-              colors={["#2563EB", "#3B82F6"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={timelineStyles.emptyIconBackground}
-            >
-              <Animated.View
-                style={[timelineStyles.emptyIcon, iconAnimatedStyle]}
-              >
-                <Ionicons name="calendar" size={32} color="white" />
-              </Animated.View>
-            </LinearGradient>
-          </View>
-          <Text style={[timelineStyles.emptyTitle, { color: colors.primary }]}>
-            No Upcoming Tasks
-          </Text>
-          <Text
-            style={[timelineStyles.emptySubtitle, { color: colors.secondary }]}
+      <View
+        style={[
+          timelineStyles.emptyContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={timelineStyles.emptyIconContainer}>
+          <View
+            style={[
+              timelineStyles.emptyIconBackground,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.primary,
+              },
+            ]}
           >
-            You're all caught up!
-          </Text>
-        </LinearGradient>
+            <View style={timelineStyles.emptyIcon}>
+              <Ionicons name="calendar" size={32} color={colors.primary} />
+            </View>
+          </View>
+        </View>
+        <Text style={[timelineStyles.emptyTitle, { color: colors.text }]}>
+          No Upcoming Tasks
+        </Text>
+        <Text
+          style={[
+            timelineStyles.emptySubtitle,
+            { color: colors.textSecondary },
+          ]}
+        >
+          You're all caught up!
+        </Text>
       </View>
     );
   }
