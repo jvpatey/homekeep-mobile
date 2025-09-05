@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,11 +21,14 @@ import { GroupedRoutine, groupTasksByRoutine, formatDate } from "./utils";
 
 export function CompletionHistoryScreen() {
   const { colors, isDark } = useTheme();
-  const { completedTasks, tasks } = useTasks();
+  const { completedTasks, tasks, completeTask, refreshTasks } = useTasks();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
   const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
+    new Set()
+  );
+  const [completingTasks, setCompletingTasks] = useState<Set<string>>(
     new Set()
   );
 
@@ -41,6 +45,51 @@ export function CompletionHistoryScreen() {
       newExpanded.add(routineId);
     }
     setExpandedRoutines(newExpanded);
+  };
+
+  const handleCompleteOverdueTask = async (
+    instanceId: string,
+    taskTitle: string
+  ) => {
+    if (completingTasks.has(instanceId)) return; // Prevent multiple clicks
+
+    setCompletingTasks((prev) => new Set(prev).add(instanceId));
+
+    try {
+      const result = await completeTask(instanceId);
+
+      if (result.success) {
+        // Refresh all task data to ensure consistency
+        await refreshTasks();
+
+        // Show success feedback
+        Alert.alert(
+          "Task Completed!",
+          `"${taskTitle}" has been marked as completed.`,
+          [{ text: "OK" }]
+        );
+      } else {
+        // Show error feedback
+        Alert.alert(
+          "Completion Failed",
+          result.error || "Failed to complete the task. Please try again.",
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      console.error("Error completing overdue task:", error);
+      Alert.alert(
+        "Completion Failed",
+        "An unexpected error occurred. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setCompletingTasks((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(instanceId);
+        return newSet;
+      });
+    }
   };
 
   const renderProgressIndicator = (routine: GroupedRoutine) => {
@@ -77,10 +126,10 @@ export function CompletionHistoryScreen() {
               <Text
                 style={[
                   completionHistoryStyles.progressText,
-                  { color: colors.textSecondary },
+                  { color: "#EF4444" },
                 ]}
               >
-                {routine.pastDueInstances.length} past due
+                {routine.pastDueInstances.length} overdue
               </Text>
             </View>
           )}
@@ -209,26 +258,77 @@ export function CompletionHistoryScreen() {
                 </View>
               </View>
             ))}
-            {item.pastDueInstances.map((instance, index) => (
-              <View
-                key={instance.instance_id}
-                style={completionHistoryStyles.instanceItem}
-              >
-                <View style={completionHistoryStyles.instanceHeader}>
-                  <Text
-                    style={[
-                      completionHistoryStyles.instanceDate,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Past Due: {formatDate(instance.due_date)}
-                  </Text>
-                  <View style={completionHistoryStyles.instancePriority}>
-                    <Ionicons name="close-circle" size={16} color="#EF4444" />
+            {item.pastDueInstances.map((instance, index) => {
+              const isCompleting = completingTasks.has(instance.instance_id);
+              return (
+                <View
+                  key={instance.instance_id}
+                  style={[
+                    completionHistoryStyles.instanceItem,
+                    { backgroundColor: "rgba(239, 68, 68, 0.05)" },
+                  ]}
+                >
+                  <View style={completionHistoryStyles.instanceHeader}>
+                    <Text
+                      style={[
+                        completionHistoryStyles.instanceDate,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Past Due: {formatDate(instance.due_date)}
+                    </Text>
+                    <View style={completionHistoryStyles.instancePriority}>
+                      <Ionicons name="close-circle" size={16} color="#EF4444" />
+                    </View>
                   </View>
+
+                  {/* Completion Button for Overdue Tasks */}
+                  <TouchableOpacity
+                    style={[
+                      completionHistoryStyles.completeButton,
+                      {
+                        backgroundColor: isCompleting
+                          ? colors.surface
+                          : colors.primary + "10",
+                        borderColor: colors.primary,
+                        borderWidth: 2,
+                        opacity: isCompleting ? 0.6 : 1,
+                      },
+                    ]}
+                    onPress={() =>
+                      handleCompleteOverdueTask(
+                        instance.instance_id,
+                        instance.title
+                      )
+                    }
+                    disabled={isCompleting}
+                    activeOpacity={0.8}
+                  >
+                    {isCompleting ? (
+                      <Ionicons
+                        name="hourglass"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        completionHistoryStyles.completeButtonText,
+                        { color: colors.primary },
+                      ]}
+                    >
+                      {isCompleting ? "Completing..." : "Complete Now"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </View>
@@ -301,7 +401,7 @@ export function CompletionHistoryScreen() {
               { color: colors.textSecondary },
             ]}
           >
-            {groupedRoutines.length} routines completed
+            {completedTasks.length} tasks completed
           </Text>
         </View>
       </View>

@@ -149,6 +149,21 @@ export const completionHistoryStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.04)",
   },
+  completeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.small,
+    marginTop: DesignSystem.spacing.sm,
+    gap: DesignSystem.spacing.xs,
+  },
+  completeButtonText: {
+    ...DesignSystem.typography.captionSemiBold,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   instanceHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
