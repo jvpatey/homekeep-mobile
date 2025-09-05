@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
+import { StatusBar } from "expo-status-bar";
+import { useTheme } from "../context/ThemeContext";
 import { Dashboard } from "../components/Dashboard";
 import { useTasks } from "../hooks/useTasks";
 
 export function DashboardScreen() {
+  const { colors, isDark } = useTheme();
   const { tasks, upcomingTasks, completeTask, refreshTasks } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,7 +35,10 @@ export function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Dashboard
         tasks={tasks}
         onCompleteTask={handleCompleteTask}
@@ -48,6 +53,5 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
   },
 });

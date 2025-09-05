@@ -7,6 +7,7 @@ import {
   Switch,
   Alert,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
@@ -26,7 +27,7 @@ import {
 export function NotificationPreferencesScreen({
   navigation,
 }: NotificationPreferencesScreenProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const {
     notificationSettings,
     updateNotificationPreferences,
@@ -249,6 +250,7 @@ export function NotificationPreferencesScreen({
         { backgroundColor: colors.background },
       ]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <View
         style={[
           notificationPreferencesStyles.header,

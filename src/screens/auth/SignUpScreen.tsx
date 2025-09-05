@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
 import { TextInput, HelperText, ProgressBar } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
@@ -21,7 +22,7 @@ import { DesignSystem } from "../../theme/designSystem";
 
 // SignUpScreen for the SignUpScreen on the home screen
 export function SignUpScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { signUp } = useAuth();
   const navigation = useNavigation();
 
@@ -126,6 +127,7 @@ export function SignUpScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         style={authStyles.scrollView}
         contentContainerStyle={[

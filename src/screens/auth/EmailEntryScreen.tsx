@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { LogoSection } from "../../components/onboarding";
@@ -18,7 +19,7 @@ import { DesignSystem } from "../../theme/designSystem";
 
 // EmailEntryScreen for the EmailEntryScreen on the home screen
 export function EmailEntryScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const navigation = useNavigation();
   const { dynamicTopSpacing } = useDynamicSpacing();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
@@ -53,6 +54,7 @@ export function EmailEntryScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       <View style={{ paddingTop: dynamicTopSpacing, flex: 1 }}>
         {/* Header */}
         <View style={authStyles.headerContainer}>

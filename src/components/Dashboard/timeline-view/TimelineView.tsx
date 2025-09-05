@@ -96,10 +96,12 @@ export function TimelineView({
               </Animated.View>
             </LinearGradient>
           </View>
-          <Text style={[timelineStyles.emptyTitle, { color: "#1E40AF" }]}>
+          <Text style={[timelineStyles.emptyTitle, { color: colors.primary }]}>
             No Upcoming Tasks
           </Text>
-          <Text style={[timelineStyles.emptySubtitle, { color: "#3B82F6" }]}>
+          <Text
+            style={[timelineStyles.emptySubtitle, { color: colors.secondary }]}
+          >
             You're all caught up!
           </Text>
         </LinearGradient>
@@ -110,8 +112,14 @@ export function TimelineView({
   return (
     <View style={timelineStyles.container}>
       <View style={timelineStyles.header}>
-        <Text style={timelineStyles.title}>Timeline</Text>
-        <Text style={timelineStyles.subtitle}>Upcoming tasks</Text>
+        <Text style={[timelineStyles.title, { color: colors.text }]}>
+          Timeline
+        </Text>
+        <Text
+          style={[timelineStyles.subtitle, { color: colors.textSecondary }]}
+        >
+          Upcoming tasks
+        </Text>
       </View>
 
       <ScrollView
@@ -123,15 +131,27 @@ export function TimelineView({
           <View key={groupIndex} style={timelineStyles.dateGroup}>
             {/* Date Header */}
             <View style={timelineStyles.dateHeader}>
-              <View style={timelineStyles.dateIndicator}>
+              <View
+                style={[
+                  timelineStyles.dateIndicator,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
                 <Text style={timelineStyles.dateNumber}>{date.getDate()}</Text>
                 <Text style={timelineStyles.dateMonth}>
                   {date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </View>
               <View style={timelineStyles.dateInfo}>
-                <Text style={timelineStyles.dateText}>{formatDate(date)}</Text>
-                <Text style={timelineStyles.taskCount}>
+                <Text style={[timelineStyles.dateText, { color: colors.text }]}>
+                  {formatDate(date)}
+                </Text>
+                <Text
+                  style={[
+                    timelineStyles.taskCount,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {tasks.length} task{tasks.length !== 1 ? "s" : ""}
                 </Text>
               </View>
@@ -150,20 +170,46 @@ export function TimelineView({
               >
                 {/* Timeline Line */}
                 <View style={timelineStyles.timelineLine}>
-                  <View style={timelineStyles.timelineDot} />
+                  <View
+                    style={[
+                      timelineStyles.timelineDot,
+                      {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.surface,
+                      },
+                    ]}
+                  />
                   {taskIndex !== tasks.length - 1 && (
-                    <View style={timelineStyles.timelineConnector} />
+                    <View
+                      style={[
+                        timelineStyles.timelineConnector,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
                   )}
                 </View>
 
                 {/* Task Content */}
-                <View style={timelineStyles.taskContent}>
+                <View
+                  style={[
+                    timelineStyles.taskContent,
+                    { backgroundColor: colors.surface },
+                  ]}
+                >
                   <View style={timelineStyles.taskHeader}>
-                    <Text style={timelineStyles.taskTitle} numberOfLines={1}>
+                    <Text
+                      style={[timelineStyles.taskTitle, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
                       {task.title}
                     </Text>
                     <View style={timelineStyles.taskMeta}>
-                      <View style={timelineStyles.priorityBadge}>
+                      <View
+                        style={[
+                          timelineStyles.priorityBadge,
+                          { backgroundColor: colors.background },
+                        ]}
+                      >
                         <View
                           style={[
                             timelineStyles.priorityDot,
@@ -175,18 +221,33 @@ export function TimelineView({
                             },
                           ]}
                         />
-                        <Text style={timelineStyles.priorityText}>
+                        <Text
+                          style={[
+                            timelineStyles.priorityText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           {task.priority}
                         </Text>
                       </View>
                       {task.estimated_duration_minutes && (
-                        <View style={timelineStyles.durationBadge}>
+                        <View
+                          style={[
+                            timelineStyles.durationBadge,
+                            { backgroundColor: colors.background },
+                          ]}
+                        >
                           <Ionicons
                             name="time-outline"
                             size={12}
                             color={colors.textSecondary}
                           />
-                          <Text style={timelineStyles.durationText}>
+                          <Text
+                            style={[
+                              timelineStyles.durationText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             {task.estimated_duration_minutes}m
                           </Text>
                         </View>
@@ -195,7 +256,12 @@ export function TimelineView({
                   </View>
 
                   <View style={timelineStyles.taskFooter}>
-                    <Text style={timelineStyles.taskTime}>
+                    <Text
+                      style={[
+                        timelineStyles.taskTime,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {formatTime(task.due_date)}
                     </Text>
 

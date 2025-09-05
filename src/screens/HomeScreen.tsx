@@ -16,7 +16,7 @@ export function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Hero Section with Gradient Background */}
       <LinearGradient

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
@@ -18,7 +19,7 @@ import { completionHistoryStyles } from "./styles";
 import { GroupedRoutine, groupTasksByRoutine, formatDate } from "./utils";
 
 export function CompletionHistoryScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { completedTasks, tasks } = useTasks();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -267,6 +268,7 @@ export function CompletionHistoryScreen() {
         { backgroundColor: colors.background },
       ]}
     >
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Hero Header */}
       <View style={completionHistoryStyles.heroSection}>
         <LinearGradient
