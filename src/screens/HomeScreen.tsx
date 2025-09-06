@@ -1,6 +1,6 @@
 import React from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, ScrollView, View, Text } from "react-native";
+import { StyleSheet, ScrollView, View, Text, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../context/ThemeContext";
 import { useDynamicSpacing } from "../hooks";
@@ -8,6 +8,9 @@ import { LogoSection } from "../components/onboarding";
 import { WelcomeText } from "../components/onboarding";
 import { FeaturesSection } from "../components/onboarding";
 import { DesignSystem } from "../theme/designSystem";
+
+const { height: screenHeight } = Dimensions.get("window");
+const isProMax = screenHeight > 920; // Specifically for Pro Max
 
 // HomeScreen for the HomeScreen on the home screen
 export function HomeScreen() {
@@ -64,6 +67,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    minHeight: isProMax ? screenHeight * 0.45 : undefined,
+    justifyContent: "center",
   },
   heroContent: {
     alignItems: "center",
@@ -73,6 +78,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: DesignSystem.spacing.lg,
+    paddingTop: isProMax ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
+    justifyContent: isProMax ? "center" : "flex-start",
   },
 });
