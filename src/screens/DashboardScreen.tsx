@@ -8,8 +8,16 @@ import { useTasks } from "../hooks/useTasks";
 
 export function DashboardScreen() {
   const { colors, isDark } = useTheme();
-  const { tasks, upcomingTasks, completeTask, refreshTasks } = useTasks();
+  const { tasks, upcomingTasks, completedTasks, completeTask, refreshTasks } =
+    useTasks();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Debug logging for task data flow
+  console.log("🔄 DashboardScreen - useTasks() returned tasks:", tasks.length);
+  console.log(
+    "🔄 DashboardScreen - useTasks() returned upcomingTasks:",
+    upcomingTasks.length
+  );
 
   // handleCompleteTask for the handleCompleteTask on the home screen
   const handleCompleteTask = async (instanceId: string) => {
@@ -29,8 +37,10 @@ export function DashboardScreen() {
 
   // handleRefresh for the handleRefresh on the home screen
   const handleRefresh = async () => {
+    console.log("🔄 DashboardScreen - Starting refresh");
     setRefreshing(true);
     await refreshTasks();
+    console.log("✅ DashboardScreen - Refresh completed");
     setRefreshing(false);
   };
 
@@ -40,7 +50,8 @@ export function DashboardScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
       <Dashboard
-        tasks={tasks}
+        tasks={upcomingTasks}
+        completedTasks={completedTasks}
         onCompleteTask={handleCompleteTask}
         onTaskPress={handleTaskPress}
         onRefresh={handleRefresh}

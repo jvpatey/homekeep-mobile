@@ -128,12 +128,15 @@ export function TimelineView({
             {/* Tasks for this date */}
             {tasks.map((task, taskIndex) => (
               <TouchableOpacity
-                key={task.id}
+                key={task.instance_id}
                 style={[
                   timelineStyles.taskItem,
                   taskIndex === tasks.length - 1 && timelineStyles.lastTaskItem,
                 ]}
-                onPress={() => onTaskPress?.(task.id)}
+                onPress={() => {
+                  console.log("Timeline View - Task pressed:", task.title, "Instance ID:", task.instance_id);
+                  onTaskPress?.(task.instance_id);
+                }}
                 activeOpacity={0.7}
               >
                 {/* Timeline Line */}
