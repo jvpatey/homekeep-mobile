@@ -92,7 +92,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       title: "Customize Avatar",
       icon: "color-palette-outline",
       onPress: handleCustomizeAvatar,
-      type: "action" as const,
+      type: "navigation" as const,
     },
     {
       id: "notifications",

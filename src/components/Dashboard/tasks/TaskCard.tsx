@@ -234,15 +234,27 @@ export function TaskCard({
                   size={16}
                   color={colors.textSecondary}
                 />
-                <Text
-                  style={[
-                    styles.metaText,
-                    { color: colors.textSecondary },
-                    isOverdue && styles.overdueText,
-                  ]}
-                >
-                  {formatDueDate(due_date)}
-                </Text>
+                {(() => {
+                  const formattedDate = formatDueDate(due_date);
+                  const isDueToday = formattedDate === "Today";
+
+                  return (
+                    <Text
+                      style={[
+                        styles.metaText,
+                        {
+                          color: isDueToday
+                            ? colors.error
+                            : colors.textSecondary,
+                          fontWeight: isDueToday ? "600" : "normal",
+                        },
+                        isOverdue && styles.overdueText,
+                      ]}
+                    >
+                      {formattedDate}
+                    </Text>
+                  );
+                })()}
               </View>
 
               <View style={styles.metaItem}>
