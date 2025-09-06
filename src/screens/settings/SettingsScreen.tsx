@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
@@ -182,7 +183,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
@@ -196,7 +199,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           Settings
         </Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerRightSpacer} />
       </View>
 
       {/* Content */}
@@ -213,7 +216,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         visible={customizationModalVisible}
         onClose={handleCloseCustomization}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -224,9 +227,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 60,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -235,21 +238,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    position: "relative",
   },
   backButton: {
     padding: 8,
     marginLeft: -8,
+    zIndex: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "600",
     letterSpacing: -0.2,
-    flex: 1,
+    position: "absolute",
+    left: 0,
+    right: 0,
     textAlign: "center",
-    marginRight: 40, // Compensate for back button width
+    zIndex: 0,
   },
-  headerSpacer: {
-    width: 40, // Same as back button width for centering
+  headerRightSpacer: {
+    width: 40, // Same as back button width for visual balance
+    zIndex: 1,
   },
   content: {
     flex: 1,
