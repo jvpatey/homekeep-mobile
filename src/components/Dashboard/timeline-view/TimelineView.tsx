@@ -134,7 +134,12 @@ export function TimelineView({
                   taskIndex === tasks.length - 1 && timelineStyles.lastTaskItem,
                 ]}
                 onPress={() => {
-                  console.log("Timeline View - Task pressed:", task.title, "Instance ID:", task.instance_id);
+                  console.log(
+                    "Timeline View - Task pressed:",
+                    task.title,
+                    "Instance ID:",
+                    task.instance_id
+                  );
                   onTaskPress?.(task.instance_id);
                 }}
                 activeOpacity={0.7}
