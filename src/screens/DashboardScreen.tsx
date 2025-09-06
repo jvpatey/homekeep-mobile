@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../context/ThemeContext";
 import { Dashboard } from "../components/Dashboard";
 import { useTasks } from "../hooks/useTasks";
@@ -17,6 +18,14 @@ export function DashboardScreen() {
   console.log(
     "🔄 DashboardScreen - useTasks() returned upcomingTasks:",
     upcomingTasks.length
+  );
+
+  // Refresh tasks when screen comes into focus (e.g., navigating back from Settings)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("🔄 DashboardScreen - Screen focused, refreshing tasks");
+      refreshTasks();
+    }, [refreshTasks])
   );
 
   // handleCompleteTask for the handleCompleteTask on the home screen
