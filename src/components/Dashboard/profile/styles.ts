@@ -109,6 +109,20 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  counterBadge: {
+    minWidth: 28,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  counterText: {
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",

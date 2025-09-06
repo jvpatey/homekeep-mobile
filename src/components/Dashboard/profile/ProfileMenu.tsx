@@ -223,15 +223,16 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                 Total Tasks
               </Text>
               <View style={styles.menuActionRight}>
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontWeight: "700",
-                    marginRight: 4,
-                  }}
+                <View
+                  style={[
+                    styles.counterBadge,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
                 >
-                  {stats.total}
-                </Text>
+                  <Text style={[styles.counterText, { color: colors.primary }]}>
+                    {stats.total}
+                  </Text>
+                </View>
                 <Ionicons
                   name="chevron-forward"
                   size={16}
