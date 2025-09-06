@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { DashboardScreen } from "../screens/DashboardScreen";
 import { CompletionHistoryScreen } from "../screens/completion-history";
 import { NotificationPreferencesScreen } from "../screens/notification-preferences";
+import { SettingsScreen } from "../screens/settings";
+import { AllTasksScreen } from "../screens/all-tasks";
 import { TasksProvider } from "../context/TasksContext";
 import { AppStackParamList } from "./types";
 
@@ -32,6 +34,8 @@ export function AppNavigator() {
           name="NotificationPreferences"
           component={NotificationPreferencesScreen}
         />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="AllTasks" component={AllTasksScreen} />
       </Stack.Navigator>
     </TasksProvider>
   );

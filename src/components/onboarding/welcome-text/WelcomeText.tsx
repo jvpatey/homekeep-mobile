@@ -24,7 +24,7 @@ export function WelcomeText() {
           subtitleAnimatedStyle,
         ]}
       >
-        Get organized with smart reminders.
+        Track, schedule, and complete home maintenance.
       </Animated.Text>
     </View>
   );

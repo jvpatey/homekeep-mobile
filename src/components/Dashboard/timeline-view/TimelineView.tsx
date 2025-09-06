@@ -12,12 +12,7 @@ import { useTheme } from "../../../context/ThemeContext";
 import { MaintenanceTask } from "../../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { timelineStyles } from "./styles";
-import {
-  groupTasksByDate,
-  formatDate,
-  formatTime,
-  getPriorityColor,
-} from "./utils";
+import { groupTasksByDate, formatDate, getPriorityColor } from "./utils";
 
 // TimelineViewProps interface for the TimelineView component
 interface TimelineViewProps {
@@ -128,12 +123,20 @@ export function TimelineView({
             {/* Tasks for this date */}
             {tasks.map((task, taskIndex) => (
               <TouchableOpacity
-                key={task.id}
+                key={task.instance_id}
                 style={[
                   timelineStyles.taskItem,
                   taskIndex === tasks.length - 1 && timelineStyles.lastTaskItem,
                 ]}
-                onPress={() => onTaskPress?.(task.id)}
+                onPress={() => {
+                  console.log(
+                    "Timeline View - Task pressed:",
+                    task.title,
+                    "Instance ID:",
+                    task.instance_id
+                  );
+                  onTaskPress?.(task.instance_id);
+                }}
                 activeOpacity={0.7}
               >
                 {/* Timeline Line */}
@@ -224,14 +227,48 @@ export function TimelineView({
                   </View>
 
                   <View style={timelineStyles.taskFooter}>
-                    <Text
-                      style={[
-                        timelineStyles.taskTime,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {formatTime(task.due_date)}
-                    </Text>
+                    {(() => {
+                      const dueDate = new Date(task.due_date);
+                      const today = new Date();
+                      const tomorrow = new Date(today);
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+
+                      const isDueToday =
+                        dueDate.toDateString() === today.toDateString();
+                      const isDueTomorrow =
+                        dueDate.toDateString() === tomorrow.toDateString();
+
+                      let displayText;
+                      if (isDueToday) {
+                        displayText = "Due today";
+                      } else if (isDueTomorrow) {
+                        displayText = "Due tomorrow";
+                      } else {
+                        displayText = `Due ${dueDate.toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}`;
+                      }
+
+                      return (
+                        <Text
+                          style={[
+                            timelineStyles.taskTime,
+                            {
+                              color: isDueToday
+                                ? colors.error
+                                : colors.textSecondary,
+                              fontWeight: isDueToday ? "600" : "normal",
+                            },
+                          ]}
+                        >
+                          {displayText}
+                        </Text>
+                      );
+                    })()}
 
                     <TouchableOpacity
                       style={[

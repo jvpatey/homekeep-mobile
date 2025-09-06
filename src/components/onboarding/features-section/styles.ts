@@ -5,8 +5,8 @@ import { colors } from "../../../theme/colors";
 // styles for the features section
 export const styles = StyleSheet.create({
   cardContainer: {
-    paddingHorizontal: DesignSystem.spacing.md,
     paddingBottom: DesignSystem.spacing.xl,
+    paddingHorizontal: DesignSystem.spacing.md,
   },
   featuresContainer: {
     flexDirection: "row",

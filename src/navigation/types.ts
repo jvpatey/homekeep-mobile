@@ -20,6 +20,8 @@ export type AppStackParamList = {
   Dashboard: undefined; // Main dashboard for authenticated users
   CompletionHistory: undefined; // Completion history screen
   NotificationPreferences: undefined; // Notification preferences screen
+  Settings: undefined; // Settings screen
+  AllTasks: undefined; // All tasks screen
 };
 
 /**

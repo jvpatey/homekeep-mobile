@@ -23,6 +23,7 @@ import { dashboardStyles } from "./styles";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
+  completedTasks?: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
@@ -31,6 +32,7 @@ interface NewDashboardProps {
 
 export function NewDashboard({
   tasks,
+  completedTasks = [],
   onCompleteTask,
   onTaskPress,
   onRefresh,
@@ -48,10 +50,33 @@ export function NewDashboard({
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
 
-  // Filter tasks for different views
-  const upcomingTasks = getUpcomingTasks(tasks);
-  const completedTasks = tasks.filter((task) => task.is_completed);
-  const pastDueTasks = getPastDueTasks(tasks);
+  // Tasks are already filtered - no need to filter again
+  const upcomingTasks = tasks; // These are already upcoming tasks from the service
+  const pastDueTasks = tasks.filter((task) => task.is_overdue); // This should also be empty since upcoming tasks shouldn't be overdue
+
+  // Debug logging for task visibility issues
+  console.log(
+    "📊 Dashboard - Received tasks (should be upcoming):",
+    tasks.length
+  );
+  console.log("📊 Dashboard - Filtered upcoming tasks:", upcomingTasks.length);
+  console.log(
+    "📊 Dashboard - Completed tasks from props:",
+    completedTasks.length
+  );
+  console.log(
+    "📊 Dashboard - Past due tasks (should be 0):",
+    pastDueTasks.length
+  );
+
+  if (tasks.length > 0) {
+    console.log("📊 Dashboard - First task:", {
+      title: tasks[0]?.title,
+      due_date: tasks[0]?.due_date,
+      is_completed: tasks[0]?.is_completed,
+      is_overdue: tasks[0]?.is_overdue,
+    });
+  }
 
   // Filter for "due soon" tasks (within next 7 days, excluding past due)
   const dueSoonTasks = getDueSoonTasks(tasks);
@@ -90,10 +115,14 @@ export function NewDashboard({
   };
 
   const handleTaskCreated = () => {
+    console.log("✅ Dashboard - Task created, closing modal and refreshing");
     setShowCreateModal(false);
     // Refresh tasks if refresh function is provided
     if (onRefresh) {
+      console.log("🔄 Dashboard - Calling onRefresh after task creation");
       onRefresh();
+    } else {
+      console.log("⚠️ Dashboard - No onRefresh function provided!");
     }
   };
 

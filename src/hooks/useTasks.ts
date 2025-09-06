@@ -115,9 +115,37 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       const overdueCount = overdueResult.data?.length || 0;
       const completedCount = completedResult.data?.length || 0;
 
+      // Filter overdue tasks using our corrected date-based logic
+      const allOverdueTasks = overdueResult.data || [];
+      const correctedOverdueTasks = allOverdueTasks.filter((task) => {
+        const dueDate = new Date(task.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffDays = Math.floor(
+          (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // Debug logging
+        console.log(
+          `🔍 Filtering overdue task "${
+            task.title
+          }": diffDays=${diffDays}, due=${task.due_date}, keeping=${
+            diffDays < 0
+          }`
+        );
+
+        // Only include tasks due BEFORE today (not including today)
+        return diffDays < 0;
+      });
+
+      console.log(
+        `📊 Overdue filtering: ${allOverdueTasks.length} → ${correctedOverdueTasks.length} tasks`
+      );
+
       setTasks(tasksResult.data || []);
       setUpcomingTasks(upcomingResult.data || []);
-      setOverdueTasks(overdueResult.data || []);
+      setOverdueTasks(correctedOverdueTasks);
       setCompletedTasks([...(completedResult.data || [])]);
       setStats(
         statsResult.data || {

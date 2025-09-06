@@ -6,6 +6,7 @@ export const styles = StyleSheet.create({
   buttonContainer: {
     alignItems: "center",
     gap: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
   },
   primaryButton: {
     width: "100%",

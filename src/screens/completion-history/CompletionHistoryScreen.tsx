@@ -12,16 +12,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../hooks/useTasks";
-import { getPastDueTasks } from "../../components/Dashboard/utils";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { completionHistoryStyles } from "./styles";
-import { GroupedRoutine, groupTasksByRoutine, formatDate } from "./utils";
+import {
+  GroupedRoutine,
+  groupTasksByRoutine,
+  formatDate,
+  formatDateTime,
+} from "./utils";
 
 export function CompletionHistoryScreen() {
   const { colors, isDark } = useTheme();
-  const { completedTasks, tasks, completeTask, refreshTasks } = useTasks();
+  const { completedTasks, overdueTasks, completeTask, refreshTasks } =
+    useTasks();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
@@ -33,9 +38,9 @@ export function CompletionHistoryScreen() {
   );
 
   useEffect(() => {
-    const pastDueTasks = getPastDueTasks(tasks);
-    setGroupedRoutines(groupTasksByRoutine(completedTasks, pastDueTasks));
-  }, [completedTasks, tasks]);
+    // Use the already-filtered overdue tasks from useTasks instead of re-filtering
+    setGroupedRoutines(groupTasksByRoutine(completedTasks, overdueTasks));
+  }, [completedTasks, overdueTasks]);
 
   const toggleRoutineExpansion = (routineId: string) => {
     const newExpanded = new Set(expandedRoutines);
@@ -219,7 +224,9 @@ export function CompletionHistoryScreen() {
             ]}
           >
             Last completed:{" "}
-            {item.latestCompletion ? formatDate(item.latestCompletion) : "N/A"}
+            {item.latestCompletion
+              ? formatDateTime(item.latestCompletion)
+              : "N/A"}
           </Text>
         </View>
 
@@ -246,7 +253,7 @@ export function CompletionHistoryScreen() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Completed: {formatDate(instance.completed_at || "")}
+                    Completed: {formatDateTime(instance.completed_at || "")}
                   </Text>
                   <View style={completionHistoryStyles.instancePriority}>
                     <Ionicons

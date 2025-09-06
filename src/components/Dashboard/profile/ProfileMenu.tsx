@@ -20,7 +20,6 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTasks } from "../../../context/TasksContext";
 import { useGradients, useHaptics } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
-import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
 
@@ -34,14 +33,12 @@ interface ProfileMenuProps {
 export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
-  const { deleteAllTasks, stats } = useTasks();
+  const { stats } = useTasks();
   const { primaryGradient } = useGradients();
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
-  const { triggerLight, triggerMedium } = useHaptics();
+  const { triggerLight } = useHaptics();
   const [menuVisible, setMenuVisible] = useState(false);
-  const [customizationModalVisible, setCustomizationModalVisible] =
-    useState(false);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -109,49 +106,24 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     ]);
   };
 
-  // handleCustomizeAvatar function to customize the user's avatar
-  const handleCustomizeAvatar = async () => {
-    await triggerMedium();
+  // handleSettings function to navigate to settings
+  const handleSettings = async () => {
+    console.log("Navigating to settings screen");
+    await triggerLight();
     hideMenu();
-    // Add a small delay to ensure menu closes before modal opens
     setTimeout(() => {
-      setCustomizationModalVisible(true);
+      navigation.navigate("Settings");
     }, 300);
   };
 
-  // handleDeleteAllTasks function to delete all tasks
-  const handleDeleteAllTasks = async () => {
+  // handleAllTasks function to navigate to all tasks screen
+  const handleAllTasks = async () => {
+    console.log("Navigating to all tasks screen");
+    await triggerLight();
     hideMenu();
-    Alert.alert(
-      "Delete All Tasks",
-      "This will permanently delete all of your tasks and their history. This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete All",
-          style: "destructive",
-          onPress: async () => {
-            const { success, error } = await deleteAllTasks();
-            if (!success) {
-              Alert.alert("Error", error || "Failed to delete all tasks");
-            } else {
-              Alert.alert(
-                "Deleted",
-                "All tasks and history have been deleted."
-              );
-              // Refresh the dashboard data after successful deletion
-              if (onRefresh) {
-                onRefresh();
-              }
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleCloseCustomization = () => {
-    setCustomizationModalVisible(false);
+    setTimeout(() => {
+      navigation.navigate("AllTasks");
+    }, 300);
   };
 
   // Use custom gradient if available and not loading, otherwise fall back to primary gradient
@@ -230,7 +202,11 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
             />
 
             {/* Totals Summary */}
-            <View style={styles.menuActionButton}>
+            <TouchableOpacity
+              style={styles.menuActionButton}
+              onPress={handleAllTasks}
+              activeOpacity={0.7}
+            >
               <View
                 style={[
                   styles.menuActionIconContainer,
@@ -246,20 +222,34 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
               <Text style={[styles.menuActionText, { color: colors.text }]}>
                 Total Tasks
               </Text>
-              <Text style={{ color: colors.text, fontWeight: "700" }}>
-                {stats.total}
-              </Text>
-            </View>
+              <View style={styles.menuActionRight}>
+                <View
+                  style={[
+                    styles.counterBadge,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <Text style={[styles.counterText, { color: colors.primary }]}>
+                    {stats.total}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </View>
+            </TouchableOpacity>
 
             {/* Divider */}
             <View
               style={[styles.menuDivider, { backgroundColor: colors.border }]}
             />
 
-            {/* Customize Avatar Button */}
+            {/* Settings Button */}
             <TouchableOpacity
               style={styles.menuActionButton}
-              onPress={handleCustomizeAvatar}
+              onPress={handleSettings}
             >
               <View
                 style={[
@@ -268,83 +258,19 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                 ]}
               >
                 <Ionicons
-                  name="color-palette-outline"
+                  name="settings-outline"
                   size={20}
                   color={colors.primary}
                 />
               </View>
               <Text style={[styles.menuActionText, { color: colors.text }]}>
-                Customize Avatar
+                Settings
               </Text>
               <Ionicons
                 name="chevron-forward"
                 size={16}
                 color={colors.textSecondary}
               />
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            {/* Notification Settings Button */}
-            <TouchableOpacity
-              style={styles.menuActionButton}
-              onPress={() => {
-                hideMenu();
-                setTimeout(() => {
-                  navigation.navigate("NotificationPreferences");
-                }, 300);
-              }}
-            >
-              <View
-                style={[
-                  styles.menuActionIconContainer,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name="notifications-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.menuActionText, { color: colors.text }]}>
-                Notification Settings
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            {/* Delete All Tasks */}
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={handleDeleteAllTasks}
-            >
-              <View
-                style={[
-                  styles.signOutIconContainer,
-                  { backgroundColor: colors.error + "15" },
-                ]}
-              >
-                <Ionicons
-                  name="trash-bin-outline"
-                  size={20}
-                  color={colors.error}
-                />
-              </View>
-              <Text style={[styles.signOutText, { color: colors.error }]}>
-                Delete All Tasks
-              </Text>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -376,12 +302,6 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
           </Animated.View>
         </Pressable>
       </Modal>
-
-      {/* Avatar Customization Modal */}
-      <AvatarCustomizationModal
-        visible={customizationModalVisible}
-        onClose={handleCloseCustomization}
-      />
     </>
   );
 }

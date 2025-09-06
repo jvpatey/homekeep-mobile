@@ -146,6 +146,20 @@ export const calculateConsecutiveStreak = (
 
   if (sortedCompletions.length === 0) return 0;
 
+  // Debug logging for streak calculation
+  console.log(
+    `🔥 Calculating streak with ${sortedCompletions.length} completed tasks`
+  );
+
+  // Group completions by date to see unique days
+  const completionDays = new Set();
+  sortedCompletions.forEach((task) => {
+    const date = new Date(task.completed_at!);
+    date.setHours(0, 0, 0, 0);
+    completionDays.add(date.toDateString());
+  });
+  console.log(`🔥 Unique completion days: ${completionDays.size}`);
+
   let streak = 0;
   let currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0); // Start of today
@@ -159,13 +173,13 @@ export const calculateConsecutiveStreak = (
 
   if (todayCompletion) {
     streak = 1;
-    currentDate.setDate(currentDate.getDate() - 1); // Move to yesterday
 
-    // Count consecutive days backwards
+    // Count consecutive days backwards from yesterday
     for (let i = 1; i <= 365; i++) {
       // Max 1 year streak
-      const checkDate = new Date(currentDate);
-      checkDate.setDate(checkDate.getDate() - i);
+      const checkDate = new Date();
+      checkDate.setHours(0, 0, 0, 0);
+      checkDate.setDate(checkDate.getDate() - i); // Go back i days from today
 
       const hasCompletion = sortedCompletions.some((task) => {
         const completionDate = new Date(task.completed_at!);
@@ -181,6 +195,7 @@ export const calculateConsecutiveStreak = (
     }
   }
 
+  console.log(`🔥 Final calculated streak: ${streak}`);
   return streak;
 };
 
@@ -189,14 +204,16 @@ export const getDueSoonTasks = (tasks: MaintenanceTask[]) => {
     if (task.is_completed) return false;
 
     const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Exclude tasks that are overdue (either by database flag or date comparison)
-    const isOverdue = task.is_overdue || diffDays < 0;
+    // Tasks are overdue only if due BEFORE today (not including today)
+    // Ignore database is_overdue flag and use our corrected logic
+    const isOverdue = diffDays < 0;
 
     // Only include tasks due within 7 days (exclude past due tasks)
     return !isOverdue && diffDays <= 7;
@@ -208,14 +225,28 @@ export const getUpcomingTasks = (tasks: MaintenanceTask[]) => {
     if (task.is_completed) return false;
 
     const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Exclude tasks that are overdue (either by database flag or date comparison)
-    const isOverdue = task.is_overdue || diffDays < 0;
+    // Tasks are overdue only if due BEFORE today (not including today)
+    // Ignore database is_overdue flag and use our corrected logic
+    const isOverdue = diffDays < 0;
+
+    // Debug logging for all tasks to understand the date issue
+    if (diffDays <= 1 && diffDays >= -1) {
+      console.log(`🔍 Task "${task.title}":`, {
+        due_date: task.due_date,
+        dueDate_normalized: dueDate.toISOString(),
+        today_normalized: today.toISOString(),
+        diffDays,
+        db_says_overdue: task.is_overdue,
+        our_logic_says_overdue: isOverdue,
+      });
+    }
 
     // Only include tasks due today or in the future (exclude past due tasks)
     return !isOverdue;
@@ -229,14 +260,16 @@ export const getPastDueTasks = (tasks: MaintenanceTask[]) => {
     if (task.is_completed) return false;
 
     const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Include tasks that are overdue (either by database flag or date comparison)
-    const isOverdue = task.is_overdue || diffDays < 0;
+    // Tasks are overdue only if due BEFORE today (not including today)
+    // Ignore database is_overdue flag and use our corrected logic
+    const isOverdue = diffDays < 0;
 
     return isOverdue;
   });

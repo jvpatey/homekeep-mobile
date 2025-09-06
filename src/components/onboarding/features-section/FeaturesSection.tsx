@@ -38,21 +38,21 @@ export function FeaturesSection() {
   const features = [
     {
       icon: "list-outline",
-      text: "Task Organization",
+      text: "Organize",
       description:
         "Create, organize, and manage all your home maintenance tasks in one place. Set priorities, due dates, and categories to keep everything organized.",
       animatedStyle: featureAnimatedStyles[0],
     },
     {
       icon: "time-outline",
-      text: "Timeline View",
+      text: "Schedule",
       description:
-        "Visualize your maintenance schedule with our intuitive timeline. See upcoming tasks, track progress, and never miss important deadlines again.",
+        "Never forget when to clean your gutters, change filters, or service your HVAC again. Get automatic reminders for all your home maintenance needs.",
       animatedStyle: featureAnimatedStyles[1],
     },
     {
       icon: "trophy-outline",
-      text: "Completion Tracking",
+      text: "Track",
       description:
         "Celebrate your achievements and track your home maintenance progress. Build a complete history of completed tasks and maintenance milestones.",
       animatedStyle: featureAnimatedStyles[2],
