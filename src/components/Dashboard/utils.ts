@@ -189,14 +189,16 @@ export const getDueSoonTasks = (tasks: MaintenanceTask[]) => {
     if (task.is_completed) return false;
 
     const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Exclude tasks that are overdue (either by database flag or date comparison)
-    const isOverdue = task.is_overdue || diffDays < 0;
+    // Tasks are overdue only if due BEFORE today (not including today)
+    // Ignore database is_overdue flag and use our corrected logic
+    const isOverdue = diffDays < 0;
 
     // Only include tasks due within 7 days (exclude past due tasks)
     return !isOverdue && diffDays <= 7;
@@ -208,14 +210,28 @@ export const getUpcomingTasks = (tasks: MaintenanceTask[]) => {
     if (task.is_completed) return false;
 
     const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Exclude tasks that are overdue (either by database flag or date comparison)
-    const isOverdue = task.is_overdue || diffDays < 0;
+    // Tasks are overdue only if due BEFORE today (not including today)
+    // Ignore database is_overdue flag and use our corrected logic
+    const isOverdue = diffDays < 0;
+
+    // Debug logging for all tasks to understand the date issue
+    if (diffDays <= 1 && diffDays >= -1) {
+      console.log(`🔍 Task "${task.title}":`, {
+        due_date: task.due_date,
+        dueDate_normalized: dueDate.toISOString(),
+        today_normalized: today.toISOString(),
+        diffDays,
+        db_says_overdue: task.is_overdue,
+        our_logic_says_overdue: isOverdue,
+      });
+    }
 
     // Only include tasks due today or in the future (exclude past due tasks)
     return !isOverdue;
@@ -229,14 +245,16 @@ export const getPastDueTasks = (tasks: MaintenanceTask[]) => {
     if (task.is_completed) return false;
 
     const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Include tasks that are overdue (either by database flag or date comparison)
-    const isOverdue = task.is_overdue || diffDays < 0;
+    // Tasks are overdue only if due BEFORE today (not including today)
+    // Ignore database is_overdue flag and use our corrected logic
+    const isOverdue = diffDays < 0;
 
     return isOverdue;
   });

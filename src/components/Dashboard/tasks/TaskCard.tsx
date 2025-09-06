@@ -46,7 +46,21 @@ export function TaskCard({
 }: TaskCardProps) {
   const { colors } = useTheme();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
-  const isOverdue = new Date(due_date) < new Date() && !is_completed;
+  // Check if task is overdue (due before today, not including today)
+  const isOverdue = (() => {
+    if (is_completed) return false;
+
+    const dueDate = new Date(due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // Tasks are overdue only if due BEFORE today (not including today)
+    return diffDays < 0;
+  })();
 
   // Animation values
   const cardScale = useSharedValue(1);

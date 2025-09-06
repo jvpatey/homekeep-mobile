@@ -104,6 +104,16 @@ export const formatDate = (dateString: string) => {
     weekday: "short",
     month: "short",
     day: "numeric",
+  });
+};
+
+// formatDateTime function to format the date with time (for completed tasks)
+export const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
