@@ -17,7 +17,7 @@ jobs:
       - name: Send Morning Notifications
         if: github.event.schedule == '0 8 * * *'
         run: |
-          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/scheduled-notifications?type=daily" \
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-scheduled-notifications?type=daily" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{}'
@@ -25,7 +25,7 @@ jobs:
       - name: Send Evening Notifications
         if: github.event.schedule == '0 18 * * *'
         run: |
-          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/scheduled-notifications?type=due_soon" \
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-scheduled-notifications?type=due_soon" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{}'
@@ -33,7 +33,7 @@ jobs:
       - name: Send Weekly Summary
         if: github.event.schedule == '0 9 * * 1'
         run: |
-          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/scheduled-notifications?type=weekly" \
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-scheduled-notifications?type=weekly" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{}'
