@@ -7,6 +7,8 @@ import {
 } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
 import * as AppleAuthentication from "expo-apple-authentication";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -20,9 +22,15 @@ const hasValidCredentials =
   supabaseAnonKey !== "placeholder-key";
 
 export const supabase = hasValidCredentials
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: AsyncStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+    })
   : null;
-
 
 interface AuthContextType {
   user: User | null;
@@ -89,6 +97,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Handle app state changes for optimal session management
+  useEffect(() => {
+    if (!supabase) return;
+
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === "active") {
+        // Start auto-refresh when app becomes active
+        supabase.auth.startAutoRefresh();
+      } else {
+        // Stop auto-refresh when app goes to background
+        supabase.auth.stopAutoRefresh();
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    // Start auto-refresh initially
+    supabase.auth.startAutoRefresh();
+
+    return () => {
+      subscription?.remove();
+      supabase.auth.stopAutoRefresh();
+    };
+  }, [supabase]);
+
+  // Proactive session refresh to extend session life
+  useEffect(() => {
+    if (!supabase || !session) return;
+
+    // Refresh session every 15 minutes to keep it alive
+    const refreshInterval = setInterval(async () => {
+      try {
+        const {
+          data: { session: refreshedSession },
+          error,
+        } = await supabase.auth.refreshSession();
+        if (refreshedSession && !error) {
+          setSession(refreshedSession);
+        }
+      } catch (error) {
+        // Silent fail - session refresh errors are handled by Supabase
+      }
+    }, 15 * 60 * 1000); // 15 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [supabase, session]);
+
   // signIn function for the signIn on the home screen
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
@@ -131,7 +189,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return { data: authData, error: null };
   };
-
 
   // signInWithApple function for Apple Sign-In
   const signInWithApple = async () => {
