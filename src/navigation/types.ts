@@ -21,6 +21,7 @@ export type AppStackParamList = {
   CompletionHistory: undefined; // Completion history screen
   NotificationPreferences: undefined; // Notification preferences screen
   Settings: undefined; // Settings screen
+  AllTasks: undefined; // All tasks screen
 };
 
 /**

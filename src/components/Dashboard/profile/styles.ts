@@ -105,6 +105,10 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
+  menuActionRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",

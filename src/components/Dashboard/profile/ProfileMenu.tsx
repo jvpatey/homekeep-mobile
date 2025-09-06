@@ -116,6 +116,16 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     }, 300);
   };
 
+  // handleAllTasks function to navigate to all tasks screen
+  const handleAllTasks = async () => {
+    console.log("Navigating to all tasks screen");
+    await triggerLight();
+    hideMenu();
+    setTimeout(() => {
+      navigation.navigate("AllTasks");
+    }, 300);
+  };
+
   // Use custom gradient if available and not loading, otherwise fall back to primary gradient
   const avatarGradient =
     !preferencesLoading && selectedGradient
@@ -192,7 +202,11 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
             />
 
             {/* Totals Summary */}
-            <View style={styles.menuActionButton}>
+            <TouchableOpacity
+              style={styles.menuActionButton}
+              onPress={handleAllTasks}
+              activeOpacity={0.7}
+            >
               <View
                 style={[
                   styles.menuActionIconContainer,
@@ -208,10 +222,23 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
               <Text style={[styles.menuActionText, { color: colors.text }]}>
                 Total Tasks
               </Text>
-              <Text style={{ color: colors.text, fontWeight: "700" }}>
-                {stats.total}
-              </Text>
-            </View>
+              <View style={styles.menuActionRight}>
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontWeight: "700",
+                    marginRight: 4,
+                  }}
+                >
+                  {stats.total}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </View>
+            </TouchableOpacity>
 
             {/* Divider */}
             <View
