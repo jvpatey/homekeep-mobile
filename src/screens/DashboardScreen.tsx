@@ -14,16 +14,10 @@ export function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Debug logging for task data flow
-  console.log("🔄 DashboardScreen - useTasks() returned tasks:", tasks.length);
-  console.log(
-    "🔄 DashboardScreen - useTasks() returned upcomingTasks:",
-    upcomingTasks.length
-  );
 
   // Refresh tasks when screen comes into focus (e.g., navigating back from Settings)
   useFocusEffect(
     useCallback(() => {
-      console.log("🔄 DashboardScreen - Screen focused, refreshing tasks");
       refreshTasks();
     }, [refreshTasks])
   );
@@ -40,16 +34,13 @@ export function DashboardScreen() {
     const task = upcomingTasks.find((t) => t.instance_id === instanceId);
     if (task) {
       // Task detail modal will be handled by the Dashboard component
-      console.log("Task pressed:", task.title);
     }
   };
 
   // handleRefresh for the handleRefresh on the home screen
   const handleRefresh = async () => {
-    console.log("🔄 DashboardScreen - Starting refresh");
     setRefreshing(true);
     await refreshTasks();
-    console.log("✅ DashboardScreen - Refresh completed");
     setRefreshing(false);
   };
 

@@ -26,19 +26,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     useState(false);
 
   const handleCustomizeAvatar = async () => {
-    console.log("Opening avatar customization modal");
     await triggerMedium();
     setCustomizationModalVisible(true);
   };
 
   const handleNotificationSettings = async () => {
-    console.log("Navigating to notification preferences");
     await triggerLight();
     navigation.navigate("NotificationPreferences");
   };
 
   const handleDeleteAllTasks = async () => {
-    console.log("User requested to delete all tasks");
     await triggerMedium();
     Alert.alert(
       "Delete All Tasks",
@@ -65,7 +62,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   };
 
   const handleSignOut = async () => {
-    console.log("User requested to sign out");
     await triggerMedium();
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       {

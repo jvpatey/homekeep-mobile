@@ -15,30 +15,48 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
 import { PriorityBadge } from "../../components/Dashboard";
-import { MaintenanceTask } from "../../types/maintenance";
+import { MaintenanceRoutine } from "../../types/maintenance";
+import { MaintenanceService } from "../../services/maintenanceService";
 import { AllTasksScreenProps } from "./types";
 
 export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
   const { colors, isDark } = useTheme();
-  const { tasks, deleteTask, refreshTasks } = useTasks();
+  const { deleteTask, refreshTasks } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
+  const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
+  const [loading, setLoading] = useState(false);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
 
-  // Refresh tasks when screen comes into focus
+  // Load routines when screen comes into focus
+  const loadRoutines = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await MaintenanceService.getMaintenanceRoutines();
+      if (error) throw error;
+      setRoutines(data || []);
+    } catch (error) {
+      console.error("Error loading routines:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      console.log("🔄 AllTasksScreen - Screen focused, refreshing tasks");
-      refreshTasks();
-    }, [refreshTasks])
+      loadRoutines();
+    }, [loadRoutines])
   );
 
-  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
-    if (deletingTasks.has(taskId)) return; // Prevent multiple deletes
+  const handleDeleteRoutine = async (
+    routineId: string,
+    routineTitle: string
+  ) => {
+    if (deletingTasks.has(routineId)) return; // Prevent multiple deletes
 
     await triggerMedium();
     Alert.alert(
-      "Delete Task",
-      `Are you sure you want to permanently delete "${taskTitle}"? This will remove the task and all its history.`,
+      "Delete Task Series",
+      `Are you sure you want to permanently delete "${routineTitle}"? This will remove the entire task series and all its instances.`,
       [
         {
           text: "Cancel",
@@ -48,22 +66,26 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            setDeletingTasks((prev) => new Set(prev).add(taskId));
+            setDeletingTasks((prev) => new Set(prev).add(routineId));
 
             try {
-              const result = await deleteTask(taskId);
+              const result = await deleteTask(routineId);
 
               if (result.success) {
                 await triggerLight();
-                // Task is automatically removed from local state by deleteTask
+                // Remove from local state
+                setRoutines((prev) =>
+                  prev.filter((routine) => routine.id !== routineId)
+                );
               } else {
                 Alert.alert(
                   "Delete Failed",
-                  result.error || "Failed to delete the task. Please try again."
+                  result.error ||
+                    "Failed to delete the task series. Please try again."
                 );
               }
             } catch (error) {
-              console.error("Error deleting task:", error);
+              console.error("Error deleting routine:", error);
               Alert.alert(
                 "Delete Failed",
                 "An unexpected error occurred. Please try again."
@@ -71,7 +93,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
             } finally {
               setDeletingTasks((prev) => {
                 const newSet = new Set(prev);
-                newSet.delete(taskId);
+                newSet.delete(routineId);
                 return newSet;
               });
             }
@@ -115,7 +137,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
     }
   };
 
-  const renderTaskItem = ({ item }: { item: MaintenanceTask }) => {
+  const renderRoutineItem = ({ item }: { item: MaintenanceRoutine }) => {
     const isDeleting = deletingTasks.has(item.id);
 
     return (
@@ -151,6 +173,12 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
               ~{item.estimated_duration_minutes} min
             </Text>
           )}
+
+          <View style={styles.routineStatus}>
+            <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+              {item.is_active ? "Active" : "Inactive"}
+            </Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -159,7 +187,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
             { backgroundColor: colors.error + "15" },
             isDeleting && styles.deletingButton,
           ]}
-          onPress={() => handleDeleteTask(item.id, item.title)}
+          onPress={() => handleDeleteRoutine(item.id, item.title)}
           disabled={isDeleting}
           activeOpacity={0.7}
         >
@@ -181,10 +209,10 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
         color={colors.textSecondary}
       />
       <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        No tasks found
+        No task series found
       </Text>
       <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-        Create your first maintenance task to get started!
+        Create your first maintenance task series to get started!
       </Text>
     </View>
   );
@@ -204,15 +232,15 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          All Tasks ({tasks.length})
+          All Task Series ({routines.length})
         </Text>
         <View style={styles.headerRightSpacer} />
       </View>
 
-      {/* Task List */}
+      {/* Routine List */}
       <FlatList
-        data={tasks}
-        renderItem={renderTaskItem}
+        data={routines}
+        renderItem={renderRoutineItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
@@ -297,6 +325,13 @@ const styles = StyleSheet.create({
   taskDuration: {
     fontSize: 12,
     fontStyle: "italic",
+  },
+  routineStatus: {
+    marginTop: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   deleteButton: {
     width: 40,

@@ -83,11 +83,6 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     setError(null);
 
     try {
-      console.log(
-        `🔄 useTasks: Loading maintenance tasks with filter = ${
-          timeRange === "all" ? "All Tasks" : `${timeRange} days`
-        }`
-      );
       // First, update overdue status in the database
       await MaintenanceService.updateOverdueStatus();
 
@@ -126,22 +121,9 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        // Debug logging
-        console.log(
-          `🔍 Filtering overdue task "${
-            task.title
-          }": diffDays=${diffDays}, due=${task.due_date}, keeping=${
-            diffDays < 0
-          }`
-        );
-
         // Only include tasks due BEFORE today (not including today)
         return diffDays < 0;
       });
-
-      console.log(
-        `📊 Overdue filtering: ${allOverdueTasks.length} → ${correctedOverdueTasks.length} tasks`
-      );
 
       setTasks(tasksResult.data || []);
       setUpcomingTasks(upcomingResult.data || []);
@@ -158,17 +140,6 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           activeRoutines: 0,
           totalInstances: 0,
         }
-      );
-
-      // Global totals regardless of UI filters
-      console.log(
-        `📦 User totals — routines: ${
-          tasksResult.data?.length || 0
-        }, upcoming: ${upcomingCount}, overdue: ${overdueCount}, completed: ${completedCount}`
-      );
-
-      console.log(
-        `✅ useTasks: Loaded ${upcomingCount} upcoming, ${overdueCount} overdue, ${completedCount} completed maintenance tasks`
       );
     } catch (err) {
       const error = err as Error;

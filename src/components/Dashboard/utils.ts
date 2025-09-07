@@ -146,11 +146,6 @@ export const calculateConsecutiveStreak = (
 
   if (sortedCompletions.length === 0) return 0;
 
-  // Debug logging for streak calculation
-  console.log(
-    `🔥 Calculating streak with ${sortedCompletions.length} completed tasks`
-  );
-
   // Group completions by date to see unique days
   const completionDays = new Set();
   sortedCompletions.forEach((task) => {
@@ -158,7 +153,6 @@ export const calculateConsecutiveStreak = (
     date.setHours(0, 0, 0, 0);
     completionDays.add(date.toDateString());
   });
-  console.log(`🔥 Unique completion days: ${completionDays.size}`);
 
   let streak = 0;
   let currentDate = new Date();
@@ -195,7 +189,6 @@ export const calculateConsecutiveStreak = (
     }
   }
 
-  console.log(`🔥 Final calculated streak: ${streak}`);
   return streak;
 };
 
@@ -235,18 +228,6 @@ export const getUpcomingTasks = (tasks: MaintenanceTask[]) => {
     // Tasks are overdue only if due BEFORE today (not including today)
     // Ignore database is_overdue flag and use our corrected logic
     const isOverdue = diffDays < 0;
-
-    // Debug logging for all tasks to understand the date issue
-    if (diffDays <= 1 && diffDays >= -1) {
-      console.log(`🔍 Task "${task.title}":`, {
-        due_date: task.due_date,
-        dueDate_normalized: dueDate.toISOString(),
-        today_normalized: today.toISOString(),
-        diffDays,
-        db_says_overdue: task.is_overdue,
-        our_logic_says_overdue: isOverdue,
-      });
-    }
 
     // Only include tasks due today or in the future (exclude past due tasks)
     return !isOverdue;

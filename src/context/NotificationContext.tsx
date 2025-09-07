@@ -210,12 +210,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // savePushToken function for the savePushToken on the home screen
   const savePushToken = async (token: string) => {
     if (!user || !supabase) {
-      console.log("Cannot save push token: user or supabase not available");
       return;
     }
 
     try {
-      console.log("Saving push token to database for user:", user.id);
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
         push_token: token,
@@ -224,8 +222,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       if (error) {
         console.error("Error saving push token to database:", error);
-      } else {
-        console.log("Push token saved successfully to database");
       }
     } catch (error) {
       console.error("Error saving push token:", error);
