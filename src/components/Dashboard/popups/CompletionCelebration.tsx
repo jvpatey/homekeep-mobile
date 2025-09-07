@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ export function CompletionCelebration({
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isVisible) {
       // Start celebration animation
       Animated.sequence([
@@ -59,7 +59,16 @@ export function CompletionCelebration({
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible]);
+  }, [isVisible, scaleAnim, opacityAnim, confettiAnim, hideCelebration]);
+
+  // Reset animations when component becomes invisible
+  useEffect(() => {
+    if (!isVisible) {
+      scaleAnim.setValue(0);
+      opacityAnim.setValue(0);
+      confettiAnim.setValue(0);
+    }
+  }, [isVisible, scaleAnim, opacityAnim, confettiAnim]);
 
   const hideCelebration = useCallback(() => {
     Animated.parallel([
@@ -74,7 +83,10 @@ export function CompletionCelebration({
         useNativeDriver: true,
       }),
     ]).start(() => {
-      onClose();
+      // Use setTimeout to ensure onClose doesn't trigger during insertion effect
+      setTimeout(() => {
+        onClose();
+      }, 0);
     });
   }, [scaleAnim, opacityAnim, onClose]);
 
