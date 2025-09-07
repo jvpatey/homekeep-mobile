@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, ScrollView, RefreshControl } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
@@ -10,6 +10,7 @@ import { StreakPopup, DueSoonPopup, CompletionCelebration } from "./popups";
 import { NotificationPermissionRequest } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
+import { MaintenanceService } from "../../services/maintenanceService";
 import {
   getGreeting,
   getUserName,
@@ -49,6 +50,40 @@ export function NewDashboard({
   const [showStreakPopup, setShowStreakPopup] = useState(false);
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [timelineTasks, setTimelineTasks] = useState<MaintenanceTask[]>([]);
+
+  // Load all future tasks and reduce to next instance per routine for timeline
+  const loadTimelineTasks = useCallback(async () => {
+    try {
+      const { data, error } = await MaintenanceService.getUpcomingTasks("all");
+      if (error) throw error;
+      const futureTasks = (data || []) as MaintenanceTask[];
+
+      // Reduce to earliest due per routine id
+      const earliestByRoutine = new Map<string, MaintenanceTask>();
+      for (const task of futureTasks) {
+        const existing = earliestByRoutine.get(task.id);
+        if (!existing) {
+          earliestByRoutine.set(task.id, task);
+          continue;
+        }
+        const existingDue = new Date(existing.due_date).getTime();
+        const taskDue = new Date(task.due_date).getTime();
+        if (taskDue < existingDue) {
+          earliestByRoutine.set(task.id, task);
+        }
+      }
+
+      const reduced = Array.from(earliestByRoutine.values()).sort(
+        (a, b) =>
+          new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      );
+      setTimelineTasks(reduced);
+    } catch (err) {
+      console.error("Error loading timeline tasks:", err);
+      setTimelineTasks([]);
+    }
+  }, []);
 
   // Tasks are already filtered - no need to filter again
   const upcomingTasks = tasks; // These are already upcoming tasks from the service
@@ -85,6 +120,11 @@ export function NewDashboard({
     // Calculate consecutive day streak
     setStreak(calculateConsecutiveStreak(completedTasks));
   }, [completedTasks]);
+
+  // Keep timeline in sync on mount and whenever dashboard task set changes
+  useEffect(() => {
+    loadTimelineTasks();
+  }, [loadTimelineTasks, tasks]);
 
   const handleCompleteTask = async (instanceId: string) => {
     try {
@@ -167,7 +207,7 @@ export function NewDashboard({
 
         {/* Timeline View */}
         <TimelineView
-          tasks={upcomingTasks}
+          tasks={timelineTasks}
           onCompleteTask={handleCompleteTask}
           onTaskPress={handleTaskPress}
         />
