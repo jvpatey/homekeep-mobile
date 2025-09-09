@@ -6,12 +6,17 @@ import {
   StyleSheet,
   Modal,
   Alert,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useHaptics } from "../../hooks";
+
+// Get screen dimensions for responsive design
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const isSmallScreen = screenWidth < 375 || screenHeight < 667;
 
 // NotificationPermissionRequest component for the NotificationPermissionRequest on the home screen
 export function NotificationPermissionRequest() {
@@ -96,7 +101,7 @@ export function NotificationPermissionRequest() {
               <Text
                 style={[styles.skipButtonText, { color: colors.textSecondary }]}
               >
-                Maybe Later
+                Later
               </Text>
             </TouchableOpacity>
 
@@ -104,7 +109,7 @@ export function NotificationPermissionRequest() {
               style={[styles.enableButton, { backgroundColor: colors.primary }]}
               onPress={handleRequestPermissions}
             >
-              <Text style={styles.enableButtonText}>Enable Notifications</Text>
+              <Text style={styles.enableButtonText}>Enable</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -119,63 +124,71 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: isSmallScreen ? 16 : 20,
   },
   modal: {
-    borderRadius: 24,
-    padding: 32,
+    borderRadius: isSmallScreen ? 20 : 24,
+    padding: isSmallScreen ? 24 : 32,
     alignItems: "center",
-    maxWidth: 320,
+    maxWidth: isSmallScreen ? screenWidth - 32 : 320,
     width: "100%",
+    maxHeight: screenHeight * 0.8,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: isSmallScreen ? 64 : 80,
+    height: isSmallScreen ? 64 : 80,
+    borderRadius: isSmallScreen ? 32 : 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: isSmallScreen ? 20 : 24,
   },
   title: {
-    fontSize: 24,
+    fontSize: isSmallScreen ? 20 : 24,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 16,
-    lineHeight: 32,
+    marginBottom: isSmallScreen ? 12 : 16,
+    lineHeight: isSmallScreen ? 28 : 32,
   },
   description: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
+    lineHeight: isSmallScreen ? 20 : 24,
+    marginBottom: isSmallScreen ? 24 : 32,
+    paddingHorizontal: isSmallScreen ? 8 : 0,
   },
   buttonContainer: {
-    flexDirection: "row",
-    gap: 12,
+    flexDirection: isSmallScreen ? "column" : "row",
+    gap: isSmallScreen ? 8 : 12,
     width: "100%",
   },
   skipButton: {
-    flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    flex: isSmallScreen ? 0 : 1,
+    paddingVertical: isSmallScreen ? 14 : 16,
+    paddingHorizontal: isSmallScreen ? 20 : 24,
+    borderRadius: isSmallScreen ? 10 : 12,
     borderWidth: 1,
     alignItems: "center",
+    width: isSmallScreen ? "100%" : undefined,
   },
   skipButtonText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 15 : 16,
     fontWeight: "600",
+    textAlign: "center",
+    numberOfLines: 1,
   },
   enableButton: {
-    flex: 2,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    flex: isSmallScreen ? 0 : 2,
+    paddingVertical: isSmallScreen ? 14 : 16,
+    paddingHorizontal: isSmallScreen ? 20 : 24,
+    borderRadius: isSmallScreen ? 10 : 12,
     alignItems: "center",
+    width: isSmallScreen ? "100%" : undefined,
   },
   enableButtonText: {
     color: "white",
-    fontSize: 16,
+    fontSize: isSmallScreen ? 15 : 16,
     fontWeight: "600",
+    textAlign: "center",
+    numberOfLines: 1,
   },
 });

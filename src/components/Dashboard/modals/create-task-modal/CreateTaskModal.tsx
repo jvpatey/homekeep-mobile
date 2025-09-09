@@ -193,7 +193,7 @@ export function CreateTaskModal({
           { backgroundColor: colors.background },
         ]}
       >
-        <ModalHeader title="Create Task Series" onClose={onClose} />
+        <ModalHeader title="Add Recurring Task" onClose={onClose} />
 
         <ScrollView
           style={styles.modalContent}
@@ -285,7 +285,7 @@ export function CreateTaskModal({
         <SubmitButton
           onPress={handleSubmit}
           disabled={!isFormValid}
-          title="Create Task Series"
+          title="Add Task"
         />
       </SafeAreaView>
     </Modal>
