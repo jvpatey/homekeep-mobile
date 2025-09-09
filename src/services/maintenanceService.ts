@@ -216,4 +216,81 @@ export class MaintenanceService {
   static async updateOverdueStatus(): Promise<ServiceResponse<null>> {
     return MaintenanceTaskService.updateOverdueStatus();
   }
+
+  // ===== ACCOUNT DELETION =====
+  // Delete user account completely (profile + auth + all data)
+  static async deleteUserAccount(): Promise<{
+    error: ServiceError | null;
+    success: boolean;
+  }> {
+    if (!supabase) {
+      return {
+        error: { message: "Supabase not configured" },
+        success: false,
+      };
+    }
+
+    try {
+      // Get current user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        return {
+          error: { message: "User not authenticated" },
+          success: false,
+        };
+      }
+
+      console.log("Starting account deletion for user:", user.id);
+
+      // Call the Supabase Edge Function to delete the user and all data
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        return {
+          error: { message: "No valid session found" },
+          success: false,
+        };
+      }
+
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/delete-user`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error deleting user account:", errorData);
+        return {
+          error: {
+            message: errorData.error || "Failed to delete user account",
+            details: errorData.message,
+          },
+          success: false,
+        };
+      }
+
+      const result = await response.json();
+      console.log("Account deletion completed successfully:", result);
+
+      return { error: null, success: true };
+    } catch (error) {
+      console.error("Error deleting user account:", error);
+      return {
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+        success: false,
+      };
+    }
+  }
 }

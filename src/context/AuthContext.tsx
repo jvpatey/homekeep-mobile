@@ -9,6 +9,7 @@ import "react-native-url-polyfill/auto";
 import * as AppleAuthentication from "expo-apple-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
+import { MaintenanceService } from "../services/maintenanceService";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -49,6 +50,10 @@ interface AuthContextType {
   ) => Promise<{ data: any; error: any }>;
   signInWithApple: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{
+    success: boolean;
+    error?: string;
+  }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -246,6 +251,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await supabase.auth.signOut();
   };
 
+  // deleteAccount function for complete account deletion
+  const deleteAccount = async () => {
+    if (!supabase) {
+      return { success: false, error: "Supabase not configured" };
+    }
+
+    try {
+      const result = await MaintenanceService.deleteUserAccount();
+      if (result.success) {
+        // Sign out the user after successful deletion
+        await supabase.auth.signOut();
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          error: result.error?.message || "Failed to delete account",
+        };
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -256,6 +289,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signUp,
     signInWithApple,
     signOut,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

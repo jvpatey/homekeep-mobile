@@ -19,7 +19,7 @@ import { SettingsScreenProps } from "./types";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
-  const { signOut } = useAuth();
+  const { signOut, deleteAccount } = useAuth();
   const { deleteAllTasks } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
   const [customizationModalVisible, setCustomizationModalVisible] =
@@ -78,6 +78,66 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     ]);
   };
 
+  const handleDeleteAccount = async () => {
+    await triggerMedium();
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you absolutely sure you want to delete your account?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: async () => {
+            // Second confirmation
+            Alert.alert(
+              "Final Confirmation",
+              "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.\n\nType 'DELETE' to confirm account deletion.",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "I understand, delete my account",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      const result = await deleteAccount();
+                      if (result.success) {
+                        Alert.alert(
+                          "Account Deleted",
+                          "All your data has been permanently deleted and you will be signed out. Your account is now effectively deleted.",
+                          [{ text: "OK" }]
+                        );
+                      } else {
+                        Alert.alert(
+                          "Error",
+                          result.error ||
+                            "Failed to delete account. Please try again or contact support.",
+                          [{ text: "OK" }]
+                        );
+                      }
+                    } catch (error) {
+                      Alert.alert(
+                        "Error",
+                        "An unexpected error occurred. Please try again or contact support.",
+                        [{ text: "OK" }]
+                      );
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const handleCloseCustomization = () => {
     setCustomizationModalVisible(false);
   };
@@ -105,6 +165,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       type: "destructive" as const,
     },
     {
+      id: "delete-account",
+      title: "Delete Account",
+      icon: "person-remove-outline",
+      onPress: handleDeleteAccount,
+      type: "destructive" as const,
+    },
+    {
       id: "sign-out",
       title: "Sign Out",
       icon: "log-out-outline",
@@ -118,7 +185,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       switch (option.type) {
         case "destructive":
           return colors.error;
-        case "action":
         case "navigation":
         default:
           return colors.primary;
@@ -138,7 +204,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       switch (option.type) {
         case "destructive":
           return colors.error + "15";
-        case "action":
         case "navigation":
         default:
           return colors.primary + "15";
