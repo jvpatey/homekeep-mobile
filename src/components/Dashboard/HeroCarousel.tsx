@@ -140,8 +140,12 @@ export function HeroCarousel({
           ref={flatListRef}
           data={tasks}
           horizontal
+          decelerationRate="fast"
+          snapToInterval={CARD_WIDTH + DesignSystem.spacing.md * 2}
+          snapToAlignment="center"
+          disableIntervalMomentum
           showsHorizontalScrollIndicator={false}
-          scrollEnabled={false}
+          scrollEnabled
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={{
             itemVisiblePercentThreshold: 50,
@@ -231,8 +235,8 @@ const styles = StyleSheet.create({
     height: 240,
   },
   scrollContent: {
-    paddingLeft: (screenWidth - CARD_WIDTH) / 2,
-    paddingRight: (screenWidth - CARD_WIDTH) / 2,
+    paddingLeft: (screenWidth - CARD_WIDTH) / 2 - DesignSystem.spacing.md,
+    paddingRight: (screenWidth - CARD_WIDTH) / 2 - DesignSystem.spacing.md,
   },
   cardContainer: {
     alignItems: "center",
