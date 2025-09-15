@@ -77,6 +77,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Best-effort: persist the device timezone to user_settings on sign-in
+  const upsertUserTimezone = async (currentUser: User | null) => {
+    try {
+      if (!supabase || !currentUser) return;
+      const deviceTimezone =
+        (Intl && Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC";
+
+      await supabase.from("user_settings").upsert(
+        [
+          {
+            user_id: currentUser.id,
+            timezone: deviceTimezone,
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "user_id" }
+      );
+    } catch (err) {
+      // Non-fatal; timezone sync failure should not impact auth flow
+      console.warn("Timezone upsert failed", err);
+    }
+  };
+
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
@@ -84,10 +107,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     // Get initial session on app startup
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        await upsertUserTimezone(session.user);
+      }
     });
 
     // Listen for authentication state changes
@@ -97,6 +123,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        await upsertUserTimezone(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
