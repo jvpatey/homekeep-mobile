@@ -13,6 +13,7 @@ import { MaintenanceTask } from "../../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { timelineStyles } from "./styles";
 import { groupTasksByDate, formatDate, getPriorityColor } from "./utils";
+import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
 
 // TimelineViewProps interface for the TimelineView component
 interface TimelineViewProps {
@@ -164,7 +165,13 @@ export function TimelineView({
                 <View
                   style={[
                     timelineStyles.taskContent,
-                    { backgroundColor: colors.surface },
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: task.is_overdue
+                        ? "#FF6B6B"
+                        : HOME_MAINTENANCE_CATEGORIES[task.category].color,
+                      borderWidth: 2,
+                    },
                   ]}
                 >
                   <View style={timelineStyles.taskHeader}>
