@@ -64,7 +64,8 @@ export function CreateTaskModal({
     interval_days: 30,
     startDate: (() => {
       const today = new Date();
-      today.setHours(9, 0, 0, 0);
+      // Initialize at local noon to avoid UTC date rollovers
+      today.setHours(12, 0, 0, 0);
       return today;
     })(),
     priority: "medium" as Priority,
@@ -124,13 +125,17 @@ export function CreateTaskModal({
         actualIntervalDays = selectedInterval * intervalValue;
       }
 
+      // Ensure we persist start_date at local noon (stable day boundary)
+      const startAtNoon = new Date(form.startDate);
+      startAtNoon.setHours(12, 0, 0, 0);
+
       const taskData: CreateMaintenanceRoutineData = {
         title: form.title.trim(),
         category: form.category,
         priority: form.priority,
         estimated_duration_minutes: form.estimated_duration_minutes,
         interval_days: actualIntervalDays,
-        start_date: form.startDate.toISOString(),
+        start_date: startAtNoon.toISOString(),
         description: form.description?.trim() || undefined,
       };
 
