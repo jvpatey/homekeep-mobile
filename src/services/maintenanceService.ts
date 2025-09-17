@@ -134,6 +134,11 @@ export class MaintenanceService {
     return MaintenanceTaskService.getTasksByPriority(priority);
   }
 
+  // Get next open instance for a routine
+  static async getNextOpenInstanceForRoutine(routineId: string) {
+    return MaintenanceTaskService.getNextOpenInstanceForRoutine(routineId);
+  }
+
   // Get tasks due in a specific date range
   static async getTasksInDateRange(
     startDate: string,

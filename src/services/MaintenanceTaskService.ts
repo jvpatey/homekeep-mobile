@@ -6,11 +6,45 @@ import {
   Priority,
   MaintenanceTasksResponse,
   ServiceResponse,
+  RoutineInstance,
+  RoutineInstanceResponse,
 } from "../types/maintenance";
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
 import { addDays, startOfDay } from "date-fns";
 
 export class MaintenanceTaskService {
+  // Get next open instance for a routine (earliest due, not completed)
+  static async getNextOpenInstanceForRoutine(
+    routineId: string
+  ): Promise<RoutineInstanceResponse> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("routine_instances")
+        .select("*")
+        .eq("routine_id", routineId)
+        .eq("is_completed", false)
+        .order("due_date", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+
+      return { data: data as RoutineInstance, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
+    }
+  }
   // Get maintenance tasks (routines + instances) for dashboard
   static async getMaintenanceTasks(
     filters?: MaintenanceFilters

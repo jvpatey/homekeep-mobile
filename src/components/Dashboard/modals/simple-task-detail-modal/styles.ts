@@ -177,6 +177,9 @@ export const createStyles = (colors: any) =>
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
     },
+    actionSpacing: {
+      marginBottom: DesignSystem.spacing.md,
+    },
     completeButton: {
       borderRadius: DesignSystem.borders.radius.large,
       flexDirection: "row",
@@ -184,6 +187,7 @@ export const createStyles = (colors: any) =>
       justifyContent: "center",
       paddingVertical: DesignSystem.spacing.lg,
       paddingHorizontal: DesignSystem.spacing.lg,
+      width: "100%",
     },
     completeButtonDisabled: {
       opacity: 0.6,

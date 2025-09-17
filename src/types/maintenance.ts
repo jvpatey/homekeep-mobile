@@ -96,6 +96,8 @@ export interface UpdateRoutineInstanceData {
   is_completed?: boolean;
   completed_at?: string;
   notes?: string;
+  // Allow rescheduling the current instance
+  due_date?: string;
 }
 
 // Filters for querying maintenance tasks

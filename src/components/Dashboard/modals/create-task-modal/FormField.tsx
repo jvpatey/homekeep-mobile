@@ -14,6 +14,7 @@ interface FormFieldProps {
   numberOfLines?: number;
   keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
   required?: boolean;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }
 
 // FormField component for the CreateTaskModal
@@ -27,6 +28,7 @@ export function FormField({
   numberOfLines = 1,
   keyboardType = "default",
   required = false,
+  autoCapitalize = "none",
 }: FormFieldProps) {
   const { colors } = useTheme();
 
@@ -65,6 +67,7 @@ export function FormField({
         multiline={multiline}
         numberOfLines={numberOfLines}
         keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
         theme={getInputTheme()}
         dense={false}
         outlineStyle={{ borderRadius: 8 }}

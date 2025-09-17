@@ -1,11 +1,19 @@
 import React, { useState } from "react";
-import { View, Modal, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Modal,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../../../types/maintenance";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { createStyles } from "./styles";
+// Removed inline reschedule to simplify and rely on edit flow
 
 // SimpleTaskDetailModalProps
 interface SimpleTaskDetailModalProps {
@@ -13,6 +21,8 @@ interface SimpleTaskDetailModalProps {
   visible: boolean;
   onClose: () => void;
   onComplete: (instanceId: string) => void;
+  onEdit?: (task: MaintenanceTask) => void;
+  onModified?: () => void;
 }
 
 // SimpleTaskDetailModal component
@@ -21,6 +31,8 @@ export function SimpleTaskDetailModal({
   visible,
   onClose,
   onComplete,
+  onEdit,
+  onModified,
 }: SimpleTaskDetailModalProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -165,6 +177,8 @@ export function SimpleTaskDetailModal({
     // Prevent any layout changes during close
     onClose();
   };
+
+  // Rescheduling is handled through the Edit flow
 
   return (
     <Modal
@@ -321,6 +335,28 @@ export function SimpleTaskDetailModal({
 
           {/* Action buttons */}
           <View style={styles.actionsContainer}>
+            {onEdit && (
+              <TouchableOpacity
+                style={[
+                  styles.completeButton,
+                  styles.actionSpacing,
+                  {
+                    backgroundColor: colors.accent, // warm yellow/orange
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  },
+                ]}
+                onPress={() => onEdit(task)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="create-outline" size={24} color="white" />
+                <Text style={styles.completeButtonText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            {/* Reschedule removed; use Edit to change due date */}
             <TouchableOpacity
               style={[
                 styles.completeButton,
@@ -344,6 +380,7 @@ export function SimpleTaskDetailModal({
               </Text>
             </TouchableOpacity>
           </View>
+          {/* No inline date picker */}
         </View>
       </View>
     </Modal>
