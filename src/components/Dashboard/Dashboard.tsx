@@ -141,7 +141,11 @@ export function NewDashboard({
   };
 
   const handleTaskPress = (instanceId: string) => {
-    const task = tasks.find((t) => t.instance_id === instanceId);
+    // Look in current tasks first; if not found, in timelineTasks as a fallback
+    let task = tasks.find((t) => t.instance_id === instanceId);
+    if (!task) {
+      task = timelineTasks.find((t) => t.instance_id === instanceId);
+    }
     if (task) {
       setSelectedTask(task);
       setShowTaskDetail(true);
