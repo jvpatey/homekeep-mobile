@@ -277,7 +277,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // signOut function for the signOut on the home screen
   const signOut = async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    try {
+      // Best-effort: clear push token so logged-out device stops receiving pushes
+      if (user?.id) {
+        await supabase
+          .from("profiles")
+          .update({ push_token: null, updated_at: new Date().toISOString() })
+          .eq("id", user.id);
+      }
+    } catch (err) {
+      // Non-fatal: proceed with sign-out even if token clearing fails
+      console.warn("Failed to clear push token on sign-out", err);
+    } finally {
+      await supabase.auth.signOut();
+    }
   };
 
   // deleteAccount function for complete account deletion
