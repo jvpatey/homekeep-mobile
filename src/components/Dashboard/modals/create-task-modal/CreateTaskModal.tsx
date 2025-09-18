@@ -34,6 +34,9 @@ import {
 interface CreateTaskModalProps {
   onClose: () => void;
   onTaskCreated: () => void;
+  // Optional edit mode support
+  initialValues?: Partial<MaintenanceRoutineForm> & { id?: string };
+  isEdit?: boolean;
 }
 
 // MaintenanceRoutineForm
@@ -51,34 +54,60 @@ interface MaintenanceRoutineForm {
 export function CreateTaskModal({
   onClose,
   onTaskCreated,
+  initialValues,
+  isEdit = false,
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
-  const { createTask } = useTasks();
+  const { createTask, updateTask } = useTasks();
   const { user } = useAuth();
   const { colors } = useTheme();
   const modalAnimatedStyle = useSimpleAnimation(0, 400, 20);
 
   const [form, setForm] = useState<MaintenanceRoutineForm>({
-    title: "",
-    category: "GENERAL" as MaintenanceCategory,
-    interval_days: 30,
+    title: initialValues?.title ?? "",
+    category: (initialValues?.category ?? "GENERAL") as MaintenanceCategory,
+    interval_days: initialValues?.interval_days ?? 30,
     startDate: (() => {
-      const today = new Date();
-      today.setHours(9, 0, 0, 0);
-      return today;
+      const base = initialValues?.startDate
+        ? new Date(initialValues.startDate)
+        : new Date();
+      base.setHours(12, 0, 0, 0);
+      return base;
     })(),
-    priority: "medium" as Priority,
-    estimated_duration_minutes: 30,
-    description: "",
+    priority: (initialValues?.priority ?? "medium") as Priority,
+    estimated_duration_minutes: initialValues?.estimated_duration_minutes ?? 30,
+    description: initialValues?.description ?? "",
   });
 
   // Separate state for interval management
-  const [selectedInterval, setSelectedInterval] = useState<number>(30); // 30 = Monthly
-  const [intervalValue, setIntervalValue] = useState<number>(1); // Multiplier
+  const [selectedInterval, setSelectedInterval] = useState<number>(
+    // seed from existing interval if editing
+    (() => {
+      const days = initialValues?.interval_days ?? 30;
+      // Snap to common presets if divisible
+      const presets = [7, 30, 90, 365];
+      for (const p of presets) {
+        if (days % p === 0) return p;
+      }
+      return 0; // custom
+    })()
+  );
+  const [intervalValue, setIntervalValue] = useState<number>(
+    (() => {
+      const days = initialValues?.interval_days ?? 30;
+      if (selectedInterval === 0) return days;
+      return Math.max(1, Math.round(days / (selectedInterval || 1)));
+    })()
+  );
 
   const [errors, setErrors] = useState<
     Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
+
+  const capitalizeFirst = (input: string) => {
+    if (!input) return "";
+    return input.replace(/^\s*([a-zA-Z])/, (m, p1) => p1.toUpperCase());
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<{ [K in keyof MaintenanceRoutineForm]: string }> =
@@ -124,15 +153,30 @@ export function CreateTaskModal({
         actualIntervalDays = selectedInterval * intervalValue;
       }
 
+      // Ensure we persist start_date at local noon (stable day boundary)
+      const startAtNoon = new Date(form.startDate);
+      startAtNoon.setHours(12, 0, 0, 0);
+
       const taskData: CreateMaintenanceRoutineData = {
         title: form.title.trim(),
         category: form.category,
         priority: form.priority,
         estimated_duration_minutes: form.estimated_duration_minutes,
         interval_days: actualIntervalDays,
-        start_date: form.startDate.toISOString(),
+        start_date: startAtNoon.toISOString(),
         description: form.description?.trim() || undefined,
       };
+
+      if (isEdit && initialValues?.id) {
+        const result = await updateTask(initialValues.id, taskData);
+        if (result.success) {
+          triggerLight();
+          onTaskCreated();
+        } else {
+          Alert.alert("Error", result.error || "Failed to update task");
+        }
+        return;
+      }
 
       const result = await createTask(taskData);
 
@@ -193,7 +237,10 @@ export function CreateTaskModal({
           { backgroundColor: colors.background },
         ]}
       >
-        <ModalHeader title="Add Recurring Task" onClose={onClose} />
+        <ModalHeader
+          title={isEdit ? "Edit Task" : "Add Recurring Task"}
+          onClose={onClose}
+        />
 
         <ScrollView
           style={styles.modalContent}
@@ -206,6 +253,7 @@ export function CreateTaskModal({
             onChangeText={(text) => updateForm("title", text)}
             placeholder="e.g., Change air filter, Clean gutters..."
             error={errors.title}
+            autoCapitalize="words"
             required
           />
 
@@ -229,10 +277,13 @@ export function CreateTaskModal({
           <FormField
             label="Instructions (Optional)"
             value={form.description || ""}
-            onChangeText={(text) => updateForm("description", text)}
+            onChangeText={(text) =>
+              updateForm("description", capitalizeFirst(text))
+            }
             placeholder="Add detailed instructions for this task..."
             multiline
             numberOfLines={3}
+            autoCapitalize="sentences"
           />
 
           <FormField
@@ -285,7 +336,7 @@ export function CreateTaskModal({
         <SubmitButton
           onPress={handleSubmit}
           disabled={!isFormValid}
-          title="Add Task"
+          title={isEdit ? "Save Changes" : "Add Task"}
         />
       </SafeAreaView>
     </Modal>

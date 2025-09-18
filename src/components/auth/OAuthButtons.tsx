@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
-import { AntDesign } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
@@ -105,7 +105,7 @@ export function OAuthButtons({
             {appleLoading ? (
               <ActivityIndicator size={16} color={colors.text} />
             ) : (
-              <AntDesign name="apple1" size={16} color={colors.text} />
+              <Ionicons name="logo-apple" size={18} color={colors.text} />
             )}
           </View>
           <Text style={[styles.buttonLabel, { color: colors.text }]}>

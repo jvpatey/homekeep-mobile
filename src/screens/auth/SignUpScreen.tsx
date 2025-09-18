@@ -251,7 +251,7 @@ export function SignUpScreen() {
               right={
                 <TextInput.Icon
                   icon={showConfirmPassword ? "eye-off" : "eye"}
-                  onPress={handlePasswordToggle}
+                  onPress={handleConfirmPasswordToggle}
                 />
               }
             />

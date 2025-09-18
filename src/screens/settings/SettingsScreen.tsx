@@ -20,7 +20,7 @@ import { SettingsScreenProps } from "./types";
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
   const { signOut, deleteAccount } = useAuth();
-  const { deleteAllTasks } = useTasks();
+  const { deleteAllTasks, stats } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
   const [customizationModalVisible, setCustomizationModalVisible] =
     useState(false);
@@ -142,6 +142,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     setCustomizationModalVisible(false);
   };
 
+  // Disable destructive delete-all when there are no tasks/instances
+  const hasAnyTasks = (stats?.totalInstances || 0) > 0;
+
   const settingsOptions = [
     {
       id: "customize-avatar",
@@ -163,6 +166,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       icon: "trash-bin-outline",
       onPress: handleDeleteAllTasks,
       type: "destructive" as const,
+      disabled: !hasAnyTasks,
     },
     {
       id: "delete-account",
@@ -184,29 +188,29 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     const getIconColor = () => {
       switch (option.type) {
         case "destructive":
-          return colors.error;
+          return option.disabled ? colors.textSecondary : colors.error;
         case "navigation":
         default:
-          return colors.primary;
+          return option.disabled ? colors.textSecondary : colors.primary;
       }
     };
 
     const getTextColor = () => {
       switch (option.type) {
         case "destructive":
-          return colors.error;
+          return option.disabled ? colors.textSecondary : colors.error;
         default:
-          return colors.text;
+          return option.disabled ? colors.textSecondary : colors.text;
       }
     };
 
     const getIconBackgroundColor = () => {
       switch (option.type) {
         case "destructive":
-          return colors.error + "15";
+          return (option.disabled ? colors.border : colors.error) + "15";
         case "navigation":
         default:
-          return colors.primary + "15";
+          return (option.disabled ? colors.border : colors.primary) + "15";
       }
     };
 
@@ -214,8 +218,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       <TouchableOpacity
         key={option.id}
         style={[styles.optionButton, { borderBottomColor: colors.border }]}
-        onPress={option.onPress}
+        onPress={option.disabled ? undefined : option.onPress}
         activeOpacity={0.7}
+        disabled={Boolean((option as any).disabled)}
       >
         <View
           style={[

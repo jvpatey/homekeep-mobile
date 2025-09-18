@@ -191,14 +191,30 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         if (error) throw error;
 
-        // Update local state
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId
-              ? { ...task, ...updates, updated_at: new Date().toISOString() }
-              : task
-          )
-        );
+        // If start_date changed, reschedule the next open instance to keep UI in sync
+        if (updates.start_date) {
+          try {
+            const next = await MaintenanceService.getNextOpenInstanceForRoutine(
+              taskId
+            );
+            if (next.data) {
+              // Align due date with new start_date (local noon)
+              const newStart = new Date(updates.start_date);
+              newStart.setHours(12, 0, 0, 0);
+              await MaintenanceService.updateInstance(next.data.id, {
+                due_date: newStart.toISOString(),
+              });
+            }
+          } catch (e) {
+            console.error(
+              "Error rescheduling next instance after start_date update:",
+              e
+            );
+          }
+        }
+
+        // Refresh full task lists to reflect due date/interval changes
+        await loadTasks();
 
         // Handle completion status changes
         if (updates.is_active !== undefined) {

@@ -31,7 +31,10 @@ export function StartDateSelector({
   const handleDateChange = (event: DatePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === "ios");
     if (selectedDate) {
-      onStartDateChange(selectedDate);
+      // Normalize to local noon to avoid UTC boundary shifts when persisted
+      const normalized = new Date(selectedDate);
+      normalized.setHours(12, 0, 0, 0);
+      onStartDateChange(normalized);
     }
   };
 
@@ -46,6 +49,8 @@ export function StartDateSelector({
 
   const getQuickDateOptions = () => {
     const today = new Date();
+    today.setHours(12, 0, 0, 0);
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 

@@ -47,6 +47,8 @@ export function NewDashboard({
   );
   const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editTaskInitial, setEditTaskInitial] =
+    useState<MaintenanceTask | null>(null);
   const [showStreakPopup, setShowStreakPopup] = useState(false);
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
@@ -139,7 +141,11 @@ export function NewDashboard({
   };
 
   const handleTaskPress = (instanceId: string) => {
-    const task = tasks.find((t) => t.instance_id === instanceId);
+    // Look in current tasks first; if not found, in timelineTasks as a fallback
+    let task = tasks.find((t) => t.instance_id === instanceId);
+    if (!task) {
+      task = timelineTasks.find((t) => t.instance_id === instanceId);
+    }
     if (task) {
       setSelectedTask(task);
       setShowTaskDetail(true);
@@ -218,7 +224,10 @@ export function NewDashboard({
 
       {/* Floating Action Button - Add Task */}
       <FloatingActionButton
-        onPress={() => setShowCreateModal(true)}
+        onPress={() => {
+          setEditTaskInitial(null);
+          setShowCreateModal(true);
+        }}
         hasTasks={tasks.length > 0}
       />
 
@@ -228,13 +237,38 @@ export function NewDashboard({
         visible={showTaskDetail}
         onClose={() => setShowTaskDetail(false)}
         onComplete={handleCompleteTask}
+        onEdit={(task) => {
+          setShowTaskDetail(false);
+          setEditTaskInitial(task);
+          setShowCreateModal(true);
+        }}
+        onModified={onRefresh}
       />
 
       {/* Create Task Modal */}
       {showCreateModal && (
         <CreateTaskModal
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditTaskInitial(null);
+          }}
           onTaskCreated={handleTaskCreated}
+          initialValues={
+            editTaskInitial
+              ? {
+                  id: editTaskInitial.id,
+                  title: editTaskInitial.title,
+                  category: editTaskInitial.category,
+                  interval_days: editTaskInitial.interval_days,
+                  startDate: new Date(editTaskInitial.start_date),
+                  priority: editTaskInitial.priority,
+                  estimated_duration_minutes:
+                    editTaskInitial.estimated_duration_minutes,
+                  description: editTaskInitial.description,
+                }
+              : undefined
+          }
+          isEdit={!!editTaskInitial}
         />
       )}
 
