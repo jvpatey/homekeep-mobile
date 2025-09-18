@@ -252,10 +252,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         },
       }));
 
-      // Save to database
+      // Save to database (merge on unique key user_id+category)
       const { error } = await supabase
         .from("notification_preferences")
-        .upsert(updatedPrefs);
+        .upsert(updatedPrefs, { onConflict: "user_id,category" });
 
       if (error) {
         console.error("Error updating notification preferences:", error);
