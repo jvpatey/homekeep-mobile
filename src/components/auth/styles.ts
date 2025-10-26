@@ -5,12 +5,13 @@ import { DesignSystem } from "../../theme/designSystem";
 export const styles = StyleSheet.create({
   container: {
     marginBottom: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.md,
+    marginTop: 0,
   },
   orText: {
     ...DesignSystem.typography.body,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.md,
     marginHorizontal: DesignSystem.spacing.md,
     fontWeight: "500",
     opacity: 0.7,

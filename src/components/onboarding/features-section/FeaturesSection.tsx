@@ -27,10 +27,6 @@ export function FeaturesSection() {
   const [selectedFeature, setSelectedFeature] = useState<number | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Animation values for tap effect
-  const tapScale = useSharedValue(1);
-  const tapRotation = useSharedValue(0);
-
   // Animation values for modal
   const modalScale = useSharedValue(0.8);
   const modalTranslateY = useSharedValue(50);
@@ -69,22 +65,6 @@ export function FeaturesSection() {
 
     // triggerLight function to trigger the light haptic feedback
     triggerLight();
-    tapScale.value = withSequence(
-      withSpring(0.92, {
-        damping: 15,
-        stiffness: 300,
-      }),
-      withSpring(1, {
-        damping: 20,
-        stiffness: 200,
-      })
-    );
-
-    // tapRotation function to trigger the rotation of the tap
-    tapRotation.value = withSequence(
-      withSpring(-2, { damping: 15 }),
-      withSpring(0, { damping: 20 })
-    );
 
     // Modal entrance animation
     modalScale.value = withSpring(1, { damping: 20, stiffness: 200 });
@@ -110,13 +90,6 @@ export function FeaturesSection() {
       setSelectedFeature(null);
     }, 200);
   };
-
-  const tapAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: tapScale.value },
-      { rotate: `${tapRotation.value}deg` },
-    ],
-  }));
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     opacity: modalOpacity.value,
@@ -144,7 +117,6 @@ export function FeaturesSection() {
                   shadowColor: colors.primary,
                 },
                 feature.animatedStyle,
-                tapAnimatedStyle,
               ]}
             >
               <View style={styles.featureContentRow}>
@@ -228,26 +200,28 @@ export function FeaturesSection() {
             )}
 
             <TouchableOpacity onPress={closeModal} activeOpacity={0.8}>
-              <LinearGradient
-                colors={[colors.primary, colors.secondary, colors.accent]}
-                locations={[0, 0.5, 1]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+              <View
                 style={[
                   styles.closeButton,
                   {
-                    shadowColor: colors.primary,
+                    backgroundColor: isDark
+                      ? "rgba(35, 37, 38, 0.5)"
+                      : "rgba(255, 255, 255, 0.5)",
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.15)"
+                      : "rgba(255, 255, 255, 0.25)",
                     shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.2,
+                    shadowOpacity: 0.1,
                     shadowRadius: 8,
-                    elevation: 4,
+                    elevation: 2,
                   },
                 ]}
               >
-                <Text style={[styles.closeButtonText, { color: "white" }]}>
+                <Text style={[styles.closeButtonText, { color: colors.text }]}>
                   Got it
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </Animated.View>
         </Pressable>

@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
   },
   logoContainerCompact: {
-    marginTop: 0,
+    marginTop: DesignSystem.spacing.md,
     marginBottom: 0,
     alignItems: "center",
     backgroundColor: "transparent",

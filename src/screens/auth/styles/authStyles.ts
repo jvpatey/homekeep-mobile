@@ -8,8 +8,8 @@ export const authStyles = StyleSheet.create({
     flex: 1,
   },
   heroSection: {
-    paddingTop: DesignSystem.spacing.xxl,
-    paddingBottom: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xl,
+    paddingBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
     minHeight: 240,
   },
@@ -29,19 +29,19 @@ export const authStyles = StyleSheet.create({
   // Header styles
   headerContainer: {
     alignItems: "center",
-    paddingTop: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.md,
   },
   title: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.sm,
+    marginTop: 0,
+    marginBottom: 30,
   },
   largeTitle: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.sm,
+    marginTop: 0,
+    marginBottom: 30,
   },
   subtitle: {
     ...DesignSystem.typography.body,
@@ -84,7 +84,7 @@ export const authStyles = StyleSheet.create({
   // Progress styles
   progressContainer: {
     marginBottom: DesignSystem.spacing.xs,
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.xs,
     width: "100%",
     paddingHorizontal: 0,
   },
