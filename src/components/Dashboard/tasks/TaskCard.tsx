@@ -44,7 +44,7 @@ export function TaskCard({
   onComplete,
   onPress,
 }: TaskCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
   // Check if task is overdue (due before today, not including today)
   const isOverdue = (() => {
@@ -158,9 +158,13 @@ export function TaskCard({
         style={[
           styles.container,
           {
-            backgroundColor: colors.glass,
-            borderColor: categoryInfo.color,
-            borderWidth: 2,
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.4)"
+              : "rgba(255, 255, 255, 0.4)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(255, 255, 255, 0.6)",
+            borderWidth: 1,
           },
           is_completed && styles.completedContainer,
           isOverdue && styles.overdueContainer,
@@ -178,10 +182,16 @@ export function TaskCard({
                 name={categoryInfo.icon as any}
                 size={24}
                 color={categoryInfo.color}
-                style={styles.categoryIcon}
+                style={[styles.categoryIcon, { opacity: 0.7 }]}
               />
               <Text
-                style={[styles.categoryText, { color: categoryInfo.color }]}
+                style={[
+                  styles.categoryText,
+                  {
+                    color: categoryInfo.color,
+                    opacity: 0.7,
+                  },
+                ]}
               >
                 {categoryInfo.displayName}
               </Text>
@@ -195,7 +205,14 @@ export function TaskCard({
                 ]}
               />
               <Text
-                style={[styles.priorityText, { color: colors.textSecondary }]}
+                style={[
+                  styles.priorityText,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : "rgba(0, 0, 0, 0.4)",
+                  },
+                ]}
               >
                 {priority.toUpperCase()}
               </Text>
@@ -204,7 +221,14 @@ export function TaskCard({
 
           {/* Title */}
           <Text
-            style={[styles.title, { color: colors.text }]}
+            style={[
+              styles.title,
+              {
+                color: isDark
+                  ? "rgba(255, 255, 255, 0.8)"
+                  : "rgba(0, 0, 0, 0.7)",
+              },
+            ]}
             numberOfLines={2}
           >
             {title}
@@ -217,10 +241,19 @@ export function TaskCard({
                 <Ionicons
                   name="time-outline"
                   size={16}
-                  color={colors.textSecondary}
+                  color={
+                    isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)"
+                  }
                 />
                 <Text
-                  style={[styles.metaText, { color: colors.textSecondary }]}
+                  style={[
+                    styles.metaText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.4)"
+                        : "rgba(0, 0, 0, 0.3)",
+                    },
+                  ]}
                 >
                   {estimated_duration_minutes
                     ? `${estimated_duration_minutes} min`
@@ -232,7 +265,9 @@ export function TaskCard({
                 <Ionicons
                   name="calendar-outline"
                   size={16}
-                  color={colors.textSecondary}
+                  color={
+                    isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)"
+                  }
                 />
                 {(() => {
                   const formattedDate = formatDueDate(due_date);
@@ -261,10 +296,19 @@ export function TaskCard({
                 <Ionicons
                   name="repeat-outline"
                   size={16}
-                  color={colors.textSecondary}
+                  color={
+                    isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)"
+                  }
                 />
                 <Text
-                  style={[styles.metaText, { color: colors.textSecondary }]}
+                  style={[
+                    styles.metaText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.4)"
+                        : "rgba(0, 0, 0, 0.3)",
+                    },
+                  ]}
                 >
                   {formatInterval(interval_days)}
                 </Text>
@@ -277,9 +321,13 @@ export function TaskCard({
                 style={[
                   styles.completeButton,
                   {
-                    backgroundColor: colors.glassStrong,
-                    borderColor: is_completed ? colors.success : colors.primary,
-                    borderWidth: 2,
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : "rgba(0, 0, 0, 0.05)",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "rgba(0, 0, 0, 0.2)",
+                    borderWidth: 1,
                   },
                 ]}
                 onPress={handleComplete}
@@ -291,10 +339,18 @@ export function TaskCard({
                   <Ionicons
                     name="checkmark-circle"
                     size={24}
-                    color={colors.success}
+                    color={
+                      isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                    }
                   />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                  <Ionicons
+                    name="checkmark"
+                    size={20}
+                    color={
+                      isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.4)"
+                    }
+                  />
                 )}
               </TouchableOpacity>
             </Animated.View>

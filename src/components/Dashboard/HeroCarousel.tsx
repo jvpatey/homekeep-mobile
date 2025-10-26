@@ -38,7 +38,7 @@ export function HeroCarousel({
   onCompleteTask,
   onTaskPress,
 }: HeroCarouselProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -79,7 +79,14 @@ export function HeroCarousel({
       <View
         style={[
           styles.emptyContainer,
-          { backgroundColor: colors.glass, borderColor: colors.glassBorder },
+          {
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.4)"
+              : "rgba(255, 255, 255, 0.4)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(255, 255, 255, 0.6)",
+          },
         ]}
       >
         <View style={styles.emptyIconContainer}>
@@ -87,8 +94,12 @@ export function HeroCarousel({
             style={[
               styles.emptyIconBackground,
               {
-                backgroundColor: colors.background,
-                borderColor: colors.primary,
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(255, 255, 255, 0.6)",
               },
             ]}
           >
@@ -96,15 +107,31 @@ export function HeroCarousel({
               <Ionicons
                 name="checkmark-circle"
                 size={32}
-                color={colors.primary}
+                color={
+                  isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.4)"
+                }
               />
             </View>
           </View>
         </View>
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.emptyTitle,
+            {
+              color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)",
+            },
+          ]}
+        >
           All Caught Up!
         </Text>
-        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+        <Text
+          style={[
+            styles.emptySubtitle,
+            {
+              color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)",
+            },
+          ]}
+        >
           No tasks due right now
         </Text>
       </View>
@@ -118,18 +145,48 @@ export function HeroCarousel({
         <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
         <View style={styles.navigationButtons}>
           <TouchableOpacity
-            style={[styles.navButton, { backgroundColor: colors.glass }]}
+            style={[
+              styles.navButton,
+              {
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.4)"
+                  : "rgba(255, 255, 255, 0.4)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(255, 255, 255, 0.6)",
+                borderWidth: 1,
+              },
+            ]}
             onPress={scrollToPrevious}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={20} color={colors.primary} />
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"}
+            />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.navButton, { backgroundColor: colors.glass }]}
+            style={[
+              styles.navButton,
+              {
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.4)"
+                  : "rgba(255, 255, 255, 0.4)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(255, 255, 255, 0.6)",
+                borderWidth: 1,
+              },
+            ]}
             onPress={scrollToNext}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -181,10 +238,18 @@ export function HeroCarousel({
               key={index}
               style={[
                 styles.paginationDot,
-                { backgroundColor: colors.border },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "rgba(0, 0, 0, 0.2)",
+                },
                 index === currentIndex && [
                   styles.paginationDotActive,
-                  { backgroundColor: colors.primary },
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.6)"
+                      : "rgba(0, 0, 0, 0.6)",
+                  },
                 ],
               ]}
             />
@@ -194,7 +259,14 @@ export function HeroCarousel({
 
       {/* Task Counter */}
       <View style={styles.counterContainer}>
-        <Text style={[styles.counterText, { color: colors.textSecondary }]}>
+        <Text
+          style={[
+            styles.counterText,
+            {
+              color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)",
+            },
+          ]}
+        >
           {currentIndex + 1} of {tasks.length}
         </Text>
       </View>
@@ -226,7 +298,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    ...DesignSystem.shadows.small,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   carouselContainer: {
     alignItems: "center",
@@ -245,17 +321,17 @@ const styles = StyleSheet.create({
     height: 180,
     marginVertical: DesignSystem.spacing.lg,
     marginHorizontal: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: DesignSystem.spacing.xl,
     paddingHorizontal: DesignSystem.spacing.lg,
     borderWidth: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
   },
   emptyIconContainer: {
     width: 64,
