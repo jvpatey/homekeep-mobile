@@ -30,7 +30,6 @@ export function LoginScreen() {
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
-  const { gradientColors } = useAuthGradient();
   const { getInputTheme } = useAuthInputTheme();
   const { headerAnimatedStyle, formAnimatedStyle, buttonAnimatedStyle } =
     useAuthStaggeredAnimation();
@@ -96,49 +95,57 @@ export function LoginScreen() {
     navigation.navigate("SignUp" as any);
   };
 
+  // Subtle gradient for hero section
+  const gradientColors = isDark
+    ? [
+        "rgba(46, 196, 182, 0.04)",
+        "rgba(58, 134, 255, 0.03)",
+        colors.background,
+      ]
+    : [
+        "rgba(46, 196, 182, 0.06)",
+        "rgba(58, 134, 255, 0.05)",
+        colors.background,
+      ];
+
   return (
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
-      <ScrollView
-        style={authStyles.scrollView}
-        contentContainerStyle={[
-          authStyles.scrollContent,
-          {
-            paddingTop: dynamicTopSpacing,
-            paddingBottom: dynamicBottomSpacing,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
+
+      {/* Fixed Hero Section */}
+      <LinearGradient
+        colors={gradientColors}
+        locations={[0, 0.15, 1]}
+        style={authStyles.heroSection}
       >
-        {/* Header Section */}
+        <TouchableOpacity
+          onPress={handleBackPress}
+          style={{
+            position: "absolute",
+            top: dynamicTopSpacing,
+            left: DesignSystem.spacing.md,
+            zIndex: 10,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.glass,
+            borderRadius: DesignSystem.borders.radius.large,
+            paddingHorizontal: DesignSystem.spacing.md,
+            paddingVertical: DesignSystem.spacing.sm,
+            ...DesignSystem.shadows.small,
+          }}
+        >
+          <Text
+            style={{ color: colors.primary, fontSize: 16, fontWeight: "600" }}
+          >
+            ← Back
+          </Text>
+        </TouchableOpacity>
+
         <Animated.View
           style={[authStyles.headerContainer, headerAnimatedStyle]}
         >
-          <TouchableOpacity
-            onPress={handleBackPress}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: DesignSystem.spacing.md,
-              zIndex: 10,
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: colors.surface + "E6", // 90% opacity
-              borderRadius: DesignSystem.borders.radius.large,
-              paddingHorizontal: DesignSystem.spacing.md,
-              paddingVertical: DesignSystem.spacing.sm,
-              ...DesignSystem.shadows.small,
-            }}
-          >
-            <Text
-              style={{ color: colors.primary, fontSize: 16, fontWeight: "600" }}
-            >
-              ← Back
-            </Text>
-          </TouchableOpacity>
-
           <LogoSection showText={false} compact={false} />
 
           <Text style={[authStyles.title, { color: colors.text }]}>
@@ -148,9 +155,27 @@ export function LoginScreen() {
             Sign in to continue managing your home
           </Text>
         </Animated.View>
+      </LinearGradient>
 
+      {/* Scrollable Content Section */}
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingBottom: dynamicBottomSpacing,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Form Section */}
-        <Animated.View style={[authStyles.formCard, formAnimatedStyle]}>
+        <Animated.View
+          style={[
+            authStyles.formCard,
+            { backgroundColor: colors.glass, shadowColor: colors.primary },
+            formAnimatedStyle,
+          ]}
+        >
           <View style={authStyles.formContent}>
             <TextInput
               label="Email"
@@ -209,22 +234,32 @@ export function LoginScreen() {
           <TouchableOpacity
             onPress={handleSignIn}
             disabled={loading}
-            style={[
-              authStyles.primaryButton,
-              {
-                backgroundColor: colors.primary,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-                elevation: 6,
-                marginHorizontal: DesignSystem.spacing.md,
-              },
-            ]}
+            activeOpacity={0.8}
           >
-            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-              {loading ? "Signing In..." : "Sign In"}
-            </Text>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[
+                authStyles.primaryButton,
+                {
+                  shadowColor: colors.primary,
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 16,
+                  elevation: 6,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  authStyles.buttonLabel,
+                  { color: "white", fontWeight: "700", fontSize: 17 },
+                ]}
+              >
+                {loading ? "Signing In..." : "Sign In"}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
 

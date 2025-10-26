@@ -68,49 +68,48 @@ export function OAuthButtons({
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      {/* Visual divider with "or" text */}
-      <View style={styles.dividerContainer}>
-        <View
-          style={[styles.dividerLine, { backgroundColor: colors.border }]}
-        />
-        <Text style={[styles.dividerText, { color: colors.textSecondary }]}>
-          or
-        </Text>
-        <View
-          style={[styles.dividerLine, { backgroundColor: colors.border }]}
-        />
-      </View>
+      {/* "or" text without divider lines */}
+      <Text style={[styles.orText, { color: colors.textSecondary }]}>or</Text>
 
       {/* Apple Sign In Button */}
       <TouchableOpacity
         onPress={handleAppleSignIn}
         disabled={disabled || appleLoading}
-        style={[
-          styles.appleButton,
-          {
-            backgroundColor: colors.surface,
-            borderWidth: 2,
-            borderColor: colors.border,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-            elevation: 3,
-            marginHorizontal: DesignSystem.spacing.md,
-          },
-        ]}
+        activeOpacity={0.8}
+        style={{
+          marginHorizontal: DesignSystem.spacing.md,
+        }}
       >
-        <View style={styles.buttonContent}>
-          <View style={styles.googleIconContainer}>
-            {appleLoading ? (
-              <ActivityIndicator size={16} color={colors.text} />
-            ) : (
-              <Ionicons name="logo-apple" size={18} color={colors.text} />
-            )}
+        <View
+          style={[
+            styles.appleButton,
+            {
+              backgroundColor: colors.glass,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 3,
+            },
+          ]}
+        >
+          <View style={styles.buttonContent}>
+            <View style={styles.googleIconContainer}>
+              {appleLoading ? (
+                <ActivityIndicator size={16} color={colors.text} />
+              ) : (
+                <Ionicons name="logo-apple" size={18} color={colors.text} />
+              )}
+            </View>
+            <Text
+              style={[
+                styles.buttonLabel,
+                { color: colors.text, fontWeight: "600", fontSize: 16 },
+              ]}
+            >
+              {appleLoading ? "Signing in..." : "Continue with Apple"}
+            </Text>
           </View>
-          <Text style={[styles.buttonLabel, { color: colors.text }]}>
-            {appleLoading ? "Signing in..." : "Continue with Apple"}
-          </Text>
         </View>
       </TouchableOpacity>
     </Animated.View>
