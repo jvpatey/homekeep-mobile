@@ -32,21 +32,28 @@ export function DashboardHeader({
   onShowDueSoonPopup,
   onShowStreakPopup,
 }: DashboardHeaderProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
+  const gradientColors = isDark
+    ? [
+        "rgba(46, 196, 182, 0.04)",
+        "rgba(58, 134, 255, 0.01)",
+        colors.background,
+      ]
+    : [
+        "rgba(46, 196, 182, 0.06)",
+        "rgba(58, 134, 255, 0.02)",
+        colors.background,
+      ];
+
   return (
     <View style={headerStyles.headerSection}>
-      <View
-        style={[
-          headerStyles.headerGradient,
-          {
-            backgroundColor: colors.surface,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-          },
-        ]}
+      <LinearGradient
+        colors={gradientColors}
+        locations={[0, 0.15, 1]}
+        style={headerStyles.headerGradient}
       >
         {/* Profile Button - Top Right */}
         <View style={headerStyles.profileButtonContainer}>
@@ -73,9 +80,9 @@ export function DashboardHeader({
             style={[
               headerStyles.statsContainer,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.glass,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: colors.glassBorder,
               },
             ]}
           >
@@ -140,7 +147,7 @@ export function DashboardHeader({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </LinearGradient>
     </View>
   );
 }

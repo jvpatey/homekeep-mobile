@@ -79,7 +79,7 @@ export function HeroCarousel({
       <View
         style={[
           styles.emptyContainer,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          { backgroundColor: colors.glass, borderColor: colors.glassBorder },
         ]}
       >
         <View style={styles.emptyIconContainer}>
@@ -118,14 +118,14 @@ export function HeroCarousel({
         <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
         <View style={styles.navigationButtons}>
           <TouchableOpacity
-            style={[styles.navButton, { backgroundColor: colors.surface }]}
+            style={[styles.navButton, { backgroundColor: colors.glass }]}
             onPress={scrollToPrevious}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.navButton, { backgroundColor: colors.surface }]}
+            style={[styles.navButton, { backgroundColor: colors.glass }]}
             onPress={scrollToNext}
             activeOpacity={0.7}
           >

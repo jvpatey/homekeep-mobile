@@ -40,7 +40,7 @@ export function TimelineView({
       <View
         style={[
           timelineStyles.emptyContainer,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          { backgroundColor: colors.glass, borderColor: colors.glassBorder },
         ]}
       >
         <View style={timelineStyles.emptyIconContainer}>
@@ -166,7 +166,7 @@ export function TimelineView({
                   style={[
                     timelineStyles.taskContent,
                     {
-                      backgroundColor: colors.surface,
+                      backgroundColor: colors.glass,
                       borderColor: task.is_overdue
                         ? "#FF6B6B"
                         : HOME_MAINTENANCE_CATEGORIES[task.category].color,
@@ -281,7 +281,7 @@ export function TimelineView({
                       style={[
                         timelineStyles.completeButton,
                         {
-                          backgroundColor: colors.surface,
+                          backgroundColor: colors.glassStrong,
                           borderColor: task.is_completed
                             ? colors.success
                             : colors.primary,

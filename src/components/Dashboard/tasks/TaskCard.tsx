@@ -158,7 +158,7 @@ export function TaskCard({
         style={[
           styles.container,
           {
-            backgroundColor: colors.surface,
+            backgroundColor: colors.glass,
             borderColor: categoryInfo.color,
             borderWidth: 2,
           },
@@ -277,7 +277,7 @@ export function TaskCard({
                 style={[
                   styles.completeButton,
                   {
-                    backgroundColor: colors.surface,
+                    backgroundColor: colors.glassStrong,
                     borderColor: is_completed ? colors.success : colors.primary,
                     borderWidth: 2,
                   },
