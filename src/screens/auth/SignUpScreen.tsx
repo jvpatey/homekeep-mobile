@@ -156,15 +156,29 @@ export function SignUpScreen() {
             zIndex: 10,
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.glass,
-            borderRadius: DesignSystem.borders.radius.large,
-            paddingHorizontal: DesignSystem.spacing.md,
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.5)"
+              : "rgba(255, 255, 255, 0.5)",
+            borderRadius: 20,
+            paddingHorizontal: DesignSystem.spacing.lg,
             paddingVertical: DesignSystem.spacing.sm,
-            ...DesignSystem.shadows.small,
+            borderWidth: 1,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.15)"
+              : "rgba(255, 255, 255, 0.25)",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 2,
           }}
         >
           <Text
-            style={{ color: colors.primary, fontSize: 16, fontWeight: "600" }}
+            style={{
+              color: colors.textSecondary,
+              fontSize: 15,
+              fontWeight: "600",
+              opacity: 0.7,
+            }}
           >
             ← Back
           </Text>
@@ -298,17 +312,30 @@ export function SignUpScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[colors.primary, colors.secondary]}
+              colors={[
+                isDark
+                  ? "rgba(32, 180, 134, 0.70)"
+                  : "rgba(46, 196, 182, 0.75)",
+                isDark
+                  ? "rgba(58, 134, 255, 0.65)"
+                  : "rgba(58, 134, 255, 0.70)",
+              ]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={[
                 authStyles.primaryButton,
                 {
-                  shadowColor: colors.primary,
+                  shadowColor: isDark
+                    ? "rgba(32, 180, 134, 0.25)"
+                    : "rgba(46, 196, 182, 0.30)",
                   shadowOffset: { width: 0, height: 8 },
-                  shadowOpacity: 0.25,
+                  shadowOpacity: 0.2,
                   shadowRadius: 16,
-                  elevation: 6,
+                  elevation: 5,
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.15)"
+                    : "rgba(255, 255, 255, 0.2)",
                 },
               ]}
             >

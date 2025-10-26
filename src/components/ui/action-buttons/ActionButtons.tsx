@@ -39,17 +39,26 @@ export function ActionButtons() {
       {/* Primary Get Started Button */}
       <TouchableOpacity onPress={handleGetStarted} activeOpacity={0.8}>
         <LinearGradient
-          colors={primaryGradient}
+          colors={[
+            isDark ? "rgba(32, 180, 134, 0.70)" : "rgba(46, 196, 182, 0.75)",
+            isDark ? "rgba(58, 134, 255, 0.65)" : "rgba(58, 134, 255, 0.70)",
+          ]}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={[
             styles.primaryButton,
             {
-              shadowColor: colors.primary,
+              shadowColor: isDark
+                ? "rgba(32, 180, 134, 0.25)"
+                : "rgba(46, 196, 182, 0.30)",
               shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.25,
+              shadowOpacity: 0.2,
               shadowRadius: 16,
-              elevation: 6,
+              elevation: 5,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.15)"
+                : "rgba(255, 255, 255, 0.2)",
             },
           ]}
         >

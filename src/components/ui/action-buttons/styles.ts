@@ -11,11 +11,11 @@ export const styles = StyleSheet.create({
   },
   primaryButton: {
     borderRadius: DesignSystem.borders.radius.large,
-    paddingVertical: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 56,
+    minHeight: 52,
   },
   primaryButtonText: {
     ...DesignSystem.typography.button,

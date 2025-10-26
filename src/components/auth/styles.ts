@@ -40,9 +40,9 @@ export const styles = StyleSheet.create({
   },
   appleButton: {
     borderRadius: DesignSystem.borders.radius.large,
-    paddingVertical: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.xl,
-    minHeight: 56,
+    minHeight: 52,
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",
