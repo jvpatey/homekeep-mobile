@@ -3,6 +3,7 @@ import {
   useAnimatedStyle,
   withTiming,
   withDelay,
+  withSpring,
 } from "react-native-reanimated";
 import { useEffect } from "react";
 
@@ -28,29 +29,95 @@ export function useSimpleAnimation(
   return animatedStyle;
 }
 
+// useLogoAnimation hook for modern logo entrance with scale and rotation
+export function useLogoAnimation(delay: number = 0) {
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(0.8);
+  const rotate = useSharedValue(-5);
+
+  useEffect(() => {
+    opacity.value = withDelay(
+      delay,
+      withSpring(1, {
+        damping: 12,
+        stiffness: 100,
+      })
+    );
+    scale.value = withDelay(
+      delay,
+      withSpring(1, {
+        damping: 12,
+        stiffness: 100,
+      })
+    );
+    rotate.value = withDelay(
+      delay,
+      withSpring(0, {
+        damping: 12,
+        stiffness: 100,
+      })
+    );
+  }, [delay]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }, { rotate: `${rotate.value}deg` }],
+  }));
+
+  return animatedStyle;
+}
+
 // useTextAnimation hook for the useTextAnimation on the home screen
 export function useTextAnimation() {
   const headlineOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
   const headlineTranslateY = useSharedValue(15);
   const subtitleTranslateY = useSharedValue(15);
+  const headlineScale = useSharedValue(0.95);
+  const subtitleScale = useSharedValue(0.95);
 
   useEffect(() => {
-    headlineOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
-    headlineTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
+    headlineOpacity.value = withDelay(
+      200,
+      withSpring(1, { damping: 15, stiffness: 150 })
+    );
+    headlineTranslateY.value = withDelay(
+      200,
+      withSpring(0, { damping: 15, stiffness: 150 })
+    );
+    headlineScale.value = withDelay(
+      200,
+      withSpring(1, { damping: 15, stiffness: 150 })
+    );
 
-    subtitleOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    subtitleTranslateY.value = withDelay(400, withTiming(0, { duration: 600 }));
+    subtitleOpacity.value = withDelay(
+      400,
+      withSpring(1, { damping: 15, stiffness: 150 })
+    );
+    subtitleTranslateY.value = withDelay(
+      400,
+      withSpring(0, { damping: 15, stiffness: 150 })
+    );
+    subtitleScale.value = withDelay(
+      400,
+      withSpring(1, { damping: 15, stiffness: 150 })
+    );
   }, []);
 
   const headlineAnimatedStyle = useAnimatedStyle(() => ({
     opacity: headlineOpacity.value,
-    transform: [{ translateY: headlineTranslateY.value }],
+    transform: [
+      { translateY: headlineTranslateY.value },
+      { scale: headlineScale.value },
+    ],
   }));
 
   const subtitleAnimatedStyle = useAnimatedStyle(() => ({
     opacity: subtitleOpacity.value,
-    transform: [{ translateY: subtitleTranslateY.value }],
+    transform: [
+      { translateY: subtitleTranslateY.value },
+      { scale: subtitleScale.value },
+    ],
   }));
 
   return {
@@ -66,23 +133,41 @@ export function useFeatureAnimation(
 ) {
   const opacities = Array.from({ length: count }, () => useSharedValue(0));
   const translateYs = Array.from({ length: count }, () => useSharedValue(20));
+  const scales = Array.from({ length: count }, () => useSharedValue(0.95));
 
   useEffect(() => {
     opacities.forEach((opacity, index) => {
       const delay = baseDelay + index * 150;
-      opacity.value = withDelay(delay, withTiming(1, { duration: 500 }));
+      opacity.value = withDelay(
+        delay,
+        withSpring(1, { damping: 18, stiffness: 120 })
+      );
     });
 
     translateYs.forEach((translateY, index) => {
       const delay = baseDelay + index * 150;
-      translateY.value = withDelay(delay, withTiming(0, { duration: 500 }));
+      translateY.value = withDelay(
+        delay,
+        withSpring(0, { damping: 18, stiffness: 120 })
+      );
+    });
+
+    scales.forEach((scale, index) => {
+      const delay = baseDelay + index * 150;
+      scale.value = withDelay(
+        delay,
+        withSpring(1, { damping: 18, stiffness: 120 })
+      );
     });
   }, [count, baseDelay]);
 
   const animatedStyles = opacities.map((opacity, index) =>
     useAnimatedStyle(() => ({
       opacity: opacity.value,
-      transform: [{ translateY: translateYs[index].value }],
+      transform: [
+        { translateY: translateYs[index].value },
+        { scale: scales[index].value },
+      ],
     }))
   );
 

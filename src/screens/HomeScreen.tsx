@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroSection: {
-    paddingTop: DesignSystem.spacing.xxl,
+    paddingTop: DesignSystem.spacing.xl,
     paddingBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
     justifyContent: "center",

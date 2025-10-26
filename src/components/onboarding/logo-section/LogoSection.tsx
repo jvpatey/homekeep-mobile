@@ -4,7 +4,7 @@ import Animated from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../../context/ThemeContext";
-import { useSimpleAnimation } from "../../../hooks";
+import { useLogoAnimation } from "../../../hooks";
 import { styles } from "./styles";
 
 interface LogoSectionProps {
@@ -18,7 +18,7 @@ export function LogoSection({
   compact = false,
 }: LogoSectionProps) {
   const { colors, isDark } = useTheme();
-  const animatedStyle = useSimpleAnimation(0, 800, 20);
+  const animatedStyle = useLogoAnimation(0);
 
   const gradientColors = isDark
     ? [colors.primary, colors.secondary, colors.accent]

@@ -1,6 +1,7 @@
 // Animation hooks
 export {
   useSimpleAnimation,
+  useLogoAnimation,
   useTextAnimation,
   useFeatureAnimation,
   useButtonAnimation,

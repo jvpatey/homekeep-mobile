@@ -4,7 +4,7 @@ import { DesignSystem } from "../../../theme/designSystem";
 // styles for the logo section
 export const styles = StyleSheet.create({
   logoContainer: {
-    marginTop: 0,
+    marginTop: DesignSystem.spacing.md,
     marginBottom: 0,
     alignItems: "center",
     backgroundColor: "transparent",

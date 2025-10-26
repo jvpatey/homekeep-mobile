@@ -5,13 +5,13 @@ import { DesignSystem } from "../../../theme/designSystem";
 export const styles = StyleSheet.create({
   textContainer: {
     alignItems: "center",
-    marginTop: DesignSystem.spacing.xxl,
+    marginTop: DesignSystem.spacing.lg,
     maxWidth: 280,
   },
   headline: {
     ...DesignSystem.typography.h2,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.xs,
     textShadowColor: "rgba(0, 0, 0, 0.05)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
