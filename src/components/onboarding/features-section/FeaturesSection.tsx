@@ -14,11 +14,12 @@ import { useTheme } from "../../../context/ThemeContext";
 import { useFeatureAnimation, useGradients, useHaptics } from "../../../hooks";
 import { styles } from "./styles";
 import { ActionButtons } from "../../ui";
+import { DesignSystem } from "../../../theme/designSystem";
 
 // FeaturesSection component for the FeaturesSection on the onboarding screen
 export function FeaturesSection() {
   const { colors } = useTheme();
-  const { iconGradient } = useGradients();
+  const { iconGradient, glassBorder, glowGradient } = useGradients();
   const featureAnimatedStyles = useFeatureAnimation(3, 600);
   const { triggerLight } = useHaptics();
 
@@ -39,6 +40,7 @@ export function FeaturesSection() {
     {
       icon: "list-outline",
       text: "Organize",
+      subtitle: "Manage all tasks in one place",
       description:
         "Create, organize, and manage all your home maintenance tasks in one place. Set priorities, due dates, and categories to keep everything organized.",
       animatedStyle: featureAnimatedStyles[0],
@@ -46,6 +48,7 @@ export function FeaturesSection() {
     {
       icon: "time-outline",
       text: "Schedule",
+      subtitle: "Never miss important maintenance",
       description:
         "Never forget when to clean your gutters, change filters, or service your HVAC again. Get automatic reminders for all your home maintenance needs.",
       animatedStyle: featureAnimatedStyles[1],
@@ -53,6 +56,7 @@ export function FeaturesSection() {
     {
       icon: "trophy-outline",
       text: "Track",
+      subtitle: "See your maintenance progress",
       description:
         "Celebrate your achievements and track your home maintenance progress. Build a complete history of completed tasks and maintenance milestones.",
       animatedStyle: featureAnimatedStyles[2],
@@ -124,45 +128,52 @@ export function FeaturesSection() {
 
   return (
     <View style={styles.cardContainer}>
-      {/* Feature Highlights */}
+      {/* Feature Highlights - Full Width Stacked Cards */}
       <View style={styles.featuresContainer}>
         {features.map((feature, index) => (
           <TouchableOpacity
             key={index}
             onPress={() => handleFeaturePress(index)}
             activeOpacity={0.9}
-            style={styles.featureTouchable}
           >
             <Animated.View
               style={[
                 styles.featureItem,
                 {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  backgroundColor: colors.glass,
+                  shadowColor: colors.primary,
                 },
                 feature.animatedStyle,
                 tapAnimatedStyle,
               ]}
             >
-              <View
-                style={[
-                  styles.featureIcon,
-                  {
-                    backgroundColor: colors.background,
-                    borderWidth: 2,
-                    borderColor: colors.primary,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={feature.icon as any}
-                  size={24}
-                  color={colors.primary}
-                />
+              <View style={styles.featureContentRow}>
+                <LinearGradient
+                  colors={iconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.featureIcon}
+                >
+                  <Ionicons
+                    name={feature.icon as any}
+                    size={24}
+                    color={colors.primary}
+                  />
+                </LinearGradient>
+                <View style={styles.featureTextContainer}>
+                  <Text style={[styles.featureTitle, { color: colors.text }]}>
+                    {feature.text}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureSubtitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {feature.subtitle}
+                  </Text>
+                </View>
               </View>
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {feature.text}
-              </Text>
             </Animated.View>
           </TouchableOpacity>
         ))}
@@ -178,28 +189,27 @@ export function FeaturesSection() {
           <Animated.View
             style={[
               styles.modalContent,
-              { backgroundColor: colors.surface },
+              {
+                backgroundColor: colors.glassStrong,
+                shadowColor: colors.primary,
+              },
               modalAnimatedStyle,
             ]}
           >
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>
-                <View
-                  style={[
-                    styles.modalIcon,
-                    {
-                      backgroundColor: colors.background,
-                      borderWidth: 2,
-                      borderColor: colors.primary,
-                    },
-                  ]}
+                <LinearGradient
+                  colors={iconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modalIcon}
                 >
                   <Ionicons
                     name={features[selectedFeature].icon as any}
                     size={32}
                     color={colors.primary}
                   />
-                </View>
+                </LinearGradient>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>
                   {features[selectedFeature].text}
                 </Text>
@@ -217,24 +227,26 @@ export function FeaturesSection() {
               </Text>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  backgroundColor: colors.primary,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                },
-              ]}
-              onPress={closeModal}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.closeButtonText, { color: "white" }]}>
-                Got it
-              </Text>
+            <TouchableOpacity onPress={closeModal} activeOpacity={0.8}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.closeButton,
+                  {
+                    shadowColor: colors.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  },
+                ]}
+              >
+                <Text style={[styles.closeButtonText, { color: "white" }]}>
+                  Got it
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
         </Pressable>

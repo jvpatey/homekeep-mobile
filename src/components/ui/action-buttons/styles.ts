@@ -4,35 +4,35 @@ import { DesignSystem } from "../../../theme/designSystem";
 // styles for the action buttons
 export const styles = StyleSheet.create({
   buttonContainer: {
-    alignItems: "center",
-    gap: DesignSystem.spacing.lg,
-    paddingBottom: DesignSystem.spacing.md,
+    alignItems: "stretch",
+    gap: DesignSystem.spacing.md,
+    paddingBottom: 0,
+    marginBottom: 0,
   },
   primaryButton: {
-    width: "100%",
     borderRadius: DesignSystem.borders.radius.large,
-    paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: DesignSystem.components.buttonLarge,
+    minHeight: 56,
   },
   primaryButtonText: {
     ...DesignSystem.typography.button,
     color: "white",
     textAlign: "center",
+    fontWeight: "700",
+    fontSize: 18,
+    letterSpacing: -0.3,
   },
-  secondaryButton: {
-    width: "100%",
-    borderRadius: DesignSystem.borders.radius.large,
+  emailLink: {
     paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: DesignSystem.components.buttonMedium,
   },
-  secondaryButtonText: {
-    ...DesignSystem.typography.button,
+  emailLinkText: {
+    ...DesignSystem.typography.body,
     textAlign: "center",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });

@@ -5,17 +5,21 @@ import { DesignSystem } from "../../../theme/designSystem";
 export const styles = StyleSheet.create({
   logoContainer: {
     marginTop: 0,
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: 0,
     alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.md,
     backgroundColor: "transparent",
+    width: "100%",
+    maxWidth: 280,
+    alignSelf: "center",
   },
   logoContainerCompact: {
     marginTop: 0,
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: 0,
     alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.md,
     backgroundColor: "transparent",
+    width: "100%",
+    maxWidth: 280,
+    alignSelf: "center",
   },
   logo: {
     width: 380,

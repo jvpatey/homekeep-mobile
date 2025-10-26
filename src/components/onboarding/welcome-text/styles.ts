@@ -4,25 +4,26 @@ import { DesignSystem } from "../../../theme/designSystem";
 // styles for the welcome text section
 export const styles = StyleSheet.create({
   textContainer: {
-    paddingHorizontal: DesignSystem.spacing.md,
     alignItems: "center",
-    alignSelf: "center",
-    marginBottom: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.xxl,
+    maxWidth: 280,
   },
   headline: {
     ...DesignSystem.typography.h2,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
     textShadowColor: "rgba(0, 0, 0, 0.05)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
+    width: "100%",
   },
   subtitle: {
     ...DesignSystem.typography.bodyMedium,
     textAlign: "center",
-    opacity: 0.9,
+    opacity: 0.85,
     textShadowColor: "rgba(0, 0, 0, 0.05)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
+    width: "100%",
   },
 });

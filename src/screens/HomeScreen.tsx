@@ -17,26 +17,34 @@ export function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
 
+  // Ultra subtle gradient - teal to blue only, no orange
+  const gradientColors = isDark
+    ? [
+        "rgba(46, 196, 182, 0.04)",
+        "rgba(58, 134, 255, 0.03)",
+        colors.background,
+      ]
+    : [
+        "rgba(46, 196, 182, 0.06)",
+        "rgba(58, 134, 255, 0.05)",
+        colors.background,
+      ];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Hero Section with Minimalist Design */}
-      <View
-        style={[
-          styles.heroSection,
-          {
-            backgroundColor: colors.surface,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-          },
-        ]}
+      {/* Hero Section with Ultra Subtle Gradient */}
+      <LinearGradient
+        colors={gradientColors}
+        locations={[0, 0.15, 1]}
+        style={styles.heroSection}
       >
         <View style={styles.heroContent}>
           <LogoSection showText={true} compact={false} />
           <WelcomeText />
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -59,26 +67,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroSection: {
-    paddingTop: DesignSystem.spacing.xxxl,
-    paddingBottom: DesignSystem.spacing.xxxl,
+    paddingTop: DesignSystem.spacing.xxl,
+    paddingBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    minHeight: isProMax ? screenHeight * 0.45 : undefined,
     justifyContent: "center",
   },
   heroContent: {
     alignItems: "center",
+    paddingHorizontal: DesignSystem.spacing.md,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: isProMax ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
-    justifyContent: isProMax ? "center" : "flex-start",
+    paddingTop: DesignSystem.spacing.md,
+    justifyContent: "flex-start",
   },
 });

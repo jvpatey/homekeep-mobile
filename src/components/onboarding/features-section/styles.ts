@@ -5,29 +5,28 @@ import { colors } from "../../../theme/colors";
 // styles for the features section
 export const styles = StyleSheet.create({
   cardContainer: {
-    paddingBottom: DesignSystem.spacing.xl,
     paddingHorizontal: DesignSystem.spacing.md,
+    paddingTop: 0,
+    paddingBottom: DesignSystem.spacing.xl,
   },
   featuresContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: "column",
     marginBottom: DesignSystem.spacing.lg,
     gap: DesignSystem.spacing.md,
   },
-  featureTouchable: {
-    flex: 1,
-  },
   featureItem: {
-    flex: 1,
-    alignItems: "center",
     borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.lg,
-    borderWidth: 1,
-    shadowColor: "#000",
+    padding: DesignSystem.spacing.md,
+    minHeight: 72,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
+  },
+  featureContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.md,
   },
   featureIcon: {
     width: 56,
@@ -35,20 +34,22 @@ export const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.md,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  featureText: {
-    ...DesignSystem.typography.captionMedium,
-    textAlign: "center",
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "600",
-    letterSpacing: 0.2,
+  featureTextContainer: {
+    flex: 1,
+  },
+  featureTitle: {
+    ...DesignSystem.typography.h4,
+    marginBottom: DesignSystem.spacing.xs,
+  },
+  featureSubtitle: {
+    ...DesignSystem.typography.body,
+    fontSize: 15,
+    opacity: 0.85,
   },
   // modalOverlay function to animate the modal overlay
   modalOverlay: {
@@ -77,9 +78,8 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: DesignSystem.spacing.md,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
