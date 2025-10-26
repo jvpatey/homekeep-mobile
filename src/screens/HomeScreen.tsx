@@ -21,12 +21,12 @@ export function HomeScreen() {
   const gradientColors = isDark
     ? [
         "rgba(46, 196, 182, 0.04)",
-        "rgba(58, 134, 255, 0.03)",
+        "rgba(58, 134, 255, 0.01)",
         colors.background,
       ]
     : [
         "rgba(46, 196, 182, 0.06)",
-        "rgba(58, 134, 255, 0.05)",
+        "rgba(58, 134, 255, 0.02)",
         colors.background,
       ];
 

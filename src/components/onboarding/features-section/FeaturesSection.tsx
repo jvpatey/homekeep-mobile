@@ -18,7 +18,7 @@ import { DesignSystem } from "../../../theme/designSystem";
 
 // FeaturesSection component for the FeaturesSection on the onboarding screen
 export function FeaturesSection() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { iconGradient, glassBorder, glowGradient } = useGradients();
   const featureAnimatedStyles = useFeatureAnimation(3, 600);
   const { triggerLight } = useHaptics();
@@ -229,7 +229,8 @@ export function FeaturesSection() {
 
             <TouchableOpacity onPress={closeModal} activeOpacity={0.8}>
               <LinearGradient
-                colors={[colors.primary, colors.secondary]}
+                colors={[colors.primary, colors.secondary, colors.accent]}
+                locations={[0, 0.5, 1]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[

@@ -99,12 +99,12 @@ export function LoginScreen() {
   const gradientColors = isDark
     ? [
         "rgba(46, 196, 182, 0.04)",
-        "rgba(58, 134, 255, 0.03)",
+        "rgba(58, 134, 255, 0.01)",
         colors.background,
       ]
     : [
         "rgba(46, 196, 182, 0.06)",
-        "rgba(58, 134, 255, 0.05)",
+        "rgba(58, 134, 255, 0.02)",
         colors.background,
       ];
 
@@ -258,7 +258,11 @@ export function LoginScreen() {
                 isDark
                   ? "rgba(58, 134, 255, 0.65)"
                   : "rgba(58, 134, 255, 0.70)",
+                isDark
+                  ? "rgba(255, 159, 28, 0.60)"
+                  : "rgba(255, 159, 28, 0.65)",
               ]}
+              locations={[0, 0.5, 1]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[

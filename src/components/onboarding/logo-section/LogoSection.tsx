@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Image, Text } from "react-native";
 import Animated from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../../context/ThemeContext";
 import { useSimpleAnimation } from "../../../hooks";
 import { styles } from "./styles";
@@ -15,8 +17,12 @@ export function LogoSection({
   showText = true,
   compact = false,
 }: LogoSectionProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const animatedStyle = useSimpleAnimation(0, 800, 20);
+
+  const gradientColors = isDark
+    ? [colors.primary, colors.secondary, colors.accent]
+    : [colors.primary, colors.secondary, colors.accent];
 
   return (
     <Animated.View
@@ -31,7 +37,16 @@ export function LogoSection({
         resizeMode="contain"
       />
       {showText && (
-        <Text style={[styles.logoText, { color: colors.text }]}>HomeKeep</Text>
+        <MaskedView maskElement={<Text style={styles.logoText}>HomeKeep</Text>}>
+          <LinearGradient
+            colors={gradientColors}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={[styles.logoText, { opacity: 0 }]}>HomeKeep</Text>
+          </LinearGradient>
+        </MaskedView>
       )}
     </Animated.View>
   );

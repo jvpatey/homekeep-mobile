@@ -42,7 +42,9 @@ export function ActionButtons() {
           colors={[
             isDark ? "rgba(32, 180, 134, 0.70)" : "rgba(46, 196, 182, 0.75)",
             isDark ? "rgba(58, 134, 255, 0.65)" : "rgba(58, 134, 255, 0.70)",
+            isDark ? "rgba(255, 159, 28, 0.60)" : "rgba(255, 159, 28, 0.65)",
           ]}
+          locations={[0, 0.5, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
