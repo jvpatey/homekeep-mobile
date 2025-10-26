@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../context/ThemeContext";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
@@ -48,6 +49,8 @@ export function DashboardHeader({
         colors.background,
       ];
 
+  const textGradientColors = [colors.primary, colors.secondary, colors.accent];
+
   return (
     <View style={headerStyles.headerSection}>
       <LinearGradient
@@ -62,9 +65,35 @@ export function DashboardHeader({
 
         <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
-            <Text style={[headerStyles.greeting, { color: colors.text }]}>
-              {greeting}, {userName}!
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={[headerStyles.greeting, { color: colors.text }]}>
+                {greeting},{"\u00A0"}
+              </Text>
+              <MaskedView
+                maskElement={
+                  <Text style={[headerStyles.greeting, { color: colors.text }]}>
+                    {userName}!
+                  </Text>
+                }
+              >
+                <LinearGradient
+                  colors={textGradientColors}
+                  locations={[0, 0.5, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={[headerStyles.greeting, { opacity: 0 }]}>
+                    {userName}!
+                  </Text>
+                </LinearGradient>
+              </MaskedView>
+            </View>
 
             <Text
               style={[
@@ -80,9 +109,13 @@ export function DashboardHeader({
             style={[
               headerStyles.statsContainer,
               {
-                backgroundColor: colors.glass,
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.4)"
+                  : "rgba(255, 255, 255, 0.4)",
                 borderWidth: 1,
-                borderColor: colors.glassBorder,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(255, 255, 255, 0.6)",
               },
             ]}
           >
