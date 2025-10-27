@@ -22,6 +22,7 @@ import { useGradients, useHaptics } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
+import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
 
 // ProfileMenuProps
 interface ProfileMenuProps {
@@ -37,8 +38,11 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { primaryGradient } = useGradients();
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
-  const { triggerLight } = useHaptics();
+  const { triggerLight, triggerMedium } = useHaptics();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [customizationModalVisible, setCustomizationModalVisible] =
+    useState(false);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -84,6 +88,7 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     scale.value = withTiming(0, { duration: 200 });
     opacity.value = withTiming(0, { duration: 200 }, () => {
       runOnJS(setMenuVisible)(false);
+      runOnJS(setShowSettings)(false);
     });
   };
 
@@ -106,14 +111,69 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     ]);
   };
 
-  // handleSettings function to navigate to settings
+  // handleSettings functiont to toggle settings view
   const handleSettings = async () => {
-    console.log("Navigating to settings screen");
+    await triggerLight();
+    setShowSettings(true);
+  };
+
+  // handleBackFromSettings function to go back from settings
+  const handleBackFromSettings = async () => {
+    await triggerLight();
+    setShowSettings(false);
+  };
+
+  // handleCustomizeAvatar function to show avatar customization
+  const handleCustomizeAvatar = async () => {
+    await triggerMedium();
+    hideMenu();
+    setTimeout(() => {
+      setCustomizationModalVisible(true);
+    }, 300);
+  };
+
+  // handleNotificationSettings function to navigate to notification settings
+  const handleNotificationSettings = async () => {
     await triggerLight();
     hideMenu();
     setTimeout(() => {
-      navigation.navigate("Settings");
+      navigation.navigate("NotificationPreferences");
     }, 300);
+  };
+
+  // handleDeleteAccount function to handle account deletion
+  const handleDeleteAccount = async () => {
+    hideMenu();
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you absolutely sure you want to delete your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: async () => {
+            Alert.alert(
+              "Final Confirmation",
+              "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete Forever",
+                  style: "destructive",
+                  onPress: async () => {
+                    Alert.alert(
+                      "Account Deleted",
+                      "Your account has been deleted."
+                    );
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   // handleAllTasks function to navigate to all tasks screen
@@ -204,111 +264,259 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
             </View>
 
             {/* Divider */}
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            {/* Totals Summary */}
-            <TouchableOpacity
-              style={styles.menuActionButton}
-              onPress={handleAllTasks}
-              activeOpacity={0.7}
-            >
+            {!showSettings && (
               <View
-                style={[
-                  styles.menuActionIconContainer,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name="stats-chart-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.menuActionText, { color: colors.text }]}>
-                Total Tasks
-              </Text>
-              <View style={styles.menuActionRight}>
+                style={[styles.menuDivider, { backgroundColor: colors.border }]}
+              />
+            )}
+
+            {showSettings ? (
+              // Settings View
+              <>
+                <View style={styles.profileSection}>
+                  <TouchableOpacity
+                    style={styles.menuActionButton}
+                    onPress={handleBackFromSettings}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="arrow-back"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.menuActionText,
+                        { color: colors.text, marginLeft: 8 },
+                      ]}
+                    >
+                      Settings
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <View
                   style={[
-                    styles.counterBadge,
-                    { backgroundColor: colors.primary + "20" },
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
                   ]}
+                />
+
+                {/* Customize Avatar */}
+                <TouchableOpacity
+                  style={styles.menuActionButton}
+                  onPress={handleCustomizeAvatar}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.counterText, { color: colors.primary }]}>
-                    {stats.total}
+                  <View
+                    style={[
+                      styles.menuActionIconContainer,
+                      { backgroundColor: colors.primary + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="color-palette-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                    Customize Avatar
                   </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.textSecondary}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                <View
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
                 />
-              </View>
-            </TouchableOpacity>
 
-            {/* Divider */}
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
+                {/* Notification Settings */}
+                <TouchableOpacity
+                  style={styles.menuActionButton}
+                  onPress={handleNotificationSettings}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.menuActionIconContainer,
+                      { backgroundColor: colors.primary + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="notifications-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                    Notifications
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
 
-            {/* Settings Button */}
-            <TouchableOpacity
-              style={styles.menuActionButton}
-              onPress={handleSettings}
-            >
-              <View
-                style={[
-                  styles.menuActionIconContainer,
-                  { backgroundColor: colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name="settings-outline"
-                  size={20}
-                  color={colors.primary}
+                <View
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
                 />
-              </View>
-              <Text style={[styles.menuActionText, { color: colors.text }]}>
-                Settings
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
 
-            {/* Divider */}
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
+                {/* Delete Account */}
+                <TouchableOpacity
+                  style={styles.menuActionButton}
+                  onPress={handleDeleteAccount}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.signOutIconContainer,
+                      { backgroundColor: colors.error + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="person-remove-outline"
+                      size={20}
+                      color={colors.error}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.menuActionText, { color: colors.error }]}
+                  >
+                    Delete Account
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Main Menu View
+              <>
+                {/* Totals Summary */}
+                <TouchableOpacity
+                  style={styles.menuActionButton}
+                  onPress={handleAllTasks}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.menuActionIconContainer,
+                      { backgroundColor: colors.primary + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="stats-chart-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                    Total Tasks
+                  </Text>
+                  <View style={styles.menuActionRight}>
+                    <View
+                      style={[
+                        styles.counterBadge,
+                        { backgroundColor: colors.primary + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.counterText, { color: colors.primary }]}
+                      >
+                        {stats.total}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                </TouchableOpacity>
 
-            {/* Sign Out Button */}
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={handleSignOut}
-            >
-              <View
-                style={[
-                  styles.signOutIconContainer,
-                  { backgroundColor: colors.error + "15" },
-                ]}
-              >
-                <Ionicons
-                  name="log-out-outline"
-                  size={20}
-                  color={colors.error}
+                {/* Divider */}
+                <View
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
                 />
-              </View>
-              <Text style={[styles.signOutText, { color: colors.error }]}>
-                Sign Out
-              </Text>
-            </TouchableOpacity>
+
+                {/* Settings Button */}
+                <TouchableOpacity
+                  style={styles.menuActionButton}
+                  onPress={handleSettings}
+                >
+                  <View
+                    style={[
+                      styles.menuActionIconContainer,
+                      { backgroundColor: colors.primary + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="settings-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                    Settings
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {/* Divider */}
+                <View
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
+
+                {/* Sign Out Button */}
+                <TouchableOpacity
+                  style={styles.signOutButton}
+                  onPress={handleSignOut}
+                >
+                  <View
+                    style={[
+                      styles.signOutIconContainer,
+                      { backgroundColor: colors.error + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="log-out-outline"
+                      size={20}
+                      color={colors.error}
+                    />
+                  </View>
+                  <Text style={[styles.signOutText, { color: colors.error }]}>
+                    Sign Out
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </Animated.View>
         </Pressable>
       </Modal>
+
+      {/* Avatar Customization Modal */}
+      <AvatarCustomizationModal
+        visible={customizationModalVisible}
+        onClose={() => setCustomizationModalVisible(false)}
+      />
     </>
   );
 }

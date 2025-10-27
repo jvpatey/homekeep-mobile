@@ -1,31 +1,37 @@
 import { StyleSheet, Dimensions } from "react-native";
 
-const { height: screenHeight } = Dimensions.get("window");
+const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
 
   backdropPressable: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
   },
 
   modalContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    minHeight: screenHeight * 0.75,
-    maxHeight: screenHeight * 0.9,
+    width: "92%",
+    maxWidth: 420,
+    minHeight: screenHeight * 0.6,
+    maxHeight: screenHeight * 0.85,
+    borderRadius: 24,
+    borderWidth: 1,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
-      height: -4,
+      height: -8,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
     elevation: 16,
   },
 
@@ -33,8 +39,6 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.08)",
   },
 
   headerContent: {
@@ -131,8 +135,6 @@ export const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingBottom: 32,
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.08)",
   },
 
   cancelButton: {

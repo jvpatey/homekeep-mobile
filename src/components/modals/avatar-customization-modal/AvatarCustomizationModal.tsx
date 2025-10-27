@@ -51,18 +51,15 @@ export function AvatarCustomizationModal({
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(screenHeight);
 
   // useEffect hook to animate the modal
   React.useEffect(() => {
     if (visible) {
       scale.value = withSpring(1, { damping: 15, stiffness: 150 });
       opacity.value = withTiming(1, { duration: 300 });
-      translateY.value = withSpring(0, { damping: 20, stiffness: 120 });
     } else {
       scale.value = withTiming(0, { duration: 250 });
       opacity.value = withTiming(0, { duration: 250 });
-      translateY.value = withTiming(screenHeight, { duration: 250 });
     }
   }, [visible]);
 
@@ -89,10 +86,7 @@ export function AvatarCustomizationModal({
 
   // animatedModalStyle function to animate the modal
   const animatedModalStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: interpolate(scale.value, [0, 1], [0.8, 1]) },
-      { translateY: translateY.value },
-    ],
+    transform: [{ scale: interpolate(scale.value, [0, 1], [0.9, 1]) }],
     opacity: opacity.value,
   }));
 
@@ -129,13 +123,30 @@ export function AvatarCustomizationModal({
           <Animated.View
             style={[
               styles.modalContainer,
-              { backgroundColor: colors.surface },
+              {
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.85)"
+                  : "rgba(255, 255, 255, 0.85)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.9)",
+              },
               animatedModalStyle,
             ]}
             onStartShouldSetResponder={() => true}
           >
             {/* Header */}
-            <View style={styles.header}>
+            <View
+              style={[
+                styles.header,
+                {
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.08)",
+                },
+              ]}
+            >
               <View style={styles.headerContent}>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>
                   Customize Avatar
@@ -203,7 +214,17 @@ export function AvatarCustomizationModal({
             </ScrollView>
 
             {/* Footer Actions */}
-            <View style={styles.footerActions}>
+            <View
+              style={[
+                styles.footerActions,
+                {
+                  borderTopWidth: 1,
+                  borderTopColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.08)",
+                },
+              ]}
+            >
               <TouchableOpacity
                 style={[styles.cancelButton, { borderColor: colors.border }]}
                 onPress={handleClose}
