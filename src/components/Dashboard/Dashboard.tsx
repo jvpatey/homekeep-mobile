@@ -215,13 +215,12 @@ export function NewDashboard({
         />
 
         {/* Timeline View */}
-        {showTimelineView && (
-          <TimelineView
-            tasks={timelineTasks}
-            onCompleteTask={handleCompleteTask}
-            onTaskPress={handleTaskPress}
-          />
-        )}
+        <TimelineView
+          tasks={timelineTasks}
+          onCompleteTask={handleCompleteTask}
+          onTaskPress={handleTaskPress}
+          visible={showTimelineView}
+        />
 
         {/* Bottom Spacing */}
         <View style={dashboardStyles.bottomSpacing} />

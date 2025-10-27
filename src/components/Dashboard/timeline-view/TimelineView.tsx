@@ -20,6 +20,7 @@ interface TimelineViewProps {
   tasks: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
+  visible?: boolean;
 }
 
 // TimelineView component for the Dashboard
@@ -27,17 +28,25 @@ export function TimelineView({
   tasks,
   onCompleteTask,
   onTaskPress,
+  visible = true,
 }: TimelineViewProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
-  // Animation for timeline appearance
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(-20);
+  // Animation for timeline appearance and exit
+  const opacity = useSharedValue(visible ? 1 : 0);
+  const translateY = useSharedValue(visible ? 0 : -20);
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 400 });
-    translateY.value = withTiming(0, { duration: 400 });
-  }, []);
+    if (visible) {
+      // Animate in
+      opacity.value = withTiming(1, { duration: 400 });
+      translateY.value = withTiming(0, { duration: 400 });
+    } else {
+      // Animate out
+      opacity.value = withTiming(0, { duration: 300 });
+      translateY.value = withTiming(-20, { duration: 300 });
+    }
+  }, [visible]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -111,11 +120,25 @@ export function TimelineView({
               <View
                 style={[
                   timelineStyles.dateIndicator,
-                  { backgroundColor: colors.primary },
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(35, 37, 38, 0.4)"
+                      : "rgba(255, 255, 255, 0.4)",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(255, 255, 255, 0.6)",
+                    borderWidth: 1,
+                  },
                 ]}
               >
-                <Text style={timelineStyles.dateNumber}>{date.getDate()}</Text>
-                <Text style={timelineStyles.dateMonth}>
+                <Text
+                  style={[timelineStyles.dateNumber, { color: colors.primary }]}
+                >
+                  {date.getDate()}
+                </Text>
+                <Text
+                  style={[timelineStyles.dateMonth, { color: colors.primary }]}
+                >
                   {date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </View>
@@ -179,17 +202,26 @@ export function TimelineView({
                   style={[
                     timelineStyles.taskContent,
                     {
-                      backgroundColor: colors.glass,
-                      borderColor: task.is_overdue
-                        ? "#FF6B6B"
-                        : HOME_MAINTENANCE_CATEGORIES[task.category].color,
-                      borderWidth: 2,
+                      backgroundColor: isDark
+                        ? "rgba(35, 37, 38, 0.4)"
+                        : "rgba(255, 255, 255, 0.4)",
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.6)",
+                      borderWidth: 1,
                     },
                   ]}
                 >
                   <View style={timelineStyles.taskHeader}>
                     <Text
-                      style={[timelineStyles.taskTitle, { color: colors.text }]}
+                      style={[
+                        timelineStyles.taskTitle,
+                        {
+                          color: isDark
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "rgba(0, 0, 0, 0.6)",
+                        },
+                      ]}
                       numberOfLines={1}
                     >
                       {task.title}
@@ -198,7 +230,11 @@ export function TimelineView({
                       <View
                         style={[
                           timelineStyles.priorityBadge,
-                          { backgroundColor: colors.background },
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255, 255, 255, 0.05)"
+                              : "rgba(0, 0, 0, 0.05)",
+                          },
                         ]}
                       >
                         <View
@@ -215,7 +251,11 @@ export function TimelineView({
                         <Text
                           style={[
                             timelineStyles.priorityText,
-                            { color: colors.textSecondary },
+                            {
+                              color: isDark
+                                ? "rgba(255, 255, 255, 0.5)"
+                                : "rgba(0, 0, 0, 0.4)",
+                            },
                           ]}
                         >
                           {task.priority}
@@ -225,18 +265,30 @@ export function TimelineView({
                         <View
                           style={[
                             timelineStyles.durationBadge,
-                            { backgroundColor: colors.background },
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255, 255, 255, 0.05)"
+                                : "rgba(0, 0, 0, 0.05)",
+                            },
                           ]}
                         >
                           <Ionicons
                             name="time-outline"
                             size={12}
-                            color={colors.textSecondary}
+                            color={
+                              isDark
+                                ? "rgba(255, 255, 255, 0.4)"
+                                : "rgba(0, 0, 0, 0.3)"
+                            }
                           />
                           <Text
                             style={[
                               timelineStyles.durationText,
-                              { color: colors.textSecondary },
+                              {
+                                color: isDark
+                                  ? "rgba(255, 255, 255, 0.4)"
+                                  : "rgba(0, 0, 0, 0.3)",
+                              },
                             ]}
                           >
                             {task.estimated_duration_minutes}m
@@ -279,8 +331,12 @@ export function TimelineView({
                             timelineStyles.taskTime,
                             {
                               color: isDueToday
-                                ? colors.error
-                                : colors.textSecondary,
+                                ? isDark
+                                  ? "rgba(255, 107, 107, 0.7)"
+                                  : "rgba(235, 87, 87, 0.7)"
+                                : isDark
+                                ? "rgba(255, 255, 255, 0.4)"
+                                : "rgba(0, 0, 0, 0.3)",
                               fontWeight: isDueToday ? "600" : "normal",
                             },
                           ]}
@@ -294,27 +350,41 @@ export function TimelineView({
                       style={[
                         timelineStyles.completeButton,
                         {
-                          backgroundColor: colors.glassStrong,
+                          backgroundColor: isDark
+                            ? "rgba(255, 255, 255, 0.05)"
+                            : "rgba(0, 0, 0, 0.05)",
                           borderColor: task.is_completed
-                            ? colors.success
-                            : colors.primary,
-                          borderWidth: 2,
+                            ? isDark
+                              ? "rgba(111, 207, 151, 0.4)"
+                              : "rgba(39, 174, 96, 0.4)"
+                            : isDark
+                            ? "rgba(46, 196, 182, 0.4)"
+                            : "rgba(46, 196, 182, 0.4)",
+                          borderWidth: 1,
                         },
                       ]}
                       onPress={() => onCompleteTask(task.instance_id)}
-                      activeOpacity={0.8}
+                      activeOpacity={0.7}
                     >
                       {task.is_completed ? (
                         <Ionicons
                           name="checkmark-circle"
-                          size={20}
-                          color={colors.success}
+                          size={18}
+                          color={
+                            isDark
+                              ? "rgba(111, 207, 151, 0.6)"
+                              : "rgba(39, 174, 96, 0.6)"
+                          }
                         />
                       ) : (
                         <Ionicons
                           name="checkmark"
-                          size={16}
-                          color={colors.primary}
+                          size={14}
+                          color={
+                            isDark
+                              ? "rgba(46, 196, 182, 0.6)"
+                              : "rgba(46, 196, 182, 0.6)"
+                          }
                         />
                       )}
                     </TouchableOpacity>
