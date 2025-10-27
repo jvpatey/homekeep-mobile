@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { MaintenanceCategory } from "../../../../types/maintenance";
+import { styles as sharedStyles } from "./styles";
 
 // Category interface
 interface Category {
@@ -46,7 +47,7 @@ export function CategorySelector({
           categoryStyles.dropdownButton,
           {
             backgroundColor: colors.glass,
-            borderColor: error ? colors.error : colors.glassBorder,
+            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}
@@ -98,9 +99,14 @@ export function CategorySelector({
                 {
                   backgroundColor:
                     selectedCategory === category.id
-                      ? colors.glass
+                      ? "rgba(46, 196, 182, 0.1)"
                       : "transparent",
                 },
+                selectedCategory === category.id && [
+                  sharedStyles.selectedItemGlow,
+                  sharedStyles.selectedItemGlowAlt,
+                  sharedStyles.selectedItemGlowAccent,
+                ],
               ]}
               onPress={() => {
                 onSelectCategory(category.id);
@@ -163,7 +169,6 @@ const categoryStyles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: DesignSystem.glass.borderWidth,
     minHeight: DesignSystem.components.inputLarge,
-    ...DesignSystem.shadows.small,
   },
   dropdownContent: {
     flexDirection: "row",

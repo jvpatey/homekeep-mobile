@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { intervalOptions } from "../../../Dashboard/modals/create-task-modal/data";
+import { styles as sharedStyles } from "./styles";
 
 // IntervalSelectorProps
 interface IntervalSelectorProps {
@@ -72,7 +73,7 @@ export function IntervalSelector({
           intervalStyles.dropdownButton,
           {
             backgroundColor: colors.glass,
-            borderColor: error ? colors.error : colors.glassBorder,
+            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}
@@ -111,9 +112,14 @@ export function IntervalSelector({
                 {
                   backgroundColor:
                     selectedInterval === option.id
-                      ? colors.glass
+                      ? "rgba(52, 152, 219, 0.1)"
                       : "transparent",
                 },
+                selectedInterval === option.id && [
+                  sharedStyles.selectedItemGlow,
+                  sharedStyles.selectedItemGlowAlt,
+                  sharedStyles.selectedItemGlowAccent,
+                ],
               ]}
               onPress={() => {
                 onSelectInterval(option.id);
@@ -216,7 +222,6 @@ const intervalStyles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: DesignSystem.glass.borderWidth,
     minHeight: DesignSystem.components.inputLarge,
-    ...DesignSystem.shadows.small,
   },
   dropdownContent: {
     flex: 1,

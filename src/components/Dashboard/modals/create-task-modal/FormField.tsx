@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text } from "react-native";
 import { TextInput, HelperText } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
@@ -31,6 +31,7 @@ export function FormField({
   autoCapitalize = "none",
 }: FormFieldProps) {
   const { colors } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
 
   const getInputTheme = () => ({
     colors: {
@@ -53,8 +54,13 @@ export function FormField({
           styles.glassInputWrapper,
           {
             backgroundColor: colors.glass,
-            borderColor: error ? colors.error : colors.glassBorder,
+            borderColor: error
+              ? colors.error
+              : isFocused
+              ? colors.primary + "40"
+              : "rgba(0, 0, 0, 0.1)",
           },
+          isFocused && !error && styles.focusGlow,
         ]}
       >
         <TextInput
@@ -72,7 +78,12 @@ export function FormField({
           autoCapitalize={autoCapitalize}
           theme={getInputTheme()}
           dense={false}
+          underlineColor="transparent"
+          underlineColorAndroid="transparent"
+          activeUnderlineColor="transparent"
           outlineStyle={{ borderRadius: 0, borderWidth: 0 }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
       </View>
       {error && (

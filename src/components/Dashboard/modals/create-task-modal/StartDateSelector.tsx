@@ -10,6 +10,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
+import { styles as sharedStyles } from "./styles";
 import { DatePickerEvent } from "../../../../types/navigation";
 
 // StartDateSelectorProps
@@ -86,7 +87,7 @@ export function StartDateSelector({
           dateStyles.dropdownButton,
           {
             backgroundColor: colors.glass,
-            borderColor: error ? colors.error : colors.glassBorder,
+            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
           },
         ]}
         onPress={() => setIsQuickOptionsOpen(!isQuickOptionsOpen)}
@@ -131,8 +132,15 @@ export function StartDateSelector({
                 style={[
                   dateStyles.dropdownItem,
                   {
-                    backgroundColor: isSelected ? colors.glass : "transparent",
+                    backgroundColor: isSelected
+                      ? "rgba(46, 196, 182, 0.1)"
+                      : "transparent",
                   },
+                  isSelected && [
+                    sharedStyles.selectedItemGlow,
+                    sharedStyles.selectedItemGlowAlt,
+                    sharedStyles.selectedItemGlowAccent,
+                  ],
                 ]}
                 onPress={() => {
                   onStartDateChange(option.date);
@@ -159,11 +167,16 @@ export function StartDateSelector({
               dateStyles.dropdownItem,
               {
                 backgroundColor: !selectedQuickOption
-                  ? colors.glass
+                  ? "rgba(46, 196, 182, 0.1)"
                   : "transparent",
                 borderTopWidth: 1,
                 borderTopColor: "rgba(0, 0, 0, 0.1)",
               },
+              !selectedQuickOption && [
+                sharedStyles.selectedItemGlow,
+                sharedStyles.selectedItemGlowAlt,
+                sharedStyles.selectedItemGlowAccent,
+              ],
             ]}
             onPress={() => {
               setShowDatePicker(true);
@@ -260,7 +273,6 @@ const dateStyles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: DesignSystem.glass.borderWidth,
     minHeight: DesignSystem.components.inputLarge,
-    ...DesignSystem.shadows.small,
   },
   dropdownContent: {
     flexDirection: "row",

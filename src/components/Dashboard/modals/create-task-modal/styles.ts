@@ -55,7 +55,6 @@ export const styles = StyleSheet.create({
   glassInputWrapper: {
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: DesignSystem.glass.borderWidth,
-    ...DesignSystem.shadows.small,
     overflow: "hidden",
   },
   textInput: {
@@ -247,5 +246,49 @@ export const styles = StyleSheet.create({
     fontSize: DesignSystem.typography.body.fontSize,
     fontWeight: "600",
     letterSpacing: 0.2,
+  },
+
+  // Gradient glow effects - Override existing shadows with stronger colored glows
+  selectedItemGlow: {
+    shadowColor: "#2EC4B6", // Teal
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  selectedItemGlowAlt: {
+    shadowColor: "#3A86FF", // Blue
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  selectedItemGlowAccent: {
+    shadowColor: "#FF9F1C", // Orange
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  filledFieldGlow: {
+    shadowColor: "#2EC4B6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  focusGlow: {
+    shadowColor: "#2EC4B6",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  focusGlowAlt: {
+    shadowColor: "#3A86FF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
 });

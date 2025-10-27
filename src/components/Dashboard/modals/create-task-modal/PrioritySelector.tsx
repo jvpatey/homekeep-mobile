@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { Priority } from "../../../../types/maintenance";
+import { styles as sharedStyles } from "./styles";
 
 // PriorityOption interface
 interface PriorityOption {
@@ -42,7 +43,7 @@ export function PrioritySelector({
           priorityStyles.dropdownButton,
           {
             backgroundColor: colors.glass,
-            borderColor: colors.glassBorder,
+            borderColor: "rgba(0, 0, 0, 0.1)",
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}
@@ -89,9 +90,14 @@ export function PrioritySelector({
                 {
                   backgroundColor:
                     selectedPriority === priority.id
-                      ? colors.glass
+                      ? "rgba(52, 152, 219, 0.1)"
                       : "transparent",
                 },
+                selectedPriority === priority.id && [
+                  sharedStyles.selectedItemGlow,
+                  sharedStyles.selectedItemGlowAlt,
+                  sharedStyles.selectedItemGlowAccent,
+                ],
               ]}
               onPress={() => {
                 onSelectPriority(priority.id);
@@ -145,7 +151,6 @@ const priorityStyles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: DesignSystem.glass.borderWidth,
     minHeight: DesignSystem.components.inputLarge,
-    ...DesignSystem.shadows.small,
   },
   dropdownContent: {
     flexDirection: "row",
