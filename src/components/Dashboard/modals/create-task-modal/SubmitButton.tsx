@@ -40,10 +40,10 @@ export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
               shadowColor: isDark
                 ? "rgba(32, 180, 134, 0.25)"
                 : "rgba(46, 196, 182, 0.30)",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.2,
-              shadowRadius: 16,
-              elevation: 5,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              elevation: 3,
               borderColor: isDark
                 ? "rgba(255, 255, 255, 0.15)"
                 : "rgba(255, 255, 255, 0.2)",

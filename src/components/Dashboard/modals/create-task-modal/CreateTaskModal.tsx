@@ -287,8 +287,8 @@ export function CreateTaskModal({
             containerAnimatedStyle,
             {
               backgroundColor: isDark
-                ? "rgba(15, 23, 42, 0.85)"
-                : "rgba(255, 255, 255, 0.85)",
+                ? "rgba(15, 23, 42, 0.95)"
+                : "rgba(255, 255, 255, 0.95)",
               borderWidth: 1,
               borderColor: isDark
                 ? "rgba(46, 196, 182, 0.3)"
@@ -339,135 +339,143 @@ export function CreateTaskModal({
                 },
               ]}
             >
-              {isEdit ? "Edit Task" : "Add Recurring Task"}
+              {isEdit ? "Edit Task" : "Let's add your task"}
             </Text>
 
             {/* Content */}
-            <Animated.View style={[styles.content, contentAnimatedStyle]}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 20 }}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingBottom: DesignSystem.spacing.xxxl,
+              }}
+            >
+              <FormField
+                label="Task Title"
+                value={form.title}
+                onChangeText={(text) => updateForm("title", text)}
+                placeholder="e.g., Change air filter, Clean gutters..."
+                error={errors.title}
+                autoCapitalize="words"
+                required
+              />
+
+              <CategorySelector
+                categories={categories}
+                selectedCategory={form.category}
+                onSelectCategory={(categoryId) => {
+                  updateForm("category", categoryId);
+                }}
+                error={errors.category}
+              />
+
+              <PrioritySelector
+                priorities={priorities}
+                selectedPriority={form.priority}
+                onSelectPriority={(priorityId) =>
+                  updateForm("priority", priorityId)
+                }
+              />
+
+              <FormField
+                label="Instructions (Optional)"
+                value={form.description || ""}
+                onChangeText={(text) =>
+                  updateForm("description", capitalizeFirst(text))
+                }
+                placeholder="Add detailed instructions for this task..."
+                multiline
+                numberOfLines={3}
+                autoCapitalize="sentences"
+              />
+
+              <FormField
+                label="Estimated Duration (minutes)"
+                value={form.estimated_duration_minutes.toString()}
+                onChangeText={(text) => {
+                  const num = parseInt(text) || 0;
+                  setForm((prev) => ({
+                    ...prev,
+                    estimated_duration_minutes: num,
+                  }));
+                }}
+                placeholder="e.g., 30"
+                keyboardType="numeric"
+                error={errors.estimated_duration_minutes?.toString()}
+                required
+              />
+
+              <IntervalSelector
+                selectedInterval={selectedInterval}
+                intervalValue={intervalValue}
+                onSelectInterval={(interval: number) =>
+                  setSelectedInterval(interval)
+                }
+                onIntervalValueChange={(value) => setIntervalValue(value)}
+                error={errors.interval_days?.toString()}
+              />
+
+              <StartDateSelector
+                startDate={form.startDate}
+                onStartDateChange={(date) => updateForm("startDate", date)}
+              />
+
+              {/* Summary Section */}
+              <View
+                style={[
+                  styles.summaryContainer,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(46, 196, 182, 0.1)"
+                      : "rgba(147, 197, 253, 0.12)",
+                    borderColor: isDark
+                      ? "rgba(46, 196, 182, 0.2)"
+                      : "rgba(59, 130, 246, 0.2)",
+                  },
+                ]}
               >
-                <FormField
-                  label="Task Title"
-                  value={form.title}
-                  onChangeText={(text) => updateForm("title", text)}
-                  placeholder="e.g., Change air filter, Clean gutters..."
-                  error={errors.title}
-                  autoCapitalize="words"
-                  required
-                />
-
-                <CategorySelector
-                  categories={categories}
-                  selectedCategory={form.category}
-                  onSelectCategory={(categoryId) => {
-                    updateForm("category", categoryId);
-                  }}
-                  error={errors.category}
-                />
-
-                <PrioritySelector
-                  priorities={priorities}
-                  selectedPriority={form.priority}
-                  onSelectPriority={(priorityId) =>
-                    updateForm("priority", priorityId)
-                  }
-                />
-
-                <FormField
-                  label="Instructions (Optional)"
-                  value={form.description || ""}
-                  onChangeText={(text) =>
-                    updateForm("description", capitalizeFirst(text))
-                  }
-                  placeholder="Add detailed instructions for this task..."
-                  multiline
-                  numberOfLines={3}
-                  autoCapitalize="sentences"
-                />
-
-                <FormField
-                  label="Estimated Duration (minutes)"
-                  value={form.estimated_duration_minutes.toString()}
-                  onChangeText={(text) => {
-                    const num = parseInt(text) || 0;
-                    setForm((prev) => ({
-                      ...prev,
-                      estimated_duration_minutes: num,
-                    }));
-                  }}
-                  placeholder="e.g., 30"
-                  keyboardType="numeric"
-                  error={errors.estimated_duration_minutes?.toString()}
-                  required
-                />
-
-                <IntervalSelector
-                  selectedInterval={selectedInterval}
-                  intervalValue={intervalValue}
-                  onSelectInterval={(interval: number) =>
-                    setSelectedInterval(interval)
-                  }
-                  onIntervalValueChange={(value) => setIntervalValue(value)}
-                  error={errors.interval_days?.toString()}
-                />
-
-                <StartDateSelector
-                  startDate={form.startDate}
-                  onStartDateChange={(date) => updateForm("startDate", date)}
-                />
-
-                {/* Summary Section */}
-                <View
+                <Text
                   style={[
-                    styles.summaryContainer,
+                    styles.summaryTitle,
                     {
-                      backgroundColor: isDark
-                        ? "rgba(46, 196, 182, 0.1)"
-                        : "rgba(147, 197, 253, 0.12)",
-                      borderColor: isDark
-                        ? "rgba(46, 196, 182, 0.2)"
-                        : "rgba(59, 130, 246, 0.2)",
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.95)"
+                        : "rgba(15, 23, 42, 0.9)",
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.summaryTitle,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
-                      },
-                    ]}
-                  >
-                    Task Series Summary
-                  </Text>
-                  <Text
-                    style={[
-                      styles.summaryText,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.8)"
-                          : "rgba(59, 130, 246, 0.85)",
-                      },
-                    ]}
-                  >
-                    "{form.title}" will be scheduled every {intervalValue}{" "}
-                    {getIntervalLabel(selectedInterval)}
-                    {intervalValue > 1 ? "s" : ""} starting{" "}
-                    {form.startDate.toLocaleDateString()}.
-                  </Text>
-                </View>
-              </ScrollView>
-            </Animated.View>
+                  Task Series Summary
+                </Text>
+                <Text
+                  style={[
+                    styles.summaryText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.8)"
+                        : "rgba(59, 130, 246, 0.85)",
+                    },
+                  ]}
+                >
+                  "{form.title}" will be scheduled every {intervalValue}{" "}
+                  {getIntervalLabel(selectedInterval)}
+                  {intervalValue > 1 ? "s" : ""} starting{" "}
+                  {form.startDate.toLocaleDateString()}.
+                </Text>
+              </View>
 
-            <SubmitButton
-              onPress={handleSubmit}
-              disabled={!isFormValid}
-              title={isEdit ? "Save Changes" : "Add Task"}
-            />
+              {/* Submit Button */}
+              <View
+                style={{
+                  marginTop: DesignSystem.spacing.lg,
+                  marginBottom: DesignSystem.spacing.md,
+                }}
+              >
+                <SubmitButton
+                  onPress={handleSubmit}
+                  disabled={!isFormValid}
+                  title={isEdit ? "Save Changes" : "Add Task"}
+                />
+              </View>
+            </ScrollView>
           </LinearGradient>
         </Animated.View>
       </View>
@@ -493,10 +501,11 @@ const styles = StyleSheet.create({
     maxHeight: "85%",
     borderRadius: DesignSystem.borders.radius.xlarge,
     overflow: "hidden",
-    ...DesignSystem.shadows.large,
   },
   gradientBackground: {
-    padding: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.lg,
   },
   closeButton: {
     position: "absolute",
@@ -514,7 +523,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   content: {
-    maxHeight: "70%",
+    // Remove flex constraints to allow proper scrolling
   },
   summaryContainer: {
     borderRadius: DesignSystem.borders.radius.medium,

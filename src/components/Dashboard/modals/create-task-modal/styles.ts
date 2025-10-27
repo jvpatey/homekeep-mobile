@@ -129,18 +129,17 @@ export const styles = StyleSheet.create({
   // Submit button footer - Glass treatment
   modalFooter: {
     paddingHorizontal: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.xl,
+    paddingBottom: 0,
     paddingTop: DesignSystem.spacing.lg,
     borderTopWidth: DesignSystem.glass.borderWidth,
-    ...DesignSystem.shadows.glass,
   },
   submitButton: {
     borderRadius: DesignSystem.borders.radius.large,
-    paddingVertical: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
     paddingHorizontal: DesignSystem.spacing.lg,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: DesignSystem.components.buttonLarge,
+    minHeight: 44,
     borderWidth: 1,
   },
   submitButtonText: {
