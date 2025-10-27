@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ScrollView,
   Alert,
@@ -117,6 +117,11 @@ export function CreateTaskModal({
     Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
 
+  // AI typing animation
+  const [summaryText, setSummaryText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const summaryRef = useRef<View>(null);
+
   // Entrance animation
   useEffect(() => {
     opacity.value = withSpring(1, { damping: 25, stiffness: 120 });
@@ -221,6 +226,60 @@ export function CreateTaskModal({
       Alert.alert("Error", "Failed to create task");
     }
   };
+
+  // Generate summary text
+  const generateSummaryText = () => {
+    const fullText = `"${
+      form.title
+    }" will be scheduled every ${intervalValue} ${getIntervalLabel(
+      selectedInterval
+    )}${
+      intervalValue > 1 ? "s" : ""
+    } starting ${form.startDate.toLocaleDateString()}.`;
+    return fullText;
+  };
+
+  // Typing animation effect
+  useEffect(() => {
+    if (isTyping && summaryText.length < generateSummaryText().length) {
+      const timeout = setTimeout(() => {
+        setSummaryText(
+          generateSummaryText().substring(0, summaryText.length + 1)
+        );
+      }, 30); // Typing speed - adjust for desired effect
+      return () => clearTimeout(timeout);
+    } else if (summaryText.length === generateSummaryText().length) {
+      setIsTyping(false);
+    }
+  }, [
+    summaryText,
+    isTyping,
+    form.title,
+    intervalValue,
+    selectedInterval,
+    form.startDate,
+  ]);
+
+  // Trigger typing when form changes
+  useEffect(() => {
+    const fullText = generateSummaryText();
+    if (
+      fullText !== summaryText &&
+      summaryText.length === fullText.length - 1
+    ) {
+      setSummaryText("");
+      setIsTyping(true);
+    }
+  }, [form.title, intervalValue, selectedInterval, form.startDate]);
+
+  // Start typing animation when modal opens
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSummaryText("");
+      setIsTyping(true);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, []);
 
   const updateForm = (
     field: keyof MaintenanceRoutineForm,
@@ -421,6 +480,7 @@ export function CreateTaskModal({
 
               {/* Summary Section */}
               <View
+                ref={summaryRef}
                 style={[
                   styles.summaryContainer,
                   {
@@ -443,7 +503,7 @@ export function CreateTaskModal({
                     },
                   ]}
                 >
-                  Task Series Summary
+                  Summary
                 </Text>
                 <Text
                   style={[
@@ -455,10 +515,19 @@ export function CreateTaskModal({
                     },
                   ]}
                 >
-                  "{form.title}" will be scheduled every {intervalValue}{" "}
-                  {getIntervalLabel(selectedInterval)}
-                  {intervalValue > 1 ? "s" : ""} starting{" "}
-                  {form.startDate.toLocaleDateString()}.
+                  {summaryText}
+                  {isTyping && (
+                    <Text
+                      style={{
+                        color: isDark
+                          ? "rgba(46, 196, 182, 1)"
+                          : "rgba(59, 130, 246, 1)",
+                      }}
+                    >
+                      {" "}
+                      ▊
+                    </Text>
+                  )}
                 </Text>
               </View>
 
