@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../context/ThemeContext";
+import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
@@ -34,6 +35,7 @@ export function DashboardHeader({
   onShowStreakPopup,
 }: DashboardHeaderProps) {
   const { colors, isDark } = useTheme();
+  const { selectedGradient } = useUserPreferences();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
@@ -49,7 +51,8 @@ export function DashboardHeader({
         colors.background,
       ];
 
-  const textGradientColors = [colors.primary, colors.secondary, colors.accent];
+  // Use the user's selected gradient colors for the text
+  const textGradientColors = selectedGradient.colors;
 
   return (
     <View style={headerStyles.headerSection}>
@@ -65,35 +68,27 @@ export function DashboardHeader({
 
         <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
+            <Text style={[headerStyles.greeting, { color: colors.text }]}>
+              {greeting}
+            </Text>
+            <MaskedView
+              maskElement={
+                <Text style={[headerStyles.userName, { color: colors.text }]}>
+                  {userName}
+                </Text>
+              }
             >
-              <Text style={[headerStyles.greeting, { color: colors.text }]}>
-                {greeting},{"\u00A0"}
-              </Text>
-              <MaskedView
-                maskElement={
-                  <Text style={[headerStyles.greeting, { color: colors.text }]}>
-                    {userName}!
-                  </Text>
-                }
+              <LinearGradient
+                colors={textGradientColors}
+                locations={[0, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
               >
-                <LinearGradient
-                  colors={textGradientColors}
-                  locations={[0, 0.5, 1]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={[headerStyles.greeting, { opacity: 0 }]}>
-                    {userName}!
-                  </Text>
-                </LinearGradient>
-              </MaskedView>
-            </View>
+                <Text style={[headerStyles.userName, { opacity: 0 }]}>
+                  {userName}
+                </Text>
+              </LinearGradient>
+            </MaskedView>
 
             <Text
               style={[
