@@ -53,6 +53,7 @@ export function NewDashboard({
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
   const [timelineTasks, setTimelineTasks] = useState<MaintenanceTask[]>([]);
+  const [showTimelineView, setShowTimelineView] = useState(true);
 
   // Load all future tasks and reduce to next instance per routine for timeline
   const loadTimelineTasks = useCallback(async () => {
@@ -209,14 +210,18 @@ export function NewDashboard({
           tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
           onCompleteTask={handleCompleteTask}
           onTaskPress={handleTaskPress}
+          showTimelineView={showTimelineView}
+          onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
         />
 
         {/* Timeline View */}
-        <TimelineView
-          tasks={timelineTasks}
-          onCompleteTask={handleCompleteTask}
-          onTaskPress={handleTaskPress}
-        />
+        {showTimelineView && (
+          <TimelineView
+            tasks={timelineTasks}
+            onCompleteTask={handleCompleteTask}
+            onTaskPress={handleTaskPress}
+          />
+        )}
 
         {/* Bottom Spacing */}
         <View style={dashboardStyles.bottomSpacing} />

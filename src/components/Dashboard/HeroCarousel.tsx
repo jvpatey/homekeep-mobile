@@ -30,6 +30,8 @@ interface HeroCarouselProps {
   tasks: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
+  showTimelineView?: boolean;
+  onToggleTimelineView?: () => void;
 }
 
 // HeroCarousel component for the Dashboard
@@ -37,6 +39,8 @@ export function HeroCarousel({
   tasks,
   onCompleteTask,
   onTaskPress,
+  showTimelineView = true,
+  onToggleTimelineView,
 }: HeroCarouselProps) {
   const { colors, isDark } = useTheme();
   const flatListRef = useRef<FlatList>(null);
@@ -143,51 +147,103 @@ export function HeroCarousel({
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
-        <View style={styles.navigationButtons}>
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              {
-                backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.4)"
-                  : "rgba(255, 255, 255, 0.4)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(255, 255, 255, 0.6)",
-                borderWidth: 1,
-              },
-            ]}
-            onPress={scrollToPrevious}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              {
-                backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.4)"
-                  : "rgba(255, 255, 255, 0.4)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(255, 255, 255, 0.6)",
-                borderWidth: 1,
-              },
-            ]}
-            onPress={scrollToNext}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"}
-            />
-          </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {onToggleTimelineView && (
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                {
+                  backgroundColor: showTimelineView
+                    ? colors.primary
+                    : isDark
+                    ? "rgba(35, 37, 38, 0.4)"
+                    : "rgba(255, 255, 255, 0.4)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(255, 255, 255, 0.6)",
+                  borderWidth: 1,
+                },
+              ]}
+              onPress={onToggleTimelineView}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="calendar"
+                size={16}
+                color={
+                  showTimelineView
+                    ? colors.background
+                    : isDark
+                    ? "rgba(255, 255, 255, 0.6)"
+                    : "rgba(0, 0, 0, 0.5)"
+                }
+              />
+              <Text
+                style={[
+                  styles.toggleButtonText,
+                  {
+                    color: showTimelineView
+                      ? colors.background
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.6)"
+                      : "rgba(0, 0, 0, 0.5)",
+                  },
+                ]}
+              >
+                Timeline
+              </Text>
+            </TouchableOpacity>
+          )}
+          <View style={styles.navigationButtons}>
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(35, 37, 38, 0.4)"
+                    : "rgba(255, 255, 255, 0.4)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(255, 255, 255, 0.6)",
+                  borderWidth: 1,
+                },
+              ]}
+              onPress={scrollToPrevious}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={
+                  isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                }
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(35, 37, 38, 0.4)"
+                    : "rgba(255, 255, 255, 0.4)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(255, 255, 255, 0.6)",
+                  borderWidth: 1,
+                },
+              ]}
+              onPress={scrollToNext}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={
+                  isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                }
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -287,6 +343,28 @@ const styles = StyleSheet.create({
   },
   title: {
     ...DesignSystem.typography.h2,
+  },
+  headerRight: {
+    flexDirection: "row",
+    gap: DesignSystem.spacing.sm,
+    alignItems: "center",
+  },
+  toggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   navigationButtons: {
     flexDirection: "row",
