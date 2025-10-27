@@ -6,7 +6,9 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
   withDelay,
+  interpolate,
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
 import {
@@ -26,9 +28,14 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   const { isDark } = useTheme();
 
   // Animation values
-  const scale = useSharedValue(0.8);
+  const scale = useSharedValue(0.7);
   const opacity = useSharedValue(0);
+  const translateY = useSharedValue(50);
   const contentOpacity = useSharedValue(0);
+  const headerIconScale = useSharedValue(0.5);
+  const headerIconRotation = useSharedValue(0);
+  const taskCardScale = useSharedValue(0.8);
+  const navButtonOpacity = useSharedValue(0);
 
   // Carousel state
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
@@ -47,17 +54,79 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
       ];
 
   useEffect(() => {
-    // Entrance animation
-    opacity.value = withTiming(1, { duration: 300 });
-    scale.value = withTiming(1, { duration: 400 });
+    // Entrance animation with spring
+    opacity.value = withSpring(1, {
+      damping: 20,
+      stiffness: 90,
+    });
+    scale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 100,
+    });
+    translateY.value = withSpring(0, {
+      damping: 20,
+      stiffness: 90,
+    });
+
+    // Header icon animation
+    headerIconScale.value = withDelay(
+      100,
+      withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      })
+    );
+    headerIconRotation.value = withDelay(
+      100,
+      withTiming(360, { duration: 600 })
+    );
 
     // Content animation
-    contentOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
+    contentOpacity.value = withDelay(
+      200,
+      withSpring(1, {
+        damping: 20,
+        stiffness: 90,
+      })
+    );
+
+    // Task card animation
+    taskCardScale.value = withDelay(
+      300,
+      withSpring(1, {
+        damping: 18,
+        stiffness: 120,
+      })
+    );
+
+    // Navigation buttons animation
+    navButtonOpacity.value = withDelay(
+      400,
+      withSpring(1, {
+        damping: 20,
+        stiffness: 90,
+      })
+    );
   }, []);
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const headerIconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: headerIconScale.value },
+      { rotate: `${headerIconRotation.value}deg` },
+    ],
+  }));
+
+  const taskCardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: taskCardScale.value }],
+  }));
+
+  const navButtonAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: navButtonOpacity.value,
   }));
 
   const contentAnimatedStyle = useAnimatedStyle(() => ({
@@ -65,12 +134,13 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   }));
 
   const handleClose = () => {
-    // Exit animation
-    opacity.value = withTiming(0, { duration: 200 });
-    scale.value = withTiming(0.8, { duration: 200 });
+    // Exit animation with spring
+    opacity.value = withSpring(0, { damping: 20, stiffness: 100 });
+    scale.value = withSpring(0.8, { damping: 20, stiffness: 100 });
+    translateY.value = withSpring(30, { damping: 20, stiffness: 100 });
 
     // Close after animation
-    setTimeout(onClose, 200);
+    setTimeout(onClose, 250);
   };
 
   const goToNextTask = () => {
@@ -337,7 +407,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
           <Animated.View style={[styles.content, contentAnimatedStyle]}>
             {/* Header */}
             <View style={styles.header}>
-              <View
+              <Animated.View
                 style={[
                   styles.headerIconContainer,
                   {
@@ -349,6 +419,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       ? "rgba(59, 130, 246, 0.4)"
                       : "rgba(59, 130, 246, 0.3)",
                   },
+                  headerIconAnimatedStyle,
                 ]}
               >
                 <View style={styles.headerIcon}>
@@ -358,7 +429,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                     color={isDark ? "#60A5FA" : "#2563EB"}
                   />
                 </View>
-              </View>
+              </Animated.View>
               <Text
                 style={[
                   styles.headerTitle,
@@ -389,7 +460,9 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
             {tasks.length > 0 ? (
               <View style={styles.tasksContainer}>
                 {/* Navigation Arrows */}
-                <View style={styles.navigationContainer}>
+                <Animated.View
+                  style={[styles.navigationContainer, navButtonAnimatedStyle]}
+                >
                   <TouchableOpacity
                     style={[
                       styles.navButton,
@@ -472,12 +545,14 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       }
                     />
                   </TouchableOpacity>
-                </View>
+                </Animated.View>
 
                 {/* Current Task */}
-                <View style={styles.currentTaskContainer}>
+                <Animated.View
+                  style={[styles.currentTaskContainer, taskCardAnimatedStyle]}
+                >
                   {renderTaskItem({ item: tasks[currentTaskIndex], isDark })}
-                </View>
+                </Animated.View>
 
                 {/* Pagination Indicator */}
                 <View style={styles.paginationContainer}>

@@ -6,8 +6,11 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
   withSequence,
   withDelay,
+  withRepeat,
+  interpolate,
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
 import { colors } from "../../../theme/colors";
@@ -23,10 +26,14 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   const { isDark } = useTheme();
 
   // Animation values
-  const scale = useSharedValue(0.8);
+  const scale = useSharedValue(0.7);
   const opacity = useSharedValue(0);
-  const streakScale = useSharedValue(0.5);
+  const translateY = useSharedValue(50);
+  const streakScale = useSharedValue(0.3);
+  const flameRotation = useSharedValue(0);
   const dotsOpacity = useSharedValue(0);
+  const dotsScale = useSharedValue(0.5);
+  const continueButtonOpacity = useSharedValue(0);
 
   // Glass-like orange/red gradient with subtle transparency
   const glassGradient = isDark
@@ -42,26 +49,64 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
       ];
 
   useEffect(() => {
-    // Entrance animation
-    opacity.value = withTiming(1, { duration: 300 });
-    scale.value = withTiming(1, { duration: 400 });
+    // Entrance animation with spring
+    opacity.value = withSpring(1, {
+      damping: 20,
+      stiffness: 90,
+    });
+    scale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 100,
+    });
+    translateY.value = withSpring(0, {
+      damping: 20,
+      stiffness: 90,
+    });
 
-    // Streak number animation
+    // Streak number bounce animation
     streakScale.value = withDelay(
       200,
       withSequence(
-        withTiming(1.2, { duration: 200 }),
-        withTiming(1, { duration: 200 })
+        withSpring(1.3, { damping: 10, stiffness: 200 }),
+        withSpring(1, { damping: 15, stiffness: 150 })
       )
     );
 
+    // Flame rotation animation
+    flameRotation.value = withRepeat(
+      withSequence(
+        withTiming(-10, { duration: 300 }),
+        withTiming(10, { duration: 300 }),
+        withTiming(0, { duration: 300 })
+      ),
+      2,
+      false
+    );
+
     // Dots animation
-    dotsOpacity.value = withDelay(400, withTiming(1, { duration: 300 }));
+    dotsOpacity.value = withDelay(
+      500,
+      withSpring(1, { damping: 20, stiffness: 90 })
+    );
+    dotsScale.value = withDelay(
+      500,
+      withSpring(1, { damping: 15, stiffness: 100 })
+    );
+
+    // Continue button animation
+    continueButtonOpacity.value = withDelay(
+      700,
+      withSpring(1, { damping: 20, stiffness: 90 })
+    );
   }, []);
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const flameAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${flameRotation.value}deg` }],
   }));
 
   const streakAnimatedStyle = useAnimatedStyle(() => ({
@@ -70,15 +115,21 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
 
   const dotsAnimatedStyle = useAnimatedStyle(() => ({
     opacity: dotsOpacity.value,
+    transform: [{ scale: dotsScale.value }],
+  }));
+
+  const continueButtonAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: continueButtonOpacity.value,
   }));
 
   const handleClose = () => {
-    // Exit animation
-    opacity.value = withTiming(0, { duration: 200 });
-    scale.value = withTiming(0.8, { duration: 200 });
+    // Exit animation with spring
+    opacity.value = withSpring(0, { damping: 20, stiffness: 100 });
+    scale.value = withSpring(0.8, { damping: 20, stiffness: 100 });
+    translateY.value = withSpring(30, { damping: 20, stiffness: 100 });
 
     // Close after animation
-    setTimeout(onClose, 200);
+    setTimeout(onClose, 250);
   };
 
   const getStreakMessage = (streakCount: number) => {
@@ -169,7 +220,7 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
           {/* Content */}
           <View style={styles.content}>
             {/* Streak Icon */}
-            <View
+            <Animated.View
               style={[
                 styles.streakIcon,
                 {
@@ -185,8 +236,10 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                 },
               ]}
             >
-              <Ionicons name="flame" size={48} color="#FF6B35" />
-            </View>
+              <Animated.View style={flameAnimatedStyle}>
+                <Ionicons name="flame" size={48} color="#FF6B35" />
+              </Animated.View>
+            </Animated.View>
 
             {/* Streak Number */}
             <Animated.View style={[styles.streakNumber, streakAnimatedStyle]}>
@@ -240,35 +293,37 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
             )}
 
             {/* Continue Button */}
-            <TouchableOpacity
-              style={[
-                styles.continueButton,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 107, 53, 0.15)"
-                    : "rgba(255, 107, 53, 0.12)",
-                  borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(255, 107, 53, 0.3)"
-                    : "rgba(255, 107, 53, 0.25)",
-                },
-              ]}
-              onPress={handleClose}
-              activeOpacity={0.8}
-            >
-              <Text
+            <Animated.View style={continueButtonAnimatedStyle}>
+              <TouchableOpacity
                 style={[
-                  styles.continueButtonText,
+                  styles.continueButton,
                   {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.95)"
-                      : "rgba(255, 107, 53, 0.9)",
+                    backgroundColor: isDark
+                      ? "rgba(255, 107, 53, 0.15)"
+                      : "rgba(255, 107, 53, 0.12)",
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 107, 53, 0.3)"
+                      : "rgba(255, 107, 53, 0.25)",
                   },
                 ]}
+                onPress={handleClose}
+                activeOpacity={0.8}
               >
-                Continue
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.continueButtonText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.95)"
+                        : "rgba(255, 107, 53, 0.9)",
+                    },
+                  ]}
+                >
+                  Continue
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         </LinearGradient>
       </Animated.View>
