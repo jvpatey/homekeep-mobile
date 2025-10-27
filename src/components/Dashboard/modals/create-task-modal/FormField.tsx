@@ -48,30 +48,33 @@ export function FormField({
       <Text style={[styles.inputLabel, { color: colors.text }]}>
         {label} {required && <Text style={styles.required}>*</Text>}
       </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
+      <View
         style={[
-          multiline ? styles.textArea : styles.textInput,
+          styles.glassInputWrapper,
           {
-            backgroundColor: colors.surface,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
+            backgroundColor: colors.glass,
+            borderColor: error ? colors.error : colors.glassBorder,
           },
         ]}
-        textColor={colors.text}
-        placeholderTextColor={colors.textSecondary}
-        mode="flat"
-        error={!!error}
-        multiline={multiline}
-        numberOfLines={numberOfLines}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        theme={getInputTheme()}
-        dense={false}
-        outlineStyle={{ borderRadius: 8 }}
-      />
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          style={multiline ? styles.textArea : styles.textInput}
+          textColor={colors.text}
+          placeholderTextColor={colors.textSecondary}
+          mode="flat"
+          error={!!error}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          theme={getInputTheme()}
+          dense={false}
+          outlineStyle={{ borderRadius: 0, borderWidth: 0 }}
+        />
+      </View>
       {error && (
         <HelperText type="error" visible={!!error} style={styles.helperText}>
           {error}

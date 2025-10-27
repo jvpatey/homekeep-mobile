@@ -27,6 +27,7 @@ export function StartDateSelector({
 }: StartDateSelectorProps) {
   const { colors } = useTheme();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isQuickOptionsOpen, setIsQuickOptionsOpen] = useState(false);
 
   const handleDateChange = (event: DatePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === "ios");
@@ -40,10 +41,9 @@ export function StartDateSelector({
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -68,83 +68,143 @@ export function StartDateSelector({
     ];
   };
 
+  const isQuickOption = () => {
+    const options = getQuickDateOptions();
+    return options.find(
+      (opt) => opt.date.toDateString() === startDate.toDateString()
+    );
+  };
+
+  const selectedQuickOption = isQuickOption();
+
   return (
-    <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.text }]}>Start Date</Text>
+    <View style={dateStyles.container}>
+      <Text style={[dateStyles.label, { color: colors.text }]}>Start Date</Text>
 
-      {/* Quick Date Options */}
-      <View style={styles.quickOptionsContainer}>
-        {getQuickDateOptions().map((option) => {
-          const isSelected =
-            startDate.toDateString() === option.date.toDateString();
-          return (
-            <TouchableOpacity
-              key={option.label}
-              style={[
-                styles.quickOption,
-                {
-                  backgroundColor: isSelected ? colors.primary : colors.surface,
-                  borderColor: isSelected ? colors.primary : colors.border,
-                  transform: [{ scale: isSelected ? 1.02 : 1 }],
-                  ...DesignSystem.shadows.small,
-                },
-              ]}
-              onPress={() => onStartDateChange(option.date)}
-            >
-              <Text
-                style={[
-                  styles.quickOptionText,
-                  {
-                    color: isSelected ? "white" : colors.text,
-                    fontWeight: isSelected ? "700" : "600",
-                  },
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <TouchableOpacity
+        style={[
+          dateStyles.dropdownButton,
+          {
+            backgroundColor: colors.glass,
+            borderColor: error ? colors.error : colors.glassBorder,
+          },
+        ]}
+        onPress={() => setIsQuickOptionsOpen(!isQuickOptionsOpen)}
+        activeOpacity={0.7}
+      >
+        <View style={dateStyles.dropdownContent}>
+          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          <Text
+            style={[
+              dateStyles.dropdownText,
+              { color: colors.text, marginLeft: 8 },
+            ]}
+          >
+            {selectedQuickOption
+              ? selectedQuickOption.label
+              : formatDate(startDate)}
+          </Text>
+        </View>
+        <Ionicons
+          name={isQuickOptionsOpen ? "chevron-up" : "chevron-down"}
+          size={20}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
 
-      {/* Custom Date Selection */}
-      <View style={styles.customDateContainer}>
-        <Text style={[styles.customDateLabel, { color: colors.text }]}>
-          Custom Start Date
-        </Text>
-
-        <TouchableOpacity
+      {isQuickOptionsOpen && (
+        <View
           style={[
-            styles.dateButton,
+            dateStyles.dropdownList,
             {
               backgroundColor: colors.surface,
-              borderColor: colors.border,
-              ...DesignSystem.shadows.small,
+              borderColor: colors.glassBorder,
             },
           ]}
-          onPress={() => setShowDatePicker(true)}
         >
-          <Ionicons name="calendar-outline" size={20} color={colors.text} />
-          <Text style={[styles.dateButtonText, { color: colors.text }]}>
-            {formatDate(startDate)}
-          </Text>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color={colors.textSecondary}
-          />
-        </TouchableOpacity>
-      </View>
+          {getQuickDateOptions().map((option) => {
+            const isSelected =
+              option.date.toDateString() === startDate.toDateString();
+            return (
+              <TouchableOpacity
+                key={option.label}
+                style={[
+                  dateStyles.dropdownItem,
+                  {
+                    backgroundColor: isSelected ? colors.glass : "transparent",
+                  },
+                ]}
+                onPress={() => {
+                  onStartDateChange(option.date);
+                  setIsQuickOptionsOpen(false);
+                }}
+              >
+                <Text
+                  style={[
+                    dateStyles.dropdownItemText,
+                    {
+                      color: isSelected ? colors.primary : colors.text,
+                      fontWeight: isSelected ? "700" : "400",
+                    },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity
+            style={[
+              dateStyles.dropdownItem,
+              {
+                backgroundColor: !selectedQuickOption
+                  ? colors.glass
+                  : "transparent",
+                borderTopWidth: 1,
+                borderTopColor: "rgba(0, 0, 0, 0.1)",
+              },
+            ]}
+            onPress={() => {
+              setShowDatePicker(true);
+              setIsQuickOptionsOpen(false);
+            }}
+          >
+            <View style={dateStyles.customOptionContainer}>
+              <Ionicons name="calendar" size={18} color={colors.primary} />
+              <Text
+                style={[
+                  dateStyles.dropdownItemText,
+                  {
+                    color: !selectedQuickOption ? colors.primary : colors.text,
+                    fontWeight: !selectedQuickOption ? "700" : "400",
+                  },
+                  { marginLeft: 8, flex: 1 },
+                ]}
+              >
+                Custom Date
+              </Text>
+              <Text
+                style={[
+                  dateStyles.customDateText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {formatDate(startDate)}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Date Picker */}
       {showDatePicker && (
         <View
           style={[
-            styles.datePickerContainer,
+            dateStyles.datePickerContainer,
             {
-              backgroundColor: colors.background,
-              borderColor: colors.border,
-              ...DesignSystem.shadows.medium,
+              backgroundColor: colors.glass,
+              borderColor: colors.glassBorder,
             },
           ]}
         >
@@ -156,17 +216,17 @@ export function StartDateSelector({
             minimumDate={new Date()}
             textColor={colors.text}
             themeVariant={colors.background === "#F7F9FA" ? "light" : "dark"}
-            style={[styles.datePicker, { backgroundColor: colors.surface }]}
+            style={[dateStyles.datePicker, { backgroundColor: colors.surface }]}
           />
           {Platform.OS === "ios" && (
             <TouchableOpacity
               style={[
-                styles.datePickerDone,
+                dateStyles.datePickerDone,
                 { backgroundColor: colors.primary },
               ]}
               onPress={() => setShowDatePicker(false)}
             >
-              <Text style={[styles.datePickerDoneText, { color: "white" }]}>
+              <Text style={[dateStyles.datePickerDoneText, { color: "white" }]}>
                 Done
               </Text>
             </TouchableOpacity>
@@ -175,66 +235,75 @@ export function StartDateSelector({
       )}
 
       {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <Text style={[dateStyles.errorText, { color: colors.error }]}>
+          {error}
+        </Text>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const dateStyles = StyleSheet.create({
   container: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md,
   },
   label: {
-    fontSize: DesignSystem.typography.bodyMedium.fontSize,
-    fontWeight: "600",
-    marginBottom: DesignSystem.spacing.md,
-  },
-  quickOptionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.md,
-  },
-  quickOption: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.round,
-    borderWidth: 2,
-  },
-  quickOptionText: {
-    fontSize: DesignSystem.typography.small.fontSize,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-  customDateContainer: {
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  customDateLabel: {
-    fontSize: DesignSystem.typography.small.fontSize,
+    ...DesignSystem.typography.bodyMedium,
     fontWeight: "600",
     marginBottom: DesignSystem.spacing.sm,
   },
-  dateButton: {
+  dropdownButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     padding: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 2,
-    gap: DesignSystem.spacing.sm,
+    borderWidth: DesignSystem.glass.borderWidth,
+    minHeight: DesignSystem.components.inputLarge,
+    ...DesignSystem.shadows.small,
   },
-  dateButtonText: {
+  dropdownContent: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
-    fontSize: DesignSystem.typography.body.fontSize,
+  },
+  dropdownText: {
+    ...DesignSystem.typography.body,
     fontWeight: "600",
-    letterSpacing: 0.2,
+  },
+  dropdownList: {
+    marginTop: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: DesignSystem.glass.borderWidth,
+    overflow: "hidden",
+    ...DesignSystem.shadows.medium,
+  },
+  dropdownItem: {
+    padding: DesignSystem.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.xs,
+  },
+  dropdownItemText: {
+    ...DesignSystem.typography.body,
+  },
+  customOptionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+  },
+  customDateText: {
+    ...DesignSystem.typography.caption,
+    marginLeft: "auto",
   },
   datePickerContainer: {
     marginTop: DesignSystem.spacing.md,
-    alignItems: "center",
-    padding: DesignSystem.spacing.lg,
-    borderRadius: DesignSystem.borders.radius.large,
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: 1,
+    ...DesignSystem.shadows.medium,
   },
   datePicker: {
     borderRadius: DesignSystem.borders.radius.medium,
@@ -249,13 +318,11 @@ const styles = StyleSheet.create({
     ...DesignSystem.shadows.small,
   },
   datePickerDoneText: {
-    fontSize: DesignSystem.typography.body.fontSize,
+    ...DesignSystem.typography.body,
     fontWeight: "600",
-    letterSpacing: 0.2,
   },
   errorText: {
-    fontSize: DesignSystem.typography.caption.fontSize,
-    marginTop: DesignSystem.spacing.sm,
-    fontWeight: "500",
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.xs,
   },
 });
