@@ -24,6 +24,7 @@ import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
 import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
 import { NotificationSettingsModal } from "../../modals/notification-settings-modal";
+import { AllTasksModal } from "../../modals/all-tasks-modal";
 
 // ProfileMenuProps
 interface ProfileMenuProps {
@@ -46,6 +47,7 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
+  const [allTasksModalVisible, setAllTasksModalVisible] = useState(false);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -179,13 +181,12 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     );
   };
 
-  // handleAllTasks function to navigate to all tasks screen
+  // handleAllTasks function to show all tasks modal
   const handleAllTasks = async () => {
-    console.log("Navigating to all tasks screen");
     await triggerLight();
     hideMenu();
     setTimeout(() => {
-      navigation.navigate("AllTasks");
+      setAllTasksModalVisible(true);
     }, 300);
   };
 
@@ -525,6 +526,12 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
       <NotificationSettingsModal
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
+      />
+
+      {/* All Tasks Modal */}
+      <AllTasksModal
+        visible={allTasksModalVisible}
+        onClose={() => setAllTasksModalVisible(false)}
       />
     </>
   );
