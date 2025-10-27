@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { DesignSystem } from "../../../theme/designSystem";
+import { useTheme } from "../../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 
 // CompletionCelebrationProps
@@ -24,9 +25,23 @@ export function CompletionCelebration({
   onClose,
   streak = 0,
 }: CompletionCelebrationProps) {
+  const { isDark } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
+
+  // Glass-like purple/blue gradient with subtle transparency
+  const glassGradient = isDark
+    ? [
+        "rgba(102, 126, 234, 0.15)",
+        "rgba(118, 75, 162, 0.25)",
+        "rgba(15, 23, 42, 0.85)",
+      ]
+    : [
+        "rgba(102, 126, 234, 0.12)",
+        "rgba(147, 165, 250, 0.18)",
+        "rgba(255, 255, 255, 0.85)",
+      ];
 
   useLayoutEffect(() => {
     if (isVisible) {
@@ -120,11 +135,20 @@ export function CompletionCelebration({
           styles.container,
           {
             transform: [{ scale: scaleAnim }],
+            backgroundColor: isDark
+              ? "rgba(15, 23, 42, 0.85)"
+              : "rgba(255, 255, 255, 0.85)",
+            borderWidth: 1,
+            borderColor: isDark
+              ? "rgba(102, 126, 234, 0.3)"
+              : "rgba(102, 126, 234, 0.2)",
           },
         ]}
       >
         <LinearGradient
-          colors={["#667eea", "#764ba2"]}
+          colors={glassGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
         >
           {/* Confetti Animation */}
@@ -157,11 +181,24 @@ export function CompletionCelebration({
           <View style={styles.content}>
             {/* Achievement Icon */}
             <View style={styles.achievementIcon}>
-              <Ionicons name="trophy" size={48} color={colors.light.surface} />
+              <Ionicons
+                name="trophy"
+                size={48}
+                color={isDark ? "#60A5FA" : "#667eea"}
+              />
             </View>
 
             {/* Achievement Message */}
-            <Text style={styles.achievementMessage}>
+            <Text
+              style={[
+                styles.achievementMessage,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.95)"
+                    : "rgba(15, 23, 42, 0.9)",
+                },
+              ]}
+            >
               {getAchievementMessage()}
             </Text>
 
@@ -169,18 +206,62 @@ export function CompletionCelebration({
             <View style={styles.streakSection}>
               <View style={styles.streakHeader}>
                 <Ionicons name="flame" size={24} color="#FF6B35" />
-                <Text style={styles.streakTitle}>Your Streak</Text>
+                <Text
+                  style={[
+                    styles.streakTitle,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.95)"
+                        : "rgba(15, 23, 42, 0.9)",
+                    },
+                  ]}
+                >
+                  Your Streak
+                </Text>
               </View>
-              <Text style={styles.streakMessage}>{getStreakMessage()}</Text>
+              <Text
+                style={[
+                  styles.streakMessage,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.8)"
+                      : "rgba(15, 23, 42, 0.75)",
+                  },
+                ]}
+              >
+                {getStreakMessage()}
+              </Text>
             </View>
 
             {/* Close Button */}
             <TouchableOpacity
-              style={styles.closeButton}
+              style={[
+                styles.closeButton,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(102, 126, 234, 0.15)"
+                    : "rgba(102, 126, 234, 0.12)",
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(102, 126, 234, 0.3)"
+                    : "rgba(102, 126, 234, 0.25)",
+                },
+              ]}
               onPress={hideCelebration}
               activeOpacity={0.8}
             >
-              <Text style={styles.closeButtonText}>Continue</Text>
+              <Text
+                style={[
+                  styles.closeButtonText,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.95)"
+                      : "rgba(102, 126, 234, 0.9)",
+                  },
+                ]}
+              >
+                Continue
+              </Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -233,12 +314,8 @@ const styles = StyleSheet.create({
   },
   achievementMessage: {
     ...DesignSystem.typography.h2,
-    color: colors.light.surface,
     textAlign: "center",
     marginBottom: DesignSystem.spacing.lg,
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   streakSection: {
     width: "100%",
@@ -253,26 +330,19 @@ const styles = StyleSheet.create({
   },
   streakTitle: {
     ...DesignSystem.typography.bodySemiBold,
-    color: colors.light.surface,
     fontSize: 18,
   },
   streakMessage: {
     ...DesignSystem.typography.body,
-    color: colors.light.surface,
     textAlign: "center",
-    opacity: 0.9,
   },
 
   closeButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   closeButtonText: {
     ...DesignSystem.typography.button,
-    color: colors.light.surface,
   },
 });
