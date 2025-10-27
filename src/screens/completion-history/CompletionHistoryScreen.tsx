@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { completionHistoryStyles } from "./styles";
+import { DesignSystem } from "../../theme/designSystem";
 import {
   GroupedRoutine,
   groupTasksByRoutine,
@@ -163,7 +164,14 @@ export function CompletionHistoryScreen() {
       <View
         style={[
           completionHistoryStyles.routineItem,
-          { backgroundColor: colors.surface },
+          {
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.4)"
+              : "rgba(255, 255, 255, 0.4)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(255, 255, 255, 0.6)",
+          },
         ]}
       >
         {/* Routine Header */}
@@ -373,23 +381,61 @@ export function CompletionHistoryScreen() {
       ]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
-      {/* Minimalist Header */}
-      <View
-        style={[
-          completionHistoryStyles.heroSection,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
+      {/* Hero Section with Gradient */}
+      <LinearGradient
+        colors={
+          isDark
+            ? [
+                "rgba(59, 130, 246, 0.04)",
+                "rgba(58, 134, 255, 0.01)",
+                colors.background,
+              ]
+            : [
+                "rgba(59, 130, 246, 0.06)",
+                "rgba(147, 197, 253, 0.02)",
+                colors.background,
+              ]
+        }
+        locations={[0, 0.15, 1]}
+        style={completionHistoryStyles.heroSection}
       >
         {/* Back Button */}
         <TouchableOpacity
-          style={[
-            completionHistoryStyles.backButton,
-            { backgroundColor: colors.background },
-          ]}
           onPress={() => navigation.goBack()}
+          style={{
+            position: "absolute",
+            top: DesignSystem.spacing.md,
+            left: DesignSystem.spacing.md,
+            zIndex: 10,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.5)"
+              : "rgba(255, 255, 255, 0.5)",
+            borderRadius: 20,
+            paddingHorizontal: DesignSystem.spacing.lg,
+            paddingVertical: DesignSystem.spacing.sm,
+            borderWidth: 1,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.15)"
+              : "rgba(255, 255, 255, 0.25)",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
           activeOpacity={0.8}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 15,
+              fontWeight: "600",
+              opacity: 0.7,
+            }}
+          >
+            ← Back
+          </Text>
         </TouchableOpacity>
 
         {/* Header Content */}
@@ -408,7 +454,7 @@ export function CompletionHistoryScreen() {
             {completedTasks.length} tasks completed
           </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Routines List */}
       <FlatList

@@ -7,10 +7,9 @@ export const completionHistoryStyles = StyleSheet.create({
   },
   heroSection: {
     paddingTop: 52,
-    paddingBottom: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.xl,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
-    borderBottomWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -39,12 +38,15 @@ export const completionHistoryStyles = StyleSheet.create({
   },
   heroTitle: {
     ...DesignSystem.typography.h1,
+    fontSize: 32,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
+    fontWeight: "800",
   },
   heroSubtitle: {
     ...DesignSystem.typography.body,
     textAlign: "center",
+    marginTop: DesignSystem.spacing.xs,
   },
   routinesList: {
     padding: DesignSystem.spacing.md,
@@ -54,16 +56,14 @@ export const completionHistoryStyles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.medium,
     padding: DesignSystem.spacing.md,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    ...DesignSystem.shadows.small,
+    ...DesignSystem.shadows.medium,
     marginBottom: DesignSystem.spacing.md,
-    backgroundColor: "white",
   },
   routineHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.lg,
   },
   routineHeaderLeft: {
     flex: 1,
