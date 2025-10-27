@@ -53,7 +53,7 @@ export function NewDashboard({
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
   const [timelineTasks, setTimelineTasks] = useState<MaintenanceTask[]>([]);
-  const [showTimelineView, setShowTimelineView] = useState(true);
+  const [showTimelineView, setShowTimelineView] = useState(false);
 
   // Load all future tasks and reduce to next instance per routine for timeline
   const loadTimelineTasks = useCallback(async () => {

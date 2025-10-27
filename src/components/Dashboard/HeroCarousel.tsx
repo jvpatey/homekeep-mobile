@@ -25,6 +25,14 @@ import { ViewableItemsChangedEvent } from "../../types/navigation";
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth - 80;
 
+// Helper to add alpha to hex color
+const addAlpha = (color: string, alpha: number): string => {
+  const alphaHex = Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return color + alphaHex;
+};
+
 // HeroCarouselProps interface for the HeroCarousel component
 interface HeroCarouselProps {
   tasks: MaintenanceTask[];
@@ -39,12 +47,18 @@ export function HeroCarousel({
   tasks,
   onCompleteTask,
   onTaskPress,
-  showTimelineView = true,
+  showTimelineView = false,
   onToggleTimelineView,
 }: HeroCarouselProps) {
   const { colors, isDark } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Two-color gradient for selected state - subtle and transparent (50% opacity)
+  const gradientColors = [
+    addAlpha(colors.primary, 0.5),
+    addAlpha(colors.secondary, 0.5),
+  ];
 
   // Animation for empty state
   // Removed animations for cleaner experience
@@ -150,48 +164,67 @@ export function HeroCarousel({
         <View style={styles.headerRight}>
           {onToggleTimelineView && (
             <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                {
-                  backgroundColor: showTimelineView
-                    ? colors.primary
-                    : isDark
-                    ? "rgba(35, 37, 38, 0.4)"
-                    : "rgba(255, 255, 255, 0.4)",
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(255, 255, 255, 0.6)",
-                  borderWidth: 1,
-                },
-              ]}
               onPress={onToggleTimelineView}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name="calendar"
-                size={16}
-                color={
-                  showTimelineView
-                    ? colors.background
-                    : isDark
-                    ? "rgba(255, 255, 255, 0.6)"
-                    : "rgba(0, 0, 0, 0.5)"
-                }
-              />
-              <Text
-                style={[
-                  styles.toggleButtonText,
-                  {
-                    color: showTimelineView
-                      ? colors.background
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.6)"
-                      : "rgba(0, 0, 0, 0.5)",
-                  },
-                ]}
-              >
-                Timeline
-              </Text>
+              {showTimelineView ? (
+                <LinearGradient
+                  colors={gradientColors}
+                  locations={[0, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.toggleButton,
+                    styles.toggleButtonSelected,
+                    {
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.2)"
+                        : "rgba(255, 255, 255, 0.8)",
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="calendar" size={16} color="#FFFFFF" />
+                  <Text style={[styles.toggleButtonText, { color: "#FFFFFF" }]}>
+                    Timeline
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <View
+                  style={[
+                    styles.toggleButton,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(35, 37, 38, 0.4)"
+                        : "rgba(255, 255, 255, 0.4)",
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.6)",
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="calendar"
+                    size={16}
+                    color={
+                      isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.toggleButtonText,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.6)"
+                          : "rgba(0, 0, 0, 0.5)",
+                      },
+                    ]}
+                  >
+                    Timeline
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           )}
           <View style={styles.navigationButtons}>
@@ -361,6 +394,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
+  },
+  toggleButtonSelected: {
+    shadowColor: "#2EC4B6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   toggleButtonText: {
     fontSize: 14,

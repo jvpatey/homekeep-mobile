@@ -30,17 +30,30 @@ export function TimelineView({
 }: TimelineViewProps) {
   const { colors } = useTheme();
 
-  // Removed animations for cleaner experience
+  // Animation for timeline appearance
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(-20);
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 400 });
+    translateY.value = withTiming(0, { duration: 400 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
 
   // groupedTasks function to group the tasks by date
   const groupedTasks = groupTasksByDate(tasks);
 
   if (tasks.length === 0) {
     return (
-      <View
+      <Animated.View
         style={[
           timelineStyles.emptyContainer,
           { backgroundColor: colors.glass, borderColor: colors.glassBorder },
+          animatedStyle,
         ]}
       >
         <View style={timelineStyles.emptyIconContainer}>
@@ -69,12 +82,12 @@ export function TimelineView({
         >
           You're all caught up!
         </Text>
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={timelineStyles.container}>
+    <Animated.View style={[timelineStyles.container, animatedStyle]}>
       <View style={timelineStyles.header}>
         <Text style={[timelineStyles.title, { color: colors.text }]}>
           Timeline
@@ -312,6 +325,6 @@ export function TimelineView({
           </View>
         ))}
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
