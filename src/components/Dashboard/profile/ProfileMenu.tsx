@@ -31,7 +31,7 @@ interface ProfileMenuProps {
 
 // ProfileMenu component for the Dashboard
 export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { user, signOut } = useAuth();
   const { stats } = useTasks();
   const { primaryGradient } = useGradients();
@@ -160,7 +160,14 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
           <Animated.View
             style={[
               styles.menuContainer,
-              { backgroundColor: colors.surface },
+              {
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.85)"
+                  : "rgba(255, 255, 255, 0.85)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.9)",
+              },
               animatedStyle,
             ]}
           >
