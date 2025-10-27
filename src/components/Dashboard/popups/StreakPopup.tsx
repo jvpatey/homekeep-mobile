@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
 import { colors } from "../../../theme/colors";
+import { useTheme } from "../../../context/ThemeContext";
 
 interface StreakPopupProps {
   streak: number;
@@ -19,11 +20,26 @@ interface StreakPopupProps {
 
 // StreakPopup component for the Dashboard
 export function StreakPopup({ streak, onClose }: StreakPopupProps) {
+  const { isDark } = useTheme();
+
   // Animation values
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
   const streakScale = useSharedValue(0.5);
   const dotsOpacity = useSharedValue(0);
+
+  // Glass-like orange/red gradient with subtle transparency
+  const glassGradient = isDark
+    ? [
+        "rgba(255, 107, 53, 0.15)",
+        "rgba(247, 147, 30, 0.25)",
+        "rgba(15, 23, 42, 0.85)",
+      ]
+    : [
+        "rgba(255, 107, 53, 0.12)",
+        "rgba(255, 167, 108, 0.18)",
+        "rgba(255, 255, 255, 0.85)",
+      ];
 
   useEffect(() => {
     // Entrance animation
@@ -82,7 +98,14 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
       dots.push(
         <View
           key={i}
-          style={[styles.streakDot, { backgroundColor: colors.light.accent }]}
+          style={[
+            styles.streakDot,
+            {
+              backgroundColor: isDark
+                ? "rgba(255, 107, 53, 0.6)"
+                : colors.light.accent,
+            },
+          ]}
         />
       );
     }
@@ -96,35 +119,118 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
       onPress={handleClose}
       activeOpacity={1}
     >
-      <Animated.View style={[styles.container, containerAnimatedStyle]}>
+      <Animated.View
+        style={[
+          styles.container,
+          containerAnimatedStyle,
+          {
+            backgroundColor: isDark
+              ? "rgba(15, 23, 42, 0.85)"
+              : "rgba(255, 255, 255, 0.85)",
+            borderWidth: 1,
+            borderColor: isDark
+              ? "rgba(255, 107, 53, 0.3)"
+              : "rgba(255, 107, 53, 0.2)",
+          },
+        ]}
+      >
         <LinearGradient
-          colors={["#FF6B35", "#F7931E"]}
+          colors={glassGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
         >
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={colors.light.surface} />
+          <TouchableOpacity
+            style={[
+              styles.closeButton,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 107, 53, 0.15)"
+                  : "rgba(255, 107, 53, 0.12)",
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: isDark
+                  ? "rgba(255, 107, 53, 0.3)"
+                  : "rgba(255, 107, 53, 0.25)",
+              },
+            ]}
+            onPress={handleClose}
+          >
+            <Ionicons
+              name="close"
+              size={22}
+              color={
+                isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
+              }
+            />
           </TouchableOpacity>
 
           {/* Content */}
           <View style={styles.content}>
             {/* Streak Icon */}
-            <View style={styles.streakIcon}>
-              <Ionicons name="flame" size={48} color="white" />
+            <View
+              style={[
+                styles.streakIcon,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 107, 53, 0.2)"
+                    : "rgba(255, 167, 108, 0.25)",
+                  padding: 16,
+                  borderRadius: 40,
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(255, 107, 53, 0.4)"
+                    : "rgba(255, 107, 53, 0.3)",
+                },
+              ]}
+            >
+              <Ionicons name="flame" size={48} color="#FF6B35" />
             </View>
 
             {/* Streak Number */}
             <Animated.View style={[styles.streakNumber, streakAnimatedStyle]}>
-              <Text style={styles.streakText}>{streak}</Text>
+              <Text
+                style={[
+                  styles.streakText,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.95)"
+                      : "rgba(255, 107, 53, 0.9)",
+                  },
+                ]}
+              >
+                {streak}
+              </Text>
             </Animated.View>
 
             {/* Streak Label */}
-            <Text style={styles.streakLabel}>
+            <Text
+              style={[
+                styles.streakLabel,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.95)"
+                    : "rgba(255, 107, 53, 0.9)",
+                },
+              ]}
+            >
               {streak === 1 ? "Day Streak" : "Day Streak"}
             </Text>
 
             {/* Streak Message */}
-            <Text style={styles.streakMessage}>{getStreakMessage(streak)}</Text>
+            <Text
+              style={[
+                styles.streakMessage,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.8)"
+                    : "rgba(255, 107, 53, 0.85)",
+                },
+              ]}
+            >
+              {getStreakMessage(streak)}
+            </Text>
 
             {/* Streak Dots */}
             {streak > 0 && (
@@ -135,11 +241,33 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
 
             {/* Continue Button */}
             <TouchableOpacity
-              style={styles.continueButton}
+              style={[
+                styles.continueButton,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 107, 53, 0.15)"
+                    : "rgba(255, 107, 53, 0.12)",
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(255, 107, 53, 0.3)"
+                    : "rgba(255, 107, 53, 0.25)",
+                },
+              ]}
               onPress={handleClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.continueButtonText}>Continue</Text>
+              <Text
+                style={[
+                  styles.continueButtonText,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.95)"
+                      : "rgba(255, 107, 53, 0.9)",
+                  },
+                ]}
+              >
+                Continue
+              </Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -155,7 +283,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
@@ -189,19 +317,11 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: "bold",
     textAlign: "center",
-    color: colors.light.surface,
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   streakLabel: {
     ...DesignSystem.typography.h3,
     marginBottom: DesignSystem.spacing.md,
     textAlign: "center",
-    color: colors.light.surface,
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   streakMessage: {
     ...DesignSystem.typography.body,
@@ -209,8 +329,6 @@ const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     lineHeight: 24,
-    color: colors.light.surface,
-    opacity: 0.9,
   },
   streakDots: {
     flexDirection: "row",
@@ -225,15 +343,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   continueButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   continueButtonText: {
     ...DesignSystem.typography.button,
-    color: colors.light.surface,
   },
 });
