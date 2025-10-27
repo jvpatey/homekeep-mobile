@@ -23,6 +23,7 @@ import { useUserPreferences } from "../../../context/UserPreferencesContext";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
 import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
+import { NotificationSettingsModal } from "../../modals/notification-settings-modal";
 
 // ProfileMenuProps
 interface ProfileMenuProps {
@@ -42,6 +43,8 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [customizationModalVisible, setCustomizationModalVisible] =
+    useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -132,12 +135,12 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     }, 300);
   };
 
-  // handleNotificationSettings function to navigate to notification settings
+  // handleNotificationSettings function to show notification settings modal
   const handleNotificationSettings = async () => {
     await triggerLight();
     hideMenu();
     setTimeout(() => {
-      navigation.navigate("NotificationPreferences");
+      setNotificationModalVisible(true);
     }, 300);
   };
 
@@ -516,6 +519,12 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
       <AvatarCustomizationModal
         visible={customizationModalVisible}
         onClose={() => setCustomizationModalVisible(false)}
+      />
+
+      {/* Notification Settings Modal */}
+      <NotificationSettingsModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
       />
     </>
   );
