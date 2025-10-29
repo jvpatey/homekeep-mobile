@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
+import {
+  View,
+  ScrollView,
+  RefreshControl,
+  Animated as RNAnimated,
+} from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
 import { HeroCarousel } from "./HeroCarousel";
@@ -54,6 +59,29 @@ export function NewDashboard({
   const [streak, setStreak] = useState(0);
   const [timelineTasks, setTimelineTasks] = useState<MaintenanceTask[]>([]);
   const [showTimelineView, setShowTimelineView] = useState(false);
+  const timelineHeight = React.useRef(new RNAnimated.Value(0)).current;
+
+  // Animate timeline height based on visibility
+  useEffect(() => {
+    if (showTimelineView) {
+      // Expand immediately when showing
+      RNAnimated.timing(timelineHeight, {
+        toValue: 1,
+        duration: 0,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      // Wait for exit animation to complete (300ms) then collapse
+      const timer = setTimeout(() => {
+        RNAnimated.timing(timelineHeight, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showTimelineView, timelineHeight]);
 
   // Load all future tasks and reduce to next instance per routine for timeline
   const loadTimelineTasks = useCallback(async () => {
@@ -215,12 +243,23 @@ export function NewDashboard({
         />
 
         {/* Timeline View */}
-        <TimelineView
-          tasks={timelineTasks}
-          onCompleteTask={handleCompleteTask}
-          onTaskPress={handleTaskPress}
-          visible={showTimelineView}
-        />
+        <RNAnimated.View
+          style={{
+            overflow: "hidden",
+            height: timelineHeight.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 2000],
+            }),
+          }}
+          pointerEvents={showTimelineView ? "auto" : "none"}
+        >
+          <TimelineView
+            tasks={timelineTasks}
+            onCompleteTask={handleCompleteTask}
+            onTaskPress={handleTaskPress}
+            visible={showTimelineView}
+          />
+        </RNAnimated.View>
 
         {/* Bottom Spacing */}
         <View style={dashboardStyles.bottomSpacing} />
