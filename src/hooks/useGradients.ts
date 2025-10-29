@@ -65,12 +65,66 @@ export function useGradients() {
     colors.background,
   ] as const;
 
-  // Hero gradient for background effects
+  // 2025 Modern Hero Gradient - natural glow that fades smoothly to background
   const heroGradient = (
     isDark
-      ? ["rgba(24, 26, 27, 1)", "rgba(35, 37, 38, 0.95)", "rgba(24, 26, 27, 0.98)"]
-      : ["rgba(247, 249, 250, 1)", "rgba(255, 255, 255, 0.95)", "rgba(247, 249, 250, 0.98)"]
-  ) as [string, string, string];
+      ? [
+          "rgba(46, 196, 182, 0.04)",
+          "rgba(46, 196, 182, 0.10)",
+          "rgba(46, 196, 182, 0.15)",
+          "rgba(58, 134, 255, 0.12)",
+          "rgba(46, 196, 182, 0.08)",
+          "rgba(46, 196, 182, 0.04)",
+          "rgba(46, 196, 182, 0.02)",
+          "transparent",
+        ]
+      : [
+          "rgba(46, 196, 182, 0.06)",
+          "rgba(46, 196, 182, 0.14)",
+          "rgba(46, 196, 182, 0.22)",
+          "rgba(58, 134, 255, 0.18)",
+          "rgba(46, 196, 182, 0.12)",
+          "rgba(46, 196, 182, 0.06)",
+          "rgba(46, 196, 182, 0.03)",
+          "transparent",
+        ]
+  ) as [string, string, string, string, string, string, string, string];
+
+  const heroGradientLocations = [0, 0.15, 0.30, 0.50, 0.70, 0.85, 0.95, 1] as const;
+
+  // Radial glow for content highlighting (for use with RadialGradient)
+  const radialGlow = (
+    isDark
+      ? {
+          innerColor: "rgba(46, 196, 182, 0.20)",
+          midColor: "rgba(58, 134, 255, 0.15)",
+          outerColor: "rgba(255, 159, 28, 0.05)",
+          fadeColor: colors.background,
+        }
+      : {
+          innerColor: "rgba(46, 196, 182, 0.35)",
+          midColor: "rgba(58, 134, 255, 0.30)",
+          outerColor: "rgba(255, 159, 28, 0.10)",
+          fadeColor: colors.background,
+        }
+  );
+
+  // Ambient light gradient for transition fade - seamlessly blends to background
+  const ambientGradient = (
+    isDark
+      ? [
+          "rgba(46, 196, 182, 0.10)",
+          "rgba(58, 134, 255, 0.06)",
+          "rgba(46, 196, 182, 0.03)",
+          colors.background,
+        ]
+      : [
+          "rgba(46, 196, 182, 0.15)",
+          "rgba(58, 134, 255, 0.10)",
+          "rgba(46, 196, 182, 0.05)",
+          colors.background,
+        ]
+  ) as [string, string, string, string];
 
   return {
     primaryGradient,
@@ -82,6 +136,9 @@ export function useGradients() {
     glowGradient,
     fadeGradient,
     heroGradient,
+    heroGradientLocations,
+    radialGlow,
+    ambientGradient,
     isDark,
     colors,
   };

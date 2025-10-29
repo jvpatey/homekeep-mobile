@@ -5,7 +5,9 @@ import {
   RefreshControl,
   Animated as RNAnimated,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
+import { useGradients } from "../../hooks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { HeroCarousel } from "./HeroCarousel";
 import { TimelineView } from "./timeline-view/TimelineView";
@@ -45,7 +47,8 @@ export function NewDashboard({
   refreshing = false,
 }: NewDashboardProps) {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { ambientGradient } = useGradients();
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null

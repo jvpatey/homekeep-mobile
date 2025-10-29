@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useGradients } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { OAuthButtons } from "../../components/auth";
 import {
@@ -28,6 +29,7 @@ export function SignUpScreen() {
 
   // Shared hooks
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
   const { getInputTheme } = useAuthInputTheme();
@@ -122,38 +124,48 @@ export function SignUpScreen() {
     navigation.navigate("Login" as any);
   };
 
-  // Subtle gradient for hero section
-  const gradientColors = isDark
-    ? [
-        "rgba(46, 196, 182, 0.04)",
-        "rgba(58, 134, 255, 0.01)",
-        colors.background,
-      ]
-    : [
-        "rgba(46, 196, 182, 0.06)",
-        "rgba(58, 134, 255, 0.02)",
-        colors.background,
-      ];
-
   return (
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Fixed Hero Section */}
-      <LinearGradient
-        colors={gradientColors}
-        locations={[0, 0.15, 1]}
-        style={authStyles.heroSection}
-      >
+      {/* Fixed Hero Section with Modern Glow Gradient */}
+      <View style={authStyles.heroSection}>
+        {/* Bottom fade mask */}
+        <LinearGradient
+          colors={["transparent", colors.background]}
+          locations={[0.5, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={authStyles.bottomFade}
+          pointerEvents="none"
+        />
+        
+        {/* Layered gradient background */}
+        <LinearGradient
+          colors={heroGradient}
+          locations={heroGradientLocations}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={authStyles.gradientBase}
+        />
+        
+        {/* Glow effect */}
+        <LinearGradient
+          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
+          locations={[0, 0.3, 0.6, 1]}
+          start={{ x: 0.5, y: 0.3 }}
+          end={{ x: 1, y: 1 }}
+          style={authStyles.gradientGlow}
+        />
         <TouchableOpacity
           onPress={handleBackPress}
           style={{
             position: "absolute",
             top: dynamicTopSpacing,
             left: DesignSystem.spacing.md,
-            zIndex: 10,
+            zIndex: 20,
             flexDirection: "row",
             alignItems: "center",
             backgroundColor: isDark
@@ -185,7 +197,7 @@ export function SignUpScreen() {
         </TouchableOpacity>
 
         <Animated.View
-          style={[authStyles.headerContainer, headerAnimatedStyle]}
+          style={[authStyles.headerContainer, authStyles.heroContent, headerAnimatedStyle]}
         >
           <LogoSection showText={false} compact={false} />
 
@@ -205,7 +217,7 @@ export function SignUpScreen() {
             />
           </View>
         </Animated.View>
-      </LinearGradient>
+      </View>
 
       {/* Scrollable Content Section */}
       <ScrollView

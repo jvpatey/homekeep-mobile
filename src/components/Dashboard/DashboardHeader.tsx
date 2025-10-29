@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../context/ThemeContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
+import { useGradients } from "../../hooks";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
@@ -36,37 +37,60 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const { colors, isDark } = useTheme();
   const { selectedGradient } = useUserPreferences();
+  const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
-  const gradientColors = isDark
-    ? [
-        "rgba(46, 196, 182, 0.04)",
-        "rgba(58, 134, 255, 0.01)",
-        colors.background,
-      ]
-    : [
-        "rgba(46, 196, 182, 0.06)",
-        "rgba(58, 134, 255, 0.02)",
-        colors.background,
-      ];
-
-  // Use the user's selected gradient colors for the text
   const textGradientColors = selectedGradient.colors;
 
   return (
     <View style={headerStyles.headerSection}>
-      <LinearGradient
-        colors={gradientColors}
-        locations={[0, 0.15, 1]}
-        style={headerStyles.headerGradient}
-      >
-        {/* Profile Button - Top Right */}
-        <View style={headerStyles.profileButtonContainer}>
-          <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
-        </View>
+      <View style={headerStyles.headerGradient}>
+        {/* Bottom fade mask - inside the hero container */}
+        <LinearGradient
+          colors={["transparent", colors.background]}
+          locations={[0.5, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={headerStyles.bottomFade}
+          pointerEvents="none"
+        />
+        
+        {/* Layered gradient background for depth */}
+        <LinearGradient
+          colors={heroGradient}
+          locations={heroGradientLocations}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={headerStyles.gradientBase}
+        />
+        
+        {/* Radial glow effect centered on content - simulated with multiple linear gradients */}
+        <LinearGradient
+          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
+          locations={[0, 0.3, 0.6, 1]}
+          start={{ x: 0.5, y: 0.3 }}
+          end={{ x: 1, y: 1 }}
+          style={headerStyles.gradientGlow}
+        />
+        
+        {/* Ambient light layer */}
+        <LinearGradient
+          colors={ambientGradient}
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={headerStyles.gradientAmbient}
+        />
 
-        <View style={headerStyles.headerContent}>
+        {/* Content layer */}
+        <View style={headerStyles.contentLayer}>
+          {/* Profile Button - Top Right */}
+          <View style={headerStyles.profileButtonContainer}>
+            <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
+          </View>
+
+          <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
             <Text style={[headerStyles.greeting, { color: colors.text }]}>
               {greeting}
@@ -175,7 +199,8 @@ export function DashboardHeader({
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
+        </View>
+      </View>
     </View>
   );
 }
