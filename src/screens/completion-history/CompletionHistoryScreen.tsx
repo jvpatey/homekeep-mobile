@@ -17,6 +17,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
+import { useGradients } from "../../hooks";
 import {
   GroupedRoutine,
   groupTasksByRoutine,
@@ -30,6 +31,7 @@ export function CompletionHistoryScreen() {
     useTasks();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
   const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
   const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
     new Set()
@@ -373,98 +375,111 @@ export function CompletionHistoryScreen() {
     </View>
   );
 
-  return (
-    <SafeAreaView
-      style={[
-        completionHistoryStyles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
+  return (    <View style={[completionHistoryStyles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} translucent />
+      
       {/* Hero Section with Gradient */}
-      <LinearGradient
-        colors={
-          isDark
-            ? [
-                "rgba(59, 130, 246, 0.04)",
-                "rgba(58, 134, 255, 0.01)",
-                colors.background,
-              ]
-            : [
-                "rgba(59, 130, 246, 0.06)",
-                "rgba(147, 197, 253, 0.02)",
-                colors.background,
-              ]
-        }
-        locations={[0, 0.15, 1]}
-        style={completionHistoryStyles.heroSection}
-      >
-        {/* Back Button */}
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{
-            position: "absolute",
-            top: DesignSystem.spacing.md,
-            left: DesignSystem.spacing.md,
-            zIndex: 10,
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.5)"
-              : "rgba(255, 255, 255, 0.5)",
-            borderRadius: 20,
-            paddingHorizontal: DesignSystem.spacing.lg,
-            paddingVertical: DesignSystem.spacing.sm,
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.15)"
-              : "rgba(255, 255, 255, 0.25)",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
-          activeOpacity={0.8}
-        >
-          <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: 15,
-              fontWeight: "600",
-              opacity: 0.7,
-            }}
-          >
-            ← Back
-          </Text>
-        </TouchableOpacity>
+      <View style={completionHistoryStyles.heroContainer}>
+          {/* Bottom fade mask */}
+          <LinearGradient
+            colors={["transparent", "transparent", colors.background]}
+            locations={[0, 0.4, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={completionHistoryStyles.bottomFade}
+            pointerEvents="none"
+          />
 
-        {/* Header Content */}
-        <View style={completionHistoryStyles.heroContent}>
-          <Text
-            style={[completionHistoryStyles.heroTitle, { color: colors.text }]}
-          >
-            Completion History
-          </Text>
-          <Text
-            style={[
-              completionHistoryStyles.heroSubtitle,
-              { color: colors.textSecondary },
-            ]}
-          >
-            {completedTasks.length} tasks completed
-          </Text>
+          {/* Layered gradient background */}
+          <LinearGradient
+            colors={heroGradient}
+            locations={heroGradientLocations}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={completionHistoryStyles.gradientBase}
+          />
+
+          {/* Glow effect */}
+          <LinearGradient
+            colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
+            locations={[0, 0.3, 0.6, 1]}
+            start={{ x: 0.5, y: 0.3 }}
+            end={{ x: 1, y: 1 }}
+            style={completionHistoryStyles.gradientGlow}
+          />
+
+          {/* Content layer */}
+          <View style={completionHistoryStyles.contentLayer}>
+            {/* Back Button */}
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{
+                position: "absolute",
+                top: DesignSystem.spacing.md,
+                left: DesignSystem.spacing.md,
+                zIndex: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.5)"
+                  : "rgba(255, 255, 255, 0.5)",
+                borderRadius: 20,
+                paddingHorizontal: DesignSystem.spacing.lg,
+                paddingVertical: DesignSystem.spacing.sm,
+                borderWidth: 1,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.15)"
+                  : "rgba(255, 255, 255, 0.25)",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 15,
+                  fontWeight: "600",
+                  opacity: 0.7,
+                }}
+              >
+                ← Back
+              </Text>
+            </TouchableOpacity>
+
+            {/* Header Content */}
+            <View style={completionHistoryStyles.heroContent}>
+              <Text
+                style={[completionHistoryStyles.heroTitle, { color: colors.text }]}
+              >
+                Completion History
+              </Text>
+              <Text
+                style={[
+                  completionHistoryStyles.heroSubtitle,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {completedTasks.length} tasks completed
+              </Text>
+            </View>
+          </View>
         </View>
-      </LinearGradient>
 
-      {/* Routines List */}
-      <FlatList
-        data={groupedRoutines}
-        renderItem={renderRoutineItem}
-        keyExtractor={(item) => item.routineId}
-        contentContainerStyle={completionHistoryStyles.routinesList}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyState}
-      />
-    </SafeAreaView>
+      <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1 }}>
+        {/* Routines List */}
+        <FlatList
+          data={groupedRoutines}
+          renderItem={renderRoutineItem}
+          keyExtractor={(item) => item.routineId}
+          contentContainerStyle={completionHistoryStyles.routinesList}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyState}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
+

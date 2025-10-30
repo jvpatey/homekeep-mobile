@@ -18,6 +18,7 @@ export const headerStyles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 4,
+    paddingTop: DesignSystem.spacing.xl + DesignSystem.spacing.md,
   },
   gradientBase: {
     position: "absolute",
@@ -49,11 +50,11 @@ export const headerStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: "40%",
+    height: 150,
     zIndex: 10,
   },
   contentLayer: {
-    paddingTop: 52,
+    paddingTop: DesignSystem.spacing.xl + DesignSystem.spacing.md,
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",

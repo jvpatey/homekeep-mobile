@@ -10,6 +10,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { headerStyles } from "./styles";
+import { DesignSystem } from "../../theme/designSystem";
 
 interface DashboardHeaderProps {
   userName: string;

@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: "40%",
+    height: 150,
     zIndex: 10,
   },
   gradientBase: {

@@ -76,7 +76,6 @@ export function useGradients() {
           "rgba(46, 196, 182, 0.08)",
           "rgba(46, 196, 182, 0.04)",
           "rgba(46, 196, 182, 0.02)",
-          "rgba(46, 196, 182, 0.01)",
           "transparent",
         ]
       : [
@@ -87,12 +86,11 @@ export function useGradients() {
           "rgba(46, 196, 182, 0.12)",
           "rgba(46, 196, 182, 0.06)",
           "rgba(46, 196, 182, 0.03)",
-          "rgba(46, 196, 182, 0.015)",
           "transparent",
         ]
-  ) as [string, string, string, string, string, string, string, string, string];
+  ) as [string, string, string, string, string, string, string, string];
 
-  const heroGradientLocations = [0, 0.15, 0.30, 0.50, 0.70, 0.85, 0.92, 0.98, 1] as const;
+  const heroGradientLocations = [0, 0.15, 0.30, 0.50, 0.70, 0.85, 0.95, 1] as const;
 
   // Radial glow for content highlighting (for use with RadialGradient)
   const radialGlow = (
