@@ -130,8 +130,12 @@ export function DashboardHeader({
       <View style={headerStyles.headerGradient}>
         {/* Bottom fade mask - inside the hero container */}
         <LinearGradient
-          colors={["transparent", "transparent", colors.background]}
-          locations={[0, 0.4, 1]}
+          colors={
+            isDark
+              ? ["transparent", "transparent", colors.background]
+              : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", colors.background]
+          }
+          locations={isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={headerStyles.bottomFade}

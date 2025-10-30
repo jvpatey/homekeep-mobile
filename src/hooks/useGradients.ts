@@ -83,9 +83,9 @@ export function useGradients() {
           "rgba(46, 196, 182, 0.14)",
           "rgba(46, 196, 182, 0.22)",
           "rgba(58, 134, 255, 0.18)",
-          "rgba(46, 196, 182, 0.12)",
-          "rgba(46, 196, 182, 0.06)",
-          "rgba(46, 196, 182, 0.03)",
+          "rgba(46, 196, 182, 0.08)",
+          "rgba(46, 196, 182, 0.04)",
+          "rgba(46, 196, 182, 0.015)",
           "transparent",
         ]
   ) as [string, string, string, string, string, string, string, string];
@@ -105,7 +105,7 @@ export function useGradients() {
           innerColor: "rgba(46, 196, 182, 0.35)",
           midColor: "rgba(58, 134, 255, 0.30)",
           outerColor: "rgba(255, 159, 28, 0.10)",
-          fadeColor: colors.background,
+          fadeColor: "rgba(255, 255, 255, 0.5)",
         }
   );
 
@@ -119,10 +119,10 @@ export function useGradients() {
           colors.background,
         ]
       : [
-          "rgba(46, 196, 182, 0.15)",
-          "rgba(58, 134, 255, 0.10)",
-          "rgba(46, 196, 182, 0.05)",
-          colors.background,
+          "rgba(46, 196, 182, 0.12)",
+          "rgba(58, 134, 255, 0.08)",
+          "rgba(46, 196, 182, 0.025)",
+          "rgba(255, 255, 255, 0.4)",
         ]
   ) as [string, string, string, string];
 
