@@ -5,7 +5,7 @@ import { colors } from "src/theme/colors";
 export const timelineStyles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.md,
   },
   header: {
     paddingHorizontal: DesignSystem.spacing.md,

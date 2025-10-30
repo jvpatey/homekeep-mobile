@@ -45,7 +45,7 @@ export function DashboardHeader({
   const textGradientColors = selectedGradient.colors;
 
   return (
-    <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.lg }]}>
+    <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.sm }]}>
       <View style={headerStyles.headerGradient}>
         {/* Bottom fade mask - inside the hero container */}
         <LinearGradient

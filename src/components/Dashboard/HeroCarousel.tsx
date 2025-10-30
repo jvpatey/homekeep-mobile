@@ -94,64 +94,139 @@ export function HeroCarousel({
 
   if (tasks.length === 0) {
     return (
-      <View
-        style={[
-          styles.emptyContainer,
-          {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
-          },
-        ]}
-      >
-        <View style={styles.emptyIconContainer}>
-          <View
+      <View style={styles.container}>
+        {/* Header with Timeline Toggle */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
+          <View style={styles.headerRight}>
+            {onToggleTimelineView && (
+              <TouchableOpacity
+                onPress={onToggleTimelineView}
+                activeOpacity={0.7}
+              >
+                {showTimelineView ? (
+                  <LinearGradient
+                    colors={gradientColors}
+                    locations={[0, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.toggleButton,
+                      styles.toggleButtonSelected,
+                      {
+                        borderColor: isDark
+                          ? "rgba(255, 255, 255, 0.2)"
+                          : "rgba(255, 255, 255, 0.8)",
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="calendar" size={16} color="#FFFFFF" />
+                    <Text style={[styles.toggleButtonText, { color: "#FFFFFF" }]}>
+                      Timeline
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <View
+                    style={[
+                      styles.toggleButton,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(35, 37, 38, 0.4)"
+                          : "rgba(255, 255, 255, 0.4)",
+                        borderColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(255, 255, 255, 0.6)",
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="calendar"
+                      size={16}
+                      color={
+                        isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.toggleButtonText,
+                        {
+                          color: isDark
+                            ? "rgba(255, 255, 255, 0.6)"
+                            : "rgba(0, 0, 0, 0.5)",
+                        },
+                      ]}
+                    >
+                      Timeline
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Empty State */}
+        <View
+          style={[
+            styles.emptyContainer,
+            {
+              backgroundColor: isDark
+                ? "rgba(35, 37, 38, 0.4)"
+                : "rgba(255, 255, 255, 0.4)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(255, 255, 255, 0.6)",
+            },
+          ]}
+        >
+          <View style={styles.emptyIconContainer}>
+            <View
+              style={[
+                styles.emptyIconBackground,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.05)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(255, 255, 255, 0.6)",
+                },
+              ]}
+            >
+              <View style={styles.emptyIcon}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={32}
+                  color={
+                    isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.4)"
+                  }
+                />
+              </View>
+            </View>
+          </View>
+          <Text
             style={[
-              styles.emptyIconBackground,
+              styles.emptyTitle,
               {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(255, 255, 255, 0.6)",
+                color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)",
               },
             ]}
           >
-            <View style={styles.emptyIcon}>
-              <Ionicons
-                name="checkmark-circle"
-                size={32}
-                color={
-                  isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.4)"
-                }
-              />
-            </View>
-          </View>
+            All Caught Up!
+          </Text>
+          <Text
+            style={[
+              styles.emptySubtitle,
+              {
+                color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)",
+              },
+            ]}
+          >
+            No tasks due right now
+          </Text>
         </View>
-        <Text
-          style={[
-            styles.emptyTitle,
-            {
-              color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)",
-            },
-          ]}
-        >
-          All Caught Up!
-        </Text>
-        <Text
-          style={[
-            styles.emptySubtitle,
-            {
-              color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)",
-            },
-          ]}
-        >
-          No tasks due right now
-        </Text>
       </View>
     );
   }
@@ -365,7 +440,8 @@ export function HeroCarousel({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.md,
   },
   header: {
     flexDirection: "row",
@@ -437,7 +513,6 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     height: 180,
-    marginVertical: DesignSystem.spacing.lg,
     marginHorizontal: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.xlarge,
     justifyContent: "center",
@@ -493,7 +568,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.sm,
     gap: DesignSystem.spacing.xs,
   },
   paginationDot: {
@@ -506,7 +581,7 @@ const styles = StyleSheet.create({
   },
   counterContainer: {
     alignItems: "center",
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.xs,
   },
   counterText: {
     ...DesignSystem.typography.caption,
