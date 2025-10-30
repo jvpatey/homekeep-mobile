@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Modal,
@@ -8,10 +8,19 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../../../types/maintenance";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useGradients } from "../../../../hooks";
+import { DesignSystem } from "../../../../theme/designSystem";
 import { createStyles } from "./styles";
 // Removed inline reschedule to simplify and rely on edit flow
 
@@ -35,9 +44,48 @@ export function SimpleTaskDetailModal({
   onModified,
 }: SimpleTaskDetailModalProps) {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { glassBorder } = useGradients();
   const [isCompleting, setIsCompleting] = useState(false);
   const styles = createStyles(colors);
+
+  // Animation values
+  const scale = useSharedValue(0.7);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(20);
+  const contentOpacity = useSharedValue(0);
+
+  // Entrance animation
+  useEffect(() => {
+    if (visible) {
+      opacity.value = withSpring(1, { damping: 25, stiffness: 120 });
+      scale.value = withSpring(1, { damping: 20, stiffness: 140 });
+      translateY.value = withSpring(0, { damping: 25, stiffness: 120 });
+      contentOpacity.value = withDelay(50, withTiming(1, { duration: 300 }));
+    }
+  }, [visible]);
+
+  const containerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+  }));
+
+  // Glass gradient
+  const glassGradient = isDark
+    ? ([
+        "rgba(46, 196, 182, 0.15)",
+        "rgba(58, 134, 255, 0.25)",
+        "rgba(15, 23, 42, 0.85)",
+      ] as const)
+    : ([
+        "rgba(46, 196, 182, 0.12)",
+        "rgba(147, 197, 253, 0.18)",
+        "rgba(255, 255, 255, 0.85)",
+      ] as const);
 
   if (!task) return null;
 
@@ -174,8 +222,11 @@ export function SimpleTaskDetailModal({
   };
 
   const handleClose = () => {
-    // Prevent any layout changes during close
-    onClose();
+    // Exit animation
+    opacity.value = withSpring(0, { damping: 20, stiffness: 100 });
+    scale.value = withSpring(0.8, { damping: 20, stiffness: 100 });
+    translateY.value = withSpring(30, { damping: 20, stiffness: 100 });
+    setTimeout(onClose, 250);
   };
 
   // Rescheduling is handled through the Edit flow
@@ -184,63 +235,115 @@ export function SimpleTaskDetailModal({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={handleClose}
       statusBarTranslucent={true}
       presentationStyle="overFullScreen"
     >
       <View style={styles.overlay}>
-        <View
-          style={[styles.modalContainer, { backgroundColor: colors.surface }]}
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            containerAnimatedStyle,
+            {
+              backgroundColor: isDark
+                ? "rgba(15, 23, 42, 0.95)"
+                : "rgba(255, 255, 255, 0.95)",
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(46, 196, 182, 0.3)"
+                : "rgba(46, 196, 182, 0.2)",
+            },
+          ]}
         >
-          {/* Minimalist Header */}
-          <View
-            style={[
-              styles.headerGradient,
-              {
-                backgroundColor: colors.surface,
-                borderBottomColor: colors.border,
-              },
-            ]}
+          <LinearGradient
+            colors={glassGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientBackground}
           >
-            <View style={styles.headerContent}>
+            <Animated.View style={[contentAnimatedStyle, styles.modalContentWrapper]}>
+              {/* Minimalist Header */}
+              <View
+                style={[
+                  styles.headerGradient,
+                  {
+                    borderBottomColor: isDark
+                      ? "rgba(46, 196, 182, 0.2)"
+                      : "rgba(46, 196, 182, 0.15)",
+                  },
+                ]}
+              >
+                <View style={styles.headerContent}>
               {/* Close button */}
               <TouchableOpacity
                 style={[
                   styles.closeButton,
-                  { backgroundColor: colors.background },
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(46, 196, 182, 0.15)"
+                      : "rgba(46, 196, 182, 0.12)",
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(46, 196, 182, 0.3)"
+                      : "rgba(46, 196, 182, 0.25)",
+                  },
                 ]}
                 onPress={handleClose}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={24} color={colors.text} />
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color={
+                    isDark
+                      ? "rgba(255, 255, 255, 0.9)"
+                      : "rgba(15, 23, 42, 0.85)"
+                  }
+                />
               </TouchableOpacity>
 
               {/* Category icon and name */}
               <View style={styles.categorySection}>
-                <View
-                  style={[
-                    styles.categoryIconContainer,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: priorityColors[task.priority],
-                    },
-                  ]}
+                <LinearGradient
+                  colors={category.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.categoryIconContainer}
                 >
                   <Ionicons
                     name={category.icon as any}
                     size={32}
-                    color={priorityColors[task.priority]}
+                    color="white"
                     style={styles.categoryIcon}
                   />
-                </View>
-                <Text style={[styles.categoryName, { color: colors.text }]}>
+                </LinearGradient>
+                <Text
+                  style={[
+                    styles.categoryName,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.95)"
+                        : "rgba(15, 23, 42, 0.9)",
+                    },
+                  ]}
+                >
                   {category.displayName}
                 </Text>
               </View>
 
               {/* Task title */}
-              <Text style={[styles.taskTitle, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.taskTitle,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.95)"
+                      : "rgba(15, 23, 42, 0.9)",
+                  },
+                ]}
+              >
                 {task.title}
               </Text>
 
@@ -248,7 +351,15 @@ export function SimpleTaskDetailModal({
               <View
                 style={[
                   styles.priorityContainer,
-                  { backgroundColor: colors.background },
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(46, 196, 182, 0.15)"
+                      : "rgba(46, 196, 182, 0.12)",
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(46, 196, 182, 0.3)"
+                      : "rgba(46, 196, 182, 0.25)",
+                  },
                 ]}
               >
                 <View
@@ -257,27 +368,58 @@ export function SimpleTaskDetailModal({
                     { backgroundColor: priorityColors[task.priority] },
                   ]}
                 />
-                <Text style={[styles.priorityText, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.priorityText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.9)"
+                        : "rgba(15, 23, 42, 0.85)",
+                    },
+                  ]}
+                >
                   {task.priority.charAt(0).toUpperCase() +
                     task.priority.slice(1)}{" "}
                   Priority
                 </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Content */}
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
+            {/* Content */}
+            <ScrollView
+              style={styles.content}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
             {/* Description */}
             {task.description && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Description</Text>
-                <Text style={styles.descriptionText}>{task.description}</Text>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.95)"
+                        : "rgba(15, 23, 42, 0.9)",
+                    },
+                  ]}
+                >
+                  Description
+                </Text>
+                <Text
+                  style={[
+                    styles.descriptionText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.8)"
+                        : "rgba(15, 23, 42, 0.7)",
+                    },
+                  ]}
+                >
+                  {task.description}
+                </Text>
               </View>
             )}
 
@@ -292,8 +434,28 @@ export function SimpleTaskDetailModal({
                   />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Estimated Time</Text>
-                  <Text style={styles.detailValue}>
+                  <Text
+                    style={[
+                      styles.detailLabel,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(15, 23, 42, 0.6)",
+                      },
+                    ]}
+                  >
+                    Estimated Time
+                  </Text>
+                  <Text
+                    style={[
+                      styles.detailValue,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.95)"
+                          : "rgba(15, 23, 42, 0.9)",
+                      },
+                    ]}
+                  >
                     {formatTime(task.estimated_duration_minutes)}
                   </Text>
                 </View>
@@ -308,8 +470,28 @@ export function SimpleTaskDetailModal({
                   />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Due Date</Text>
-                  <Text style={styles.detailValue}>
+                  <Text
+                    style={[
+                      styles.detailLabel,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(15, 23, 42, 0.6)",
+                      },
+                    ]}
+                  >
+                    Due Date
+                  </Text>
+                  <Text
+                    style={[
+                      styles.detailValue,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.95)"
+                          : "rgba(15, 23, 42, 0.9)",
+                      },
+                    ]}
+                  >
                     {formatDate(task.due_date)}
                   </Text>
                 </View>
@@ -324,64 +506,126 @@ export function SimpleTaskDetailModal({
                   />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Recurrence</Text>
-                  <Text style={styles.detailValue}>
+                  <Text
+                    style={[
+                      styles.detailLabel,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(15, 23, 42, 0.6)",
+                      },
+                    ]}
+                  >
+                    Recurrence
+                  </Text>
+                  <Text
+                    style={[
+                      styles.detailValue,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.95)"
+                          : "rgba(15, 23, 42, 0.9)",
+                      },
+                    ]}
+                  >
                     {formatInterval(task.interval_days)}
                   </Text>
                 </View>
               </View>
             </View>
           </ScrollView>
+          </Animated.View>
 
-          {/* Action buttons */}
-          <View style={styles.actionsContainer}>
-            {onEdit && (
+          {/* Action buttons - Fixed at bottom */}
+          <View
+            style={[
+              styles.actionsContainer,
+              {
+                borderTopColor: isDark
+                  ? "rgba(46, 196, 182, 0.2)"
+                  : "rgba(46, 196, 182, 0.15)",
+              },
+            ]}
+          >
+            <View style={styles.buttonRow}>
+              {onEdit && (
+                <TouchableOpacity
+                  style={[
+                    styles.pillButton,
+                    {
+                      borderWidth: 2,
+                      borderColor: colors.glassBorder,
+                    },
+                  ]}
+                  onPress={() => onEdit(task)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={glassBorder}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                      styles.pillButtonGradient,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 159, 28, 0.15)"
+                          : "rgba(255, 159, 28, 0.12)",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={20}
+                      color={colors.accent}
+                    />
+                    <Text style={[styles.pillButtonText, { color: colors.accent }]}>
+                      Edit
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              {/* Reschedule removed; use Edit to change due date */}
               <TouchableOpacity
                 style={[
-                  styles.completeButton,
-                  styles.actionSpacing,
+                  styles.pillButton,
                   {
-                    backgroundColor: colors.accent, // warm yellow/orange
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 6,
+                    borderWidth: 2,
+                    borderColor: colors.glassBorder,
                   },
+                  isCompleting && styles.completeButtonDisabled,
                 ]}
-                onPress={() => onEdit(task)}
+                onPress={handleComplete}
                 activeOpacity={0.8}
+                disabled={isCompleting}
               >
-                <Ionicons name="create-outline" size={24} color="white" />
-                <Text style={styles.completeButtonText}>Edit</Text>
+                <LinearGradient
+                  colors={glassBorder}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[
+                    styles.pillButtonGradient,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(46, 196, 182, 0.15)"
+                        : "rgba(46, 196, 182, 0.12)",
+                      opacity: isCompleting ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={[styles.pillButtonText, { color: colors.success }]}>
+                    {isCompleting ? "Completing..." : "Complete"}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
-            )}
-            {/* Reschedule removed; use Edit to change due date */}
-            <TouchableOpacity
-              style={[
-                styles.completeButton,
-                {
-                  backgroundColor: colors.success,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 8,
-                  elevation: 6,
-                },
-                isCompleting && styles.completeButtonDisabled,
-              ]}
-              onPress={handleComplete}
-              activeOpacity={0.8}
-              disabled={isCompleting}
-            >
-              <Ionicons name="checkmark-circle" size={24} color="white" />
-              <Text style={styles.completeButtonText}>
-                {isCompleting ? "Completing..." : "Mark as Complete"}
-              </Text>
-            </TouchableOpacity>
+            </View>
           </View>
-          {/* No inline date picker */}
-        </View>
+          </LinearGradient>
+        </Animated.View>
       </View>
     </Modal>
   );
