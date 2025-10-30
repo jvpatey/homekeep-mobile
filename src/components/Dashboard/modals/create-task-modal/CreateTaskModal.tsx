@@ -313,16 +313,16 @@ export function CreateTaskModal({
   };
 
   const glassGradient = isDark
-    ? [
+    ? ([
         "rgba(46, 196, 182, 0.15)",
         "rgba(58, 134, 255, 0.25)",
         "rgba(15, 23, 42, 0.85)",
-      ]
-    : [
+      ] as const)
+    : ([
         "rgba(46, 196, 182, 0.12)",
         "rgba(147, 197, 253, 0.18)",
         "rgba(255, 255, 255, 0.85)",
-      ];
+      ] as const);
 
   const handleClose = () => {
     // Exit animation
