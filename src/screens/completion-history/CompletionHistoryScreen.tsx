@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -34,7 +34,7 @@ import {
 
 export function CompletionHistoryScreen() {
   const { colors, isDark } = useTheme();
-  const { completedTasks, overdueTasks, completeTask, refreshTasks } =
+  const { completedTasks, overdueTasks, completeTask, refreshTasks, loading } =
     useTasks();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -46,6 +46,8 @@ export function CompletionHistoryScreen() {
   const [completingTasks, setCompletingTasks] = useState<Set<string>>(
     new Set()
   );
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const prevLoadingRef = useRef<boolean | null>(null);
 
   // Animation values for header elements
   const backButtonOpacity = useSharedValue(0);
@@ -108,6 +110,14 @@ export function CompletionHistoryScreen() {
     // Use the already-filtered overdue tasks from useTasks instead of re-filtering
     setGroupedRoutines(groupTasksByRoutine(completedTasks, overdueTasks));
   }, [completedTasks, overdueTasks]);
+
+  useEffect(() => {
+    // Track when loading transitions from true to false (load completed)
+    if (prevLoadingRef.current === true && loading === false) {
+      setHasLoadedOnce(true);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading]);
 
   const toggleRoutineExpansion = (routineId: string) => {
     const newExpanded = new Set(expandedRoutines);
@@ -480,31 +490,36 @@ export function CompletionHistoryScreen() {
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={completionHistoryStyles.emptyState}>
-      <Ionicons
-        name="checkmark-circle-outline"
-        size={64}
-        color={colors.textSecondary}
-      />
-      <Text
-        style={[
-          completionHistoryStyles.emptyStateTitle,
-          { color: colors.text },
-        ]}
-      >
-        No completed tasks yet
-      </Text>
-      <Text
-        style={[
-          completionHistoryStyles.emptyStateSubtitle,
-          { color: colors.textSecondary },
-        ]}
-      >
-        Complete your first task to see it here!
-      </Text>
-    </View>
-  );
+  const renderEmptyState = () => {
+    if (loading || !hasLoadedOnce) {
+      return null;
+    }
+    return (
+      <View style={completionHistoryStyles.emptyState}>
+        <Ionicons
+          name="checkmark-circle-outline"
+          size={64}
+          color={colors.textSecondary}
+        />
+        <Text
+          style={[
+            completionHistoryStyles.emptyStateTitle,
+            { color: colors.text },
+          ]}
+        >
+          No completed tasks yet
+        </Text>
+        <Text
+          style={[
+            completionHistoryStyles.emptyStateSubtitle,
+            { color: colors.textSecondary },
+          ]}
+        >
+          Complete your first task to see it here!
+        </Text>
+      </View>
+    );
+  };
 
   return (    <View style={[completionHistoryStyles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} translucent />
