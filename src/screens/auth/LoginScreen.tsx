@@ -88,7 +88,7 @@ export function LoginScreen() {
   // handleEmailVerification for the handleEmailVerification on the home screen
   const handleEmailVerification = () => {
     triggerLight();
-    navigation.navigate("EmailVerification" as any);
+    navigation.navigate("EmailEntry" as any);
   };
 
   // handleSignUp for the handleSignUp on the home screen

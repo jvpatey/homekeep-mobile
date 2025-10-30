@@ -11,9 +11,9 @@ export const authStyles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
     paddingTop: DesignSystem.spacing.xl,
-    paddingBottom: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.xl,
     paddingHorizontal: DesignSystem.spacing.md,
-    minHeight: 240,
+    minHeight: 360,
   },
   bottomFade: {
     position: "absolute",
@@ -61,13 +61,15 @@ export const authStyles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.md,
   },
 
   // Header styles
   headerContainer: {
     alignItems: "center",
     paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
   },
   title: {
     ...DesignSystem.typography.h1,
@@ -217,7 +219,6 @@ export const authStyles = StyleSheet.create({
 
   // Status styles
   statusContainer: {
-    marginTop: DesignSystem.spacing.lg,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -225,6 +226,7 @@ export const authStyles = StyleSheet.create({
     ...DesignSystem.typography.body,
     textAlign: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.lg,
   },
   successIcon: {
     width: 60,

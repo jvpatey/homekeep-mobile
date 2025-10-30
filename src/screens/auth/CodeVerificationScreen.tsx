@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, Alert, TouchableOpacity } from "react-native";
+import { View, Text, Alert, TouchableOpacity, ScrollView } from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useGradients } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { useAuthAnimation, useAuthHaptics } from "./hooks";
 import { useDynamicSpacing } from "../../hooks";
@@ -16,10 +17,11 @@ import { DesignSystem } from "../../theme/designSystem";
 export function CodeVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { supabase } = useAuth();
+  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient } = useGradients();
   const navigation = useNavigation();
   const route = useRoute();
   const formAnimatedStyle = useAuthAnimation();
-  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -141,23 +143,75 @@ export function CodeVerificationScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
-      <View style={{ paddingTop: dynamicTopSpacing, flex: 1 }}>
-        {/* Header */}
-        <View style={authStyles.headerContainer}>
-          <TouchableOpacity
-            onPress={handleBackPress}
+      {/* Hero Section with Gradient */}
+      <View style={authStyles.heroSection}>
+        {/* Bottom fade mask */}
+        <LinearGradient
+          colors={["transparent", colors.background]}
+          locations={[0.5, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={authStyles.bottomFade}
+          pointerEvents="none"
+        />
+        
+        {/* Layered gradient background */}
+        <LinearGradient
+          colors={heroGradient}
+          locations={heroGradientLocations}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={authStyles.gradientBase}
+        />
+        
+        {/* Glow effect */}
+        <LinearGradient
+          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
+          locations={[0, 0.3, 0.6, 1]}
+          start={{ x: 0.5, y: 0.3 }}
+          end={{ x: 1, y: 1 }}
+          style={authStyles.gradientGlow}
+        />
+
+        <TouchableOpacity
+          onPress={handleBackPress}
+          style={{
+            position: "absolute",
+            top: dynamicTopSpacing,
+            left: DesignSystem.spacing.md,
+            zIndex: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.5)"
+              : "rgba(255, 255, 255, 0.5)",
+            borderRadius: 20,
+            paddingHorizontal: DesignSystem.spacing.lg,
+            paddingVertical: DesignSystem.spacing.sm,
+            borderWidth: 1,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.15)"
+              : "rgba(255, 255, 255, 0.25)",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <Text
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              padding: DesignSystem.spacing.sm,
-              zIndex: 10,
+              color: colors.textSecondary,
+              fontSize: 15,
+              fontWeight: "600",
+              opacity: 0.7,
             }}
           >
-            <Text style={{ color: colors.primary, fontSize: 18 }}>← Back</Text>
-          </TouchableOpacity>
+            ← Back
+          </Text>
+        </TouchableOpacity>
 
-          <LogoSection showText={false} compact={true} />
+        <View style={[authStyles.headerContainer, authStyles.heroContent]}>
+          <LogoSection showText={false} compact={false} />
 
           <Text style={[authStyles.largeTitle, { color: colors.text }]}>
             Verify Your Email
@@ -166,50 +220,88 @@ export function CodeVerificationScreen() {
             Enter the 6-digit code sent to {email}
           </Text>
         </View>
+      </View>
 
-        {/* Form Section */}
-        <Animated.View style={[authStyles.formCard, formAnimatedStyle]}>
-          <View style={authStyles.formContent}>
-            <TextInput
-              label="Verification Code"
-              value={code}
-              onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
-              style={authStyles.input}
-              theme={getInputTheme()}
-              keyboardType="numeric"
-              maxLength={6}
-              placeholder="123456"
-              autoFocus
-            />
-            {error && (
-              <Text style={[authStyles.errorText, { color: colors.error }]}>
-                {error}
-              </Text>
-            )}
-          </View>
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingBottom: dynamicBottomSpacing,
+            paddingTop: DesignSystem.spacing.xl,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* Form Section with Liquid Glass */}
+        <Animated.View style={[authStyles.formCard, formAnimatedStyle, { marginBottom: DesignSystem.spacing.lg }]}>
+          <LinearGradient
+            colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: DesignSystem.borders.radius.large,
+              padding: 1,
+            }}
+          >
+            <View style={[
+              authStyles.formContent,
+              {
+                backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
+                borderRadius: DesignSystem.borders.radius.large - 1,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
+              }
+            ]}>
+              <TextInput
+                label="Verification Code"
+                value={code}
+                onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
+                style={authStyles.input}
+                theme={getInputTheme()}
+                keyboardType="numeric"
+                maxLength={6}
+                placeholder="123456"
+                autoFocus
+              />
+              {error && (
+                <Text style={[authStyles.errorText, { color: colors.error }]}>
+                  {error}
+                </Text>
+              )}
+            </View>
+          </LinearGradient>
         </Animated.View>
 
-        {/* Verify Button */}
+        {/* Verify Button with Gradient */}
         <View style={authStyles.buttonContainer}>
           <TouchableOpacity
             onPress={handleVerifyCode}
             disabled={loading || code.length !== 6}
-            style={[
-              authStyles.primaryButton,
-              {
-                backgroundColor: colors.primary,
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={primaryGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingVertical: DesignSystem.spacing.md,
+                paddingHorizontal: DesignSystem.spacing.lg,
+                borderRadius: DesignSystem.borders.radius.large,
+                alignItems: "center",
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.15,
                 shadowRadius: 8,
                 elevation: 6,
                 opacity: code.length !== 6 ? 0.6 : 1,
-              },
-            ]}
-          >
-            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-              {loading ? "Verifying..." : "Verify Code"}
-            </Text>
+              }}
+            >
+              <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+                {loading ? "Verifying..." : "Verify Code"}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -238,7 +330,7 @@ export function CodeVerificationScreen() {
             </Text>
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
