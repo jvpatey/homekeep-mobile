@@ -23,11 +23,11 @@ export function HomeScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Hero Section with Modern Glow Gradient */}
-      <View style={styles.heroSection}>
+      <View style={[styles.heroSection, { marginBottom: DesignSystem.spacing.lg }]}>
         {/* Bottom fade mask - inside the hero container */}
         <LinearGradient
-          colors={["transparent", colors.background]}
-          locations={[0.5, 1]}
+          colors={["transparent", "transparent", colors.background]}
+          locations={[0, 0.4, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.bottomFade}

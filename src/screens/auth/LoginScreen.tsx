@@ -107,8 +107,8 @@ export function LoginScreen() {
       <View style={authStyles.heroSection}>
         {/* Bottom fade mask */}
         <LinearGradient
-          colors={["transparent", colors.background]}
-          locations={[0.5, 1]}
+          colors={["transparent", "transparent", colors.background]}
+          locations={[0, 0.4, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={authStyles.bottomFade}

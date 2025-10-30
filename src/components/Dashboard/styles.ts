@@ -8,6 +8,7 @@ export const headerStyles = StyleSheet.create({
   headerSection: {
     marginBottom: 0,
     position: "relative",
+    paddingBottom: DesignSystem.spacing.lg,
   },
   headerGradient: {
     position: "relative",
