@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,13 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "@react-navigation/native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withSpring,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../hooks/useTasks";
 import { useNavigation } from "@react-navigation/native";
@@ -39,6 +46,63 @@ export function CompletionHistoryScreen() {
   const [completingTasks, setCompletingTasks] = useState<Set<string>>(
     new Set()
   );
+
+  // Animation values for header elements
+  const backButtonOpacity = useSharedValue(0);
+  const backButtonTranslateY = useSharedValue(10);
+  const titleOpacity = useSharedValue(0);
+  const titleTranslateY = useSharedValue(15);
+  const subtitleOpacity = useSharedValue(0);
+  const subtitleTranslateY = useSharedValue(15);
+
+  const [animationKey, setAnimationKey] = useState(0);
+
+  const triggerAnimations = useCallback(() => {
+    // Reset values
+    backButtonOpacity.value = 0;
+    backButtonTranslateY.value = 10;
+    titleOpacity.value = 0;
+    titleTranslateY.value = 15;
+    subtitleOpacity.value = 0;
+    subtitleTranslateY.value = 15;
+
+    // Animate with springs and staggered delays
+    backButtonOpacity.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
+    backButtonTranslateY.value = withDelay(100, withSpring(0, { damping: 15, stiffness: 150 }));
+    titleOpacity.value = withDelay(200, withSpring(1, { damping: 15, stiffness: 150 }));
+    titleTranslateY.value = withDelay(200, withSpring(0, { damping: 15, stiffness: 150 }));
+    subtitleOpacity.value = withDelay(300, withSpring(1, { damping: 15, stiffness: 150 }));
+    subtitleTranslateY.value = withDelay(300, withSpring(0, { damping: 15, stiffness: 150 }));
+
+    // Force list items to re-render and re-animate
+    setAnimationKey((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    triggerAnimations();
+  }, [triggerAnimations]);
+
+  useFocusEffect(
+    useCallback(() => {
+      triggerAnimations();
+    }, [triggerAnimations])
+  );
+
+  // Animation styles
+  const backButtonAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: backButtonOpacity.value,
+    transform: [{ translateY: backButtonTranslateY.value }],
+  }));
+
+  const titleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ translateY: titleTranslateY.value }],
+  }));
+
+  const subtitleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: subtitleOpacity.value,
+    transform: [{ translateY: subtitleTranslateY.value }],
+  }));
 
   useEffect(() => {
     // Use the already-filtered overdue tasks from useTasks instead of re-filtering
@@ -159,193 +223,260 @@ export function CompletionHistoryScreen() {
     );
   };
 
-  const renderRoutineItem = ({ item }: { item: GroupedRoutine }) => {
-    const isExpanded = expandedRoutines.has(item.routineId);
+  // Render function helper that will be used inside the component
+  const renderProgressIndicatorForItem = (routine: GroupedRoutine) => {
+    return renderProgressIndicator(routine);
+  };
 
-    return (
-      <View
-        style={[
-          completionHistoryStyles.routineItem,
-          {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
-          },
-        ]}
-      >
-        {/* Routine Header */}
-        <TouchableOpacity
-          style={completionHistoryStyles.routineHeader}
-          onPress={() => toggleRoutineExpansion(item.routineId)}
-          activeOpacity={0.7}
+  // Create animated routine item component to properly use hooks
+  const AnimatedRoutineItem = React.memo(
+    ({
+      item,
+      index,
+      isExpanded,
+      onToggle,
+      onCompleteOverdueTask,
+      completingTasks,
+      colors,
+      isDark,
+      renderProgress,
+    }: {
+      item: GroupedRoutine;
+      index: number;
+      isExpanded: boolean;
+      onToggle: () => void;
+      onCompleteOverdueTask: (instanceId: string, taskTitle: string) => void;
+      completingTasks: Set<string>;
+      colors: any;
+      isDark: boolean;
+      renderProgress: (routine: GroupedRoutine) => React.ReactNode;
+    }) => {
+      // Staggered animation for list items
+      const itemOpacity = useSharedValue(0);
+      const itemTranslateY = useSharedValue(20);
+
+      useEffect(() => {
+        const delay = 400 + index * 100; // Start after header animations, stagger by 100ms each
+        itemOpacity.value = withDelay(delay, withSpring(1, { damping: 15, stiffness: 150 }));
+        itemTranslateY.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 150 }));
+      }, [index]);
+
+      const itemAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: itemOpacity.value,
+        transform: [{ translateY: itemTranslateY.value }],
+      }));
+
+      return (
+        <Animated.View
+          style={[
+            completionHistoryStyles.routineItem,
+            {
+              backgroundColor: isDark
+                ? "rgba(35, 37, 38, 0.4)"
+                : "rgba(255, 255, 255, 0.4)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(255, 255, 255, 0.6)",
+            },
+            itemAnimatedStyle,
+          ]}
         >
-          <View style={completionHistoryStyles.routineHeaderLeft}>
-            <Text
-              style={[
-                completionHistoryStyles.routineTitle,
-                { color: colors.text },
-              ]}
-            >
-              {item.title}
-            </Text>
-            <View
-              style={[
-                completionHistoryStyles.categoryBadge,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-            >
-              <Text
-                style={[
-                  completionHistoryStyles.categoryText,
-                  { color: colors.primary },
-                ]}
-              >
-                {item.category}
-              </Text>
-            </View>
-          </View>
-
-          <View style={completionHistoryStyles.routineHeaderRight}>
-            <Ionicons
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={colors.textSecondary}
-            />
-          </View>
-        </TouchableOpacity>
-
-        {/* Progress Indicator */}
-        {renderProgressIndicator(item)}
-
-        {/* Last Completion */}
-        <View style={completionHistoryStyles.lastCompletion}>
-          <Ionicons
-            name="calendar-outline"
-            size={16}
-            color={colors.textSecondary}
-          />
-          <Text
-            style={[
-              completionHistoryStyles.lastCompletionText,
-              { color: colors.textSecondary },
-            ]}
-          >
-            Last completed:{" "}
-            {item.latestCompletion
-              ? formatDateTime(item.latestCompletion)
-              : "N/A"}
-          </Text>
-        </View>
-
-        {/* Expandable Instance Details */}
-        {isExpanded && (
-          <View style={completionHistoryStyles.instanceDetails}>
-            <Text
-              style={[
-                completionHistoryStyles.instanceTitle,
-                { color: colors.text },
-              ]}
-            >
-              Task History
-            </Text>
-            {item.completedInstances.map((instance, index) => (
-              <View
-                key={instance.instance_id}
-                style={completionHistoryStyles.instanceItem}
-              >
-                <View style={completionHistoryStyles.instanceHeader}>
-                  <Text
-                    style={[
-                      completionHistoryStyles.instanceDate,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Completed: {formatDateTime(instance.completed_at || "")}
-                  </Text>
-                  <View style={completionHistoryStyles.instancePriority}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#10B981"
-                    />
-                  </View>
-                </View>
-              </View>
-            ))}
-            {item.pastDueInstances.map((instance, index) => {
-              const isCompleting = completingTasks.has(instance.instance_id);
-              return (
-                <View
-                  key={instance.instance_id}
-                  style={completionHistoryStyles.instanceItem}
+          {(() => {
+            // Inline the routine item JSX here
+            return (
+              <>
+                {/* Routine Header */}
+                <TouchableOpacity
+                  style={completionHistoryStyles.routineHeader}
+                  onPress={onToggle}
+                  activeOpacity={0.7}
                 >
-                  <View style={completionHistoryStyles.instanceHeader}>
+                  <View style={completionHistoryStyles.routineHeaderLeft}>
                     <Text
                       style={[
-                        completionHistoryStyles.instanceDate,
-                        { color: colors.textSecondary },
+                        completionHistoryStyles.routineTitle,
+                        { color: colors.text },
                       ]}
                     >
-                      Past Due: {formatDate(instance.due_date)}
+                      {item.title}
                     </Text>
-                    <View style={completionHistoryStyles.instancePriority}>
-                      <Ionicons name="close-circle" size={16} color="#EF4444" />
+                    <View
+                      style={[
+                        completionHistoryStyles.categoryBadge,
+                        { backgroundColor: colors.primary + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          completionHistoryStyles.categoryText,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        {item.category}
+                      </Text>
                     </View>
                   </View>
 
-                  {/* Completion Button for Overdue Tasks */}
-                  <TouchableOpacity
+                  <View style={completionHistoryStyles.routineHeaderRight}>
+                    <Ionicons
+                      name={isExpanded ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {/* Progress Indicator */}
+                {renderProgress(item)}
+
+                {/* Last Completion */}
+                <View style={completionHistoryStyles.lastCompletion}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                  <Text
                     style={[
-                      completionHistoryStyles.completeButton,
-                      {
-                        backgroundColor: isCompleting
-                          ? colors.surface
-                          : colors.primary + "10",
-                        borderColor: colors.primary,
-                        borderWidth: 2,
-                        opacity: isCompleting ? 0.6 : 1,
-                      },
+                      completionHistoryStyles.lastCompletionText,
+                      { color: colors.textSecondary },
                     ]}
-                    onPress={() =>
-                      handleCompleteOverdueTask(
-                        instance.instance_id,
-                        instance.title
-                      )
-                    }
-                    disabled={isCompleting}
-                    activeOpacity={0.8}
                   >
-                    {isCompleting ? (
-                      <Ionicons
-                        name="hourglass"
-                        size={16}
-                        color={colors.primary}
-                      />
-                    ) : (
-                      <Ionicons
-                        name="checkmark"
-                        size={16}
-                        color={colors.primary}
-                      />
-                    )}
+                    Last completed:{" "}
+                    {item.latestCompletion
+                      ? formatDateTime(item.latestCompletion)
+                      : "N/A"}
+                  </Text>
+                </View>
+
+                {/* Expandable Instance Details */}
+                {isExpanded && (
+                  <View style={completionHistoryStyles.instanceDetails}>
                     <Text
                       style={[
-                        completionHistoryStyles.completeButtonText,
-                        { color: colors.primary },
+                        completionHistoryStyles.instanceTitle,
+                        { color: colors.text },
                       ]}
                     >
-                      {isCompleting ? "Completing..." : "Complete Now"}
+                      Task History
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        )}
-      </View>
+                    {item.completedInstances.map((instance) => (
+                      <View
+                        key={instance.instance_id}
+                        style={completionHistoryStyles.instanceItem}
+                      >
+                        <View style={completionHistoryStyles.instanceHeader}>
+                          <Text
+                            style={[
+                              completionHistoryStyles.instanceDate,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            Completed: {formatDateTime(instance.completed_at || "")}
+                          </Text>
+                          <View style={completionHistoryStyles.instancePriority}>
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={16}
+                              color="#10B981"
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                    {item.pastDueInstances.map((instance) => {
+                      const isCompleting = completingTasks.has(instance.instance_id);
+                      return (
+                        <View
+                          key={instance.instance_id}
+                          style={completionHistoryStyles.instanceItem}
+                        >
+                          <View style={completionHistoryStyles.instanceHeader}>
+                            <Text
+                              style={[
+                                completionHistoryStyles.instanceDate,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              Past Due: {formatDate(instance.due_date)}
+                            </Text>
+                            <View style={completionHistoryStyles.instancePriority}>
+                              <Ionicons name="close-circle" size={16} color="#EF4444" />
+                            </View>
+                          </View>
+
+                          {/* Completion Button for Overdue Tasks */}
+                          <TouchableOpacity
+                            style={[
+                              completionHistoryStyles.completeButton,
+                              {
+                                backgroundColor: isCompleting
+                                  ? colors.surface
+                                  : colors.primary + "10",
+                                borderColor: colors.primary,
+                                borderWidth: 2,
+                                opacity: isCompleting ? 0.6 : 1,
+                              },
+                            ]}
+                            onPress={() =>
+                              onCompleteOverdueTask(
+                                instance.instance_id,
+                                instance.title
+                              )
+                            }
+                            disabled={isCompleting}
+                            activeOpacity={0.8}
+                          >
+                            {isCompleting ? (
+                              <Ionicons
+                                name="hourglass"
+                                size={16}
+                                color={colors.primary}
+                              />
+                            ) : (
+                              <Ionicons
+                                name="checkmark"
+                                size={16}
+                                color={colors.primary}
+                              />
+                            )}
+                            <Text
+                              style={[
+                                completionHistoryStyles.completeButtonText,
+                                { color: colors.primary },
+                              ]}
+                            >
+                              {isCompleting ? "Completing..." : "Complete Now"}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </>
+            );
+          })()}
+        </Animated.View>
+      );
+    }
+  );
+
+  const renderRoutineItem = ({ item, index }: { item: GroupedRoutine; index: number }) => {
+    const isExpanded = expandedRoutines.has(item.routineId);
+
+    return (
+      <AnimatedRoutineItem
+        item={item}
+        index={index}
+        isExpanded={isExpanded}
+        onToggle={() => toggleRoutineExpansion(item.routineId)}
+        onCompleteOverdueTask={handleCompleteOverdueTask}
+        completingTasks={completingTasks}
+        colors={colors}
+        isDark={isDark}
+        renderProgress={renderProgressIndicatorForItem}
+      />
     );
   };
 
@@ -411,59 +542,72 @@ export function CompletionHistoryScreen() {
           {/* Content layer */}
           <View style={completionHistoryStyles.contentLayer}>
             {/* Back Button */}
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{
-                position: "absolute",
-                top: DesignSystem.spacing.md,
-                left: DesignSystem.spacing.md,
-                zIndex: 10,
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.5)"
-                  : "rgba(255, 255, 255, 0.5)",
-                borderRadius: 20,
-                paddingHorizontal: DesignSystem.spacing.lg,
-                paddingVertical: DesignSystem.spacing.sm,
-                borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.15)"
-                  : "rgba(255, 255, 255, 0.25)",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
-              activeOpacity={0.8}
+            <Animated.View
+              style={[
+                {
+                  position: "absolute",
+                  top: DesignSystem.spacing.md,
+                  left: DesignSystem.spacing.md,
+                  zIndex: 10,
+                },
+                backButtonAnimatedStyle,
+              ]}
             >
-              <Text
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
                 style={{
-                  color: colors.textSecondary,
-                  fontSize: 15,
-                  fontWeight: "600",
-                  opacity: 0.7,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: isDark
+                    ? "rgba(35, 37, 38, 0.5)"
+                    : "rgba(255, 255, 255, 0.5)",
+                  borderRadius: 20,
+                  paddingHorizontal: DesignSystem.spacing.lg,
+                  paddingVertical: DesignSystem.spacing.sm,
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.15)"
+                    : "rgba(255, 255, 255, 0.25)",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 2,
                 }}
+                activeOpacity={0.8}
               >
-                ← Back
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 15,
+                    fontWeight: "600",
+                    opacity: 0.7,
+                  }}
+                >
+                  ← Back
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
 
             {/* Header Content */}
             <View style={completionHistoryStyles.heroContent}>
-              <Text
-                style={[completionHistoryStyles.heroTitle, { color: colors.text }]}
+              <Animated.Text
+                style={[
+                  completionHistoryStyles.heroTitle,
+                  { color: colors.text },
+                  titleAnimatedStyle,
+                ]}
               >
                 Completion History
-              </Text>
-              <Text
+              </Animated.Text>
+              <Animated.Text
                 style={[
                   completionHistoryStyles.heroSubtitle,
                   { color: colors.textSecondary },
+                  subtitleAnimatedStyle,
                 ]}
               >
                 {completedTasks.length} tasks completed
-              </Text>
+              </Animated.Text>
             </View>
           </View>
         </View>
@@ -473,10 +617,11 @@ export function CompletionHistoryScreen() {
         <FlatList
           data={groupedRoutines}
           renderItem={renderRoutineItem}
-          keyExtractor={(item) => item.routineId}
+          keyExtractor={(item) => `${item.routineId}-${animationKey}`}
           contentContainerStyle={completionHistoryStyles.routinesList}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyState}
+          extraData={animationKey}
         />
       </SafeAreaView>
     </View>

@@ -1,12 +1,19 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withSpring,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { useGradients } from "../../hooks";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { headerStyles } from "./styles";
@@ -43,6 +50,80 @@ export function DashboardHeader({
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
   const textGradientColors = selectedGradient.colors;
+
+  // Spring animations for greeting, username, and profile icon
+  const greetOpacity = useSharedValue(0);
+  const greetTranslateY = useSharedValue(12);
+  const nameOpacity = useSharedValue(0);
+  const nameTranslateY = useSharedValue(12);
+  const profileOpacity = useSharedValue(0);
+  const profileScale = useSharedValue(0.8);
+  const profileTranslateY = useSharedValue(10);
+  const statsOpacity = useSharedValue(0);
+  const statsTranslateY = useSharedValue(15);
+  const statsScale = useSharedValue(0.95);
+
+  const triggerHeaderAnimations = useCallback(() => {
+    // reset
+    greetOpacity.value = 0;
+    greetTranslateY.value = 12;
+    nameOpacity.value = 0;
+    nameTranslateY.value = 12;
+    profileOpacity.value = 0;
+    profileScale.value = 0.8;
+    profileTranslateY.value = 10;
+    statsOpacity.value = 0;
+    statsTranslateY.value = 15;
+    statsScale.value = 0.95;
+
+    // animate with springs and slight stagger
+    greetOpacity.value = withDelay(150, withSpring(1, { damping: 15, stiffness: 150 }));
+    greetTranslateY.value = withDelay(150, withSpring(0, { damping: 15, stiffness: 150 }));
+    nameOpacity.value = withDelay(250, withSpring(1, { damping: 15, stiffness: 150 }));
+    nameTranslateY.value = withDelay(250, withSpring(0, { damping: 15, stiffness: 150 }));
+    profileOpacity.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
+    profileScale.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
+    profileTranslateY.value = withDelay(100, withSpring(0, { damping: 15, stiffness: 150 }));
+    statsOpacity.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
+    statsTranslateY.value = withDelay(350, withSpring(0, { damping: 15, stiffness: 150 }));
+    statsScale.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
+  }, []);
+
+  useEffect(() => {
+    triggerHeaderAnimations();
+  }, [triggerHeaderAnimations]);
+
+  useFocusEffect(
+    useCallback(() => {
+      triggerHeaderAnimations();
+    }, [triggerHeaderAnimations])
+  );
+
+  const greetAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: greetOpacity.value,
+    transform: [{ translateY: greetTranslateY.value }],
+  }));
+
+  const nameAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: nameOpacity.value,
+    transform: [{ translateY: nameTranslateY.value }],
+  }));
+
+  const profileAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: profileOpacity.value,
+    transform: [
+      { scale: profileScale.value },
+      { translateY: profileTranslateY.value },
+    ],
+  }));
+
+  const statsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: statsOpacity.value,
+    transform: [
+      { translateY: statsTranslateY.value },
+      { scale: statsScale.value },
+    ],
+  }));
 
   return (
     <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.sm }]}>
@@ -87,33 +168,37 @@ export function DashboardHeader({
         {/* Content layer */}
         <View style={headerStyles.contentLayer}>
           {/* Profile Button - Top Right */}
-          <View style={headerStyles.profileButtonContainer}>
+          <Animated.View
+            style={[headerStyles.profileButtonContainer, profileAnimatedStyle]}
+          >
             <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
-          </View>
+          </Animated.View>
 
           <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
-            <Text style={[headerStyles.greeting, { color: colors.text }]}>
+            <Animated.Text style={[headerStyles.greeting, { color: colors.text }, greetAnimatedStyle]}>
               {greeting}
-            </Text>
-            <MaskedView
-              maskElement={
-                <Text style={[headerStyles.userName, { color: colors.text }]}>
-                  {userName}
-                </Text>
-              }
-            >
-              <LinearGradient
-                colors={textGradientColors}
-                locations={[0, 1]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+            </Animated.Text>
+            <Animated.View style={nameAnimatedStyle}>
+              <MaskedView
+                maskElement={
+                  <Text style={[headerStyles.userName, { color: colors.text }]}>
+                    {userName}
+                  </Text>
+                }
               >
-                <Text style={[headerStyles.userName, { opacity: 0 }]}>
-                  {userName}
-                </Text>
-              </LinearGradient>
-            </MaskedView>
+                <LinearGradient
+                  colors={textGradientColors}
+                  locations={[0, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={[headerStyles.userName, { opacity: 0 }]}>
+                    {userName}
+                  </Text>
+                </LinearGradient>
+              </MaskedView>
+            </Animated.View>
 
             <Text
               style={[
@@ -125,7 +210,7 @@ export function DashboardHeader({
             </Text>
           </View>
 
-          <View
+          <Animated.View
             style={[
               headerStyles.statsContainer,
               {
@@ -137,6 +222,7 @@ export function DashboardHeader({
                   ? "rgba(255, 255, 255, 0.1)"
                   : "rgba(255, 255, 255, 0.6)",
               },
+              statsAnimatedStyle,
             ]}
           >
             <TouchableOpacity
@@ -198,7 +284,7 @@ export function DashboardHeader({
                 Day Streak
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
         </View>
       </View>
