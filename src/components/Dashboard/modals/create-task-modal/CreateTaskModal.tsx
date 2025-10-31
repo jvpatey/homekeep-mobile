@@ -7,6 +7,10 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -339,215 +343,230 @@ export function CreateTaskModal({
       animationType="none"
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <Animated.View
-          style={[
-            styles.container,
-            containerAnimatedStyle,
-            {
-              backgroundColor: isDark
-                ? "rgba(15, 23, 42, 0.95)"
-                : "rgba(255, 255, 255, 0.95)",
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(46, 196, 182, 0.3)"
-                : "rgba(46, 196, 182, 0.2)",
-            },
-          ]}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.overlay}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <LinearGradient
-            colors={glassGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientBackground}
-          >
-            {/* Close Button */}
-            <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(46, 196, 182, 0.15)"
-                    : "rgba(46, 196, 182, 0.12)",
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(46, 196, 182, 0.3)"
-                    : "rgba(46, 196, 182, 0.25)",
-                },
-              ]}
-              onPress={handleClose}
-            >
-              <Ionicons
-                name="close"
-                size={22}
-                color={
-                  isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
-                }
-              />
-            </TouchableOpacity>
-
-            {/* Title */}
-            <Text
-              style={[
-                styles.modalTitle,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.95)"
-                    : "rgba(15, 23, 42, 0.9)",
-                },
-              ]}
-            >
-              {isEdit ? "Edit Task" : "Let's add your task"}
-            </Text>
-
-            {/* Content */}
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{
-                paddingBottom: DesignSystem.spacing.xxxl,
-              }}
-            >
-              <FormField
-                label="Task Title"
-                value={form.title}
-                onChangeText={(text) => updateForm("title", text)}
-                placeholder="e.g., Change air filter, Clean gutters..."
-                error={errors.title}
-                autoCapitalize="words"
-                required
-              />
-
-              <CategorySelector
-                categories={categories}
-                selectedCategory={form.category}
-                onSelectCategory={(categoryId) => {
-                  updateForm("category", categoryId);
-                }}
-                error={errors.category}
-              />
-
-              <PrioritySelector
-                priorities={priorities}
-                selectedPriority={form.priority}
-                onSelectPriority={(priorityId) =>
-                  updateForm("priority", priorityId)
-                }
-              />
-
-              <FormField
-                label="Instructions (Optional)"
-                value={form.description || ""}
-                onChangeText={(text) =>
-                  updateForm("description", capitalizeFirst(text))
-                }
-                placeholder="Add detailed instructions for this task..."
-                multiline
-                numberOfLines={3}
-                autoCapitalize="sentences"
-              />
-
-              <FormField
-                label="Estimated Duration (minutes)"
-                value={form.estimated_duration_minutes.toString()}
-                onChangeText={(text) => {
-                  const num = parseInt(text) || 0;
-                  setForm((prev) => ({
-                    ...prev,
-                    estimated_duration_minutes: num,
-                  }));
-                }}
-                placeholder="e.g., 30"
-                keyboardType="numeric"
-                error={errors.estimated_duration_minutes?.toString()}
-                required
-              />
-
-              <IntervalSelector
-                selectedInterval={selectedInterval}
-                intervalValue={intervalValue}
-                onSelectInterval={(interval: number) =>
-                  setSelectedInterval(interval)
-                }
-                onIntervalValueChange={(value) => setIntervalValue(value)}
-                error={errors.interval_days?.toString()}
-              />
-
-              <StartDateSelector
-                startDate={form.startDate}
-                onStartDateChange={(date) => updateForm("startDate", date)}
-              />
-
-              {/* Summary Section */}
-              <View
-                ref={summaryRef}
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <View style={styles.overlay}>
+              <Animated.View
                 style={[
-                  styles.summaryContainer,
+                  styles.container,
+                  containerAnimatedStyle,
                   {
                     backgroundColor: isDark
-                      ? "rgba(46, 196, 182, 0.1)"
-                      : "rgba(147, 197, 253, 0.12)",
+                      ? "rgba(15, 23, 42, 0.95)"
+                      : "rgba(255, 255, 255, 0.95)",
+                    borderWidth: 1,
                     borderColor: isDark
-                      ? "rgba(46, 196, 182, 0.2)"
-                      : "rgba(59, 130, 246, 0.2)",
+                      ? "rgba(46, 196, 182, 0.3)"
+                      : "rgba(46, 196, 182, 0.2)",
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.summaryTitle,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.95)"
-                        : "rgba(15, 23, 42, 0.9)",
-                    },
-                  ]}
+                <LinearGradient
+                  colors={glassGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradientBackground}
                 >
-                  Summary
-                </Text>
-                <Text
-                  style={[
-                    styles.summaryText,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.8)"
-                        : "rgba(59, 130, 246, 0.85)",
-                    },
-                  ]}
-                >
-                  {summaryText}
-                  {isTyping && (
-                    <Text
-                      style={{
+                  {/* Close Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.closeButton,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(46, 196, 182, 0.15)"
+                          : "rgba(46, 196, 182, 0.12)",
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: isDark
+                          ? "rgba(46, 196, 182, 0.3)"
+                          : "rgba(46, 196, 182, 0.25)",
+                      },
+                    ]}
+                    onPress={handleClose}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={22}
+                      color={
+                        isDark
+                          ? "rgba(255, 255, 255, 0.9)"
+                          : "rgba(15, 23, 42, 0.85)"
+                      }
+                    />
+                  </TouchableOpacity>
+
+                  {/* Title */}
+                  <Text
+                    style={[
+                      styles.modalTitle,
+                      {
                         color: isDark
-                          ? "rgba(46, 196, 182, 1)"
-                          : "rgba(59, 130, 246, 1)",
+                          ? "rgba(255, 255, 255, 0.95)"
+                          : "rgba(15, 23, 42, 0.9)",
+                      },
+                    ]}
+                  >
+                    {isEdit ? "Edit Task" : "Let's add your task"}
+                  </Text>
+
+                  {/* Content */}
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{
+                      paddingBottom: DesignSystem.spacing.xxxl,
+                    }}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    <FormField
+                      label="Task Title"
+                      value={form.title}
+                      onChangeText={(text) => updateForm("title", text)}
+                      placeholder="e.g., Change air filter, Clean gutters..."
+                      error={errors.title}
+                      autoCapitalize="words"
+                      required
+                    />
+
+                    <CategorySelector
+                      categories={categories}
+                      selectedCategory={form.category}
+                      onSelectCategory={(categoryId) => {
+                        updateForm("category", categoryId);
+                      }}
+                      error={errors.category}
+                    />
+
+                    <PrioritySelector
+                      priorities={priorities}
+                      selectedPriority={form.priority}
+                      onSelectPriority={(priorityId) =>
+                        updateForm("priority", priorityId)
+                      }
+                    />
+
+                    <FormField
+                      label="Instructions (Optional)"
+                      value={form.description || ""}
+                      onChangeText={(text) =>
+                        updateForm("description", capitalizeFirst(text))
+                      }
+                      placeholder="Add detailed instructions for this task..."
+                      multiline
+                      numberOfLines={3}
+                      autoCapitalize="sentences"
+                    />
+
+                    <FormField
+                      label="Estimated Duration (minutes)"
+                      value={form.estimated_duration_minutes.toString()}
+                      onChangeText={(text) => {
+                        const num = parseInt(text) || 0;
+                        setForm((prev) => ({
+                          ...prev,
+                          estimated_duration_minutes: num,
+                        }));
+                      }}
+                      placeholder="e.g., 30"
+                      keyboardType="numeric"
+                      error={errors.estimated_duration_minutes?.toString()}
+                      required
+                    />
+
+                    <IntervalSelector
+                      selectedInterval={selectedInterval}
+                      intervalValue={intervalValue}
+                      onSelectInterval={(interval: number) =>
+                        setSelectedInterval(interval)
+                      }
+                      onIntervalValueChange={(value) => setIntervalValue(value)}
+                      error={errors.interval_days?.toString()}
+                    />
+
+                    <StartDateSelector
+                      startDate={form.startDate}
+                      onStartDateChange={(date) =>
+                        updateForm("startDate", date)
+                      }
+                    />
+
+                    {/* Summary Section */}
+                    <View
+                      ref={summaryRef}
+                      style={[
+                        styles.summaryContainer,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(46, 196, 182, 0.1)"
+                            : "rgba(147, 197, 253, 0.12)",
+                          borderColor: isDark
+                            ? "rgba(46, 196, 182, 0.2)"
+                            : "rgba(59, 130, 246, 0.2)",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.summaryTitle,
+                          {
+                            color: isDark
+                              ? "rgba(255, 255, 255, 0.95)"
+                              : "rgba(15, 23, 42, 0.9)",
+                          },
+                        ]}
+                      >
+                        Summary
+                      </Text>
+                      <Text
+                        style={[
+                          styles.summaryText,
+                          {
+                            color: isDark
+                              ? "rgba(255, 255, 255, 0.8)"
+                              : "rgba(59, 130, 246, 0.85)",
+                          },
+                        ]}
+                      >
+                        {summaryText}
+                        {isTyping && (
+                          <Text
+                            style={{
+                              color: isDark
+                                ? "rgba(46, 196, 182, 1)"
+                                : "rgba(59, 130, 246, 1)",
+                            }}
+                          >
+                            {" "}
+                            ▊
+                          </Text>
+                        )}
+                      </Text>
+                    </View>
+
+                    {/* Submit Button */}
+                    <View
+                      style={{
+                        marginTop: DesignSystem.spacing.lg,
+                        marginBottom: DesignSystem.spacing.md,
                       }}
                     >
-                      {" "}
-                      ▊
-                    </Text>
-                  )}
-                </Text>
-              </View>
-
-              {/* Submit Button */}
-              <View
-                style={{
-                  marginTop: DesignSystem.spacing.lg,
-                  marginBottom: DesignSystem.spacing.md,
-                }}
-              >
-                <SubmitButton
-                  onPress={handleSubmit}
-                  disabled={!isFormValid}
-                  title={isEdit ? "Save Changes" : "Add Task"}
-                />
-              </View>
-            </ScrollView>
-          </LinearGradient>
-        </Animated.View>
-      </View>
+                      <SubmitButton
+                        onPress={handleSubmit}
+                        disabled={!isFormValid}
+                        title={isEdit ? "Save Changes" : "Add Task"}
+                      />
+                    </View>
+                  </ScrollView>
+                </LinearGradient>
+              </Animated.View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
