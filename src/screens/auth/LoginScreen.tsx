@@ -114,13 +114,13 @@ export function LoginScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View
-          style={[authStyles.container, { backgroundColor: colors.background }]}
-        >
-          <StatusBar style={isDark ? "light" : "dark"} />
+    <View
+      style={[authStyles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-          {/* Fixed Hero Section with Modern Glow Gradient */}
-          <View style={authStyles.heroSection}>
+      {/* Fixed Hero Section with Modern Glow Gradient */}
+      <View style={authStyles.heroSection}>
         {/* Bottom fade mask */}
         <LinearGradient
           colors={
@@ -200,152 +200,152 @@ export function LoginScreen() {
           <Text style={[authStyles.subtitle, { color: colors.textSecondary }]}>
             Sign in to continue managing your home
           </Text>
-          </Animated.View>
-        </View>
+        </Animated.View>
+      </View>
 
-        {/* Scrollable Content Section */}
-        <ScrollView
-          style={authStyles.scrollView}
-          contentContainerStyle={[
-            authStyles.scrollContent,
-            {
-              paddingBottom: dynamicBottomSpacing,
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
+      {/* Scrollable Content Section */}
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingBottom: dynamicBottomSpacing,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+      >
+        {/* Form Section */}
+        <Animated.View
+          style={[
+            authStyles.formCard,
+            { backgroundColor: colors.glass, shadowColor: colors.primary },
+            formAnimatedStyle,
+          ]}
         >
-          {/* Form Section */}
-          <Animated.View
-            style={[
-              authStyles.formCard,
-              { backgroundColor: colors.glass, shadowColor: colors.primary },
-              formAnimatedStyle,
-            ]}
-          >
-            <View style={authStyles.formContent}>
-              <TextInput
-                label="Email"
-                value={email}
-                onChangeText={(text) => setFieldValue("email", text)}
-                style={authStyles.input}
-                theme={getInputTheme()}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
+          <View style={authStyles.formContent}>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={(text) => setFieldValue("email", text)}
+              style={authStyles.input}
+              theme={getInputTheme()}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
                 keyboardAppearance={isDark ? "dark" : "light"}
-              />
-              {errors.email && (
-                <HelperText type="error" visible={!!errors.email}>
-                  {errors.email}
-                </HelperText>
-              )}
+            />
+            {errors.email && (
+              <HelperText type="error" visible={!!errors.email}>
+                {errors.email}
+              </HelperText>
+            )}
 
-              <TextInput
-                label="Password"
-                value={password}
-                onChangeText={(text) => setFieldValue("password", text)}
-                style={authStyles.input}
-                theme={getInputTheme()}
-                secureTextEntry={!showPassword}
-                autoComplete="password"
+            <TextInput
+              label="Password"
+              value={password}
+              onChangeText={(text) => setFieldValue("password", text)}
+              style={authStyles.input}
+              theme={getInputTheme()}
+              secureTextEntry={!showPassword}
+              autoComplete="password"
                 keyboardAppearance={isDark ? "dark" : "light"}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? "eye-off" : "eye"}
-                    onPress={handlePasswordToggle}
-                  />
-                }
-              />
-              {errors.password && (
-                <HelperText type="error" visible={!!errors.password}>
-                  {errors.password}
-                </HelperText>
-              )}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={handlePasswordToggle}
+                />
+              }
+            />
+            {errors.password && (
+              <HelperText type="error" visible={!!errors.password}>
+                {errors.password}
+              </HelperText>
+            )}
 
-              <TouchableOpacity
-                onPress={handleEmailVerification}
-                style={authStyles.verificationContainer}
-              >
-                <Text
-                  style={[authStyles.verificationText, { color: colors.primary }]}
-                >
-                  Forgot your password?
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-
-          {/* Sign In Button */}
-          <Animated.View
-            style={[authStyles.buttonContainer, buttonAnimatedStyle]}
-          >
             <TouchableOpacity
-              onPress={handleSignIn}
-              disabled={loading}
-              activeOpacity={0.8}
+              onPress={handleEmailVerification}
+              style={authStyles.verificationContainer}
             >
-              <LinearGradient
-                colors={[
-                  isDark
-                    ? "rgba(32, 180, 134, 0.70)"
-                    : "rgba(46, 196, 182, 0.75)",
-                  isDark
-                    ? "rgba(58, 134, 255, 0.65)"
-                    : "rgba(58, 134, 255, 0.70)",
-                  isDark
-                    ? "rgba(255, 159, 28, 0.60)"
-                    : "rgba(255, 159, 28, 0.65)",
-                ]}
-                locations={[0, 0.5, 1]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[
-                  authStyles.primaryButton,
-                  {
-                    shadowColor: isDark
-                      ? "rgba(32, 180, 134, 0.25)"
-                      : "rgba(46, 196, 182, 0.30)",
-                    shadowOffset: { width: 0, height: 8 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 16,
-                    elevation: 5,
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(255, 255, 255, 0.15)"
-                      : "rgba(255, 255, 255, 0.2)",
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    authStyles.buttonLabel,
-                    { color: "white", fontWeight: "700", fontSize: 17 },
-                  ]}
-                >
-                  {loading ? "Signing In..." : "Sign In"}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* OAuth Section */}
-          <OAuthButtons animatedStyle={buttonAnimatedStyle} />
-
-          {/* Sign Up Link */}
-          <View style={authStyles.linkContainer}>
-            <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
-              Don't have an account?{" "}
               <Text
-                style={[authStyles.link, { color: colors.primary }]}
-                onPress={handleSignUp}
+                style={[authStyles.verificationText, { color: colors.primary }]}
               >
-                Sign up
+                Forgot your password?
               </Text>
-            </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
+        </Animated.View>
+
+        {/* Sign In Button */}
+        <Animated.View
+          style={[authStyles.buttonContainer, buttonAnimatedStyle]}
+        >
+          <TouchableOpacity
+            onPress={handleSignIn}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[
+                isDark
+                  ? "rgba(32, 180, 134, 0.70)"
+                  : "rgba(46, 196, 182, 0.75)",
+                isDark
+                  ? "rgba(58, 134, 255, 0.65)"
+                  : "rgba(58, 134, 255, 0.70)",
+                isDark
+                  ? "rgba(255, 159, 28, 0.60)"
+                  : "rgba(255, 159, 28, 0.65)",
+              ]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                authStyles.primaryButton,
+                {
+                  shadowColor: isDark
+                    ? "rgba(32, 180, 134, 0.25)"
+                    : "rgba(46, 196, 182, 0.30)",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 16,
+                  elevation: 5,
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.15)"
+                    : "rgba(255, 255, 255, 0.2)",
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  authStyles.buttonLabel,
+                  { color: "white", fontWeight: "700", fontSize: 17 },
+                ]}
+              >
+                {loading ? "Signing In..." : "Sign In"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* OAuth Section */}
+        <OAuthButtons animatedStyle={buttonAnimatedStyle} />
+
+        {/* Sign Up Link */}
+        <View style={authStyles.linkContainer}>
+          <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
+            Don't have an account?{" "}
+            <Text
+              style={[authStyles.link, { color: colors.primary }]}
+              onPress={handleSignUp}
+            >
+              Sign up
+            </Text>
+          </Text>
         </View>
+      </ScrollView>
+    </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );

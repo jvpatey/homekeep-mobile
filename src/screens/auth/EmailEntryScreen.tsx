@@ -66,13 +66,13 @@ export function EmailEntryScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View
-          style={[authStyles.container, { backgroundColor: colors.background }]}
-        >
-          <StatusBar style={isDark ? "light" : "dark"} />
-          
-          {/* Hero Section with Gradient */}
-          <View style={authStyles.heroSection}>
+    <View
+      style={[authStyles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
+      
+      {/* Hero Section with Gradient */}
+      <View style={authStyles.heroSection}>
         {/* Bottom fade mask */}
         <LinearGradient
           colors={
@@ -153,90 +153,90 @@ export function EmailEntryScreen() {
         </View>
       </View>
 
-          <ScrollView
-            style={authStyles.scrollView}
-            contentContainerStyle={[
-              authStyles.scrollContent,
-              {
-                paddingBottom: dynamicBottomSpacing,
-                paddingTop: DesignSystem.spacing.xl,
-              },
-            ]}
-            showsVerticalScrollIndicator={false}
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingBottom: dynamicBottomSpacing,
+            paddingTop: DesignSystem.spacing.xl,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+      >
+        {/* Form Section with Liquid Glass */}
+        <View style={[authStyles.formCard, { marginBottom: DesignSystem.spacing.lg }]}>
+          <LinearGradient
+            colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: DesignSystem.borders.radius.large,
+              padding: 1,
+            }}
           >
-            {/* Form Section with Liquid Glass */}
-            <View style={[authStyles.formCard, { marginBottom: DesignSystem.spacing.lg }]}>
-              <LinearGradient
-                colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  borderRadius: DesignSystem.borders.radius.large,
-                  padding: 1,
-                }}
-              >
-                <View style={[
-                  authStyles.formContent,
-                  {
-                    backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
-                    borderRadius: DesignSystem.borders.radius.large - 1,
-                    borderWidth: 1,
-                    borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
-                  }
-                ]}>
-                  <TextInput
-                    label="Email Address"
-                    value={email}
-                    onChangeText={(text) => setFieldValue("email", text)}
-                    style={authStyles.input}
-                    theme={getInputTheme()}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
+            <View style={[
+              authStyles.formContent,
+              {
+                backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
+                borderRadius: DesignSystem.borders.radius.large - 1,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
+              }
+            ]}>
+              <TextInput
+                label="Email Address"
+                value={email}
+                onChangeText={(text) => setFieldValue("email", text)}
+                style={authStyles.input}
+                theme={getInputTheme()}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
                     keyboardAppearance={isDark ? "dark" : "light"}
-                  />
-                  {errors.email && (
-                    <Text style={[authStyles.errorText, { color: colors.error }]}>
-                      {errors.email}
-                    </Text>
-                  )}
-                </View>
-              </LinearGradient>
+              />
+              {errors.email && (
+                <Text style={[authStyles.errorText, { color: colors.error }]}>
+                  {errors.email}
+                </Text>
+              )}
             </View>
-
-            {/* Continue Button with Gradient */}
-            <View style={authStyles.buttonContainer}>
-              <TouchableOpacity
-                onPress={handleContinue}
-                disabled={!email || !!errors.email}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={primaryGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    paddingVertical: DesignSystem.spacing.md,
-                    paddingHorizontal: DesignSystem.spacing.lg,
-                    borderRadius: DesignSystem.borders.radius.large,
-                    alignItems: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 6,
-                    opacity: !email || !!errors.email ? 0.6 : 1,
-                  }}
-                >
-                  <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                    Continue
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+          </LinearGradient>
         </View>
+
+        {/* Continue Button with Gradient */}
+        <View style={authStyles.buttonContainer}>
+          <TouchableOpacity
+            onPress={handleContinue}
+            disabled={!email || !!errors.email}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={primaryGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingVertical: DesignSystem.spacing.md,
+                paddingHorizontal: DesignSystem.spacing.lg,
+                borderRadius: DesignSystem.borders.radius.large,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                opacity: !email || !!errors.email ? 0.6 : 1,
+              }}
+            >
+              <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+                Continue
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );

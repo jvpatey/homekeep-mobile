@@ -156,11 +156,11 @@ export function CodeVerificationScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View
-          style={[authStyles.container, { backgroundColor: colors.background }]}
-        >
-          {/* Hero Section with Gradient */}
-          <View style={authStyles.heroSection}>
+    <View
+      style={[authStyles.container, { backgroundColor: colors.background }]}
+    >
+      {/* Hero Section with Gradient */}
+      <View style={authStyles.heroSection}>
         {/* Bottom fade mask */}
         <LinearGradient
           colors={
@@ -242,117 +242,117 @@ export function CodeVerificationScreen() {
         </View>
       </View>
 
-          <ScrollView
-            style={authStyles.scrollView}
-            contentContainerStyle={[
-              authStyles.scrollContent,
-              {
-                paddingBottom: dynamicBottomSpacing,
-                paddingTop: DesignSystem.spacing.xl,
-              },
-            ]}
-            showsVerticalScrollIndicator={false}
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingBottom: dynamicBottomSpacing,
+            paddingTop: DesignSystem.spacing.xl,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+      >
+        {/* Form Section with Liquid Glass */}
+        <Animated.View style={[authStyles.formCard, formAnimatedStyle, { marginBottom: DesignSystem.spacing.lg }]}>
+          <LinearGradient
+            colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: DesignSystem.borders.radius.large,
+              padding: 1,
+            }}
           >
-            {/* Form Section with Liquid Glass */}
-            <Animated.View style={[authStyles.formCard, formAnimatedStyle, { marginBottom: DesignSystem.spacing.lg }]}>
-              <LinearGradient
-                colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  borderRadius: DesignSystem.borders.radius.large,
-                  padding: 1,
-                }}
-              >
-                <View style={[
-                  authStyles.formContent,
-                  {
-                    backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
-                    borderRadius: DesignSystem.borders.radius.large - 1,
-                    borderWidth: 1,
-                    borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
-                  }
-                ]}>
-                  <TextInput
-                    label="Verification Code"
-                    value={code}
-                    onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
-                    style={authStyles.input}
-                    theme={getInputTheme()}
-                    keyboardType="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    autoFocus
+            <View style={[
+              authStyles.formContent,
+              {
+                backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
+                borderRadius: DesignSystem.borders.radius.large - 1,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
+              }
+            ]}>
+              <TextInput
+                label="Verification Code"
+                value={code}
+                onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
+                style={authStyles.input}
+                theme={getInputTheme()}
+                keyboardType="numeric"
+                maxLength={6}
+                placeholder="123456"
+                autoFocus
                     keyboardAppearance={isDark ? "dark" : "light"}
-                  />
-                  {error && (
-                    <Text style={[authStyles.errorText, { color: colors.error }]}>
-                      {error}
-                    </Text>
-                  )}
-                </View>
-              </LinearGradient>
-            </Animated.View>
-
-            {/* Verify Button with Gradient */}
-            <View style={authStyles.buttonContainer}>
-              <TouchableOpacity
-                onPress={handleVerifyCode}
-                disabled={loading || code.length !== 6}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={primaryGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    paddingVertical: DesignSystem.spacing.md,
-                    paddingHorizontal: DesignSystem.spacing.lg,
-                    borderRadius: DesignSystem.borders.radius.large,
-                    alignItems: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 6,
-                    opacity: code.length !== 6 ? 0.6 : 1,
-                  }}
-                >
-                  <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-                    {loading ? "Verifying..." : "Verify Code"}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* Resend Code */}
-            <View style={authStyles.linkContainer}>
-              <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
-                Didn't receive the code?{" "}
-                <Text
-                  style={[authStyles.link, { color: colors.primary }]}
-                  onPress={handleResendCode}
-                >
-                  Resend
+              />
+              {error && (
+                <Text style={[authStyles.errorText, { color: colors.error }]}>
+                  {error}
                 </Text>
-              </Text>
+              )}
             </View>
+          </LinearGradient>
+        </Animated.View>
 
-            {/* Sign In Link */}
-            <View style={authStyles.linkContainer}>
-              <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
-                Already verified?{" "}
-                <Text
-                  style={[authStyles.link, { color: colors.primary }]}
-                  onPress={handleSignIn}
-                >
-                  Sign in
-                </Text>
+        {/* Verify Button with Gradient */}
+        <View style={authStyles.buttonContainer}>
+          <TouchableOpacity
+            onPress={handleVerifyCode}
+            disabled={loading || code.length !== 6}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={primaryGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingVertical: DesignSystem.spacing.md,
+                paddingHorizontal: DesignSystem.spacing.lg,
+                borderRadius: DesignSystem.borders.radius.large,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                opacity: code.length !== 6 ? 0.6 : 1,
+              }}
+            >
+              <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+                {loading ? "Verifying..." : "Verify Code"}
               </Text>
-            </View>
-          </ScrollView>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
+
+        {/* Resend Code */}
+        <View style={authStyles.linkContainer}>
+          <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
+            Didn't receive the code?{" "}
+            <Text
+              style={[authStyles.link, { color: colors.primary }]}
+              onPress={handleResendCode}
+            >
+              Resend
+            </Text>
+          </Text>
+        </View>
+
+        {/* Sign In Link */}
+        <View style={authStyles.linkContainer}>
+          <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
+            Already verified?{" "}
+            <Text
+              style={[authStyles.link, { color: colors.primary }]}
+              onPress={handleSignIn}
+            >
+              Sign in
+            </Text>
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
