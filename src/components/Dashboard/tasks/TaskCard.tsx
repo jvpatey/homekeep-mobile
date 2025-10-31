@@ -210,7 +210,7 @@ export function TaskCard({
                   {
                     color: isDark
                       ? "rgba(255, 255, 255, 0.5)"
-                      : "rgba(0, 0, 0, 0.4)",
+                      : "rgba(15, 23, 42, 0.65)",
                   },
                 ]}
               >
@@ -225,8 +225,8 @@ export function TaskCard({
               styles.title,
               {
                 color: isDark
-                  ? "rgba(255, 255, 255, 0.8)"
-                  : "rgba(0, 0, 0, 0.7)",
+                  ? "rgba(255, 255, 255, 0.95)"
+                  : "rgba(15, 23, 42, 0.9)",
               },
             ]}
             numberOfLines={2}
@@ -242,7 +242,7 @@ export function TaskCard({
                   name="time-outline"
                   size={16}
                   color={
-                    isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)"
+                    isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(15, 23, 42, 0.6)"
                   }
                 />
                 <Text
@@ -250,8 +250,8 @@ export function TaskCard({
                     styles.metaText,
                     {
                       color: isDark
-                        ? "rgba(255, 255, 255, 0.4)"
-                        : "rgba(0, 0, 0, 0.3)",
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "rgba(15, 23, 42, 0.6)",
                     },
                   ]}
                 >
@@ -266,7 +266,7 @@ export function TaskCard({
                   name="calendar-outline"
                   size={16}
                   color={
-                    isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)"
+                    isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(15, 23, 42, 0.6)"
                   }
                 />
                 {(() => {
@@ -280,7 +280,9 @@ export function TaskCard({
                         {
                           color: isDueToday
                             ? colors.error
-                            : colors.textSecondary,
+                            : isDark
+                            ? colors.textSecondary
+                            : "rgba(15, 23, 42, 0.75)",
                           fontWeight: isDueToday ? "600" : "normal",
                         },
                         isOverdue && styles.overdueText,
@@ -297,7 +299,7 @@ export function TaskCard({
                   name="repeat-outline"
                   size={16}
                   color={
-                    isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)"
+                    isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(15, 23, 42, 0.6)"
                   }
                 />
                 <Text
@@ -305,8 +307,8 @@ export function TaskCard({
                     styles.metaText,
                     {
                       color: isDark
-                        ? "rgba(255, 255, 255, 0.4)"
-                        : "rgba(0, 0, 0, 0.3)",
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "rgba(15, 23, 42, 0.6)",
                     },
                   ]}
                 >
@@ -340,7 +342,7 @@ export function TaskCard({
                     name="checkmark-circle"
                     size={24}
                     color={
-                      isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                      isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.7)"
                     }
                   />
                 ) : (
@@ -348,7 +350,7 @@ export function TaskCard({
                     name="checkmark"
                     size={20}
                     color={
-                      isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.4)"
+                      isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.65)"
                     }
                   />
                 )}

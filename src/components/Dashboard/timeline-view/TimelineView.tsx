@@ -247,8 +247,8 @@ export function TimelineView({
                             timelineStyles.priorityText,
                             {
                               color: isDark
-                                ? "rgba(255, 255, 255, 0.5)"
-                                : "rgba(0, 0, 0, 0.4)",
+                                ? "rgba(255, 255, 255, 0.65)"
+                                : "rgba(15, 23, 42, 0.7)",
                             },
                           ]}
                         >
@@ -271,8 +271,8 @@ export function TimelineView({
                             size={12}
                             color={
                               isDark
-                                ? "rgba(255, 255, 255, 0.4)"
-                                : "rgba(0, 0, 0, 0.3)"
+                                ? "rgba(255, 255, 255, 0.6)"
+                                : "rgba(15, 23, 42, 0.65)"
                             }
                           />
                           <Text
@@ -280,8 +280,8 @@ export function TimelineView({
                               timelineStyles.durationText,
                               {
                                 color: isDark
-                                  ? "rgba(255, 255, 255, 0.4)"
-                                  : "rgba(0, 0, 0, 0.3)",
+                                  ? "rgba(255, 255, 255, 0.6)"
+                                  : "rgba(15, 23, 42, 0.65)",
                               },
                             ]}
                           >
@@ -327,10 +327,10 @@ export function TimelineView({
                               color: isDueToday
                                 ? isDark
                                   ? "rgba(255, 107, 107, 0.7)"
-                                  : "rgba(235, 87, 87, 0.7)"
+                                  : "rgba(235, 87, 87, 0.9)"
                                 : isDark
-                                ? "rgba(255, 255, 255, 0.4)"
-                                : "rgba(0, 0, 0, 0.3)",
+                                ? "rgba(255, 255, 255, 0.6)"
+                                : "rgba(15, 23, 42, 0.65)",
                               fontWeight: isDueToday ? "600" : "normal",
                             },
                           ]}

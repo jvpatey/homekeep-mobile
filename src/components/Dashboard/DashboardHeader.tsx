@@ -49,7 +49,63 @@ export function DashboardHeader({
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
-  const textGradientColors = selectedGradient.colors;
+  // Helper function to calculate luminance of a hex color
+  const getLuminance = (hex: string): number => {
+    const rgb = parseInt(hex.replace("#", ""), 16);
+    const r = ((rgb >> 16) & 0xff) / 255;
+    const g = ((rgb >> 8) & 0xff) / 255;
+    const b = (rgb & 0xff) / 255;
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  };
+
+  // Adjust gradient colors for better contrast based on theme
+  const adjustGradientForContrast = (
+    gradientColors: [string, string]
+  ): [string, string] => {
+    const [color1, color2] = gradientColors;
+    const lum1 = getLuminance(color1);
+    const lum2 = getLuminance(color2);
+    const avgLuminance = (lum1 + lum2) / 2;
+
+    // In light mode, ensure all gradients are dark enough to be visible
+    // Darken any gradient that's too light (luminance > 0.55)
+    if (!isDark && avgLuminance > 0.55) {
+      // Moderate darkening for light colors in light mode
+      const darken = (hex: string, amount: number) => {
+        const num = parseInt(hex.replace("#", ""), 16);
+        const r = Math.max(0, ((num >> 16) & 0xff) - amount);
+        const g = Math.max(0, ((num >> 8) & 0xff) - amount);
+        const b = Math.max(0, (num & 0xff) - amount);
+        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+      };
+      // Less aggressive darkening - lighter amounts
+      const darkenAmount =
+        avgLuminance > 0.85
+          ? 70
+          : avgLuminance > 0.75
+          ? 55
+          : avgLuminance > 0.65
+          ? 40
+          : 30;
+      return [darken(color1, darkenAmount), darken(color2, darkenAmount)] as [
+        string,
+        string,
+      ];
+    } else if (isDark && avgLuminance < 0.25) {
+      // Subtle lightening for very dark colors only
+      const lighten = (hex: string, amount: number) => {
+        const num = parseInt(hex.replace("#", ""), 16);
+        const r = Math.min(255, ((num >> 16) & 0xff) + amount);
+        const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+        const b = Math.min(255, (num & 0xff) + amount);
+        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+      };
+      return [lighten(color1, 40), lighten(color2, 40)] as [string, string];
+    }
+    return gradientColors;
+  };
+
+  const textGradientColors = adjustGradientForContrast(selectedGradient.colors);
 
   // Spring animations for greeting, username, and profile icon
   const greetOpacity = useSharedValue(0);
@@ -180,13 +236,69 @@ export function DashboardHeader({
 
           <View style={headerStyles.headerContent}>
           <View style={headerStyles.greetingContainer}>
-            <Animated.Text style={[headerStyles.greeting, { color: colors.text }, greetAnimatedStyle]}>
+            <Animated.Text
+              style={[
+                headerStyles.greeting,
+                {
+                  color: isDark
+                    ? colors.text
+                    : "rgba(15, 23, 42, 0.9)",
+                },
+                greetAnimatedStyle,
+              ]}
+            >
               {greeting}
             </Animated.Text>
             <Animated.View style={nameAnimatedStyle}>
+              {/* Light mode: Add a subtle white outline behind for contrast */}
+              {!isDark && (
+                <MaskedView
+                  style={{ position: "absolute" }}
+                  maskElement={
+                    <Text
+                      style={[
+                        headerStyles.userName,
+                        {
+                          color: colors.text,
+                          textShadowColor: "rgba(255, 255, 255, 0.6)",
+                          textShadowOffset: { width: 0, height: 0 },
+                          textShadowRadius: 2,
+                        },
+                      ]}
+                    >
+                      {userName}
+                    </Text>
+                  }
+                >
+                  <LinearGradient
+                    colors={["rgba(255, 255, 255, 0.4)", "rgba(255, 255, 255, 0.4)"]}
+                    locations={[0, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Text style={[headerStyles.userName, { opacity: 0 }]}>
+                      {userName}
+                    </Text>
+                  </LinearGradient>
+                </MaskedView>
+              )}
+              {/* Main gradient text layer */}
               <MaskedView
                 maskElement={
-                  <Text style={[headerStyles.userName, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      headerStyles.userName,
+                      { color: colors.text },
+                      {
+                        // Text shadow for depth
+                        textShadowColor: isDark
+                          ? "rgba(0, 0, 0, 0.5)"
+                          : "rgba(0, 0, 0, 0.3)",
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: isDark ? 8 : 4,
+                      },
+                    ]}
+                  >
                     {userName}
                   </Text>
                 }
@@ -207,7 +319,11 @@ export function DashboardHeader({
             <Text
               style={[
                 headerStyles.motivationalMessage,
-                { color: colors.textSecondary },
+                {
+                  color: isDark
+                    ? colors.textSecondary
+                    : "rgba(15, 23, 42, 0.65)",
+                },
               ]}
             >
               {motivationalMessage}
@@ -235,14 +351,25 @@ export function DashboardHeader({
               activeOpacity={0.7}
             >
               <Text
-                style={[headerStyles.statNumber, { color: colors.primary }]}
+                style={[
+                  headerStyles.statNumber,
+                  {
+                    color: isDark
+                      ? colors.primary
+                      : "rgba(15, 23, 42, 0.9)",
+                  },
+                ]}
               >
                 {dueSoonCount}
               </Text>
               <Text
                 style={[
                   headerStyles.statLabel,
-                  { color: colors.textSecondary },
+                  {
+                    color: isDark
+                      ? colors.textSecondary
+                      : "rgba(15, 23, 42, 0.7)",
+                  },
                 ]}
               >
                 Due Soon
@@ -257,14 +384,25 @@ export function DashboardHeader({
               activeOpacity={0.7}
             >
               <Text
-                style={[headerStyles.statNumber, { color: colors.success }]}
+                style={[
+                  headerStyles.statNumber,
+                  {
+                    color: isDark
+                      ? colors.success
+                      : "rgba(15, 23, 42, 0.9)",
+                  },
+                ]}
               >
                 {completedCount}
               </Text>
               <Text
                 style={[
                   headerStyles.statLabel,
-                  { color: colors.textSecondary },
+                  {
+                    color: isDark
+                      ? colors.textSecondary
+                      : "rgba(15, 23, 42, 0.7)",
+                  },
                 ]}
               >
                 Completed
@@ -276,13 +414,26 @@ export function DashboardHeader({
               onPress={onShowStreakPopup}
               activeOpacity={0.7}
             >
-              <Text style={[headerStyles.statNumber, { color: colors.accent }]}>
+              <Text
+                style={[
+                  headerStyles.statNumber,
+                  {
+                    color: isDark
+                      ? colors.accent
+                      : "rgba(15, 23, 42, 0.9)",
+                  },
+                ]}
+              >
                 {streak}
               </Text>
               <Text
                 style={[
                   headerStyles.statLabel,
-                  { color: colors.textSecondary },
+                  {
+                    color: isDark
+                      ? colors.textSecondary
+                      : "rgba(15, 23, 42, 0.7)",
+                  },
                 ]}
               >
                 Day Streak

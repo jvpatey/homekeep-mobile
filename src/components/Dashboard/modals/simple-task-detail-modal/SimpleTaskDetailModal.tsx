@@ -576,9 +576,18 @@ export function SimpleTaskDetailModal({
                     <Ionicons
                       name="create-outline"
                       size={20}
-                      color={colors.accent}
+                      color={isDark ? "rgba(255, 255, 255, 0.95)" : "rgba(15, 23, 42, 0.9)"}
                     />
-                    <Text style={[styles.pillButtonText, { color: colors.accent }]}>
+                    <Text
+                      style={[
+                        styles.pillButtonText,
+                        {
+                          color: isDark
+                            ? "rgba(255, 255, 255, 0.95)"
+                            : "rgba(15, 23, 42, 0.9)",
+                        },
+                      ]}
+                    >
                       Edit
                     </Text>
                   </LinearGradient>
@@ -615,9 +624,18 @@ export function SimpleTaskDetailModal({
                   <Ionicons
                     name="checkmark-circle"
                     size={20}
-                    color={colors.success}
+                    color={isDark ? "rgba(255, 255, 255, 0.95)" : "rgba(15, 23, 42, 0.9)"}
                   />
-                  <Text style={[styles.pillButtonText, { color: colors.success }]}>
+                  <Text
+                    style={[
+                      styles.pillButtonText,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.95)"
+                          : "rgba(15, 23, 42, 0.9)",
+                      },
+                    ]}
+                  >
                     {isCompleting ? "Completing..." : "Complete"}
                   </Text>
                 </LinearGradient>

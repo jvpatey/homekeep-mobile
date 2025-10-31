@@ -97,7 +97,18 @@ export function HeroCarousel({
       <View style={styles.container}>
         {/* Header with Timeline Toggle */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
+          <Text
+          style={[
+            styles.title,
+            {
+              color: isDark
+                ? colors.text
+                : "rgba(15, 23, 42, 0.9)",
+            },
+          ]}
+        >
+          What's Next
+        </Text>
           <View style={styles.headerRight}>
             {onToggleTimelineView && (
               <TouchableOpacity
@@ -145,7 +156,7 @@ export function HeroCarousel({
                       name="calendar"
                       size={16}
                       color={
-                        isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                        isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.75)"
                       }
                     />
                     <Text
@@ -153,8 +164,8 @@ export function HeroCarousel({
                         styles.toggleButtonText,
                         {
                           color: isDark
-                            ? "rgba(255, 255, 255, 0.6)"
-                            : "rgba(0, 0, 0, 0.5)",
+                            ? "rgba(255, 255, 255, 0.8)"
+                            : "rgba(15, 23, 42, 0.8)",
                         },
                       ]}
                     >
@@ -200,7 +211,7 @@ export function HeroCarousel({
                   name="checkmark-circle"
                   size={32}
                   color={
-                    isDark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.4)"
+                    isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.65)"
                   }
                 />
               </View>
@@ -210,7 +221,9 @@ export function HeroCarousel({
             style={[
               styles.emptyTitle,
               {
-                color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)",
+                color: isDark
+                  ? "rgba(255, 255, 255, 0.9)"
+                  : "rgba(15, 23, 42, 0.85)",
               },
             ]}
           >
@@ -220,7 +233,9 @@ export function HeroCarousel({
             style={[
               styles.emptySubtitle,
               {
-                color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)",
+                color: isDark
+                  ? "rgba(255, 255, 255, 0.7)"
+                  : "rgba(15, 23, 42, 0.65)",
               },
             ]}
           >
@@ -235,7 +250,18 @@ export function HeroCarousel({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>What's Next</Text>
+        <Text
+          style={[
+            styles.title,
+            {
+              color: isDark
+                ? colors.text
+                : "rgba(15, 23, 42, 0.9)",
+            },
+          ]}
+        >
+          What's Next
+        </Text>
         <View style={styles.headerRight}>
           {onToggleTimelineView && (
             <TouchableOpacity
@@ -283,7 +309,7 @@ export function HeroCarousel({
                     name="calendar"
                     size={16}
                     color={
-                      isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                      isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.75)"
                     }
                   />
                   <Text
@@ -291,8 +317,8 @@ export function HeroCarousel({
                       styles.toggleButtonText,
                       {
                         color: isDark
-                          ? "rgba(255, 255, 255, 0.6)"
-                          : "rgba(0, 0, 0, 0.5)",
+                          ? "rgba(255, 255, 255, 0.8)"
+                          : "rgba(15, 23, 42, 0.8)",
                       },
                     ]}
                   >
@@ -323,7 +349,7 @@ export function HeroCarousel({
                 name="chevron-back"
                 size={20}
                 color={
-                  isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                  isDark ? "rgba(255, 255, 255, 0.8)" : "rgba(15, 23, 42, 0.8)"
                 }
               />
             </TouchableOpacity>
@@ -347,7 +373,7 @@ export function HeroCarousel({
                 name="chevron-forward"
                 size={20}
                 color={
-                  isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)"
+                  isDark ? "rgba(255, 255, 255, 0.8)" : "rgba(15, 23, 42, 0.8)"
                 }
               />
             </TouchableOpacity>
@@ -427,7 +453,9 @@ export function HeroCarousel({
           style={[
             styles.counterText,
             {
-              color: isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)",
+              color: isDark
+                ? "rgba(255, 255, 255, 0.7)"
+                : "rgba(15, 23, 42, 0.65)",
             },
           ]}
         >

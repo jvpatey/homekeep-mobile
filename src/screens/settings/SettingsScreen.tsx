@@ -9,21 +9,50 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
+import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { useHaptics } from "../../hooks";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
 import { SettingsScreenProps } from "./types";
+import { DesignSystem } from "../../theme/designSystem";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
-  const { signOut, deleteAccount } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
+  const { selectedGradient, loading: preferencesLoading } =
+    useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
   const [customizationModalVisible, setCustomizationModalVisible] =
     useState(false);
+
+  const getUserInitial = () => {
+    const fullName = user?.user_metadata?.full_name;
+    if (fullName) {
+      return fullName.split(" ")[0].charAt(0).toUpperCase();
+    }
+    return user?.email?.charAt(0).toUpperCase() || "U";
+  };
+
+  const getUserName = () => {
+    const fullName = user?.user_metadata?.full_name;
+    if (fullName) {
+      return fullName;
+    }
+    return "User";
+  };
+
+  const getUserEmail = () => {
+    return user?.email || "";
+  };
+
+  const avatarGradient = preferencesLoading
+    ? ([colors.primary, colors.secondary] as [string, string])
+    : (selectedGradient.colors as [string, string]);
 
   const handleCustomizeAvatar = async () => {
     await triggerMedium();
@@ -270,6 +299,65 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Account Details Section */}
+        <TouchableOpacity
+          style={[
+            styles.accountCard,
+            {
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.08)"
+                : "rgba(255, 255, 255, 0.85)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.15)"
+                : "rgba(255, 255, 255, 0.9)",
+            },
+          ]}
+          onPress={handleCustomizeAvatar}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={avatarGradient}
+            start={
+              preferencesLoading || !selectedGradient
+                ? { x: 0, y: 0 }
+                : selectedGradient.start
+            }
+            end={
+              preferencesLoading || !selectedGradient
+                ? { x: 1, y: 1 }
+                : selectedGradient.end
+            }
+            style={styles.accountAvatar}
+          >
+            <Text style={styles.accountAvatarInitial}>{getUserInitial()}</Text>
+          </LinearGradient>
+          <View style={styles.accountInfo}>
+            <Text style={[styles.accountName, { color: colors.text }]}>
+              {getUserName()}
+            </Text>
+            <Text
+              style={[styles.accountEmail, { color: colors.textSecondary }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {getUserEmail()}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.editIconContainer,
+              { backgroundColor: colors.primary + "15" },
+            ]}
+          >
+            <Ionicons
+              name="color-palette-outline"
+              size={20}
+              color={colors.primary}
+            />
+          </View>
+        </TouchableOpacity>
+
+        {/* Settings Options */}
         <View
           style={[styles.optionsContainer, { backgroundColor: colors.surface }]}
         >
@@ -328,6 +416,66 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingTop: 20,
+  },
+  accountCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: 1,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  accountAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  accountAvatarInitial: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "white",
+    letterSpacing: 0.5,
+  },
+  accountInfo: {
+    flex: 1,
+  },
+  accountName: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  accountEmail: {
+    fontSize: 15,
+    opacity: 0.7,
+    letterSpacing: 0.2,
+  },
+  editIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   optionsContainer: {
     marginHorizontal: 20,

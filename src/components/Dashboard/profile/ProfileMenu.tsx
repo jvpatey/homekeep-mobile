@@ -35,8 +35,8 @@ interface ProfileMenuProps {
 // ProfileMenu component for the Dashboard
 export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { colors, isDark } = useTheme();
-  const { user, signOut } = useAuth();
-  const { stats } = useTasks();
+  const { user, signOut, deleteAccount } = useAuth();
+  const { stats, deleteAllTasks } = useTasks();
   const { primaryGradient } = useGradients();
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
@@ -146,8 +146,37 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
     }, 300);
   };
 
+  // handleDeleteAllTasks function to delete all tasks
+  const handleDeleteAllTasks = async () => {
+    await triggerMedium();
+    hideMenu();
+    Alert.alert(
+      "Delete All Tasks",
+      "This will permanently delete all of your tasks and their history. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: async () => {
+            const { success, error } = await deleteAllTasks();
+            if (!success) {
+              Alert.alert("Error", error || "Failed to delete all tasks");
+            } else {
+              Alert.alert(
+                "Deleted",
+                "All tasks and history have been deleted."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // handleDeleteAccount function to handle account deletion
   const handleDeleteAccount = async () => {
+    await triggerMedium();
     hideMenu();
     Alert.alert(
       "Delete Account",
@@ -160,17 +189,36 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
           onPress: async () => {
             Alert.alert(
               "Final Confirmation",
-              "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.",
+              "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.\n\nType 'DELETE' to confirm account deletion.",
               [
                 { text: "Cancel", style: "cancel" },
                 {
-                  text: "Delete Forever",
+                  text: "I understand, delete my account",
                   style: "destructive",
                   onPress: async () => {
-                    Alert.alert(
-                      "Account Deleted",
-                      "Your account has been deleted."
-                    );
+                    try {
+                      const result = await deleteAccount();
+                      if (result.success) {
+                        Alert.alert(
+                          "Account Deleted",
+                          "All your data has been permanently deleted and you will be signed out. Your account is now effectively deleted.",
+                          [{ text: "OK" }]
+                        );
+                      } else {
+                        Alert.alert(
+                          "Error",
+                          result.error ||
+                            "Failed to delete account. Please try again or contact support.",
+                          [{ text: "OK" }]
+                        );
+                      }
+                    } catch (error) {
+                      Alert.alert(
+                        "Error",
+                        "An unexpected error occurred. Please try again or contact support.",
+                        [{ text: "OK" }]
+                      );
+                    }
                   },
                 },
               ]
@@ -367,6 +415,65 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     size={16}
                     color={colors.textSecondary}
                   />
+                </TouchableOpacity>
+
+                <View
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
+
+                {/* Delete All Tasks */}
+                <TouchableOpacity
+                  style={[
+                    styles.menuActionButton,
+                    (stats?.totalInstances || 0) === 0 && {
+                      opacity: 0.5,
+                    },
+                  ]}
+                  onPress={
+                    (stats?.totalInstances || 0) > 0
+                      ? handleDeleteAllTasks
+                      : undefined
+                  }
+                  activeOpacity={0.7}
+                  disabled={(stats?.totalInstances || 0) === 0}
+                >
+                  <View
+                    style={[
+                      styles.signOutIconContainer,
+                      {
+                        backgroundColor:
+                          (stats?.totalInstances || 0) === 0
+                            ? colors.border + "15"
+                            : colors.error + "15",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="trash-bin-outline"
+                      size={20}
+                      color={
+                        (stats?.totalInstances || 0) === 0
+                          ? colors.textSecondary
+                          : colors.error
+                      }
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.menuActionText,
+                      {
+                        color:
+                          (stats?.totalInstances || 0) === 0
+                            ? colors.textSecondary
+                            : colors.error,
+                      },
+                    ]}
+                  >
+                    Delete All Tasks
+                  </Text>
                 </TouchableOpacity>
 
                 <View
