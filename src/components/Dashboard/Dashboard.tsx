@@ -68,6 +68,7 @@ export function NewDashboard({
   const [streak, setStreak] = useState(0);
   const [timelineTasks, setTimelineTasks] = useState<MaintenanceTask[]>([]);
   const [showTimelineView, setShowTimelineView] = useState(false);
+  const [timelineContentHeight, setTimelineContentHeight] = useState(0);
   const timelineHeight = React.useRef(new RNAnimated.Value(0)).current;
 
   // Animation values for page load
@@ -281,7 +282,7 @@ export function NewDashboard({
               overflow: "hidden",
               height: timelineHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, 2000],
+                outputRange: [0, timelineContentHeight || 2000],
               }),
             }}
             pointerEvents={showTimelineView ? "auto" : "none"}
@@ -291,6 +292,7 @@ export function NewDashboard({
               onCompleteTask={handleCompleteTask}
               onTaskPress={handleTaskPress}
               visible={showTimelineView}
+              onContentSizeChange={(height) => setTimelineContentHeight(height)}
             />
           </RNAnimated.View>
         </Animated.View>

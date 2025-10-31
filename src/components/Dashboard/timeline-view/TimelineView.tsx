@@ -21,6 +21,7 @@ interface TimelineViewProps {
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
   visible?: boolean;
+  onContentSizeChange?: (height: number) => void;
 }
 
 // TimelineView component for the Dashboard
@@ -29,6 +30,7 @@ export function TimelineView({
   onCompleteTask,
   onTaskPress,
   visible = true,
+  onContentSizeChange,
 }: TimelineViewProps) {
   const { colors, isDark } = useTheme();
 
@@ -112,6 +114,10 @@ export function TimelineView({
         style={timelineStyles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={timelineStyles.scrollContent}
+        scrollEnabled={false}
+        onContentSizeChange={(width, height) => {
+          onContentSizeChange?.(height);
+        }}
       >
         {groupedTasks.map(({ date, tasks }, groupIndex) => (
           <View key={groupIndex} style={timelineStyles.dateGroup}>
