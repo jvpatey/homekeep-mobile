@@ -9,7 +9,6 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "transparent",
     width: "100%",
-    maxWidth: 280,
     alignSelf: "center",
   },
   logoContainerCompact: {
