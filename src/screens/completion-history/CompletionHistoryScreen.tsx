@@ -57,7 +57,7 @@ export function CompletionHistoryScreen() {
   const subtitleOpacity = useSharedValue(0);
   const subtitleTranslateY = useSharedValue(15);
 
-  const [animationKey, setAnimationKey] = useState(0);
+  // Removed list item animation key to prevent remounts on toggle
 
   const triggerAnimations = useCallback(() => {
     // Reset values
@@ -76,8 +76,7 @@ export function CompletionHistoryScreen() {
     subtitleOpacity.value = withDelay(300, withSpring(1, { damping: 15, stiffness: 150 }));
     subtitleTranslateY.value = withDelay(300, withSpring(0, { damping: 15, stiffness: 150 }));
 
-    // Force list items to re-render and re-animate
-    setAnimationKey((prev) => prev + 1);
+    // No list item re-animation
   }, []);
 
   useEffect(() => {
@@ -261,23 +260,9 @@ export function CompletionHistoryScreen() {
       isDark: boolean;
       renderProgress: (routine: GroupedRoutine) => React.ReactNode;
     }) => {
-      // Staggered animation for list items
-      const itemOpacity = useSharedValue(0);
-      const itemTranslateY = useSharedValue(20);
-
-      useEffect(() => {
-        const delay = 400 + index * 100; // Start after header animations, stagger by 100ms each
-        itemOpacity.value = withDelay(delay, withSpring(1, { damping: 15, stiffness: 150 }));
-        itemTranslateY.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 150 }));
-      }, [index]);
-
-      const itemAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: itemOpacity.value,
-        transform: [{ translateY: itemTranslateY.value }],
-      }));
-
+      // Removed per-item animations to avoid reload/flash on expand/collapse
       return (
-        <Animated.View
+        <View
           style={[
             completionHistoryStyles.routineItem,
             {
@@ -288,7 +273,6 @@ export function CompletionHistoryScreen() {
                 ? "rgba(255, 255, 255, 0.1)"
                 : "rgba(255, 255, 255, 0.6)",
             },
-            itemAnimatedStyle,
           ]}
         >
           {(() => {
@@ -467,7 +451,7 @@ export function CompletionHistoryScreen() {
               </>
             );
           })()}
-        </Animated.View>
+        </View>
       );
     }
   );
@@ -636,11 +620,10 @@ export function CompletionHistoryScreen() {
         <FlatList
           data={groupedRoutines}
           renderItem={renderRoutineItem}
-          keyExtractor={(item) => `${item.routineId}-${animationKey}`}
+          keyExtractor={(item) => `${item.routineId}`}
           contentContainerStyle={completionHistoryStyles.routinesList}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyState}
-          extraData={animationKey}
         />
       </SafeAreaView>
     </View>
