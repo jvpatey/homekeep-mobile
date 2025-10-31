@@ -183,26 +183,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           return null;
         }
 
-        console.log(
-          "Registering for push notifications with project ID:",
-          projectId
-        );
-
         // Get the push token with the project ID
         const token = await Notifications.getExpoPushTokenAsync({
           projectId: projectId,
         });
 
-        console.log("Push token generated successfully:", token.data);
         setExpoPushToken(token);
         return token;
       } catch (error) {
         console.error("Error registering for push notifications:", error);
-        // Log more specific error information
-        if (error instanceof Error) {
-          console.error("Error message:", error.message);
-          console.error("Error stack:", error.stack);
-        }
         return null;
       }
     };
@@ -329,7 +318,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     const responseListener =
       Notifications.addNotificationResponseReceivedListener((response) => {
         // handle notification tap - navigate to dashboard
-        console.log("Notification tapped:", response);
       });
 
     return () => {

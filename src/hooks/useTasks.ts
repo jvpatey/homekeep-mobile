@@ -413,11 +413,6 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       setOverdueTasks([]);
       setCompletedTasks([]);
       await refreshStats();
-      console.log(
-        `🗑️ Deleted all maintenance routines: ${
-          routinesDeleted || 0
-        } routines and ${instancesDeleted || 0} instances`
-      );
       return { success: true };
     } catch (err) {
       const error = err as Error;

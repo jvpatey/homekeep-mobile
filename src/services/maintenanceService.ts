@@ -282,8 +282,7 @@ export class MaintenanceService {
         };
       }
 
-      const result = await response.json();
-      console.log("Account deletion completed successfully:", result);
+      await response.json();
 
       return { error: null, success: true };
     } catch (error) {
