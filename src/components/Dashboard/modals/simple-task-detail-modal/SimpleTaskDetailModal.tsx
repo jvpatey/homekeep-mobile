@@ -58,10 +58,10 @@ export function SimpleTaskDetailModal({
   // Entrance animation
   useEffect(() => {
     if (visible) {
-      opacity.value = withSpring(1, { damping: 25, stiffness: 120 });
-      scale.value = withSpring(1, { damping: 20, stiffness: 140 });
-      translateY.value = withSpring(0, { damping: 25, stiffness: 120 });
-      contentOpacity.value = withDelay(50, withTiming(1, { duration: 300 }));
+      opacity.value = withTiming(1, { duration: 200 });
+      scale.value = withSpring(1, { damping: 20, stiffness: 180 });
+      translateY.value = withTiming(0, { duration: 200 });
+      contentOpacity.value = withTiming(1, { duration: 200 });
     }
   }, [visible]);
 
@@ -223,10 +223,10 @@ export function SimpleTaskDetailModal({
 
   const handleClose = () => {
     // Exit animation
-    opacity.value = withSpring(0, { damping: 20, stiffness: 100 });
-    scale.value = withSpring(0.8, { damping: 20, stiffness: 100 });
-    translateY.value = withSpring(30, { damping: 20, stiffness: 100 });
-    setTimeout(onClose, 250);
+    opacity.value = withTiming(0, { duration: 150 });
+    scale.value = withTiming(0.95, { duration: 150 });
+    translateY.value = withTiming(20, { duration: 150 });
+    setTimeout(onClose, 150);
   };
 
   // Rescheduling is handled through the Edit flow

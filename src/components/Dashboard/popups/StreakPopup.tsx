@@ -49,54 +49,45 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
       ];
 
   useEffect(() => {
-    // Entrance animation with spring
-    opacity.value = withSpring(1, {
-      damping: 20,
-      stiffness: 90,
-    });
-    scale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 100,
-    });
-    translateY.value = withSpring(0, {
-      damping: 20,
-      stiffness: 90,
-    });
+    // Entrance animation - faster and more responsive
+    opacity.value = withTiming(1, { duration: 200 });
+    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
+    translateY.value = withTiming(0, { duration: 200 });
 
-    // Streak number bounce animation
+    // Streak number bounce animation - faster
     streakScale.value = withDelay(
-      200,
+      100,
       withSequence(
         withSpring(1.3, { damping: 10, stiffness: 200 }),
         withSpring(1, { damping: 15, stiffness: 150 })
       )
     );
 
-    // Flame rotation animation
+    // Flame rotation animation - faster
     flameRotation.value = withRepeat(
       withSequence(
-        withTiming(-10, { duration: 300 }),
-        withTiming(10, { duration: 300 }),
-        withTiming(0, { duration: 300 })
+        withTiming(-10, { duration: 200 }),
+        withTiming(10, { duration: 200 }),
+        withTiming(0, { duration: 200 })
       ),
       2,
       false
     );
 
-    // Dots animation
+    // Dots animation - faster
     dotsOpacity.value = withDelay(
-      500,
-      withSpring(1, { damping: 20, stiffness: 90 })
+      200,
+      withSpring(1, { damping: 20, stiffness: 180 })
     );
     dotsScale.value = withDelay(
-      500,
-      withSpring(1, { damping: 15, stiffness: 100 })
+      200,
+      withSpring(1, { damping: 15, stiffness: 180 })
     );
 
-    // Continue button animation
+    // Continue button animation - faster
     continueButtonOpacity.value = withDelay(
-      700,
-      withSpring(1, { damping: 20, stiffness: 90 })
+      300,
+      withTiming(1, { duration: 200 })
     );
   }, []);
 
@@ -123,13 +114,13 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   }));
 
   const handleClose = () => {
-    // Exit animation with spring
-    opacity.value = withSpring(0, { damping: 20, stiffness: 100 });
-    scale.value = withSpring(0.8, { damping: 20, stiffness: 100 });
-    translateY.value = withSpring(30, { damping: 20, stiffness: 100 });
+    // Exit animation - faster
+    opacity.value = withTiming(0, { duration: 150 });
+    scale.value = withTiming(0.95, { duration: 150 });
+    translateY.value = withTiming(20, { duration: 150 });
 
     // Close after animation
-    setTimeout(onClose, 250);
+    setTimeout(onClose, 150);
   };
 
   const getStreakMessage = (streakCount: number) => {

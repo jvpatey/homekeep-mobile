@@ -22,6 +22,7 @@ export function AppNavigator() {
         initialRouteName="Dashboard"
         screenOptions={{
           headerShown: false,
+          animation: "slide_from_right",
         }}
       >
         {/* Main app screens */}

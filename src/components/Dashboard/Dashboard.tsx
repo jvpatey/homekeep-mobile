@@ -11,7 +11,6 @@ import Animated, {
   withTiming,
   withDelay,
 } from "react-native-reanimated";
-import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useGradients } from "../../hooks";
@@ -96,16 +95,10 @@ export function NewDashboard({
     timelineTranslateY.value = withDelay(600, withTiming(0, { duration: 600 }));
   }, []);
 
-  // Trigger animations on mount and when screen comes into focus
+  // Trigger animations on mount only
   useEffect(() => {
     triggerAnimations();
   }, [triggerAnimations]);
-
-  useFocusEffect(
-    useCallback(() => {
-      triggerAnimations();
-    }, [triggerAnimations])
-  );
 
   // Animation styles
   const headerAnimatedStyle = useAnimatedStyle(() => ({

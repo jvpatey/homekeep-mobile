@@ -10,7 +10,6 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -82,12 +81,6 @@ export function CompletionHistoryScreen() {
   useEffect(() => {
     triggerAnimations();
   }, [triggerAnimations]);
-
-  useFocusEffect(
-    useCallback(() => {
-      triggerAnimations();
-    }, [triggerAnimations])
-  );
 
   // Animation styles
   const backButtonAnimatedStyle = useAnimatedStyle(() => ({

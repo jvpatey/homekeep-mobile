@@ -10,7 +10,7 @@ import { useEffect } from "react";
 // useSimpleAnimation hook for the useSimpleAnimation on the home screen
 export function useSimpleAnimation(
   delay: number = 0,
-  duration: number = 600,
+  duration: number = 400,
   translateY: number = 20
 ) {
   const opacity = useSharedValue(0);
@@ -39,22 +39,22 @@ export function useLogoAnimation(delay: number = 0) {
     opacity.value = withDelay(
       delay,
       withSpring(1, {
-        damping: 12,
-        stiffness: 100,
+        damping: 15,
+        stiffness: 180,
       })
     );
     scale.value = withDelay(
       delay,
       withSpring(1, {
-        damping: 12,
-        stiffness: 100,
+        damping: 15,
+        stiffness: 180,
       })
     );
     rotate.value = withDelay(
       delay,
       withSpring(0, {
-        damping: 12,
-        stiffness: 100,
+        damping: 15,
+        stiffness: 180,
       })
     );
   }, [delay]);
@@ -79,28 +79,28 @@ export function useTextAnimation() {
   useEffect(() => {
     headlineOpacity.value = withDelay(
       200,
-      withSpring(1, { damping: 15, stiffness: 150 })
+      withSpring(1, { damping: 15, stiffness: 180 })
     );
     headlineTranslateY.value = withDelay(
       200,
-      withSpring(0, { damping: 15, stiffness: 150 })
+      withSpring(0, { damping: 15, stiffness: 180 })
     );
     headlineScale.value = withDelay(
       200,
-      withSpring(1, { damping: 15, stiffness: 150 })
+      withSpring(1, { damping: 15, stiffness: 180 })
     );
 
     subtitleOpacity.value = withDelay(
-      400,
-      withSpring(1, { damping: 15, stiffness: 150 })
+      300,
+      withSpring(1, { damping: 15, stiffness: 180 })
     );
     subtitleTranslateY.value = withDelay(
-      400,
-      withSpring(0, { damping: 15, stiffness: 150 })
+      300,
+      withSpring(0, { damping: 15, stiffness: 180 })
     );
     subtitleScale.value = withDelay(
-      400,
-      withSpring(1, { damping: 15, stiffness: 150 })
+      300,
+      withSpring(1, { damping: 15, stiffness: 180 })
     );
   }, []);
 
@@ -137,26 +137,26 @@ export function useFeatureAnimation(
 
   useEffect(() => {
     opacities.forEach((opacity, index) => {
-      const delay = baseDelay + index * 150;
+      const delay = baseDelay + index * 100;
       opacity.value = withDelay(
         delay,
-        withSpring(1, { damping: 18, stiffness: 120 })
+        withSpring(1, { damping: 18, stiffness: 180 })
       );
     });
 
     translateYs.forEach((translateY, index) => {
-      const delay = baseDelay + index * 150;
+      const delay = baseDelay + index * 100;
       translateY.value = withDelay(
         delay,
-        withSpring(0, { damping: 18, stiffness: 120 })
+        withSpring(0, { damping: 18, stiffness: 180 })
       );
     });
 
     scales.forEach((scale, index) => {
-      const delay = baseDelay + index * 150;
+      const delay = baseDelay + index * 100;
       scale.value = withDelay(
         delay,
-        withSpring(1, { damping: 18, stiffness: 120 })
+        withSpring(1, { damping: 18, stiffness: 180 })
       );
     });
   }, [count, baseDelay]);
@@ -176,5 +176,5 @@ export function useFeatureAnimation(
 
 // useButtonAnimation hook for the useButtonAnimation on the home screen
 export function useButtonAnimation(delay: number = 1100) {
-  return useSimpleAnimation(delay, 600, 25);
+  return useSimpleAnimation(delay, 400, 25);
 }

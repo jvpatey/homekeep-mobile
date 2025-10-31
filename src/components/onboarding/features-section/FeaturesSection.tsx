@@ -66,21 +66,21 @@ export function FeaturesSection() {
     // triggerLight function to trigger the light haptic feedback
     triggerLight();
 
-    // Modal entrance animation
+    // Modal entrance animation - faster
     modalScale.value = withSpring(1, { damping: 20, stiffness: 200 });
     modalTranslateY.value = withSpring(0, { damping: 20, stiffness: 200 });
     modalOpacity.value = withTiming(1, {
-      duration: 300,
+      duration: 200,
       easing: Easing.out(Easing.cubic),
     });
   };
 
   const closeModal = () => {
-    // Modal exit animation
-    modalScale.value = withSpring(0.8, { damping: 20, stiffness: 200 });
-    modalTranslateY.value = withSpring(50, { damping: 20, stiffness: 200 });
+    // Modal exit animation - faster
+    modalScale.value = withSpring(0.95, { damping: 20, stiffness: 200 });
+    modalTranslateY.value = withTiming(20, { duration: 150 });
     modalOpacity.value = withTiming(0, {
-      duration: 200,
+      duration: 150,
       easing: Easing.in(Easing.cubic),
     });
 
@@ -88,7 +88,7 @@ export function FeaturesSection() {
     setTimeout(() => {
       setIsModalVisible(false);
       setSelectedFeature(null);
-    }, 200);
+    }, 150);
   };
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({

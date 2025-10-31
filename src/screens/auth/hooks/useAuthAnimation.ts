@@ -7,7 +7,7 @@ import {
 import { useEffect } from "react";
 
 // useAuthAnimation hook for the useAuthAnimation on the home screen
-export function useAuthAnimation(delay: number = 200, duration: number = 600) {
+export function useAuthAnimation(delay: number = 200, duration: number = 400) {
   const formOpacity = useSharedValue(0);
   const formTranslateY = useSharedValue(30);
 
@@ -35,15 +35,15 @@ export function useAuthStaggeredAnimation() {
   const buttonTranslateY = useSharedValue(20);
 
   useEffect(() => {
-    // staggered animations for smooth entrance
-    headerOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
-    headerTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
+    // staggered animations for smooth entrance - faster
+    headerOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
+    headerTranslateY.value = withDelay(200, withTiming(0, { duration: 400 }));
 
-    formOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    formTranslateY.value = withDelay(400, withTiming(0, { duration: 600 }));
+    formOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
+    formTranslateY.value = withDelay(300, withTiming(0, { duration: 400 }));
 
-    buttonOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
-    buttonTranslateY.value = withDelay(600, withTiming(0, { duration: 600 }));
+    buttonOpacity.value = withDelay(400, withTiming(1, { duration: 400 }));
+    buttonTranslateY.value = withDelay(400, withTiming(0, { duration: 400 }));
   }, []);
 
   const headerAnimatedStyle = useAnimatedStyle(() => ({

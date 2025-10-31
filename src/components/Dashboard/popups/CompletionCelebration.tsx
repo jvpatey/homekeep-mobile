@@ -45,24 +45,24 @@ export function CompletionCelebration({
 
   useLayoutEffect(() => {
     if (isVisible) {
-      // Start celebration animation
+      // Start celebration animation - faster and more responsive
       Animated.sequence([
         Animated.parallel([
           Animated.spring(scaleAnim, {
             toValue: 1,
             useNativeDriver: true,
-            tension: 100,
-            friction: 8,
+            tension: 180,
+            friction: 10,
           }),
           Animated.timing(opacityAnim, {
             toValue: 1,
-            duration: 300,
+            duration: 200,
             useNativeDriver: true,
           }),
         ]),
         Animated.timing(confettiAnim, {
           toValue: 1,
-          duration: 500,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start();
@@ -89,12 +89,12 @@ export function CompletionCelebration({
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 150,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start(() => {

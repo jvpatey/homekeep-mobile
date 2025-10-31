@@ -51,14 +51,14 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
     }
   }, [visible]);
 
-  // Animate modal
+  // Animate modal - faster and more responsive
   useEffect(() => {
     if (visible) {
-      scale.value = withSpring(1, { damping: 15, stiffness: 150 });
-      opacity.value = withTiming(1, { duration: 300 });
+      scale.value = withSpring(1, { damping: 20, stiffness: 180 });
+      opacity.value = withTiming(1, { duration: 200 });
     } else {
-      scale.value = withTiming(0, { duration: 250 });
-      opacity.value = withTiming(0, { duration: 250 });
+      scale.value = withTiming(0, { duration: 150 });
+      opacity.value = withTiming(0, { duration: 150 });
     }
   }, [visible]);
 
