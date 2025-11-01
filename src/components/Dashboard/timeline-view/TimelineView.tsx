@@ -9,6 +9,8 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
+import { useDevice } from "../../../hooks";
+import { DesignSystem } from "../../../theme/designSystem";
 import { MaintenanceTask } from "../../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { timelineStyles } from "./styles";
@@ -33,6 +35,9 @@ export function TimelineView({
   onContentSizeChange,
 }: TimelineViewProps) {
   const { colors, isDark } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  
+  const fontMultiplier = getFontMultiplier();
 
   // Animation for timeline appearance and exit
   const opacity = useSharedValue(visible ? 1 : 0);
@@ -67,7 +72,14 @@ export function TimelineView({
           animatedStyle,
         ]}
       >
-        <View style={timelineStyles.emptyIconContainer}>
+        <View style={[
+          timelineStyles.emptyIconContainer,
+          isTablet && {
+            width: 64 * fontMultiplier,
+            height: 64 * fontMultiplier,
+            borderRadius: 32 * fontMultiplier,
+          },
+        ]}>
           <View
             style={[
               timelineStyles.emptyIconBackground,
@@ -75,20 +87,42 @@ export function TimelineView({
                 backgroundColor: colors.background,
                 borderColor: colors.primary,
               },
+              isTablet && {
+                borderRadius: 30 * fontMultiplier,
+                borderWidth: 2 * fontMultiplier,
+              },
             ]}
           >
-            <View style={timelineStyles.emptyIcon}>
-              <Ionicons name="calendar" size={32} color={colors.primary} />
+            <View style={[
+              timelineStyles.emptyIcon,
+              isTablet && {
+                width: 60 * fontMultiplier,
+                height: 60 * fontMultiplier,
+                borderRadius: 30 * fontMultiplier,
+              },
+            ]}>
+              <Ionicons name="calendar" size={isTablet ? 32 * fontMultiplier : 32} color={colors.primary} />
             </View>
           </View>
         </View>
-        <Text style={[timelineStyles.emptyTitle, { color: colors.text }]}>
+        <Text style={[
+          timelineStyles.emptyTitle,
+          { color: colors.text },
+          isTablet && {
+            fontSize: timelineStyles.emptyTitle.fontSize * fontMultiplier,
+            lineHeight: (timelineStyles.emptyTitle.fontSize * fontMultiplier) * 1.3,
+          },
+        ]}>
           No Upcoming Tasks
         </Text>
         <Text
           style={[
             timelineStyles.emptySubtitle,
             { color: colors.textSecondary },
+            isTablet && {
+              fontSize: (timelineStyles.emptySubtitle.fontSize || 16) * fontMultiplier,
+              lineHeight: ((timelineStyles.emptySubtitle.fontSize || 16) * fontMultiplier) * 1.4,
+            },
           ]}
         >
           You're all caught up!
@@ -99,12 +133,35 @@ export function TimelineView({
 
   return (
     <Animated.View style={[timelineStyles.container, animatedStyle]}>
-      <View style={timelineStyles.header}>
-        <Text style={[timelineStyles.title, { color: colors.text }]}>
+      <View style={[
+        timelineStyles.header,
+        isTablet && {
+          paddingHorizontal: getResponsiveValue(
+            DesignSystem.spacing.md,
+            DesignSystem.spacing.lg,
+            DesignSystem.spacing.xl,
+          ),
+        },
+      ]}>
+        <Text style={[
+          timelineStyles.title,
+          { color: colors.text },
+          isTablet && {
+            fontSize: timelineStyles.title.fontSize * fontMultiplier,
+            lineHeight: (timelineStyles.title.fontSize * fontMultiplier) * 1.3,
+          },
+        ]}>
           Timeline
         </Text>
         <Text
-          style={[timelineStyles.subtitle, { color: colors.textSecondary }]}
+          style={[
+            timelineStyles.subtitle,
+            { color: colors.textSecondary },
+            isTablet && {
+              fontSize: (timelineStyles.subtitle.fontSize || 16) * fontMultiplier,
+              lineHeight: ((timelineStyles.subtitle.fontSize || 16) * fontMultiplier) * 1.4,
+            },
+          ]}
         >
           Upcoming tasks
         </Text>
@@ -113,16 +170,43 @@ export function TimelineView({
       <ScrollView
         style={timelineStyles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={timelineStyles.scrollContent}
+        contentContainerStyle={[
+          timelineStyles.scrollContent,
+          isTablet && {
+            paddingBottom: getResponsiveValue(
+              DesignSystem.spacing.xxl,
+              DesignSystem.spacing.xxl + DesignSystem.spacing.lg,
+              DesignSystem.spacing.xxl + DesignSystem.spacing.xl,
+            ),
+          },
+        ]}
         scrollEnabled={false}
         onContentSizeChange={(width, height) => {
           onContentSizeChange?.(height);
         }}
       >
         {groupedTasks.map(({ date, tasks }, groupIndex) => (
-          <View key={groupIndex} style={timelineStyles.dateGroup}>
+          <View key={groupIndex} style={[
+            timelineStyles.dateGroup,
+            groupIndex === groupedTasks.length - 1 && isTablet && {
+              marginBottom: getResponsiveValue(
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+              ),
+            },
+          ]}>
             {/* Date Header */}
-            <View style={timelineStyles.dateHeader}>
+            <View style={[
+              timelineStyles.dateHeader,
+              isTablet && {
+                paddingHorizontal: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl,
+                ),
+              },
+            ]}>
               <View
                 style={[
                   timelineStyles.dateIndicator,
@@ -135,27 +219,53 @@ export function TimelineView({
                       : "rgba(255, 255, 255, 0.6)",
                     borderWidth: 1,
                   },
+                  isTablet && {
+                    width: getResponsiveValue(50, 60, 70),
+                    height: getResponsiveValue(50, 60, 70),
+                    borderRadius: getResponsiveValue(25, 30, 35),
+                  },
                 ]}
               >
                 <Text
-                  style={[timelineStyles.dateNumber, { color: colors.primary }]}
+                  style={[
+                    timelineStyles.dateNumber,
+                    { color: colors.primary },
+                    isTablet && {
+                      fontSize: timelineStyles.dateNumber.fontSize * fontMultiplier,
+                    },
+                  ]}
                 >
                   {date.getDate()}
                 </Text>
                 <Text
-                  style={[timelineStyles.dateMonth, { color: colors.primary }]}
+                  style={[
+                    timelineStyles.dateMonth,
+                    { color: colors.primary },
+                    isTablet && {
+                      fontSize: (timelineStyles.dateMonth.fontSize || 12) * fontMultiplier,
+                    },
+                  ]}
                 >
                   {date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </View>
               <View style={timelineStyles.dateInfo}>
-                <Text style={[timelineStyles.dateText, { color: colors.text }]}>
+                <Text style={[
+                  timelineStyles.dateText,
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: timelineStyles.dateText.fontSize * fontMultiplier,
+                  },
+                ]}>
                   {formatDate(date)}
                 </Text>
                 <Text
                   style={[
                     timelineStyles.taskCount,
                     { color: colors.textSecondary },
+                    isTablet && {
+                      fontSize: (timelineStyles.taskCount.fontSize || 14) * fontMultiplier,
+                    },
                   ]}
                 >
                   {tasks.length} task{tasks.length !== 1 ? "s" : ""}
@@ -170,6 +280,13 @@ export function TimelineView({
                 style={[
                   timelineStyles.taskItem,
                   taskIndex === tasks.length - 1 && timelineStyles.lastTaskItem,
+                  isTablet && {
+                    paddingHorizontal: getResponsiveValue(
+                      DesignSystem.spacing.md,
+                      DesignSystem.spacing.lg,
+                      DesignSystem.spacing.xl,
+                    ),
+                  },
                 ]}
                 onPress={() => {
                   onTaskPress?.(task.instance_id);
@@ -177,13 +294,24 @@ export function TimelineView({
                 activeOpacity={0.7}
               >
                 {/* Timeline Line */}
-                <View style={timelineStyles.timelineLine}>
+                <View style={[
+                  timelineStyles.timelineLine,
+                  isTablet && {
+                    width: getResponsiveValue(50, 60, 70),
+                  },
+                ]}>
                   <View
                     style={[
                       timelineStyles.timelineDot,
                       {
                         backgroundColor: colors.primary,
                         borderColor: colors.surface,
+                      },
+                      isTablet && {
+                        width: getResponsiveValue(12, 14, 16),
+                        height: getResponsiveValue(12, 14, 16),
+                        borderRadius: getResponsiveValue(6, 7, 8),
+                        borderWidth: 2 * fontMultiplier,
                       },
                     ]}
                   />
@@ -192,6 +320,9 @@ export function TimelineView({
                       style={[
                         timelineStyles.timelineConnector,
                         { backgroundColor: colors.border },
+                        isTablet && {
+                          height: getResponsiveValue(40, 50, 60),
+                        },
                       ]}
                     />
                   )}
@@ -210,6 +341,13 @@ export function TimelineView({
                         : "rgba(255, 255, 255, 0.6)",
                       borderWidth: 1,
                     },
+                    isTablet && {
+                      padding: getResponsiveValue(
+                        DesignSystem.spacing.md,
+                        DesignSystem.spacing.lg,
+                        DesignSystem.spacing.xl,
+                      ),
+                    },
                   ]}
                 >
                   <View style={timelineStyles.taskHeader}>
@@ -220,6 +358,10 @@ export function TimelineView({
                           color: isDark
                             ? "rgba(255, 255, 255, 0.7)"
                             : "rgba(0, 0, 0, 0.6)",
+                        },
+                        isTablet && {
+                          fontSize: timelineStyles.taskTitle.fontSize * fontMultiplier,
+                          lineHeight: (timelineStyles.taskTitle.fontSize * fontMultiplier) * 1.3,
                         },
                       ]}
                       numberOfLines={1}
@@ -235,6 +377,14 @@ export function TimelineView({
                               ? "rgba(255, 255, 255, 0.05)"
                               : "rgba(0, 0, 0, 0.05)",
                           },
+                          isTablet && {
+                            paddingHorizontal: getResponsiveValue(
+                              DesignSystem.spacing.sm,
+                              DesignSystem.spacing.md,
+                              DesignSystem.spacing.md,
+                            ),
+                            paddingVertical: getResponsiveValue(4, 6, 8),
+                          },
                         ]}
                       >
                         <View
@@ -246,6 +396,11 @@ export function TimelineView({
                                 colors
                               ),
                             },
+                            isTablet && {
+                              width: 6 * fontMultiplier,
+                              height: 6 * fontMultiplier,
+                              borderRadius: 3 * fontMultiplier,
+                            },
                           ]}
                         />
                         <Text
@@ -255,6 +410,9 @@ export function TimelineView({
                               color: isDark
                                 ? "rgba(255, 255, 255, 0.65)"
                                 : "rgba(15, 23, 42, 0.7)",
+                            },
+                            isTablet && {
+                              fontSize: (timelineStyles.priorityText.fontSize || 12) * fontMultiplier,
                             },
                           ]}
                         >
@@ -270,11 +428,19 @@ export function TimelineView({
                                 ? "rgba(255, 255, 255, 0.05)"
                                 : "rgba(0, 0, 0, 0.05)",
                             },
+                            isTablet && {
+                              paddingHorizontal: getResponsiveValue(
+                                DesignSystem.spacing.sm,
+                                DesignSystem.spacing.md,
+                                DesignSystem.spacing.md,
+                              ),
+                              paddingVertical: getResponsiveValue(4, 6, 8),
+                            },
                           ]}
                         >
                           <Ionicons
                             name="time-outline"
-                            size={12}
+                            size={isTablet ? 12 * fontMultiplier : 12}
                             color={
                               isDark
                                 ? "rgba(255, 255, 255, 0.6)"
@@ -288,6 +454,9 @@ export function TimelineView({
                                 color: isDark
                                   ? "rgba(255, 255, 255, 0.6)"
                                   : "rgba(15, 23, 42, 0.65)",
+                              },
+                              isTablet && {
+                                fontSize: (timelineStyles.durationText.fontSize || 12) * fontMultiplier,
                               },
                             ]}
                           >
@@ -339,6 +508,9 @@ export function TimelineView({
                                 : "rgba(15, 23, 42, 0.65)",
                               fontWeight: isDueToday ? "600" : "normal",
                             },
+                            isTablet && {
+                              fontSize: (timelineStyles.taskTime.fontSize || 14) * fontMultiplier,
+                            },
                           ]}
                         >
                           {displayText}
@@ -362,6 +534,11 @@ export function TimelineView({
                             : "rgba(46, 196, 182, 0.4)",
                           borderWidth: 1,
                         },
+                        isTablet && {
+                          width: 32 * fontMultiplier,
+                          height: 32 * fontMultiplier,
+                          borderRadius: 16 * fontMultiplier,
+                        },
                       ]}
                       onPress={() => onCompleteTask(task.instance_id)}
                       activeOpacity={0.7}
@@ -369,7 +546,7 @@ export function TimelineView({
                       {task.is_completed ? (
                         <Ionicons
                           name="checkmark-circle"
-                          size={18}
+                          size={isTablet ? 18 * fontMultiplier : 18}
                           color={
                             isDark
                               ? "rgba(111, 207, 151, 0.6)"
@@ -379,7 +556,7 @@ export function TimelineView({
                       ) : (
                         <Ionicons
                           name="checkmark"
-                          size={14}
+                          size={isTablet ? 14 * fontMultiplier : 14}
                           color={
                             isDark
                               ? "rgba(46, 196, 182, 0.6)"
