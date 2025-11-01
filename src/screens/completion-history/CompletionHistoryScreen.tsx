@@ -38,7 +38,7 @@ export function CompletionHistoryScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
-  const { isTablet, getFontMultiplier, getResponsiveValue, width, height } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, width, height, getGradientFadeColors, getGradientFadeLocations, getGradientFadeHeight } = useDevice();
   const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
   const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
     new Set()
@@ -567,22 +567,80 @@ export function CompletionHistoryScreen() {
     );
   };
 
+  // Use fade colors but adjust for iPad to preserve text readability
+  const fadeColors = isTablet && isDark
+    ? (() => {
+        const screenMax = Math.max(width, height);
+        if (screenMax > 1300) {
+          // Reduce opacity for dark mode on large iPad
+          return [
+            "transparent",
+            "transparent",
+            "rgba(24, 26, 27, 0.08)",
+            "rgba(24, 26, 27, 0.25)",
+            "rgba(24, 26, 27, 0.5)",
+            colors.background,
+          ];
+        } else if (screenMax > 1100) {
+          return [
+            "transparent",
+            "transparent",
+            "rgba(24, 26, 27, 0.25)",
+            colors.background,
+          ];
+        }
+        return ["transparent", "transparent", colors.background];
+      })()
+    : getGradientFadeColors(isDark, colors.background);
+  
+  // Push fade opacity further down so text at top stays readable
+  const fadeLocations = isTablet
+    ? (() => {
+        const screenMax = Math.max(width, height);
+        if (isDark) {
+          // Dark mode: start fade later
+          if (screenMax > 1300) {
+            return [0, 0.6, 0.75, 0.85, 0.95, 1];
+          } else if (screenMax > 1100) {
+            return [0, 0.65, 0.8, 1];
+          }
+          return [0, 0.7, 1];
+        } else {
+          // Light mode: start fade later
+          if (screenMax > 1300) {
+            return [0, 0.6, 0.75, 0.85, 0.95, 1];
+          } else if (screenMax > 1100) {
+            return [0, 0.65, 0.8, 1];
+          }
+          return [0, 0.7, 0.9, 1];
+        }
+      })()
+    : getGradientFadeLocations(isDark);
+  const gradientFadeHeight = getGradientFadeHeight();
+  const screenMax = Math.max(width, height);
+
   return (    <View style={[completionHistoryStyles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} translucent />
       
       {/* Hero Section with Gradient */}
-      <View style={completionHistoryStyles.heroContainer}>
+      <View style={[completionHistoryStyles.heroContainer, { backgroundColor: colors.background }]}>
           {/* Bottom fade mask */}
           <LinearGradient
-            colors={
-              isDark
-                ? ["transparent", "transparent", colors.background]
-                : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", colors.background]
-            }
-            locations={isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1]}
+            colors={fadeColors}
+            locations={fadeLocations}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
-            style={completionHistoryStyles.bottomFade}
+            style={[
+              completionHistoryStyles.bottomFade,
+              {
+                height: gradientFadeHeight,
+              },
+              isTablet && {
+                height: screenMax > 1300 
+                  ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                  : gradientFadeHeight * 1.3, // Standard iPads
+              },
+            ]}
             pointerEvents="none"
           />
 
@@ -602,6 +660,31 @@ export function CompletionHistoryScreen() {
             start={{ x: 0.5, y: 0.3 }}
             end={{ x: 1, y: 1 }}
             style={completionHistoryStyles.gradientGlow}
+          />
+
+          {/* Ambient light layer - fade to transparent on iPads to prevent dark bar */}
+          <LinearGradient
+            colors={
+              isTablet
+                ? isDark
+                  ? [
+                      "rgba(46, 196, 182, 0.10)",
+                      "rgba(58, 134, 255, 0.06)",
+                      "rgba(46, 196, 182, 0.03)",
+                      "transparent",
+                    ]
+                  : [
+                      "rgba(46, 196, 182, 0.12)",
+                      "rgba(58, 134, 255, 0.08)",
+                      "rgba(46, 196, 182, 0.025)",
+                      "transparent",
+                    ]
+                : ambientGradient
+            }
+            locations={[0, 0.4, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={completionHistoryStyles.gradientAmbient}
           />
 
           {/* Content layer */}

@@ -42,6 +42,14 @@ export const completionHistoryStyles = StyleSheet.create({
     bottom: 0,
     zIndex: 1,
   },
+  gradientAmbient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
   contentLayer: {
     paddingTop: DesignSystem.spacing.xl + DesignSystem.spacing.md,
     paddingBottom: DesignSystem.spacing.lg,
