@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
   logoText: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: 0,
     fontFamily: "System",
     fontWeight: "700",
     letterSpacing: -0.5,

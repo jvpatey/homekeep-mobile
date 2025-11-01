@@ -59,7 +59,7 @@ export function LogoSection({
             fontSize: styles.logoText.fontSize * logoTextMultiplier,
             lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
             marginTop: getResponsiveValue(
-              DesignSystem.spacing.sm,
+              0,
               0,
               0,
             ),
@@ -83,7 +83,7 @@ export function LogoSection({
                 fontSize: styles.logoText.fontSize * logoTextMultiplier,
                 lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
                 marginTop: getResponsiveValue(
-                  DesignSystem.spacing.sm,
+                  0,
                   DesignSystem.spacing.md,
                   DesignSystem.spacing.lg,
                 ),

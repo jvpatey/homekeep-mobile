@@ -10,10 +10,10 @@ export const authStyles = StyleSheet.create({
   heroSection: {
     position: "relative",
     overflow: "hidden",
-    paddingTop: DesignSystem.spacing.xl,
-    paddingBottom: DesignSystem.spacing.xl,
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
-    minHeight: 360,
+    minHeight: 280,
   },
   bottomFade: {
     position: "absolute",
@@ -61,15 +61,15 @@ export const authStyles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
   },
 
   // Header styles
   headerContainer: {
     alignItems: "center",
-    paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
   },
   title: {
     ...DesignSystem.typography.h1,
@@ -81,7 +81,7 @@ export const authStyles = StyleSheet.create({
     ...DesignSystem.typography.h1,
     textAlign: "center",
     marginTop: 0,
-    marginBottom: 30,
+    marginBottom: DesignSystem.spacing.md,
   },
   subtitle: {
     ...DesignSystem.typography.body,
@@ -96,7 +96,7 @@ export const authStyles = StyleSheet.create({
   // Form styles
   formCard: {
     borderRadius: DesignSystem.borders.radius.large,
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md,
     marginHorizontal: DesignSystem.spacing.md,
     ...DesignSystem.shadows.glass,
   },
@@ -150,7 +150,7 @@ export const authStyles = StyleSheet.create({
     minHeight: 52,
   },
   buttonContainer: {
-    marginTop: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.md,
     marginHorizontal: DesignSystem.spacing.md,
   },
   buttonContainerWithGap: {

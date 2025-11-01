@@ -13,13 +13,13 @@ export function useDynamicSpacing() {
   let dynamicBottomSpacing;
 
   if (isLargeScreen) {
-    dynamicTopSpacing = insets.top + 40;
+    dynamicTopSpacing = insets.top + 8;
     dynamicBottomSpacing = 60;
   } else if (isMediumScreen) {
-    dynamicTopSpacing = insets.top + 15;
+    dynamicTopSpacing = insets.top + 4;
     dynamicBottomSpacing = 20;
   } else {
-    dynamicTopSpacing = insets.top + 10;
+    dynamicTopSpacing = insets.top + 4;
     dynamicBottomSpacing = 16;
   }
 
