@@ -3,20 +3,20 @@ import { DesignSystem } from "../../../../theme/designSystem";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-export const createStyles = (colors: any) =>
+export const createStyles = (colors: any, isTablet: boolean = false) =>
   StyleSheet.create({
     overlay: {
       flex: 1,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
       justifyContent: "center",
       alignItems: "center",
-      paddingHorizontal: DesignSystem.spacing.md,
-      paddingVertical: DesignSystem.spacing.lg,
+      paddingHorizontal: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.md,
+      paddingVertical: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
       zIndex: 9999,
     },
     modalContainer: {
-      width: screenWidth - 40,
-      height: "85%",
+      width: isTablet ? Math.min(screenWidth - 80, 600) : screenWidth - 40,
+      height: isTablet ? "75%" : "85%",
       borderRadius: DesignSystem.borders.radius.xlarge,
       overflow: "hidden",
       ...DesignSystem.shadows.glassStrong,
@@ -31,9 +31,9 @@ export const createStyles = (colors: any) =>
       flex: 1,
     },
     headerGradient: {
-      paddingTop: DesignSystem.spacing.xl,
-      paddingBottom: DesignSystem.spacing.lg,
-      paddingHorizontal: DesignSystem.spacing.lg,
+      paddingTop: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.xl,
+      paddingBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
+      paddingHorizontal: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.lg,
       borderBottomWidth: DesignSystem.glass.borderWidth,
     },
     headerContent: {
@@ -41,41 +41,41 @@ export const createStyles = (colors: any) =>
     },
     closeButton: {
       position: "absolute",
-      top: DesignSystem.spacing.md,
-      right: DesignSystem.spacing.md,
-      width: 40,
-      height: 40,
+      top: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
+      right: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
+      width: isTablet ? 50 : 40,
+      height: isTablet ? 50 : 40,
       alignItems: "center",
       justifyContent: "center",
       ...DesignSystem.shadows.small,
     },
     categorySection: {
       alignItems: "center",
-      marginBottom: DesignSystem.spacing.md,
+      marginBottom: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
     },
     categoryIconContainer: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
+      width: isTablet ? 80 : 64,
+      height: isTablet ? 80 : 64,
+      borderRadius: isTablet ? 40 : 32,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: DesignSystem.spacing.sm,
+      marginBottom: isTablet ? DesignSystem.spacing.md : DesignSystem.spacing.sm,
       ...DesignSystem.shadows.medium,
     },
     categoryIcon: {
       // No margin needed since container handles spacing
     },
     categoryName: {
-      fontSize: 16,
+      fontSize: isTablet ? 20 : 16,
       fontWeight: "600",
       letterSpacing: 0.5,
     },
     taskTitle: {
-      fontSize: 24,
+      fontSize: isTablet ? 32 : 24,
       fontWeight: "700",
       textAlign: "center",
-      marginBottom: DesignSystem.spacing.md,
-      lineHeight: 30,
+      marginBottom: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
+      lineHeight: isTablet ? 40 : 30,
     },
     priorityContainer: {
       flexDirection: "row",
@@ -123,16 +123,16 @@ export const createStyles = (colors: any) =>
     detailItem: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: DesignSystem.spacing.lg,
+      marginBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
     },
     detailIconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: isTablet ? 60 : 48,
+      height: isTablet ? 60 : 48,
+      borderRadius: isTablet ? 30 : 24,
       backgroundColor: colors.glass,
       alignItems: "center",
       justifyContent: "center",
-      marginRight: DesignSystem.spacing.md,
+      marginRight: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
       borderWidth: DesignSystem.glass.borderWidth,
       borderColor: colors.glassBorder,
       ...DesignSystem.shadows.small,
@@ -153,9 +153,9 @@ export const createStyles = (colors: any) =>
       color: colors.textSecondary,
     },
     actionsContainer: {
-      paddingHorizontal: DesignSystem.spacing.lg,
-      paddingBottom: DesignSystem.spacing.lg,
-      paddingTop: DesignSystem.spacing.md,
+      paddingHorizontal: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.lg,
+      paddingBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
+      paddingTop: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
       borderTopWidth: DesignSystem.glass.borderWidth,
       backgroundColor: "transparent",
     },
@@ -167,7 +167,7 @@ export const createStyles = (colors: any) =>
     },
     pillButton: {
       flex: 1,
-      maxWidth: 180,
+      maxWidth: isTablet ? 250 : 180,
       borderRadius: DesignSystem.borders.radius.round,
       overflow: "hidden",
     },
@@ -175,8 +175,8 @@ export const createStyles = (colors: any) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: DesignSystem.spacing.sm,
-      paddingHorizontal: DesignSystem.spacing.md,
+      paddingVertical: isTablet ? DesignSystem.spacing.md : DesignSystem.spacing.sm,
+      paddingHorizontal: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
       borderRadius: DesignSystem.borders.radius.round,
     },
     completeButtonDisabled: {

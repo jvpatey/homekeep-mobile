@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../../../types/maintenance";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
-import { useGradients } from "../../../../hooks";
+import { useGradients, useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { createStyles } from "./styles";
 // Removed inline reschedule to simplify and rely on edit flow
@@ -46,8 +46,9 @@ export function SimpleTaskDetailModal({
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { glassBorder } = useGradients();
+  const { isTablet, getResponsiveValue, getFontMultiplier } = useDevice();
   const [isCompleting, setIsCompleting] = useState(false);
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isTablet);
 
   // Animation values
   const scale = useSharedValue(0.7);
@@ -295,7 +296,7 @@ export function SimpleTaskDetailModal({
               >
                 <Ionicons
                   name="close"
-                  size={22}
+                  size={isTablet ? 28 : 22}
                   color={
                     isDark
                       ? "rgba(255, 255, 255, 0.9)"
@@ -314,7 +315,7 @@ export function SimpleTaskDetailModal({
                 >
                   <Ionicons
                     name={category.icon as any}
-                    size={32}
+                    size={isTablet ? 40 : 32}
                     color="white"
                     style={styles.categoryIcon}
                   />
@@ -429,7 +430,7 @@ export function SimpleTaskDetailModal({
                 <View style={styles.detailIconContainer}>
                   <Ionicons
                     name="time-outline"
-                    size={20}
+                    size={isTablet ? 24 : 20}
                     color={colors.primary}
                   />
                 </View>
@@ -465,7 +466,7 @@ export function SimpleTaskDetailModal({
                 <View style={styles.detailIconContainer}>
                   <Ionicons
                     name="calendar-outline"
-                    size={20}
+                    size={isTablet ? 24 : 20}
                     color={colors.secondary}
                   />
                 </View>
@@ -501,7 +502,7 @@ export function SimpleTaskDetailModal({
                 <View style={styles.detailIconContainer}>
                   <Ionicons
                     name="repeat-outline"
-                    size={20}
+                    size={isTablet ? 24 : 20}
                     color={colors.accent}
                   />
                 </View>
@@ -575,7 +576,7 @@ export function SimpleTaskDetailModal({
                   >
                     <Ionicons
                       name="create-outline"
-                      size={20}
+                      size={isTablet ? 24 : 20}
                       color={isDark ? "rgba(255, 255, 255, 0.95)" : "rgba(15, 23, 42, 0.9)"}
                     />
                     <Text
@@ -623,7 +624,7 @@ export function SimpleTaskDetailModal({
                 >
                   <Ionicons
                     name="checkmark-circle"
-                    size={20}
+                    size={isTablet ? 24 : 20}
                     color={isDark ? "rgba(255, 255, 255, 0.95)" : "rgba(15, 23, 42, 0.9)"}
                   />
                   <Text

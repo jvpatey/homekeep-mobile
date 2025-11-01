@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { DesignSystem } from "../../../theme/designSystem";
 import { useTheme } from "../../../context/ThemeContext";
+import { useDevice } from "../../../hooks";
 import { Ionicons } from "@expo/vector-icons";
 
 // CompletionCelebrationProps
@@ -26,6 +27,7 @@ export function CompletionCelebration({
   streak = 0,
 }: CompletionCelebrationProps) {
   const { isDark } = useTheme();
+  const { isTablet } = useDevice();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
@@ -138,6 +140,7 @@ export function CompletionCelebration({
             borderColor: isDark
               ? "rgba(102, 126, 234, 0.3)"
               : "rgba(102, 126, 234, 0.2)",
+            maxWidth: isTablet ? 450 : 350,
           },
         ]}
       >
@@ -145,7 +148,10 @@ export function CompletionCelebration({
           colors={glassGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
+          style={[
+            styles.gradientBackground,
+            { padding: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.xl },
+          ]}
         >
           {/* Confetti Animation */}
           <Animated.View
@@ -176,10 +182,10 @@ export function CompletionCelebration({
           {/* Content */}
           <View style={styles.content}>
             {/* Achievement Icon */}
-            <View style={styles.achievementIcon}>
+            <View style={[styles.achievementIcon, { marginBottom: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md }]}>
               <Ionicons
                 name="trophy"
-                size={48}
+                size={isTablet ? 64 : 48}
                 color={isDark ? "#60A5FA" : "#667eea"}
               />
             </View>
@@ -192,6 +198,8 @@ export function CompletionCelebration({
                   color: isDark
                     ? "rgba(255, 255, 255, 0.95)"
                     : "rgba(15, 23, 42, 0.9)",
+                  fontSize: isTablet ? 32 : 24,
+                  marginBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
                 },
               ]}
             >
@@ -199,9 +207,9 @@ export function CompletionCelebration({
             </Text>
 
             {/* Streak Section */}
-            <View style={styles.streakSection}>
+            <View style={[styles.streakSection, { marginBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg }]}>
               <View style={styles.streakHeader}>
-                <Ionicons name="flame" size={24} color="#FF6B35" />
+                <Ionicons name="flame" size={isTablet ? 32 : 24} color="#FF6B35" />
                 <Text
                   style={[
                     styles.streakTitle,
@@ -209,6 +217,7 @@ export function CompletionCelebration({
                       color: isDark
                         ? "rgba(255, 255, 255, 0.95)"
                         : "rgba(15, 23, 42, 0.9)",
+                      fontSize: isTablet ? 24 : 18,
                     },
                   ]}
                 >
@@ -241,6 +250,8 @@ export function CompletionCelebration({
                   borderColor: isDark
                     ? "rgba(102, 126, 234, 0.3)"
                     : "rgba(102, 126, 234, 0.25)",
+                  paddingHorizontal: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.xl,
+                  paddingVertical: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
                 },
               ]}
               onPress={hideCelebration}
@@ -315,7 +326,6 @@ const styles = StyleSheet.create({
   },
   streakSection: {
     width: "100%",
-    marginBottom: DesignSystem.spacing.lg,
     alignItems: "center",
   },
   streakHeader: {
