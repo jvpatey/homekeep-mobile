@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { Priority } from "../../../../types/maintenance";
 import { styles as sharedStyles } from "./styles";
@@ -26,7 +27,9 @@ export function PrioritySelector({
   onSelectPriority,
 }: PrioritySelectorProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
+  const fontMultiplier = getFontMultiplier();
 
   const selectedPriorityData = priorities.find(
     (p) => p.id === selectedPriority
@@ -34,7 +37,13 @@ export function PrioritySelector({
 
   return (
     <View style={priorityStyles.container}>
-      <Text style={[priorityStyles.label, { color: colors.text }]}>
+      <Text style={[
+        priorityStyles.label, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((priorityStyles.label.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>
         Priority
       </Text>
 
@@ -54,12 +63,20 @@ export function PrioritySelector({
             style={[
               priorityStyles.colorDot,
               { backgroundColor: selectedPriorityData?.color || colors.border },
+              isTablet && {
+                width: getResponsiveValue(12, 16, 18),
+                height: getResponsiveValue(12, 16, 18),
+                borderRadius: getResponsiveValue(6, 8, 9),
+              },
             ]}
           />
           <Text
             style={[
               priorityStyles.dropdownText,
               { color: colors.text, marginLeft: 8 },
+              isTablet && {
+                fontSize: ((priorityStyles.dropdownText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+              },
             ]}
           >
             {selectedPriorityData?.name || "Select Priority"}
@@ -67,7 +84,7 @@ export function PrioritySelector({
         </View>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
-          size={20}
+          size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
           color={colors.textSecondary}
         />
       </TouchableOpacity>
@@ -108,6 +125,11 @@ export function PrioritySelector({
                 style={[
                   priorityStyles.colorDot,
                   { backgroundColor: priority.color },
+                  isTablet && {
+                    width: getResponsiveValue(12, 16, 18),
+                    height: getResponsiveValue(12, 16, 18),
+                    borderRadius: getResponsiveValue(6, 8, 9),
+                  },
                 ]}
               />
               <Text
@@ -122,6 +144,9 @@ export function PrioritySelector({
                       selectedPriority === priority.id ? "700" : "400",
                   },
                   { marginLeft: 8 },
+                  isTablet && {
+                    fontSize: ((priorityStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 {priority.name}

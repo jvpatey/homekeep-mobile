@@ -17,6 +17,7 @@ import {
   PRIORITIES,
 } from "../../../types/maintenance";
 import { useTheme } from "../../../context/ThemeContext";
+import { useDevice } from "../../../hooks";
 
 interface DueSoonPopupProps {
   tasks: MaintenanceTask[];
@@ -26,6 +27,7 @@ interface DueSoonPopupProps {
 // DueSoonPopup component for the Dashboard
 export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   const { isDark } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
 
   // Animation values
   const scale = useSharedValue(0.7);
@@ -202,6 +204,9 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                     ? "rgba(255, 255, 255, 0.95)"
                     : categoryInfo.color,
                 },
+                isTablet && {
+                  fontSize: ((styles.categoryText.fontSize || 12) * getFontMultiplier()),
+                },
               ]}
             >
               {item.category === "HVAC"
@@ -223,6 +228,10 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
               color: isDark
                 ? "rgba(255, 255, 255, 0.95)"
                 : "rgba(15, 23, 42, 0.9)",
+            },
+            isTablet && {
+              fontSize: ((styles.taskTitle.fontSize || 18) * getFontMultiplier()),
+              lineHeight: ((styles.taskTitle.fontSize || 18) * getFontMultiplier()) * 1.3,
             },
           ]}
           numberOfLines={2}
@@ -248,7 +257,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
             >
               <Ionicons
                 name="calendar-outline"
-                size={18}
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
                 color={
                   isDark
                     ? "rgba(255, 255, 255, 0.8)"
@@ -263,6 +272,9 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                   color: isDark
                     ? "rgba(255, 255, 255, 0.85)"
                     : "rgba(15, 23, 42, 0.75)",
+                },
+                isTablet && {
+                  fontSize: ((styles.detailText.fontSize || 14) * getFontMultiplier()),
                 },
               ]}
             >
@@ -286,7 +298,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
             >
               <Ionicons
                 name="flag-outline"
-                size={18}
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
                 color={
                   isDark
                     ? "rgba(255, 255, 255, 0.8)"
@@ -301,6 +313,9 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                   color: isDark
                     ? "rgba(255, 255, 255, 0.85)"
                     : "rgba(15, 23, 42, 0.75)",
+                },
+                isTablet && {
+                  fontSize: ((styles.detailText.fontSize || 14) * getFontMultiplier()),
                 },
               ]}
             >
@@ -354,13 +369,25 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
               ? "rgba(59, 130, 246, 0.3)"
               : "rgba(59, 130, 246, 0.2)",
           },
+          isTablet && {
+            maxWidth: getResponsiveValue(420, 600, 700),
+          },
         ]}
       >
         <LinearGradient
           colors={glassGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
+          style={[
+            styles.gradientBackground,
+            isTablet && {
+              padding: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              ),
+            },
+          ]}
         >
           {/* Close Button */}
           <TouchableOpacity
@@ -381,7 +408,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
           >
             <Ionicons
               name="close"
-              size={22}
+              size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
               color={
                 isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
               }
@@ -405,12 +432,17 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       : "rgba(59, 130, 246, 0.3)",
                   },
                   headerIconAnimatedStyle,
+                  isTablet && {
+                    width: getResponsiveValue(64, 80, 96),
+                    height: getResponsiveValue(64, 80, 96),
+                    borderRadius: getResponsiveValue(32, 40, 48),
+                  },
                 ]}
               >
                 <View style={styles.headerIcon}>
                   <Ionicons
                     name="time"
-                    size={32}
+                    size={isTablet ? getResponsiveValue(32, 40, 48) : 32}
                     color={isDark ? "#60A5FA" : "#2563EB"}
                   />
                 </View>
@@ -423,6 +455,10 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       ? "rgba(255, 255, 255, 0.95)"
                       : "rgba(15, 23, 42, 0.9)",
                   },
+                  isTablet && {
+                    fontSize: ((styles.headerTitle.fontSize || DesignSystem.typography.h1.fontSize) * getFontMultiplier()),
+                    lineHeight: ((styles.headerTitle.fontSize || DesignSystem.typography.h1.fontSize) * getFontMultiplier()) * 1.2,
+                  },
                 ]}
               >
                 Due Soon
@@ -434,6 +470,10 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                     color: isDark
                       ? "rgba(255, 255, 255, 0.8)"
                       : "rgba(59, 130, 246, 0.85)",
+                  },
+                  isTablet && {
+                    fontSize: ((styles.headerSubtitle.fontSize || DesignSystem.typography.bodySemiBold.fontSize) * getFontMultiplier()),
+                    lineHeight: ((styles.headerSubtitle.fontSize || DesignSystem.typography.bodySemiBold.fontSize) * getFontMultiplier()) * 1.3,
                   },
                 ]}
               >
@@ -470,13 +510,18 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                             : "rgba(59, 130, 246, 0.25)",
                       },
                       currentTaskIndex === 0 && styles.navButtonDisabled,
+                      isTablet && {
+                        width: getResponsiveValue(40, 48, 52),
+                        height: getResponsiveValue(40, 48, 52),
+                        borderRadius: getResponsiveValue(20, 24, 26),
+                      },
                     ]}
                     onPress={goToPreviousTask}
                     disabled={currentTaskIndex === 0}
                   >
                     <Ionicons
                       name="chevron-back"
-                      size={24}
+                      size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                       color={
                         currentTaskIndex === 0
                           ? isDark
@@ -512,13 +557,18 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       },
                       currentTaskIndex === tasks.length - 1 &&
                         styles.navButtonDisabled,
+                      isTablet && {
+                        width: getResponsiveValue(40, 48, 52),
+                        height: getResponsiveValue(40, 48, 52),
+                        borderRadius: getResponsiveValue(20, 24, 26),
+                      },
                     ]}
                     onPress={goToNextTask}
                     disabled={currentTaskIndex === tasks.length - 1}
                   >
                     <Ionicons
                       name="chevron-forward"
-                      size={24}
+                      size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                       color={
                         currentTaskIndex === tasks.length - 1
                           ? isDark
@@ -541,18 +591,21 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
 
                 {/* Pagination Indicator */}
                 <View style={styles.paginationContainer}>
-                  <Text
-                    style={[
-                      styles.paginationText,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.7)"
-                          : "rgba(59, 130, 246, 0.75)",
-                      },
-                    ]}
-                  >
-                    {currentTaskIndex + 1} of {tasks.length}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.paginationText,
+                        {
+                          color: isDark
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "rgba(59, 130, 246, 0.75)",
+                        },
+                        isTablet && {
+                          fontSize: ((styles.paginationText.fontSize || 14) * getFontMultiplier()),
+                        },
+                      ]}
+                    >
+                      {currentTaskIndex + 1} of {tasks.length}
+                    </Text>
                 </View>
               </View>
             ) : (

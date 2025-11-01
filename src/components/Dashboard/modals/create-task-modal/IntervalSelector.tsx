@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { intervalOptions } from "../../../Dashboard/modals/create-task-modal/data";
 import { styles as sharedStyles } from "./styles";
@@ -24,7 +25,9 @@ export function IntervalSelector({
   error,
 }: IntervalSelectorProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
+  const fontMultiplier = getFontMultiplier();
 
   const getIntervalLabel = (interval: number) => {
     switch (interval) {
@@ -64,7 +67,13 @@ export function IntervalSelector({
 
   return (
     <View style={intervalStyles.container}>
-      <Text style={[intervalStyles.label, { color: colors.text }]}>
+      <Text style={[
+        intervalStyles.label, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((intervalStyles.label.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>
         Recurrence Interval
       </Text>
 
@@ -81,7 +90,13 @@ export function IntervalSelector({
       >
         <View style={intervalStyles.dropdownContent}>
           <Text
-            style={[intervalStyles.dropdownText, { color: colors.text }]}
+            style={[
+              intervalStyles.dropdownText, 
+              { color: colors.text },
+              isTablet && {
+                fontSize: ((intervalStyles.dropdownText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+              },
+            ]}
             numberOfLines={1}
           >
             {getDisplayText()}
@@ -89,7 +104,7 @@ export function IntervalSelector({
         </View>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
-          size={20}
+          size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
           color={colors.textSecondary}
         />
       </TouchableOpacity>
@@ -139,6 +154,9 @@ export function IntervalSelector({
                         : colors.text,
                     fontWeight: selectedInterval === option.id ? "700" : "400",
                   },
+                  isTablet && {
+                    fontSize: ((intervalStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 {option.name}
@@ -147,6 +165,9 @@ export function IntervalSelector({
                 style={[
                   intervalStyles.dropdownItemDescription,
                   { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: ((intervalStyles.dropdownItemDescription.fontSize || DesignSystem.typography.caption.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 {option.description}
@@ -176,12 +197,18 @@ export function IntervalSelector({
         >
           <Ionicons
             name="remove"
-            size={18}
+            size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
             color={intervalValue <= 1 ? colors.textSecondary : colors.text}
           />
         </TouchableOpacity>
 
-        <Text style={[intervalStyles.stepperValue, { color: colors.text }]}>
+        <Text style={[
+          intervalStyles.stepperValue, 
+          { color: colors.text },
+          isTablet && {
+            fontSize: ((intervalStyles.stepperValue.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+          },
+        ]}>
           {intervalValue}
         </Text>
 
@@ -192,7 +219,11 @@ export function IntervalSelector({
           ]}
           onPress={() => handleIntervalValueChange(true)}
         >
-          <Ionicons name="add" size={18} color={colors.text} />
+          <Ionicons 
+            name="add" 
+            size={isTablet ? getResponsiveValue(18, 22, 24) : 18} 
+            color={colors.text} 
+          />
         </TouchableOpacity>
       </View>
 

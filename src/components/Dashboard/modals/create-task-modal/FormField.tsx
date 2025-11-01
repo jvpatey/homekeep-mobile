@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { View, Text } from "react-native";
 import { TextInput, HelperText } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useDevice } from "../../../../hooks";
+import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
 
 interface FormFieldProps {
@@ -31,7 +33,9 @@ export function FormField({
   autoCapitalize = "none",
 }: FormFieldProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier } = useDevice();
   const [isFocused, setIsFocused] = useState(false);
+  const fontMultiplier = getFontMultiplier();
 
   const getInputTheme = () => ({
     colors: {
@@ -46,7 +50,13 @@ export function FormField({
 
   return (
     <View style={styles.inputGroup}>
-      <Text style={[styles.inputLabel, { color: colors.text }]}>
+      <Text style={[
+        styles.inputLabel, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((styles.inputLabel.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>
         {label} {required && <Text style={styles.required}>*</Text>}
       </Text>
       <View
@@ -67,7 +77,13 @@ export function FormField({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          style={multiline ? styles.textArea : styles.textInput}
+          style={[
+            multiline ? styles.textArea : styles.textInput,
+            isTablet && {
+              fontSize: ((styles.textInput.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+              paddingVertical: DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.3),
+            },
+          ]}
           textColor={colors.text}
           placeholderTextColor={colors.textSecondary}
           mode="flat"

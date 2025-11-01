@@ -15,6 +15,7 @@ import Animated, {
 import { DesignSystem } from "../../../theme/designSystem";
 import { colors } from "../../../theme/colors";
 import { useTheme } from "../../../context/ThemeContext";
+import { useDevice } from "../../../hooks";
 
 interface StreakPopupProps {
   streak: number;
@@ -24,6 +25,7 @@ interface StreakPopupProps {
 // StreakPopup component for the Dashboard
 export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   const { isDark } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
 
   // Animation values
   const scale = useSharedValue(0.7);
@@ -135,6 +137,8 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   const renderStreakDots = () => {
     const maxDots = Math.min(streak, 10); // Cap at 10 dots for readability
     const dots = [];
+    const dotSize = isTablet ? getResponsiveValue(12, 16, 18) : 12;
+    const dotRadius = dotSize / 2;
 
     for (let i = 0; i < maxDots; i++) {
       dots.push(
@@ -146,6 +150,9 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
               backgroundColor: isDark
                 ? "rgba(255, 107, 53, 0.6)"
                 : colors.light.accent,
+              width: dotSize,
+              height: dotSize,
+              borderRadius: dotRadius,
             },
           ]}
         />
@@ -156,11 +163,12 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   };
 
   return (
-    <TouchableOpacity
-      style={styles.overlay}
-      onPress={handleClose}
-      activeOpacity={1}
-    >
+    <View style={styles.overlayContainer}>
+      <TouchableOpacity
+        style={styles.overlay}
+        onPress={handleClose}
+        activeOpacity={1}
+      />
       <Animated.View
         style={[
           styles.container,
@@ -174,13 +182,26 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
               ? "rgba(255, 107, 53, 0.3)"
               : "rgba(255, 107, 53, 0.2)",
           },
+          isTablet && {
+            maxWidth: getResponsiveValue(350, 500, 600),
+          },
         ]}
+        pointerEvents="box-none"
       >
         <LinearGradient
           colors={glassGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
+          style={[
+            styles.gradientBackground,
+            isTablet && {
+              padding: getResponsiveValue(
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+              ),
+            },
+          ]}
         >
           {/* Close Button */}
           <TouchableOpacity
@@ -201,7 +222,7 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
           >
             <Ionicons
               name="close"
-              size={22}
+              size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
               color={
                 isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
               }
@@ -225,10 +246,18 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                     ? "rgba(255, 107, 53, 0.4)"
                     : "rgba(255, 107, 53, 0.3)",
                 },
+                isTablet && {
+                  padding: getResponsiveValue(16, 20, 24),
+                  borderRadius: getResponsiveValue(40, 50, 60),
+                },
               ]}
             >
               <Animated.View style={flameAnimatedStyle}>
-                <Ionicons name="flame" size={48} color="#FF6B35" />
+                <Ionicons 
+                  name="flame" 
+                  size={isTablet ? getResponsiveValue(48, 60, 72) : 48} 
+                  color="#FF6B35" 
+                />
               </Animated.View>
             </Animated.View>
 
@@ -241,6 +270,9 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                     color: isDark
                       ? "rgba(255, 255, 255, 0.95)"
                       : "rgba(255, 107, 53, 0.9)",
+                  },
+                  isTablet && {
+                    fontSize: (styles.streakText.fontSize || 72) * getFontMultiplier(),
                   },
                 ]}
               >
@@ -257,6 +289,10 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                     ? "rgba(255, 255, 255, 0.95)"
                     : "rgba(255, 107, 53, 0.9)",
                 },
+                isTablet && {
+                  fontSize: ((styles.streakLabel.fontSize || DesignSystem.typography.h3.fontSize) * getFontMultiplier()),
+                  lineHeight: ((styles.streakLabel.fontSize || DesignSystem.typography.h3.fontSize) * getFontMultiplier()) * 1.2,
+                },
               ]}
             >
               {streak === 1 ? "Day Streak" : "Day Streak"}
@@ -270,6 +306,10 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                   color: isDark
                     ? "rgba(255, 255, 255, 0.8)"
                     : "rgba(255, 107, 53, 0.85)",
+                },
+                isTablet && {
+                  fontSize: ((styles.streakMessage.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),
+                  lineHeight: ((styles.streakMessage.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()) * 1.4,
                 },
               ]}
             >
@@ -309,6 +349,9 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                         ? "rgba(255, 255, 255, 0.95)"
                         : "rgba(255, 107, 53, 0.9)",
                     },
+                    isTablet && {
+                      fontSize: ((styles.continueButtonText.fontSize || DesignSystem.typography.button.fontSize) * getFontMultiplier()),
+                    },
                   ]}
                 >
                   Continue
@@ -318,11 +361,21 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
           </View>
         </LinearGradient>
       </Animated.View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  overlayContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
   overlay: {
     position: "absolute",
     top: 0,
@@ -330,9 +383,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
   },
   container: {
     width: "85%",

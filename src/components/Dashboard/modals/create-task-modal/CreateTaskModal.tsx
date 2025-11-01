@@ -22,6 +22,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useHaptics } from "../../../../hooks/useHaptics";
+import { useDevice } from "../../../../hooks";
 import { useTasks } from "../../../../context/TasksContext";
 import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
@@ -73,6 +74,7 @@ export function CreateTaskModal({
   const { createTask, updateTask } = useTasks();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
 
   // Animation values
   const scale = useSharedValue(0.7);
@@ -364,13 +366,25 @@ export function CreateTaskModal({
                       ? "rgba(46, 196, 182, 0.3)"
                       : "rgba(46, 196, 182, 0.2)",
                   },
+                  isTablet && {
+                    maxWidth: getResponsiveValue(420, 600, 700),
+                  },
                 ]}
               >
                 <LinearGradient
                   colors={glassGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.gradientBackground}
+                  style={[
+                    styles.gradientBackground,
+                    isTablet && {
+                      padding: getResponsiveValue(
+                        DesignSystem.spacing.xl,
+                        DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                        DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+                      ),
+                    },
+                  ]}
                 >
                   {/* Close Button */}
                   <TouchableOpacity
@@ -391,7 +405,7 @@ export function CreateTaskModal({
                   >
                     <Ionicons
                       name="close"
-                      size={22}
+                      size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
                       color={
                         isDark
                           ? "rgba(255, 255, 255, 0.9)"
@@ -408,6 +422,10 @@ export function CreateTaskModal({
                         color: isDark
                           ? "rgba(255, 255, 255, 0.95)"
                           : "rgba(15, 23, 42, 0.9)",
+                      },
+                      isTablet && {
+                        fontSize: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()),
+                        lineHeight: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()) * 1.2,
                       },
                     ]}
                   >
@@ -507,6 +525,13 @@ export function CreateTaskModal({
                             ? "rgba(46, 196, 182, 0.2)"
                             : "rgba(59, 130, 246, 0.2)",
                         },
+                        isTablet && {
+                          padding: getResponsiveValue(
+                            DesignSystem.spacing.md,
+                            DesignSystem.spacing.lg,
+                            DesignSystem.spacing.xl,
+                          ),
+                        },
                       ]}
                     >
                       <Text
@@ -516,6 +541,10 @@ export function CreateTaskModal({
                             color: isDark
                               ? "rgba(255, 255, 255, 0.95)"
                               : "rgba(15, 23, 42, 0.9)",
+                          },
+                          isTablet && {
+                            fontSize: ((styles.summaryTitle.fontSize || DesignSystem.typography.h4.fontSize) * getFontMultiplier()),
+                            lineHeight: ((styles.summaryTitle.fontSize || DesignSystem.typography.h4.fontSize) * getFontMultiplier()) * 1.2,
                           },
                         ]}
                       >
@@ -528,6 +557,10 @@ export function CreateTaskModal({
                             color: isDark
                               ? "rgba(255, 255, 255, 0.8)"
                               : "rgba(59, 130, 246, 0.85)",
+                          },
+                          isTablet && {
+                            fontSize: ((styles.summaryText.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),
+                            lineHeight: ((styles.summaryText.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()) * 1.4,
                           },
                         ]}
                       >

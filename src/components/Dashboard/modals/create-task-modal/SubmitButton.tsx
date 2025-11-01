@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../../context/ThemeContext";
-import { useGradients } from "../../../../hooks";
+import { useGradients, useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
 
@@ -17,6 +17,8 @@ interface SubmitButtonProps {
 export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
   const { colors, isDark } = useTheme();
   const { primaryGradient } = useGradients();
+  const { isTablet, getFontMultiplier } = useDevice();
+  const fontMultiplier = getFontMultiplier();
 
   return (
     <View style={[styles.modalFooter, { backgroundColor: "transparent" }]}>
@@ -49,9 +51,19 @@ export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
                 : "rgba(255, 255, 255, 0.2)",
               opacity: disabled ? 0.6 : 1,
             },
+            isTablet && {
+              paddingVertical: DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.2),
+              minHeight: 44 * (1 + (fontMultiplier - 1) * 0.2),
+            },
           ]}
         >
-          <Text style={[styles.submitButtonText, { color: "white" }]}>
+          <Text style={[
+            styles.submitButtonText, 
+            { color: "white" },
+            isTablet && {
+              fontSize: ((styles.submitButtonText.fontSize || DesignSystem.typography.button.fontSize) * fontMultiplier),
+            },
+          ]}>
             {title}
           </Text>
         </LinearGradient>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { MaintenanceCategory } from "../../../../types/maintenance";
 import { styles as sharedStyles } from "./styles";
@@ -30,7 +31,9 @@ export function CategorySelector({
   error,
 }: CategorySelectorProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
+  const fontMultiplier = getFontMultiplier();
 
   const selectedCategoryData = categories.find(
     (c) => c.id === selectedCategory
@@ -38,7 +41,13 @@ export function CategorySelector({
 
   return (
     <View style={categoryStyles.container}>
-      <Text style={[categoryStyles.label, { color: colors.text }]}>
+      <Text style={[
+        categoryStyles.label, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((categoryStyles.label.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>
         Category <Text style={categoryStyles.required}>*</Text>
       </Text>
 
@@ -58,13 +67,16 @@ export function CategorySelector({
             <>
               <Ionicons
                 name={selectedCategoryData.icon as any}
-                size={20}
+                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                 color={selectedCategoryData.color}
               />
               <Text
                 style={[
                   categoryStyles.dropdownText,
                   { color: colors.text, marginLeft: 8 },
+                  isTablet && {
+                    fontSize: ((categoryStyles.dropdownText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 {selectedCategoryData.name === "HVAC"
@@ -76,7 +88,7 @@ export function CategorySelector({
         </View>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
-          size={20}
+          size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
           color={colors.textSecondary}
         />
       </TouchableOpacity>
@@ -115,7 +127,7 @@ export function CategorySelector({
             >
               <Ionicons
                 name={category.icon as any}
-                size={18}
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
                 color={category.color}
               />
               <Text
@@ -130,6 +142,9 @@ export function CategorySelector({
                       selectedCategory === category.id ? "700" : "400",
                   },
                   { marginLeft: 8 },
+                  isTablet && {
+                    fontSize: ((categoryStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 {category.name === "HVAC" ? "HVAC" : category.name}

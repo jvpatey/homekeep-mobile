@@ -9,6 +9,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { styles as sharedStyles } from "./styles";
 import { DatePickerEvent } from "../../../../types/navigation";
@@ -27,8 +28,10 @@ export function StartDateSelector({
   error,
 }: StartDateSelectorProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isQuickOptionsOpen, setIsQuickOptionsOpen] = useState(false);
+  const fontMultiplier = getFontMultiplier();
 
   const handleDateChange = (event: DatePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === "ios");
@@ -80,7 +83,13 @@ export function StartDateSelector({
 
   return (
     <View style={dateStyles.container}>
-      <Text style={[dateStyles.label, { color: colors.text }]}>Start Date</Text>
+      <Text style={[
+        dateStyles.label, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((dateStyles.label.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>Start Date</Text>
 
       <TouchableOpacity
         style={[
@@ -94,11 +103,18 @@ export function StartDateSelector({
         activeOpacity={0.7}
       >
         <View style={dateStyles.dropdownContent}>
-          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          <Ionicons 
+            name="calendar-outline" 
+            size={isTablet ? getResponsiveValue(20, 24, 26) : 20} 
+            color={colors.primary} 
+          />
           <Text
             style={[
               dateStyles.dropdownText,
               { color: colors.text, marginLeft: 8 },
+              isTablet && {
+                fontSize: ((dateStyles.dropdownText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+              },
             ]}
           >
             {selectedQuickOption
@@ -108,7 +124,7 @@ export function StartDateSelector({
         </View>
         <Ionicons
           name={isQuickOptionsOpen ? "chevron-up" : "chevron-down"}
-          size={20}
+          size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
           color={colors.textSecondary}
         />
       </TouchableOpacity>
@@ -154,6 +170,9 @@ export function StartDateSelector({
                       color: isSelected ? colors.primary : colors.text,
                       fontWeight: isSelected ? "700" : "400",
                     },
+                    isTablet && {
+                      fontSize: ((dateStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                    },
                   ]}
                 >
                   {option.label}
@@ -184,7 +203,11 @@ export function StartDateSelector({
             }}
           >
             <View style={dateStyles.customOptionContainer}>
-              <Ionicons name="calendar" size={18} color={colors.primary} />
+              <Ionicons 
+                name="calendar" 
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18} 
+                color={colors.primary} 
+              />
               <Text
                 style={[
                   dateStyles.dropdownItemText,
@@ -193,6 +216,9 @@ export function StartDateSelector({
                     fontWeight: !selectedQuickOption ? "700" : "400",
                   },
                   { marginLeft: 8, flex: 1 },
+                  isTablet && {
+                    fontSize: ((dateStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 Custom Date
@@ -201,6 +227,9 @@ export function StartDateSelector({
                 style={[
                   dateStyles.customDateText,
                   { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: ((dateStyles.customDateText.fontSize || DesignSystem.typography.caption.fontSize) * fontMultiplier),
+                  },
                 ]}
               >
                 {formatDate(startDate)}
@@ -239,7 +268,13 @@ export function StartDateSelector({
               ]}
               onPress={() => setShowDatePicker(false)}
             >
-              <Text style={[dateStyles.datePickerDoneText, { color: "white" }]}>
+              <Text style={[
+                dateStyles.datePickerDoneText, 
+                { color: "white" },
+                isTablet && {
+                  fontSize: ((dateStyles.datePickerDoneText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                },
+              ]}>
                 Done
               </Text>
             </TouchableOpacity>
