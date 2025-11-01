@@ -525,42 +525,38 @@ export function TimelineView({
                           backgroundColor: isDark
                             ? "rgba(255, 255, 255, 0.05)"
                             : "rgba(0, 0, 0, 0.05)",
-                          borderColor: task.is_completed
-                            ? isDark
-                              ? "rgba(111, 207, 151, 0.4)"
-                              : "rgba(39, 174, 96, 0.4)"
-                            : isDark
-                            ? "rgba(46, 196, 182, 0.4)"
-                            : "rgba(46, 196, 182, 0.4)",
+                          borderColor: isDark
+                            ? "rgba(255, 255, 255, 0.2)"
+                            : "rgba(0, 0, 0, 0.2)",
                           borderWidth: 1,
                         },
                         isTablet && {
-                          width: 32 * fontMultiplier,
-                          height: 32 * fontMultiplier,
-                          borderRadius: 16 * fontMultiplier,
+                          width: 48 * fontMultiplier,
+                          height: 48 * fontMultiplier,
+                          borderRadius: 24 * fontMultiplier,
                         },
                       ]}
                       onPress={() => onCompleteTask(task.instance_id)}
-                      activeOpacity={0.7}
+                      activeOpacity={0.8}
                     >
                       {task.is_completed ? (
                         <Ionicons
                           name="checkmark-circle"
-                          size={isTablet ? 18 * fontMultiplier : 18}
+                          size={isTablet ? 24 * fontMultiplier : 24}
                           color={
                             isDark
-                              ? "rgba(111, 207, 151, 0.6)"
-                              : "rgba(39, 174, 96, 0.6)"
+                              ? "rgba(255, 255, 255, 0.7)"
+                              : "rgba(15, 23, 42, 0.7)"
                           }
                         />
                       ) : (
                         <Ionicons
                           name="checkmark"
-                          size={isTablet ? 14 * fontMultiplier : 14}
+                          size={isTablet ? 20 * fontMultiplier : 20}
                           color={
                             isDark
-                              ? "rgba(46, 196, 182, 0.6)"
-                              : "rgba(46, 196, 182, 0.6)"
+                              ? "rgba(255, 255, 255, 0.6)"
+                              : "rgba(15, 23, 42, 0.65)"
                           }
                         />
                       )}
