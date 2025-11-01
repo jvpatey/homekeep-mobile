@@ -13,7 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
-import { useGradients } from "../../hooks";
+import { useGradients, useDevice } from "../../hooks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { HeroCarousel } from "./HeroCarousel";
 import { TimelineView } from "./timeline-view/TimelineView";
@@ -55,6 +55,7 @@ export function NewDashboard({
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { ambientGradient } = useGradients();
+  const { isTablet } = useDevice();
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
@@ -249,56 +250,58 @@ export function NewDashboard({
           />
         }
       >
-        {/* Header Section */}
-        <Animated.View style={headerAnimatedStyle}>
-          <DashboardHeader
-            userName={getUserName(user?.user_metadata?.full_name, user?.email)}
-            greeting={getGreeting()}
-            motivationalMessage={getMotivationalMessage(upcomingTasks)}
-            dueSoonCount={dueSoonTasks.length}
-            completedCount={completedTasks.length}
-            streak={streak}
-            onRefresh={onRefresh}
-            onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
-            onShowStreakPopup={() => setShowStreakPopup(true)}
-          />
-        </Animated.View>
+        <View>
+          {/* Header Section */}
+          <Animated.View style={headerAnimatedStyle}>
+            <DashboardHeader
+              userName={getUserName(user?.user_metadata?.full_name, user?.email)}
+              greeting={getGreeting()}
+              motivationalMessage={getMotivationalMessage(upcomingTasks)}
+              dueSoonCount={dueSoonTasks.length}
+              completedCount={completedTasks.length}
+              streak={streak}
+              onRefresh={onRefresh}
+              onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
+              onShowStreakPopup={() => setShowStreakPopup(true)}
+            />
+          </Animated.View>
 
-        {/* Hero Carousel */}
-        <Animated.View style={carouselAnimatedStyle}>
-          <HeroCarousel
-            tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
-            onCompleteTask={handleCompleteTask}
-            onTaskPress={handleTaskPress}
-            showTimelineView={showTimelineView}
-            onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
-          />
-        </Animated.View>
-
-        {/* Timeline View */}
-        <Animated.View style={timelineAnimatedStyle}>
-          <RNAnimated.View
-            style={{
-              overflow: "hidden",
-              height: timelineHeight.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, timelineContentHeight || 2000],
-              }),
-            }}
-            pointerEvents={showTimelineView ? "auto" : "none"}
-          >
-            <TimelineView
-              tasks={timelineTasks}
+          {/* Hero Carousel */}
+          <Animated.View style={carouselAnimatedStyle}>
+            <HeroCarousel
+              tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
               onCompleteTask={handleCompleteTask}
               onTaskPress={handleTaskPress}
-              visible={showTimelineView}
-              onContentSizeChange={(height) => setTimelineContentHeight(height)}
+              showTimelineView={showTimelineView}
+              onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
             />
-          </RNAnimated.View>
-        </Animated.View>
+          </Animated.View>
 
-        {/* Bottom Spacing */}
-        <View style={dashboardStyles.bottomSpacing} />
+          {/* Timeline View */}
+          <Animated.View style={timelineAnimatedStyle}>
+            <RNAnimated.View
+              style={{
+                overflow: "hidden",
+                height: timelineHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, timelineContentHeight || 2000],
+                }),
+              }}
+              pointerEvents={showTimelineView ? "auto" : "none"}
+            >
+              <TimelineView
+                tasks={timelineTasks}
+                onCompleteTask={handleCompleteTask}
+                onTaskPress={handleTaskPress}
+                visible={showTimelineView}
+                onContentSizeChange={(height) => setTimelineContentHeight(height)}
+              />
+            </RNAnimated.View>
+          </Animated.View>
+
+          {/* Bottom Spacing */}
+          <View style={dashboardStyles.bottomSpacing} />
+        </View>
       </ScrollView>
 
       {/* Floating Action Button - Add Task */}

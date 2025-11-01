@@ -148,8 +148,8 @@ export function NotificationPermissionRequest() {
             >
               <View style={styles.headerContent}>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>
-                  Stay on Top of Maintenance
-                </Text>
+            Stay on Top of Maintenance
+          </Text>
                 <TouchableOpacity
                   style={[
                     styles.closeButton,
@@ -186,10 +186,10 @@ export function NotificationPermissionRequest() {
                 </LinearGradient>
               </View>
 
-              <Text style={[styles.description, { color: colors.textSecondary }]}>
-                Enable notifications to get reminders when your maintenance tasks
-                are due, overdue, or need attention.
-              </Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            Enable notifications to get reminders when your maintenance tasks
+            are due, overdue, or need attention.
+          </Text>
             </View>
 
             {/* Footer Actions */}
@@ -212,24 +212,24 @@ export function NotificationPermissionRequest() {
                   end={{ x: 1, y: 0 }}
                   style={styles.glassBorderGradient}
                 >
-                  <TouchableOpacity
+            <TouchableOpacity
                     style={[
                       styles.cancelButton,
                       {
                         backgroundColor: colors.glass,
                       },
                     ]}
-                    onPress={handleSkip}
-                  >
-                    <Text
+              onPress={handleSkip}
+            >
+              <Text
                       style={[
                         styles.cancelButtonText,
                         { color: colors.text },
                       ]}
-                    >
-                      Later
-                    </Text>
-                  </TouchableOpacity>
+              >
+                Later
+              </Text>
+            </TouchableOpacity>
                 </LinearGradient>
               </View>
 
@@ -241,22 +241,22 @@ export function NotificationPermissionRequest() {
                   end={{ x: 1, y: 0 }}
                   style={styles.glassBorderGradient}
                 >
-                  <TouchableOpacity
+            <TouchableOpacity
                     style={styles.enableButton}
-                    onPress={handleRequestPermissions}
+              onPress={handleRequestPermissions}
                   >
                     <LinearGradient
                       colors={[colors.primary, colors.secondary]}
                       style={styles.enableButtonGradient}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
-                    >
-                      <Text style={styles.enableButtonText}>Enable</Text>
+            >
+              <Text style={styles.enableButtonText}>Enable</Text>
                     </LinearGradient>
-                  </TouchableOpacity>
+            </TouchableOpacity>
                 </LinearGradient>
-              </View>
-            </View>
+          </View>
+        </View>
           </Animated.View>
         </Pressable>
       </Animated.View>

@@ -17,13 +17,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
+import { useDevice } from "../../hooks";
 import { TaskCard } from "./tasks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { ViewableItemsChangedEvent } from "../../types/navigation";
 
 const { width: screenWidth } = Dimensions.get("window");
-const CARD_WIDTH = screenWidth - 80;
 
 // Helper to add alpha to hex color
 const addAlpha = (color: string, alpha: number): string => {
@@ -51,8 +51,23 @@ export function HeroCarousel({
   onToggleTimelineView,
 }: HeroCarouselProps) {
   const { colors, isDark } = useTheme();
+  const { isTablet, getResponsiveValue } = useDevice();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Responsive card width for iPad - match header padding for consistency
+  // Header has: lg (24px) on standard iPad, xl (32px) on iPad Pro
+  // Cards need: header padding * 2 (both sides) + card margin * 2
+  const headerPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,   // 24px on standard iPad
+        DesignSystem.spacing.xl,    // 32px on iPad Pro
+      )
+    : DesignSystem.spacing.md;
+  
+  const cardMargin = DesignSystem.spacing.md; // 16px card margin from styles
+  const cardWidth = screenWidth - (headerPadding * 2) - (cardMargin * 2);
 
   // Two-color gradient for selected state - subtle and transparent (50% opacity)
   const gradientColors = [
@@ -249,7 +264,16 @@ export function HeroCarousel({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[
+        styles.header,
+        isTablet && {
+          paddingHorizontal: getResponsiveValue(
+            DesignSystem.spacing.md,
+            DesignSystem.spacing.lg,  // Comfortable padding on iPad (24px)
+            DesignSystem.spacing.xl,  // Comfortable padding on iPad Pro (32px)
+          ),
+        },
+      ]}>
         <Text
           style={[
             styles.title,
@@ -388,7 +412,7 @@ export function HeroCarousel({
           data={tasks}
           horizontal
           decelerationRate="fast"
-          snapToInterval={CARD_WIDTH + DesignSystem.spacing.md * 2}
+          snapToInterval={cardWidth + DesignSystem.spacing.md * 2}
           snapToAlignment="center"
           disableIntervalMomentum
           showsHorizontalScrollIndicator={false}
@@ -411,12 +435,24 @@ export function HeroCarousel({
                 is_completed={task.is_completed}
                 onComplete={onCompleteTask}
                 onPress={onTaskPress}
+                cardWidth={cardWidth}
               />
             </View>
           )}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.scrollContent}
-          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingLeft: (screenWidth - cardWidth) / 2 - DesignSystem.spacing.md,
+              paddingRight: (screenWidth - cardWidth) / 2 - DesignSystem.spacing.md,
+            },
+          ]}
+          style={[
+            styles.scrollView,
+            isTablet && {
+              height: getResponsiveValue(240, 280, 300), // Taller on iPad to accommodate taller cards
+            },
+          ]}
         />
       </View>
 
@@ -530,11 +566,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scrollView: {
-    height: 240,
+    height: 240, // Base height, will be overridden dynamically
   },
   scrollContent: {
-    paddingLeft: (screenWidth - CARD_WIDTH) / 2 - DesignSystem.spacing.md,
-    paddingRight: (screenWidth - CARD_WIDTH) / 2 - DesignSystem.spacing.md,
+    // Padding is now calculated dynamically based on cardWidth
   },
   cardContainer: {
     alignItems: "center",

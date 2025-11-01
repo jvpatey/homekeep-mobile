@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useGradients } from "../../hooks";
+import { useGradients, useDevice } from "../../hooks";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -46,8 +46,11 @@ export function DashboardHeader({
   const { colors, isDark } = useTheme();
   const { selectedGradient } = useUserPreferences();
   const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  
+  const fontMultiplier = getFontMultiplier();
 
   // Helper function to calculate luminance of a hex color
   const getLuminance = (hex: string): number => {
@@ -226,7 +229,16 @@ export function DashboardHeader({
         />
 
         {/* Content layer */}
-        <View style={headerStyles.contentLayer}>
+        <View style={[
+          headerStyles.contentLayer,
+          isTablet && {
+            paddingHorizontal: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.lg,  // Comfortable padding on iPad (24px)
+              DesignSystem.spacing.xl,  // Comfortable padding on iPad Pro (32px)
+            ),
+          },
+        ]}>
           {/* Profile Button - Top Right */}
           <Animated.View
             style={[headerStyles.profileButtonContainer, profileAnimatedStyle]}
@@ -245,6 +257,10 @@ export function DashboardHeader({
                     : "rgba(15, 23, 42, 0.9)",
                 },
                 greetAnimatedStyle,
+                isTablet && {
+                  fontSize: headerStyles.greeting.fontSize * fontMultiplier,
+                  lineHeight: (headerStyles.greeting.fontSize * fontMultiplier) * 1.2,
+                },
               ]}
             >
               {greeting}
@@ -297,6 +313,10 @@ export function DashboardHeader({
                         textShadowOffset: { width: 0, height: 1 },
                         textShadowRadius: isDark ? 8 : 4,
                       },
+                      isTablet && {
+                        fontSize: headerStyles.userName.fontSize * fontMultiplier,
+                        lineHeight: (headerStyles.userName.fontSize * fontMultiplier) * 1.2,
+                      },
                     ]}
                   >
                     {userName}
@@ -309,7 +329,14 @@ export function DashboardHeader({
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={[headerStyles.userName, { opacity: 0 }]}>
+                  <Text style={[
+                    headerStyles.userName,
+                    { opacity: 0 },
+                    isTablet && {
+                      fontSize: headerStyles.userName.fontSize * fontMultiplier,
+                      lineHeight: (headerStyles.userName.fontSize * fontMultiplier) * 1.2,
+                    },
+                  ]}>
                     {userName}
                   </Text>
                 </LinearGradient>
@@ -323,6 +350,10 @@ export function DashboardHeader({
                   color: isDark
                     ? colors.textSecondary
                     : "rgba(15, 23, 42, 0.65)",
+                },
+                isTablet && {
+                  fontSize: (headerStyles.motivationalMessage.fontSize || 16) * fontMultiplier,
+                  lineHeight: ((headerStyles.motivationalMessage.fontSize || 16) * fontMultiplier) * 1.4,
                 },
               ]}
             >
@@ -343,6 +374,13 @@ export function DashboardHeader({
                   : "rgba(255, 255, 255, 0.6)",
               },
               statsAnimatedStyle,
+              isTablet && {
+                padding: getResponsiveValue(
+                  DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl,
+                  DesignSystem.spacing.xxl,
+                ),
+              },
             ]}
           >
             <TouchableOpacity
@@ -358,6 +396,9 @@ export function DashboardHeader({
                       ? colors.primary
                       : "rgba(15, 23, 42, 0.9)",
                   },
+                  isTablet && {
+                    fontSize: headerStyles.statNumber.fontSize * fontMultiplier,
+                  },
                 ]}
               >
                 {dueSoonCount}
@@ -369,6 +410,9 @@ export function DashboardHeader({
                     color: isDark
                       ? colors.textSecondary
                       : "rgba(15, 23, 42, 0.7)",
+                  },
+                  isTablet && {
+                    fontSize: (headerStyles.statLabel.fontSize || 14) * fontMultiplier,
                   },
                 ]}
               >
@@ -391,6 +435,9 @@ export function DashboardHeader({
                       ? colors.success
                       : "rgba(15, 23, 42, 0.9)",
                   },
+                  isTablet && {
+                    fontSize: headerStyles.statNumber.fontSize * fontMultiplier,
+                  },
                 ]}
               >
                 {completedCount}
@@ -402,6 +449,9 @@ export function DashboardHeader({
                     color: isDark
                       ? colors.textSecondary
                       : "rgba(15, 23, 42, 0.7)",
+                  },
+                  isTablet && {
+                    fontSize: (headerStyles.statLabel.fontSize || 14) * fontMultiplier,
                   },
                 ]}
               >
@@ -422,6 +472,9 @@ export function DashboardHeader({
                       ? colors.accent
                       : "rgba(15, 23, 42, 0.9)",
                   },
+                  isTablet && {
+                    fontSize: headerStyles.statNumber.fontSize * fontMultiplier,
+                  },
                 ]}
               >
                 {streak}
@@ -433,6 +486,9 @@ export function DashboardHeader({
                     color: isDark
                       ? colors.textSecondary
                       : "rgba(15, 23, 42, 0.7)",
+                  },
+                  isTablet && {
+                    fontSize: (headerStyles.statLabel.fontSize || 14) * fontMultiplier,
                   },
                 ]}
               >
