@@ -23,7 +23,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
-import { useGradients } from "../../hooks";
+import { useGradients, useDevice } from "../../hooks";
 import {
   GroupedRoutine,
   groupTasksByRoutine,
@@ -38,6 +38,7 @@ export function CompletionHistoryScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
+  const { isTablet, getFontMultiplier, getResponsiveValue, width, height } = useDevice();
   const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
   const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
     new Set()
@@ -167,6 +168,7 @@ export function CompletionHistoryScreen() {
   };
 
   const renderProgressIndicator = (routine: GroupedRoutine) => {
+    const fontMultiplier = getFontMultiplier();
     return (
       <View style={completionHistoryStyles.progressContainer}>
         <View style={completionHistoryStyles.progressBar}>
@@ -184,11 +186,18 @@ export function CompletionHistoryScreen() {
         </View>
         <View style={completionHistoryStyles.progressStats}>
           <View style={completionHistoryStyles.progressStat}>
-            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <Ionicons 
+              name="checkmark-circle" 
+              size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
+              color="#10B981" 
+            />
             <Text
               style={[
                 completionHistoryStyles.progressText,
                 { color: colors.textSecondary },
+                isTablet && {
+                  fontSize: ((completionHistoryStyles.progressText.fontSize || 12) * fontMultiplier),
+                },
               ]}
             >
               {routine.completedInstances.length} completed
@@ -196,11 +205,18 @@ export function CompletionHistoryScreen() {
           </View>
           {routine.pastDueInstances.length > 0 && (
             <View style={completionHistoryStyles.progressStat}>
-              <Ionicons name="close-circle" size={16} color="#EF4444" />
+              <Ionicons 
+                name="close-circle" 
+                size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
+                color="#EF4444" 
+              />
               <Text
                 style={[
                   completionHistoryStyles.progressText,
                   { color: "#EF4444" },
+                  isTablet && {
+                    fontSize: ((completionHistoryStyles.progressText.fontSize || 12) * fontMultiplier),
+                  },
                 ]}
               >
                 {routine.pastDueInstances.length} overdue
@@ -209,11 +225,18 @@ export function CompletionHistoryScreen() {
           )}
           {routine.intervalDays > 0 && (
             <View style={completionHistoryStyles.progressStat}>
-              <Ionicons name="refresh" size={16} color={colors.textSecondary} />
+              <Ionicons 
+                name="refresh" 
+                size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
+                color={colors.textSecondary} 
+              />
               <Text
                 style={[
                   completionHistoryStyles.progressText,
                   { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: ((completionHistoryStyles.progressText.fontSize || 12) * fontMultiplier),
+                  },
                 ]}
               >
                 Every {routine.intervalDays} days
@@ -230,7 +253,7 @@ export function CompletionHistoryScreen() {
     return renderProgressIndicator(routine);
   };
 
-  // Create animated routine item component to properly use hooks
+      // Create animated routine item component to properly use hooks
   const AnimatedRoutineItem = React.memo(
     ({
       item,
@@ -242,6 +265,9 @@ export function CompletionHistoryScreen() {
       colors,
       isDark,
       renderProgress,
+      isTablet,
+      getFontMultiplier,
+      getResponsiveValue,
     }: {
       item: GroupedRoutine;
       index: number;
@@ -252,7 +278,11 @@ export function CompletionHistoryScreen() {
       colors: any;
       isDark: boolean;
       renderProgress: (routine: GroupedRoutine) => React.ReactNode;
+      isTablet: boolean;
+      getFontMultiplier: () => number;
+      getResponsiveValue: (phone: number, tablet: number, largeTablet: number) => number;
     }) => {
+      const fontMultiplier = getFontMultiplier();
       // Removed per-item animations to avoid reload/flash on expand/collapse
       return (
         <View
@@ -283,6 +313,10 @@ export function CompletionHistoryScreen() {
                       style={[
                         completionHistoryStyles.routineTitle,
                         { color: colors.text },
+                        isTablet && {
+                          fontSize: ((completionHistoryStyles.routineTitle.fontSize || 18) * fontMultiplier),
+                          lineHeight: ((completionHistoryStyles.routineTitle.fontSize || 18) * fontMultiplier) * 1.3,
+                        },
                       ]}
                     >
                       {item.title}
@@ -297,6 +331,9 @@ export function CompletionHistoryScreen() {
                         style={[
                           completionHistoryStyles.categoryText,
                           { color: colors.primary },
+                          isTablet && {
+                            fontSize: ((completionHistoryStyles.categoryText.fontSize || 12) * fontMultiplier),
+                          },
                         ]}
                       >
                         {item.category}
@@ -307,7 +344,7 @@ export function CompletionHistoryScreen() {
                   <View style={completionHistoryStyles.routineHeaderRight}>
                     <Ionicons
                       name={isExpanded ? "chevron-up" : "chevron-down"}
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.textSecondary}
                     />
                   </View>
@@ -320,13 +357,16 @@ export function CompletionHistoryScreen() {
                 <View style={completionHistoryStyles.lastCompletion}>
                   <Ionicons
                     name="calendar-outline"
-                    size={16}
+                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                     color={colors.textSecondary}
                   />
                   <Text
                     style={[
                       completionHistoryStyles.lastCompletionText,
                       { color: colors.textSecondary },
+                      isTablet && {
+                        fontSize: ((completionHistoryStyles.lastCompletionText.fontSize || 12) * fontMultiplier),
+                      },
                     ]}
                   >
                     Last completed:{" "}
@@ -343,6 +383,10 @@ export function CompletionHistoryScreen() {
                       style={[
                         completionHistoryStyles.instanceTitle,
                         { color: colors.text },
+                        isTablet && {
+                          fontSize: ((completionHistoryStyles.instanceTitle.fontSize || 14) * fontMultiplier),
+                          lineHeight: ((completionHistoryStyles.instanceTitle.fontSize || 14) * fontMultiplier) * 1.3,
+                        },
                       ]}
                     >
                       Task History
@@ -357,6 +401,9 @@ export function CompletionHistoryScreen() {
                             style={[
                               completionHistoryStyles.instanceDate,
                               { color: colors.textSecondary },
+                              isTablet && {
+                                fontSize: ((completionHistoryStyles.instanceDate.fontSize || 12) * fontMultiplier),
+                              },
                             ]}
                           >
                             Completed: {formatDateTime(instance.completed_at || "")}
@@ -364,7 +411,7 @@ export function CompletionHistoryScreen() {
                           <View style={completionHistoryStyles.instancePriority}>
                             <Ionicons
                               name="checkmark-circle"
-                              size={16}
+                              size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                               color="#10B981"
                             />
                           </View>
@@ -383,12 +430,19 @@ export function CompletionHistoryScreen() {
                               style={[
                                 completionHistoryStyles.instanceDate,
                                 { color: colors.textSecondary },
+                                isTablet && {
+                                  fontSize: ((completionHistoryStyles.instanceDate.fontSize || 12) * fontMultiplier),
+                                },
                               ]}
                             >
                               Past Due: {formatDate(instance.due_date)}
                             </Text>
                             <View style={completionHistoryStyles.instancePriority}>
-                              <Ionicons name="close-circle" size={16} color="#EF4444" />
+                              <Ionicons 
+                                name="close-circle" 
+                                size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
+                                color="#EF4444" 
+                              />
                             </View>
                           </View>
 
@@ -417,13 +471,13 @@ export function CompletionHistoryScreen() {
                             {isCompleting ? (
                               <Ionicons
                                 name="hourglass"
-                                size={16}
+                                size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                                 color={colors.primary}
                               />
                             ) : (
                               <Ionicons
                                 name="checkmark"
-                                size={16}
+                                size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                                 color={colors.primary}
                               />
                             )}
@@ -431,6 +485,9 @@ export function CompletionHistoryScreen() {
                               style={[
                                 completionHistoryStyles.completeButtonText,
                                 { color: colors.primary },
+                                isTablet && {
+                                  fontSize: ((completionHistoryStyles.completeButtonText.fontSize || 12) * fontMultiplier),
+                                },
                               ]}
                             >
                               {isCompleting ? "Completing..." : "Complete Now"}
@@ -463,6 +520,9 @@ export function CompletionHistoryScreen() {
         colors={colors}
         isDark={isDark}
         renderProgress={renderProgressIndicatorForItem}
+        isTablet={isTablet}
+        getFontMultiplier={getFontMultiplier}
+        getResponsiveValue={getResponsiveValue}
       />
     );
   };
@@ -471,17 +531,22 @@ export function CompletionHistoryScreen() {
     if (loading || !hasLoadedOnce) {
       return null;
     }
+    const fontMultiplier = getFontMultiplier();
     return (
       <View style={completionHistoryStyles.emptyState}>
         <Ionicons
           name="checkmark-circle-outline"
-          size={64}
+          size={isTablet ? getResponsiveValue(64, 80, 90) : 64}
           color={colors.textSecondary}
         />
         <Text
           style={[
             completionHistoryStyles.emptyStateTitle,
             { color: colors.text },
+            isTablet && {
+              fontSize: ((completionHistoryStyles.emptyStateTitle.fontSize || DesignSystem.typography.h2.fontSize) * fontMultiplier),
+              lineHeight: ((completionHistoryStyles.emptyStateTitle.fontSize || DesignSystem.typography.h2.fontSize) * fontMultiplier) * 1.2,
+            },
           ]}
         >
           No completed tasks yet
@@ -490,6 +555,10 @@ export function CompletionHistoryScreen() {
           style={[
             completionHistoryStyles.emptyStateSubtitle,
             { color: colors.textSecondary },
+            isTablet && {
+              fontSize: ((completionHistoryStyles.emptyStateSubtitle.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+              lineHeight: ((completionHistoryStyles.emptyStateSubtitle.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier) * 1.4,
+            },
           ]}
         >
           Complete your first task to see it here!
@@ -591,6 +660,10 @@ export function CompletionHistoryScreen() {
                   completionHistoryStyles.heroTitle,
                   { color: colors.text },
                   titleAnimatedStyle,
+                  isTablet && {
+                    fontSize: ((completionHistoryStyles.heroTitle.fontSize || 32) * (Math.max(width, height) > 1300 ? 1.5 : 1.35)),
+                    lineHeight: ((completionHistoryStyles.heroTitle.fontSize || 32) * (Math.max(width, height) > 1300 ? 1.5 : 1.35)) * 1.2,
+                  },
                 ]}
               >
                 Completion History
@@ -600,6 +673,10 @@ export function CompletionHistoryScreen() {
                   completionHistoryStyles.heroSubtitle,
                   { color: colors.textSecondary },
                   subtitleAnimatedStyle,
+                  isTablet && {
+                    fontSize: ((completionHistoryStyles.heroSubtitle.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),
+                    lineHeight: ((completionHistoryStyles.heroSubtitle.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()) * 1.4,
+                  },
                 ]}
               >
                 {completedTasks.length} tasks completed
