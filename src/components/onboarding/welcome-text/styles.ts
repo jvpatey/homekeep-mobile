@@ -6,18 +6,15 @@ export const styles = StyleSheet.create({
   textContainer: {
     alignItems: "center",
     marginTop: DesignSystem.spacing.lg,
-    maxWidth: 280,
     width: "100%",
-    paddingHorizontal: DesignSystem.spacing.sm,
   },
   headline: {
     ...DesignSystem.typography.h2,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.lg,
     textShadowColor: "rgba(0, 0, 0, 0.05)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
-    width: "100%",
   },
   subtitle: {
     ...DesignSystem.typography.bodyMedium,
@@ -26,6 +23,5 @@ export const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.05)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
-    width: "100%",
   },
 });

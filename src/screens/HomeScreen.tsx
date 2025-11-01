@@ -179,7 +179,6 @@ const styles = StyleSheet.create({
   },
   heroContent: {
     alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
     zIndex: 15, // Higher than fade (10) so text isn't covered
     width: "100%",
@@ -190,7 +189,5 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingTop: DesignSystem.spacing.md,
-    justifyContent: "flex-start",
-    alignItems: "center",
   },
 });

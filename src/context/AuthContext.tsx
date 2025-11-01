@@ -286,10 +286,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Best-effort: clear push token so logged-out device stops receiving pushes
       if (user?.id) {
         try {
-          await supabase
-            .from("profiles")
-            .update({ push_token: null, updated_at: new Date().toISOString() })
-            .eq("id", user.id);
+        await supabase
+          .from("profiles")
+          .update({ push_token: null, updated_at: new Date().toISOString() })
+          .eq("id", user.id);
           console.log("Push token cleared successfully");
         } catch (err) {
           // Non-fatal: proceed with sign-out even if token clearing fails
