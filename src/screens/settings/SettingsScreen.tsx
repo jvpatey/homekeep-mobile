@@ -101,7 +101,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         text: "Sign Out",
         style: "destructive",
         onPress: async () => {
-          await signOut();
+          console.log("User confirmed sign out from Settings");
+          try {
+            await signOut();
+          } catch (error) {
+            console.error("Sign out error from Settings:", error);
+            Alert.alert("Error", "Failed to sign out. Please try again.");
+          }
         },
       },
     ]);

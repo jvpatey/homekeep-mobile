@@ -104,19 +104,27 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const handleSignOut = async () => {
     hideMenu();
 
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          await signOut();
+    // Wait for animation to complete before showing alert to avoid race conditions
+    setTimeout(() => {
+      Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+        {
+          text: "Cancel",
+          style: "cancel",
         },
-      },
-    ]);
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            console.log("User confirmed sign out");
+            try {
+              await signOut();
+            } catch (error) {
+              console.error("Sign out error:", error);
+            }
+          },
+        },
+      ]);
+    }, 250);
   };
 
   // handleSettings functiont to toggle settings view
