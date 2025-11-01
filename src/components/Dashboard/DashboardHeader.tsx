@@ -458,12 +458,12 @@ export function DashboardHeader({
               headerStyles.statsContainer,
               {
                 backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.6)"
-                  : "rgba(255, 255, 255, 0.75)",
+                  ? "rgba(35, 37, 38, 0.4)"
+                  : "rgba(255, 255, 255, 0.45)",
                 borderWidth: 1,
                 borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.15)"
-                  : "rgba(255, 255, 255, 0.8)",
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(255, 255, 255, 0.5)",
               },
               statsAnimatedStyle,
               isTablet && {
