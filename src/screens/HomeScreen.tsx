@@ -82,7 +82,7 @@ export function HomeScreen() {
           style={styles.gradientGlow}
         />
         
-        {/* Ambient light layer - fade to transparent on iPads to prevent dark bar */}
+        {/* Ambient light layer - fade to transparent to prevent dark bar */}
         <LinearGradient
           colors={
             isTablet
@@ -99,7 +99,14 @@ export function HomeScreen() {
                     "rgba(46, 196, 182, 0.025)",
                     "transparent",
                   ]
-              : ambientGradient
+              : isDark
+              ? ambientGradient
+              : [
+                  "transparent",
+                  "transparent",
+                  "transparent",
+                  "transparent",
+                ]
           }
           locations={[0, 0.4, 1]}
           start={{ x: 0, y: 0 }}

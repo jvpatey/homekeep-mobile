@@ -72,7 +72,7 @@ export function useDevice() {
       }
       return 200;
     }
-    return 150; // Default for phone
+    return 250; // Much taller fade for phones to prevent dark bar
   };
 
   const getGradientFadeLocations = (isDark: boolean) => {
@@ -89,7 +89,8 @@ export function useDevice() {
       }
       return isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1];
     }
-    return isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1];
+    // For phones in light mode, use more gradual fade locations matching the 5-color array
+    return isDark ? [0, 0.4, 1] : [0, 0.5, 0.75, 0.9, 1];
   };
 
   const getGradientFadeColors = (isDark: boolean, backgroundColor: string) => {
@@ -132,9 +133,16 @@ export function useDevice() {
         ? ["transparent", "transparent", backgroundColor]
         : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", backgroundColor];
     }
+    // For phones, use much stronger fade in light mode to prevent dark bar
     return isDark
       ? ["transparent", "transparent", backgroundColor]
-      : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", backgroundColor];
+      : [
+          "transparent",
+          "rgba(255, 255, 255, 0.25)",
+          "rgba(255, 255, 255, 0.55)",
+          "rgba(255, 255, 255, 0.85)",
+          backgroundColor,
+        ];
   };
 
   // Get hero section height for vertical centering
