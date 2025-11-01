@@ -79,25 +79,25 @@ export function useDevice() {
     if (isTablet) {
       const screenMax = Math.max(width, height);
       if (screenMax > 1300) {
-        return isDark 
+        return (isDark 
           ? [0, 0.15, 0.35, 0.55, 0.75, 1]
-          : [0, 0.2, 0.45, 0.65, 0.85, 1];
+          : [0, 0.2, 0.45, 0.65, 0.85, 1]) as readonly [number, number, ...number[]];
       } else if (screenMax > 1100) {
-        return isDark 
+        return (isDark 
           ? [0, 0.25, 0.55, 1]
-          : [0, 0.35, 0.7, 1];
+          : [0, 0.35, 0.7, 1]) as readonly [number, number, ...number[]];
       }
-      return isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1];
+      return (isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1]) as readonly [number, number, ...number[]];
     }
     // For phones in light mode, use more gradual fade locations matching the 5-color array
-    return isDark ? [0, 0.4, 1] : [0, 0.5, 0.75, 0.9, 1];
+    return (isDark ? [0, 0.4, 1] : [0, 0.5, 0.75, 0.9, 1]) as readonly [number, number, ...number[]];
   };
 
   const getGradientFadeColors = (isDark: boolean, backgroundColor: string) => {
     if (isTablet) {
       const screenMax = Math.max(width, height);
       if (screenMax > 1300) {
-        return isDark
+        return (isDark
           ? [
               "transparent",
               "transparent",
@@ -113,9 +113,9 @@ export function useDevice() {
               "rgba(255, 255, 255, 0.6)",
               "rgba(255, 255, 255, 0.85)",
               backgroundColor,
-            ];
+            ]) as readonly [string, string, ...string[]];
       } else if (screenMax > 1100) {
-        return isDark
+        return (isDark
           ? [
               "transparent",
               "transparent",
@@ -127,14 +127,14 @@ export function useDevice() {
               "rgba(255, 255, 255, 0.25)",
               "rgba(255, 255, 255, 0.65)",
               backgroundColor,
-            ];
+            ]) as readonly [string, string, ...string[]];
       }
-      return isDark
+      return (isDark
         ? ["transparent", "transparent", backgroundColor]
-        : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", backgroundColor];
+        : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", backgroundColor]) as readonly [string, string, ...string[]];
     }
     // For phones, use much stronger fade in light mode to prevent dark bar
-    return isDark
+    return (isDark
       ? ["transparent", "transparent", backgroundColor]
       : [
           "transparent",
@@ -142,7 +142,7 @@ export function useDevice() {
           "rgba(255, 255, 255, 0.55)",
           "rgba(255, 255, 255, 0.85)",
           backgroundColor,
-        ];
+        ]) as readonly [string, string, ...string[]];
   };
 
   // Get hero section height for vertical centering

@@ -209,16 +209,16 @@ export function DashboardHeader({
             "rgba(24, 26, 27, 0.25)",
             "rgba(24, 26, 27, 0.5)",
             colors.background,
-          ];
+          ] as const;
         } else if (screenMax > 1100) {
           return [
             "transparent",
             "transparent",
             "rgba(24, 26, 27, 0.25)",
             colors.background,
-          ];
+          ] as const;
         }
-        return ["transparent", "transparent", colors.background];
+        return ["transparent", "transparent", colors.background] as const;
       })()
     : getGradientFadeColors(isDark, colors.background);
   
@@ -229,24 +229,24 @@ export function DashboardHeader({
         if (isDark) {
           // Dark mode: start fade later
           if (screenMax > 1300) {
-            return [0, 0.6, 0.75, 0.85, 0.95, 1];
+            return [0, 0.6, 0.75, 0.85, 0.95, 1] as const;
           } else if (screenMax > 1100) {
-            return [0, 0.65, 0.8, 1];
+            return [0, 0.65, 0.8, 1] as const;
           }
-          return [0, 0.7, 1];
+          return [0, 0.7, 1] as const;
         } else {
           // Light mode: start fade later
           if (screenMax > 1300) {
-            return [0, 0.6, 0.75, 0.85, 0.95, 1];
+            return [0, 0.6, 0.75, 0.85, 0.95, 1] as const;
           } else if (screenMax > 1100) {
-            return [0, 0.65, 0.8, 1];
+            return [0, 0.65, 0.8, 1] as const;
           }
-          return [0, 0.7, 0.9, 1];
+          return [0, 0.7, 0.9, 1] as const;
         }
       })()
     : isDark
     ? getGradientFadeLocations(isDark)
-    : [0, 0.7, 0.85, 0.95, 1]; // For phones in light mode, start fade much later
+    : ([0, 0.7, 0.85, 0.95, 1] as const); // For phones in light mode, start fade much later
   const gradientFadeHeight = getGradientFadeHeight();
   const screenMax = Math.max(width, height);
 
