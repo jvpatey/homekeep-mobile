@@ -20,7 +20,8 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useTasks } from "../../../context/TasksContext";
-import { useHaptics } from "../../../hooks";
+import { useHaptics, useDevice } from "../../../hooks";
+import { DesignSystem } from "../../../theme/designSystem";
 import { PriorityBadge } from "../../Dashboard";
 import { MaintenanceRoutine } from "../../../types/maintenance";
 import { MaintenanceService } from "../../../services/maintenanceService";
@@ -37,6 +38,8 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
   const { colors, isDark } = useTheme();
   const { deleteTask } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const fontMultiplier = getFontMultiplier();
   const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
@@ -198,12 +201,24 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
               ? "rgba(255, 255, 255, 0.1)"
               : "rgba(0, 0, 0, 0.05)",
           },
+          isTablet && {
+            padding: getResponsiveValue(16, 20, 24),
+            marginBottom: getResponsiveValue(12, 16, 20),
+            borderRadius: getResponsiveValue(12, 16, 20),
+          },
         ]}
       >
         <View style={styles.taskContent}>
           <View style={styles.taskHeader}>
             <Text
-              style={[styles.taskTitle, { color: colors.text }]}
+              style={[
+                styles.taskTitle, 
+                { color: colors.text },
+                isTablet && {
+                  fontSize: ((styles.taskTitle.fontSize || 16) * fontMultiplier),
+                  lineHeight: ((styles.taskTitle.fontSize || 16) * fontMultiplier) * 1.3,
+                },
+              ]}
               numberOfLines={2}
             >
               {item.title}
@@ -213,12 +228,24 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
 
           <View style={styles.taskDetails}>
             <Text
-              style={[styles.taskCategory, { color: colors.textSecondary }]}
+              style={[
+                styles.taskCategory, 
+                { color: colors.textSecondary },
+                isTablet && {
+                  fontSize: ((styles.taskCategory.fontSize || 14) * fontMultiplier),
+                },
+              ]}
             >
               {formatCategory(item.category)}
             </Text>
             <Text
-              style={[styles.taskInterval, { color: colors.textSecondary }]}
+              style={[
+                styles.taskInterval, 
+                { color: colors.textSecondary },
+                isTablet && {
+                  fontSize: ((styles.taskInterval.fontSize || 14) * fontMultiplier),
+                },
+              ]}
             >
               {formatInterval(item.interval_days)}
             </Text>
@@ -226,14 +253,26 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
 
           {item.estimated_duration_minutes && (
             <Text
-              style={[styles.taskDuration, { color: colors.textSecondary }]}
+              style={[
+                styles.taskDuration, 
+                { color: colors.textSecondary },
+                isTablet && {
+                  fontSize: ((styles.taskDuration.fontSize || 12) * fontMultiplier),
+                },
+              ]}
             >
               ~{item.estimated_duration_minutes} min
             </Text>
           )}
 
           <View style={styles.routineStatus}>
-            <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+            <Text style={[
+              styles.statusText, 
+              { color: colors.textSecondary },
+              isTablet && {
+                fontSize: ((styles.statusText.fontSize || 12) * fontMultiplier),
+              },
+            ]}>
               {item.is_active ? "Active" : "Inactive"}
             </Text>
           </View>
@@ -244,6 +283,11 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
             styles.deleteButton,
             { backgroundColor: colors.error + "15" },
             isDeleting && styles.deletingButton,
+            isTablet && {
+              width: getResponsiveValue(40, 48, 52),
+              height: getResponsiveValue(40, 48, 52),
+              borderRadius: getResponsiveValue(20, 24, 26),
+            },
           ]}
           onPress={() => handleDeleteRoutine(item.id, item.title)}
           disabled={isDeleting}
@@ -251,7 +295,7 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
         >
           <Ionicons
             name={isDeleting ? "hourglass-outline" : "trash-outline"}
-            size={20}
+            size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
             color={colors.error}
           />
         </TouchableOpacity>
@@ -260,16 +304,38 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
+    <View style={[
+      styles.emptyState,
+      isTablet && {
+        paddingHorizontal: getResponsiveValue(32, 40, 48),
+        paddingVertical: getResponsiveValue(80, 100, 120),
+      },
+    ]}>
       <Ionicons
         name="checkmark-circle-outline"
-        size={64}
+        size={isTablet ? getResponsiveValue(64, 80, 90) : 64}
         color={colors.textSecondary}
       />
-      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+      <Text style={[
+        styles.emptyText, 
+        { color: colors.textSecondary },
+        isTablet && {
+          fontSize: ((styles.emptyText.fontSize || 18) * fontMultiplier),
+          lineHeight: ((styles.emptyText.fontSize || 18) * fontMultiplier) * 1.2,
+          marginTop: getResponsiveValue(16, 20, 24),
+          marginBottom: getResponsiveValue(8, 12, 16),
+        },
+      ]}>
         Mitt : No task series found
       </Text>
-      <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+      <Text style={[
+        styles.emptySubtext, 
+        { color: colors.textSecondary },
+        isTablet && {
+          fontSize: ((styles.emptySubtext.fontSize || 14) * fontMultiplier),
+          lineHeight: ((styles.emptySubtext.fontSize || 14) * fontMultiplier) * 1.4,
+        },
+      ]}>
         Create your first maintenance task series to get started!
       </Text>
     </View>
@@ -299,6 +365,9 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
                   ? "rgba(255, 255, 255, 0.25)"
                   : "rgba(255, 255, 255, 0.9)",
               },
+              isTablet && {
+                maxWidth: getResponsiveValue(420, 600, 700),
+              },
               animatedModalStyle,
             ]}
             onStartShouldSetResponder={() => true}
@@ -313,9 +382,21 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
                     ? "rgba(255, 255, 255, 0.1)"
                     : "rgba(0, 0, 0, 0.08)",
                 },
+                isTablet && {
+                  paddingTop: getResponsiveValue(20, 28, 32),
+                  paddingHorizontal: getResponsiveValue(20, 28, 32),
+                  paddingBottom: getResponsiveValue(16, 20, 24),
+                },
               ]}
             >
-              <Text style={[styles.headerTitle, { color: colors.text }]}>
+              <Text style={[
+                styles.headerTitle, 
+                { color: colors.text },
+                isTablet && {
+                  fontSize: ((styles.headerTitle.fontSize || 22) * fontMultiplier),
+                  lineHeight: ((styles.headerTitle.fontSize || 22) * fontMultiplier) * 1.2,
+                },
+              ]}>
                 All Task Series ({routines.length})
               </Text>
               <TouchableOpacity
@@ -326,18 +407,32 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
                       ? "rgba(255, 255, 255, 0.1)"
                       : "rgba(0, 0, 0, 0.05)",
                   },
+                  isTablet && {
+                    width: getResponsiveValue(36, 44, 48),
+                    height: getResponsiveValue(36, 44, 48),
+                    borderRadius: getResponsiveValue(18, 22, 24),
+                  },
                 ]}
                 onPress={handleClose}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
+                <Ionicons 
+                  name="close" 
+                  size={isTablet ? getResponsiveValue(20, 24, 26) : 20} 
+                  color={colors.textSecondary} 
+                />
               </TouchableOpacity>
             </View>
 
             {/* Content */}
             <ScrollView
               style={styles.flatList}
-              contentContainerStyle={styles.listContainer}
+              contentContainerStyle={[
+                styles.listContainer,
+                isTablet && {
+                  padding: getResponsiveValue(20, 28, 32),
+                },
+              ]}
               showsVerticalScrollIndicator={false}
             >
               {routines.length === 0

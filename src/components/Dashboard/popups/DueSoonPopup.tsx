@@ -591,21 +591,21 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
 
                 {/* Pagination Indicator */}
                 <View style={styles.paginationContainer}>
-                    <Text
-                      style={[
-                        styles.paginationText,
-                        {
-                          color: isDark
-                            ? "rgba(255, 255, 255, 0.7)"
-                            : "rgba(59, 130, 246, 0.75)",
-                        },
+                  <Text
+                    style={[
+                      styles.paginationText,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(59, 130, 246, 0.75)",
+                      },
                         isTablet && {
                           fontSize: ((styles.paginationText.fontSize || 14) * getFontMultiplier()),
                         },
-                      ]}
-                    >
-                      {currentTaskIndex + 1} of {tasks.length}
-                    </Text>
+                    ]}
+                  >
+                    {currentTaskIndex + 1} of {tasks.length}
+                  </Text>
                 </View>
               </View>
             ) : (

@@ -251,56 +251,56 @@ export function NewDashboard({
         }
       >
         <View>
-          {/* Header Section */}
-          <Animated.View style={headerAnimatedStyle}>
-            <DashboardHeader
-              userName={getUserName(user?.user_metadata?.full_name, user?.email)}
-              greeting={getGreeting()}
-              motivationalMessage={getMotivationalMessage(upcomingTasks)}
-              dueSoonCount={dueSoonTasks.length}
-              completedCount={completedTasks.length}
-              streak={streak}
-              onRefresh={onRefresh}
-              onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
-              onShowStreakPopup={() => setShowStreakPopup(true)}
-            />
-          </Animated.View>
+        {/* Header Section */}
+        <Animated.View style={headerAnimatedStyle}>
+          <DashboardHeader
+            userName={getUserName(user?.user_metadata?.full_name, user?.email)}
+            greeting={getGreeting()}
+            motivationalMessage={getMotivationalMessage(upcomingTasks)}
+            dueSoonCount={dueSoonTasks.length}
+            completedCount={completedTasks.length}
+            streak={streak}
+            onRefresh={onRefresh}
+            onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
+            onShowStreakPopup={() => setShowStreakPopup(true)}
+          />
+        </Animated.View>
 
-          {/* Hero Carousel */}
-          <Animated.View style={carouselAnimatedStyle}>
-            <HeroCarousel
-              tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
+        {/* Hero Carousel */}
+        <Animated.View style={carouselAnimatedStyle}>
+          <HeroCarousel
+            tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
+            onCompleteTask={handleCompleteTask}
+            onTaskPress={handleTaskPress}
+            showTimelineView={showTimelineView}
+            onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
+          />
+        </Animated.View>
+
+        {/* Timeline View */}
+        <Animated.View style={timelineAnimatedStyle}>
+          <RNAnimated.View
+            style={{
+              overflow: "hidden",
+              height: timelineHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, timelineContentHeight || 2000],
+              }),
+            }}
+            pointerEvents={showTimelineView ? "auto" : "none"}
+          >
+            <TimelineView
+              tasks={timelineTasks}
               onCompleteTask={handleCompleteTask}
               onTaskPress={handleTaskPress}
-              showTimelineView={showTimelineView}
-              onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
+              visible={showTimelineView}
+              onContentSizeChange={(height) => setTimelineContentHeight(height)}
             />
-          </Animated.View>
+          </RNAnimated.View>
+        </Animated.View>
 
-          {/* Timeline View */}
-          <Animated.View style={timelineAnimatedStyle}>
-            <RNAnimated.View
-              style={{
-                overflow: "hidden",
-                height: timelineHeight.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, timelineContentHeight || 2000],
-                }),
-              }}
-              pointerEvents={showTimelineView ? "auto" : "none"}
-            >
-              <TimelineView
-                tasks={timelineTasks}
-                onCompleteTask={handleCompleteTask}
-                onTaskPress={handleTaskPress}
-                visible={showTimelineView}
-                onContentSizeChange={(height) => setTimelineContentHeight(height)}
-              />
-            </RNAnimated.View>
-          </Animated.View>
-
-          {/* Bottom Spacing */}
-          <View style={dashboardStyles.bottomSpacing} />
+        {/* Bottom Spacing */}
+        <View style={dashboardStyles.bottomSpacing} />
         </View>
       </ScrollView>
 

@@ -21,7 +21,8 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
-import { useHaptics } from "../../../hooks";
+import { useHaptics, useDevice } from "../../../hooks";
+import { DesignSystem } from "../../../theme/designSystem";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
 import { MaintenanceCategory } from "../../../types/maintenance";
 import {
@@ -50,6 +51,8 @@ export function NotificationSettingsModal({
     permissionStatus,
   } = useNotifications();
   const { triggerLight } = useHaptics();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const fontMultiplier = getFontMultiplier();
   const [expandedType, setExpandedType] = useState<string | null>(null);
 
   const scale = useSharedValue(0);
@@ -138,6 +141,11 @@ export function NotificationSettingsModal({
               ? "rgba(255, 255, 255, 0.05)"
               : "rgba(0, 0, 0, 0.02)",
           },
+          isTablet && {
+            borderRadius: getResponsiveValue(16, 20, 24),
+            padding: getResponsiveValue(16, 20, 24),
+            marginBottom: getResponsiveValue(12, 16, 20),
+          },
         ]}
       >
         <TouchableOpacity
@@ -149,17 +157,31 @@ export function NotificationSettingsModal({
               style={[
                 styles.notificationTypeIcon,
                 { backgroundColor: config.color + "15" },
+                isTablet && {
+                  width: getResponsiveValue(40, 48, 52),
+                  height: getResponsiveValue(40, 48, 52),
+                  borderRadius: getResponsiveValue(20, 24, 26),
+                  marginRight: getResponsiveValue(12, 16, 20),
+                },
               ]}
             >
               <Ionicons
                 name={config.icon as any}
-                size={20}
+                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                 color={config.color}
               />
             </View>
             <View style={styles.notificationTypeInfo}>
               <Text
-                style={[styles.notificationTypeName, { color: colors.text }]}
+                style={[
+                  styles.notificationTypeName, 
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: ((styles.notificationTypeName.fontSize || 16) * fontMultiplier),
+                    lineHeight: ((styles.notificationTypeName.fontSize || 16) * fontMultiplier) * 1.2,
+                    marginBottom: getResponsiveValue(2, 4, 6),
+                  },
+                ]}
               >
                 {config.title}
               </Text>
@@ -167,6 +189,10 @@ export function NotificationSettingsModal({
                 style={[
                   styles.notificationTypeDescription,
                   { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: ((styles.notificationTypeDescription.fontSize || 13) * fontMultiplier),
+                    lineHeight: ((styles.notificationTypeDescription.fontSize || 13) * fontMultiplier) * 1.4,
+                  },
                 ]}
               >
                 {config.description}
@@ -184,7 +210,7 @@ export function NotificationSettingsModal({
             />
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
+              size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
               color={colors.textSecondary}
               style={styles.expandIcon}
             />
@@ -192,9 +218,22 @@ export function NotificationSettingsModal({
         </TouchableOpacity>
 
         {isExpanded && (
-          <View style={styles.categoriesContainer}>
+          <View style={[
+            styles.categoriesContainer,
+            isTablet && {
+              marginTop: getResponsiveValue(16, 20, 24),
+              paddingTop: getResponsiveValue(16, 20, 24),
+            },
+          ]}>
             <Text
-              style={[styles.categoriesTitle, { color: colors.textSecondary }]}
+              style={[
+                styles.categoriesTitle, 
+                { color: colors.textSecondary },
+                isTablet && {
+                  fontSize: ((styles.categoriesTitle.fontSize || 14) * fontMultiplier),
+                  marginBottom: getResponsiveValue(4, 6, 8),
+                },
+              ]}
             >
               Categories
             </Text>
@@ -202,6 +241,11 @@ export function NotificationSettingsModal({
               style={[
                 styles.categoriesDescription,
                 { color: colors.textSecondary },
+                isTablet && {
+                  fontSize: ((styles.categoriesDescription.fontSize || 13) * fontMultiplier),
+                  lineHeight: ((styles.categoriesDescription.fontSize || 13) * fontMultiplier) * 1.4,
+                  marginBottom: getResponsiveValue(12, 16, 20),
+                },
               ]}
             >
               Choose which maintenance categories receive{" "}
@@ -219,20 +263,38 @@ export function NotificationSettingsModal({
               if (!preferences) return null;
 
               return (
-                <View key={category} style={styles.categoryRow}>
+                <View key={category} style={[
+                  styles.categoryRow,
+                  isTablet && {
+                    paddingVertical: getResponsiveValue(12, 16, 20),
+                  },
+                ]}>
                   <View style={styles.categoryRowLeft}>
                     <LinearGradient
                       colors={categoryData.gradient}
-                      style={styles.categoryRowIcon}
+                      style={[
+                        styles.categoryRowIcon,
+                        isTablet && {
+                          width: getResponsiveValue(32, 40, 44),
+                          height: getResponsiveValue(32, 40, 44),
+                          borderRadius: getResponsiveValue(16, 20, 22),
+                        },
+                      ]}
                     >
                       <Ionicons
                         name={categoryData.icon as any}
-                        size={16}
+                        size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                         color="white"
                       />
                     </LinearGradient>
                     <Text
-                      style={[styles.categoryRowName, { color: colors.text }]}
+                      style={[
+                        styles.categoryRowName, 
+                        { color: colors.text },
+                        isTablet && {
+                          fontSize: ((styles.categoryRowName.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                        },
+                      ]}
                     >
                       {categoryData.displayName}
                     </Text>
@@ -290,6 +352,9 @@ export function NotificationSettingsModal({
                   ? "rgba(255, 255, 255, 0.25)"
                   : "rgba(255, 255, 255, 0.9)",
               },
+              isTablet && {
+                maxWidth: getResponsiveValue(420, 600, 700),
+              },
               animatedModalStyle,
             ]}
             onStartShouldSetResponder={() => true}
@@ -304,10 +369,22 @@ export function NotificationSettingsModal({
                     ? "rgba(255, 255, 255, 0.1)"
                     : "rgba(0, 0, 0, 0.08)",
                 },
+                isTablet && {
+                  paddingTop: getResponsiveValue(20, 28, 32),
+                  paddingHorizontal: getResponsiveValue(20, 28, 32),
+                  paddingBottom: getResponsiveValue(16, 20, 24),
+                },
               ]}
             >
               <View style={styles.headerContent}>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>
+                <Text style={[
+                  styles.headerTitle, 
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: ((styles.headerTitle.fontSize || 22) * fontMultiplier),
+                    lineHeight: ((styles.headerTitle.fontSize || 22) * fontMultiplier) * 1.2,
+                  },
+                ]}>
                   Notification Settings
                 </Text>
                 <TouchableOpacity
@@ -318,13 +395,18 @@ export function NotificationSettingsModal({
                         ? "rgba(255, 255, 255, 0.1)"
                         : "rgba(0, 0, 0, 0.05)",
                     },
+                    isTablet && {
+                      width: getResponsiveValue(36, 44, 48),
+                      height: getResponsiveValue(36, 44, 48),
+                      borderRadius: getResponsiveValue(18, 22, 24),
+                    },
                   ]}
                   onPress={handleClose}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons
                     name="close"
-                    size={20}
+                    size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                     color={colors.textSecondary}
                   />
                 </TouchableOpacity>
@@ -333,7 +415,12 @@ export function NotificationSettingsModal({
 
             {/* Content */}
             <ScrollView
-              style={styles.content}
+              style={[
+                styles.content,
+                isTablet && {
+                  paddingHorizontal: getResponsiveValue(20, 28, 32),
+                },
+              ]}
               showsVerticalScrollIndicator={false}
             >
               {/* Global Settings */}
@@ -345,6 +432,12 @@ export function NotificationSettingsModal({
                       ? "rgba(255, 255, 255, 0.05)"
                       : "rgba(0, 0, 0, 0.02)",
                   },
+                  isTablet && {
+                    marginTop: getResponsiveValue(20, 28, 32),
+                    padding: getResponsiveValue(20, 28, 32),
+                    marginBottom: getResponsiveValue(20, 28, 32),
+                    borderRadius: getResponsiveValue(16, 20, 24),
+                  },
                 ]}
               >
                 <View style={styles.globalHeader}>
@@ -353,17 +446,31 @@ export function NotificationSettingsModal({
                       style={[
                         styles.globalIcon,
                         { backgroundColor: colors.primary + "15" },
+                        isTablet && {
+                          width: getResponsiveValue(48, 56, 64),
+                          height: getResponsiveValue(48, 56, 64),
+                          borderRadius: getResponsiveValue(24, 28, 32),
+                          marginRight: getResponsiveValue(16, 20, 24),
+                        },
                       ]}
                     >
                       <Ionicons
                         name="notifications"
-                        size={24}
+                        size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                         color={colors.primary}
                       />
                     </View>
                     <View style={styles.globalInfo}>
                       <Text
-                        style={[styles.globalTitle, { color: colors.text }]}
+                        style={[
+                          styles.globalTitle, 
+                          { color: colors.text },
+                          isTablet && {
+                            fontSize: ((styles.globalTitle.fontSize || 18) * fontMultiplier),
+                            lineHeight: ((styles.globalTitle.fontSize || 18) * fontMultiplier) * 1.2,
+                            marginBottom: getResponsiveValue(4, 6, 8),
+                          },
+                        ]}
                       >
                         All Notifications
                       </Text>
@@ -371,6 +478,10 @@ export function NotificationSettingsModal({
                         style={[
                           styles.globalDescription,
                           { color: colors.textSecondary },
+                          isTablet && {
+                            fontSize: ((styles.globalDescription.fontSize || 14) * fontMultiplier),
+                            lineHeight: ((styles.globalDescription.fontSize || 14) * fontMultiplier) * 1.4,
+                          },
                         ]}
                       >
                         Enable or disable all notifications
@@ -409,9 +520,21 @@ export function NotificationSettingsModal({
                   ]}
                 >
                   <View style={styles.permissionContent}>
-                    <Ionicons name="warning" size={20} color={colors.error} />
+                    <Ionicons 
+                      name="warning" 
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20} 
+                      color={colors.error} 
+                    />
                     <Text
-                      style={[styles.permissionText, { color: colors.error }]}
+                      style={[
+                        styles.permissionText, 
+                        { color: colors.error },
+                        isTablet && {
+                          fontSize: ((styles.permissionText.fontSize || 14) * fontMultiplier),
+                          lineHeight: ((styles.permissionText.fontSize || 14) * fontMultiplier) * 1.4,
+                          marginLeft: getResponsiveValue(12, 16, 20),
+                        },
+                      ]}
                     >
                       {permissionStatus.canAskAgain
                         ? "Notifications are disabled. Enable them to receive task reminders."
@@ -423,10 +546,20 @@ export function NotificationSettingsModal({
                       style={[
                         styles.permissionButton,
                         { backgroundColor: colors.error },
+                        isTablet && {
+                          paddingHorizontal: getResponsiveValue(16, 20, 24),
+                          paddingVertical: getResponsiveValue(8, 10, 12),
+                          borderRadius: getResponsiveValue(8, 10, 12),
+                        },
                       ]}
                       onPress={requestPermissions}
                     >
-                      <Text style={styles.permissionButtonText}>Enable</Text>
+                      <Text style={[
+                        styles.permissionButtonText,
+                        isTablet && {
+                          fontSize: ((styles.permissionButtonText.fontSize || 14) * fontMultiplier),
+                        },
+                      ]}>Enable</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -435,13 +568,27 @@ export function NotificationSettingsModal({
               {/* Notification Type Settings */}
               {notificationSettings.globalEnabled && (
                 <>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  <Text style={[
+                    styles.sectionTitle, 
+                    { color: colors.text },
+                    isTablet && {
+                      fontSize: ((styles.sectionTitle.fontSize || 18) * fontMultiplier),
+                      lineHeight: ((styles.sectionTitle.fontSize || 18) * fontMultiplier) * 1.2,
+                      marginBottom: getResponsiveValue(8, 12, 16),
+                      marginTop: getResponsiveValue(20, 28, 32),
+                    },
+                  ]}>
                     Notification Types
                   </Text>
                   <Text
                     style={[
                       styles.sectionDescription,
                       { color: colors.textSecondary },
+                      isTablet && {
+                        fontSize: ((styles.sectionDescription.fontSize || 14) * fontMultiplier),
+                        lineHeight: ((styles.sectionDescription.fontSize || 14) * fontMultiplier) * 1.4,
+                        marginBottom: getResponsiveValue(20, 28, 32),
+                      },
                     ]}
                   >
                     Configure which types of notifications you want to receive

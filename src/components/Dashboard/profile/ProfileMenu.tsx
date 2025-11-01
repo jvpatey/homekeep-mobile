@@ -20,6 +20,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTasks } from "../../../context/TasksContext";
 import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
+import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
 import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
@@ -41,7 +42,8 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
-  const { isTablet, getResponsiveValue } = useDevice();
+  const { isTablet, getResponsiveValue, getFontMultiplier } = useDevice();
+  const fontMultiplier = getFontMultiplier();
   const [menuVisible, setMenuVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [customizationModalVisible, setCustomizationModalVisible] =
@@ -305,6 +307,14 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                   ? "rgba(255, 255, 255, 0.25)"
                   : "rgba(255, 255, 255, 0.9)",
               },
+              isTablet && {
+                maxWidth: getResponsiveValue(320, 500, 600),
+                padding: getResponsiveValue(
+                  DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl,
+                  DesignSystem.spacing.xl + DesignSystem.spacing.md
+                ),
+              },
               animatedStyle,
             ]}
           >
@@ -312,7 +322,14 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
             <View style={styles.profileSection}>
               <LinearGradient
                 colors={avatarGradient}
-                style={styles.menuAvatar}
+                style={[
+                  styles.menuAvatar,
+                  isTablet && {
+                    width: getResponsiveValue(50, 60, 70),
+                    height: getResponsiveValue(50, 60, 70),
+                    borderRadius: getResponsiveValue(25, 30, 35),
+                  },
+                ]}
                 start={
                   (!preferencesLoading && selectedGradient?.start) || {
                     x: 0,
@@ -326,14 +343,43 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                   }
                 }
               >
-                <Text style={styles.menuAvatarInitial}>{getUserInitial()}</Text>
+                <Text
+                  style={[
+                    styles.menuAvatarInitial,
+                    isTablet && {
+                      fontSize: getResponsiveValue(20, 24, 28),
+                    },
+                  ]}
+                >
+                  {getUserInitial()}
+                </Text>
               </LinearGradient>
               <View style={styles.profileInfo}>
-                <Text style={[styles.profileName, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.profileName,
+                    { color: colors.text },
+                    isTablet && {
+                      fontSize:
+                        (styles.profileName.fontSize || 18) * fontMultiplier,
+                      lineHeight:
+                        (styles.profileName.fontSize || 18) *
+                        fontMultiplier *
+                        1.2,
+                    },
+                  ]}
+                >
                   {getUserName()}
                 </Text>
                 <Text
-                  style={[styles.profileEmail, { color: colors.textSecondary }]}
+                  style={[
+                    styles.profileEmail,
+                    { color: colors.textSecondary },
+                    isTablet && {
+                      fontSize:
+                        (styles.profileEmail.fontSize || 14) * fontMultiplier,
+                    },
+                  ]}
                 >
                   {getUserEmail()}
                 </Text>
@@ -358,13 +404,18 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                   >
                     <Ionicons
                       name="arrow-back"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.textSecondary}
                     />
                     <Text
                       style={[
                         styles.menuActionText,
                         { color: colors.text, marginLeft: 8 },
+                        isTablet && {
+                          fontSize:
+                            (styles.menuActionText.fontSize || 16) *
+                            fontMultiplier,
+                        },
                       ]}
                     >
                       Settings
@@ -389,20 +440,35 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     style={[
                       styles.menuActionIconContainer,
                       { backgroundColor: colors.primary + "15" },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="color-palette-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.primary}
                     />
                   </View>
-                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.menuActionText,
+                      { color: colors.text },
+                      isTablet && {
+                        fontSize:
+                          (styles.menuActionText.fontSize || 16) *
+                          fontMultiplier,
+                      },
+                    ]}
+                  >
                     Customize Avatar
                   </Text>
                   <Ionicons
                     name="chevron-forward"
-                    size={16}
+                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                     color={colors.textSecondary}
                   />
                 </TouchableOpacity>
@@ -424,20 +490,35 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     style={[
                       styles.menuActionIconContainer,
                       { backgroundColor: colors.primary + "15" },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="notifications-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.primary}
                     />
                   </View>
-                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.menuActionText,
+                      { color: colors.text },
+                      isTablet && {
+                        fontSize:
+                          (styles.menuActionText.fontSize || 16) *
+                          fontMultiplier,
+                      },
+                    ]}
+                  >
                     Notifications
                   </Text>
                   <Ionicons
                     name="chevron-forward"
-                    size={16}
+                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                     color={colors.textSecondary}
                   />
                 </TouchableOpacity>
@@ -474,11 +555,16 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                             ? colors.border + "15"
                             : colors.error + "15",
                       },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="trash-bin-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={
                         (stats?.totalInstances || 0) === 0
                           ? colors.textSecondary
@@ -494,6 +580,11 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                           (stats?.totalInstances || 0) === 0
                             ? colors.textSecondary
                             : colors.error,
+                      },
+                      isTablet && {
+                        fontSize:
+                          (styles.menuActionText.fontSize || 16) *
+                          fontMultiplier,
                       },
                     ]}
                   >
@@ -518,16 +609,29 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     style={[
                       styles.signOutIconContainer,
                       { backgroundColor: colors.error + "15" },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="person-remove-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.error}
                     />
                   </View>
                   <Text
-                    style={[styles.menuActionText, { color: colors.error }]}
+                    style={[
+                      styles.menuActionText,
+                      { color: colors.error },
+                      isTablet && {
+                        fontSize:
+                          (styles.menuActionText.fontSize || 16) *
+                          fontMultiplier,
+                      },
+                    ]}
                   >
                     Delete Account
                   </Text>
@@ -546,15 +650,30 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     style={[
                       styles.menuActionIconContainer,
                       { backgroundColor: colors.primary + "15" },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="stats-chart-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.primary}
                     />
                   </View>
-                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.menuActionText,
+                      { color: colors.text },
+                      isTablet && {
+                        fontSize:
+                          (styles.menuActionText.fontSize || 16) *
+                          fontMultiplier,
+                      },
+                    ]}
+                  >
                     Total Tasks
                   </Text>
                   <View style={styles.menuActionRight}>
@@ -562,17 +681,31 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                       style={[
                         styles.counterBadge,
                         { backgroundColor: colors.primary + "20" },
+                        isTablet && {
+                          minWidth: getResponsiveValue(28, 36, 40),
+                          height: getResponsiveValue(22, 28, 32),
+                          borderRadius: getResponsiveValue(11, 14, 16),
+                          paddingHorizontal: getResponsiveValue(8, 10, 12),
+                        },
                       ]}
                     >
                       <Text
-                        style={[styles.counterText, { color: colors.primary }]}
+                        style={[
+                          styles.counterText,
+                          { color: colors.primary },
+                          isTablet && {
+                            fontSize:
+                              (styles.counterText.fontSize || 13) *
+                              fontMultiplier,
+                          },
+                        ]}
                       >
                         {stats.total}
                       </Text>
                     </View>
                     <Ionicons
                       name="chevron-forward"
-                      size={16}
+                      size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                       color={colors.textSecondary}
                     />
                   </View>
@@ -595,20 +728,35 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     style={[
                       styles.menuActionIconContainer,
                       { backgroundColor: colors.primary + "15" },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="settings-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.primary}
                     />
                   </View>
-                  <Text style={[styles.menuActionText, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.menuActionText,
+                      { color: colors.text },
+                      isTablet && {
+                        fontSize:
+                          (styles.menuActionText.fontSize || 16) *
+                          fontMultiplier,
+                      },
+                    ]}
+                  >
                     Settings
                   </Text>
                   <Ionicons
                     name="chevron-forward"
-                    size={16}
+                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                     color={colors.textSecondary}
                   />
                 </TouchableOpacity>
@@ -630,15 +778,29 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
                     style={[
                       styles.signOutIconContainer,
                       { backgroundColor: colors.error + "15" },
+                      isTablet && {
+                        width: getResponsiveValue(36, 44, 48),
+                        height: getResponsiveValue(36, 44, 48),
+                        borderRadius: getResponsiveValue(18, 22, 24),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="log-out-outline"
-                      size={20}
+                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                       color={colors.error}
                     />
                   </View>
-                  <Text style={[styles.signOutText, { color: colors.error }]}>
+                  <Text
+                    style={[
+                      styles.signOutText,
+                      { color: colors.error },
+                      isTablet && {
+                        fontSize:
+                          (styles.signOutText.fontSize || 16) * fontMultiplier,
+                      },
+                    ]}
+                  >
                     Sign Out
                   </Text>
                 </TouchableOpacity>

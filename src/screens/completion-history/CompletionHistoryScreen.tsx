@@ -253,7 +253,7 @@ export function CompletionHistoryScreen() {
     return renderProgressIndicator(routine);
   };
 
-      // Create animated routine item component to properly use hooks
+  // Create animated routine item component to properly use hooks
   const AnimatedRoutineItem = React.memo(
     ({
       item,

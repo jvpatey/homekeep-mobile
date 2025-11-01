@@ -331,7 +331,7 @@ export function HeroCarousel({
                   locations={[0, 1]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                    style={[
+                  style={[
                     styles.toggleButton,
                     styles.toggleButtonSelected,
                     {

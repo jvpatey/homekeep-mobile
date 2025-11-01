@@ -164,10 +164,10 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
 
   return (
     <View style={styles.overlayContainer}>
-      <TouchableOpacity
-        style={styles.overlay}
-        onPress={handleClose}
-        activeOpacity={1}
+    <TouchableOpacity
+      style={styles.overlay}
+      onPress={handleClose}
+      activeOpacity={1}
       />
       <Animated.View
         style={[
