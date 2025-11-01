@@ -593,7 +593,7 @@ export function CompletionHistoryScreen() {
       })()
     : getGradientFadeColors(isDark, colors.background);
   
-  // Push fade opacity further down so text at top stays readable
+  // Push fade opacity further down so text at top stays readable - start fade even later for phones
   const fadeLocations = isTablet
     ? (() => {
         const screenMax = Math.max(width, height);
@@ -615,7 +615,9 @@ export function CompletionHistoryScreen() {
           return [0, 0.7, 0.9, 1];
         }
       })()
-    : getGradientFadeLocations(isDark);
+    : isDark
+    ? getGradientFadeLocations(isDark)
+    : [0, 0.7, 0.85, 0.95, 1]; // For phones in light mode, start fade much later
   const gradientFadeHeight = getGradientFadeHeight();
   const screenMax = Math.max(width, height);
 
@@ -741,7 +743,11 @@ export function CompletionHistoryScreen() {
               <Animated.Text
                 style={[
                   completionHistoryStyles.heroTitle,
-                  { color: colors.text },
+                  {
+                    color: isDark
+                      ? colors.text
+                      : "rgba(15, 23, 42, 0.9)",
+                  },
                   titleAnimatedStyle,
                   isTablet && {
                     fontSize: ((completionHistoryStyles.heroTitle.fontSize || 32) * (Math.max(width, height) > 1300 ? 1.5 : 1.35)),
@@ -754,7 +760,11 @@ export function CompletionHistoryScreen() {
               <Animated.Text
                 style={[
                   completionHistoryStyles.heroSubtitle,
-                  { color: colors.textSecondary },
+                  {
+                    color: isDark
+                      ? colors.textSecondary
+                      : "rgba(15, 23, 42, 0.65)",
+                  },
                   subtitleAnimatedStyle,
                   isTablet && {
                     fontSize: ((completionHistoryStyles.heroSubtitle.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),

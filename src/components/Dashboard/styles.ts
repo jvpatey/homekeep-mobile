@@ -58,7 +58,7 @@ export const headerStyles = StyleSheet.create({
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
-    zIndex: 2,
+    zIndex: 15,
   },
   profileButtonContainer: {
     position: "absolute",
@@ -127,8 +127,8 @@ export const headerStyles = StyleSheet.create({
   },
   statLabel: {
     ...DesignSystem.typography.caption,
-    opacity: 0.8,
     textAlign: "center",
+    fontWeight: "500",
   },
   statDivider: {
     width: 1,

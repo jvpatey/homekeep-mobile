@@ -55,7 +55,7 @@ export const completionHistoryStyles = StyleSheet.create({
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
-    zIndex: 2,
+    zIndex: 15,
   },
   backButton: {
     position: "absolute",
@@ -76,6 +76,8 @@ export const completionHistoryStyles = StyleSheet.create({
   heroContent: {
     alignItems: "center",
     paddingTop: DesignSystem.spacing.md,
+    position: "relative",
+    zIndex: 15,
   },
   heroTitle: {
     ...DesignSystem.typography.h1,
@@ -83,11 +85,18 @@ export const completionHistoryStyles = StyleSheet.create({
     textAlign: "center",
     marginBottom: DesignSystem.spacing.md,
     fontWeight: "800",
+    letterSpacing: -0.5,
+    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   heroSubtitle: {
     ...DesignSystem.typography.body,
     textAlign: "center",
     marginTop: DesignSystem.spacing.xs,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   routinesList: {
     padding: DesignSystem.spacing.md,

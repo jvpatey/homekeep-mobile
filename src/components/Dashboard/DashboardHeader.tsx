@@ -222,7 +222,7 @@ export function DashboardHeader({
       })()
     : getGradientFadeColors(isDark, colors.background);
   
-  // Push fade opacity further down so text at top stays readable
+  // Push fade opacity further down so text at top stays readable - start fade later for phones
   const fadeLocations = isTablet
     ? (() => {
         const screenMax = Math.max(width, height);
@@ -244,7 +244,9 @@ export function DashboardHeader({
           return [0, 0.7, 0.9, 1];
         }
       })()
-    : getGradientFadeLocations(isDark);
+    : isDark
+    ? getGradientFadeLocations(isDark)
+    : [0, 0.7, 0.85, 0.95, 1]; // For phones in light mode, start fade much later
   const gradientFadeHeight = getGradientFadeHeight();
   const screenMax = Math.max(width, height);
 
@@ -456,12 +458,12 @@ export function DashboardHeader({
               headerStyles.statsContainer,
               {
                 backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.4)"
-                  : "rgba(255, 255, 255, 0.4)",
+                  ? "rgba(35, 37, 38, 0.6)"
+                  : "rgba(255, 255, 255, 0.75)",
                 borderWidth: 1,
                 borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(255, 255, 255, 0.6)",
+                  ? "rgba(255, 255, 255, 0.15)"
+                  : "rgba(255, 255, 255, 0.8)",
               },
               statsAnimatedStyle,
               isTablet && {
@@ -492,9 +494,7 @@ export function DashboardHeader({
                 style={[
                   headerStyles.statNumber,
                   {
-                    color: isDark
-                      ? colors.primary
-                      : "rgba(15, 23, 42, 0.9)",
+                    color: colors.primary,
                   },
                   isTablet && {
                     fontSize: headerStyles.statNumber.fontSize * statsFontMultiplier,
@@ -510,7 +510,7 @@ export function DashboardHeader({
                   {
                     color: isDark
                       ? colors.textSecondary
-                      : "rgba(15, 23, 42, 0.7)",
+                      : "rgba(15, 23, 42, 0.85)",
                   },
                   isTablet && {
                     fontSize: (headerStyles.statLabel.fontSize || 14) * statsFontMultiplier,
@@ -521,7 +521,14 @@ export function DashboardHeader({
                 Due Soon
               </Text>
             </TouchableOpacity>
-            <View style={headerStyles.statDivider} />
+            <View style={[
+              headerStyles.statDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.08)",
+              },
+            ]} />
             <TouchableOpacity
               style={[
                 headerStyles.statItem,
@@ -538,9 +545,7 @@ export function DashboardHeader({
                 style={[
                   headerStyles.statNumber,
                   {
-                    color: isDark
-                      ? colors.success
-                      : "rgba(15, 23, 42, 0.9)",
+                    color: colors.success,
                   },
                   isTablet && {
                     fontSize: headerStyles.statNumber.fontSize * statsFontMultiplier,
@@ -556,7 +561,7 @@ export function DashboardHeader({
                   {
                     color: isDark
                       ? colors.textSecondary
-                      : "rgba(15, 23, 42, 0.7)",
+                      : "rgba(15, 23, 42, 0.85)",
                   },
                   isTablet && {
                     fontSize: (headerStyles.statLabel.fontSize || 14) * statsFontMultiplier,
@@ -567,7 +572,14 @@ export function DashboardHeader({
                 Completed
               </Text>
             </TouchableOpacity>
-            <View style={headerStyles.statDivider} />
+            <View style={[
+              headerStyles.statDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.08)",
+              },
+            ]} />
             <TouchableOpacity
               style={[
                 headerStyles.statItem,
@@ -582,9 +594,7 @@ export function DashboardHeader({
                 style={[
                   headerStyles.statNumber,
                   {
-                    color: isDark
-                      ? colors.accent
-                      : "rgba(15, 23, 42, 0.9)",
+                    color: colors.accent,
                   },
                   isTablet && {
                     fontSize: headerStyles.statNumber.fontSize * statsFontMultiplier,
@@ -600,7 +610,7 @@ export function DashboardHeader({
                   {
                     color: isDark
                       ? colors.textSecondary
-                      : "rgba(15, 23, 42, 0.7)",
+                      : "rgba(15, 23, 42, 0.85)",
                   },
                   isTablet && {
                     fontSize: (headerStyles.statLabel.fontSize || 14) * statsFontMultiplier,
