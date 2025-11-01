@@ -177,15 +177,15 @@ export function FeaturesSection() {
       >
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
           <Animated.View
-                style={[
-                  styles.modalContent,
-                  {
-                    backgroundColor: colors.glassStrong,
-                    shadowColor: colors.primary,
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.glassStrong,
+                shadowColor: colors.primary,
                     maxWidth: isTablet ? getResponsiveValue(320, 450, 550) : 320,
-                  },
-                  modalAnimatedStyle,
-                ]}
+              },
+              modalAnimatedStyle,
+            ]}
           >
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>

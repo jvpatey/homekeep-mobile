@@ -362,8 +362,8 @@ export function EmailVerificationScreen() {
           { width: "100%" },
           maxContentWidth && { maxWidth: maxContentWidth },
         ]}>
-          {/* Content */}
-          {renderContent()}
+        {/* Content */}
+        {renderContent()}
         </View>
       </View>
     </View>

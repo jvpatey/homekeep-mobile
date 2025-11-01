@@ -404,7 +404,7 @@ export function LoginScreen() {
 
         {/* OAuth Section */}
         <View style={isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) }}>
-          <OAuthButtons animatedStyle={buttonAnimatedStyle} />
+        <OAuthButtons animatedStyle={buttonAnimatedStyle} />
         </View>
 
         {/* Sign Up Link */}
