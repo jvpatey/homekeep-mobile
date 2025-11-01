@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
   },
   featuresContainer: {
     flexDirection: "column",
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.xxl,
     gap: DesignSystem.spacing.md,
   },
   featureItem: {

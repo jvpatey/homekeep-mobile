@@ -109,7 +109,16 @@ export function FeaturesSection() {
       maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
     ]}>
       {/* Feature Highlights - Full Width Stacked Cards */}
-      <View style={styles.featuresContainer}>
+      <View style={[
+        styles.featuresContainer,
+        isTablet && {
+          marginBottom: getResponsiveValue(
+            DesignSystem.spacing.xxl,
+            DesignSystem.spacing.xxl + DesignSystem.spacing.lg,
+            DesignSystem.spacing.xxl + DesignSystem.spacing.xl,
+          ),
+        },
+      ]}>
         {features.map((feature, index) => (
           <TouchableOpacity
             key={index}
