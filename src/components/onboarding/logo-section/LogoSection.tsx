@@ -4,7 +4,7 @@ import Animated from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../../context/ThemeContext";
-import { useLogoAnimation } from "../../../hooks";
+import { useLogoAnimation, useDevice } from "../../../hooks";
 import { styles } from "./styles";
 
 interface LogoSectionProps {
@@ -19,6 +19,15 @@ export function LogoSection({
 }: LogoSectionProps) {
   const { colors, isDark } = useTheme();
   const animatedStyle = useLogoAnimation(0);
+  const { isTablet, getResponsiveValue, getFontMultiplier, width, height } = useDevice();
+  
+  const fontMultiplier = getFontMultiplier();
+  // Logo text should be even bigger on large iPads
+  const logoTextMultiplier = isTablet && Math.max(width, height) > 1300 
+    ? 1.5  // 50% larger on iPad Pro 13-inch
+    : isTablet 
+    ? 1.35 // 35% larger on standard iPad
+    : 1;
 
   const gradientColors = isDark
     ? [colors.primary, colors.secondary, colors.accent]
@@ -33,18 +42,37 @@ export function LogoSection({
     >
       <Image
         source={require("../../../../assets/images/homekeep-logo.png")}
-        style={compact ? styles.logoCompact : styles.logo}
+        style={[
+          compact ? styles.logoCompact : styles.logo,
+          isTablet && !compact && {
+            width: getResponsiveValue(380, 520, 620), // Bigger logo for iPads: 520px for standard, 620px for iPad Pro 13"
+            height: getResponsiveValue(190, 260, 310), // Proportional height
+          },
+        ]}
         resizeMode="contain"
       />
       {showText && (
-        <MaskedView maskElement={<Text style={styles.logoText}>HomeKeep</Text>}>
+        <MaskedView maskElement={<Text style={[
+          styles.logoText,
+          isTablet && {
+            fontSize: styles.logoText.fontSize * logoTextMultiplier,
+            lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
+          },
+        ]}>HomeKeep</Text>}>
           <LinearGradient
             colors={gradientColors}
             locations={[0, 0.5, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Text style={[styles.logoText, { opacity: 0 }]}>HomeKeep</Text>
+            <Text style={[
+              styles.logoText,
+              { opacity: 0 },
+              isTablet && {
+                fontSize: styles.logoText.fontSize * logoTextMultiplier,
+                lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
+              },
+            ]}>HomeKeep</Text>
           </LinearGradient>
         </MaskedView>
       )}

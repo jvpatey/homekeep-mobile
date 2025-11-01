@@ -19,7 +19,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useGradients } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { useAuthAnimation, useAuthHaptics } from "./hooks";
-import { useDynamicSpacing } from "../../hooks";
+import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -27,12 +27,21 @@ import { DesignSystem } from "../../theme/designSystem";
 export function CodeVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { supabase } = useAuth();
-  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient } = useGradients();
+  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
   const navigation = useNavigation();
   const route = useRoute();
   const formAnimatedStyle = useAuthAnimation();
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
+  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const gradientFadeHeight = getGradientFadeHeight();
+  const fontMultiplier = getFontMultiplier();
+  const fadeLocations = getGradientFadeLocations(isDark);
+  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const heroSectionHeight = getHeroSectionHeight();
+  const screenMax = Math.max(width, height);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -160,18 +169,31 @@ export function CodeVerificationScreen() {
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
       {/* Hero Section with Gradient */}
-      <View style={authStyles.heroSection}>
+      <View style={[
+        authStyles.heroSection,
+        { backgroundColor: colors.background },
+        heroSectionHeight && {
+          minHeight: heroSectionHeight,
+          justifyContent: "center",
+        },
+      ]}>
         {/* Bottom fade mask */}
         <LinearGradient
-          colors={
-            isDark
-              ? ["transparent", "transparent", colors.background]
-              : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", colors.background]
-          }
-          locations={isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1]}
+          colors={fadeColors}
+          locations={fadeLocations}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={authStyles.bottomFade}
+          style={[
+            authStyles.bottomFade,
+            {
+              height: gradientFadeHeight,
+            },
+            isTablet && {
+              height: screenMax > 1300 
+                ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                : gradientFadeHeight * 1.3, // Standard iPads
+            },
+          ]}
           pointerEvents="none"
         />
         
@@ -191,6 +213,31 @@ export function CodeVerificationScreen() {
           start={{ x: 0.5, y: 0.3 }}
           end={{ x: 1, y: 1 }}
           style={authStyles.gradientGlow}
+        />
+        
+        {/* Ambient light layer - fade to transparent on iPads */}
+        <LinearGradient
+          colors={
+            isTablet
+              ? isDark
+                ? [
+                    "rgba(46, 196, 182, 0.10)",
+                    "rgba(58, 134, 255, 0.06)",
+                    "rgba(46, 196, 182, 0.03)",
+                    "transparent",
+                  ]
+                : [
+                    "rgba(46, 196, 182, 0.12)",
+                    "rgba(58, 134, 255, 0.08)",
+                    "rgba(46, 196, 182, 0.025)",
+                    "transparent",
+                  ]
+              : ambientGradient
+          }
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={authStyles.gradientAmbient}
         />
 
         <TouchableOpacity
@@ -230,13 +277,32 @@ export function CodeVerificationScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={[authStyles.headerContainer, authStyles.heroContent]}>
+        <View style={[
+          authStyles.headerContainer,
+          authStyles.heroContent,
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          { zIndex: 15 }, // Ensure text is above fade gradient
+        ]}>
           <LogoSection showText={false} compact={false} />
 
-          <Text style={[authStyles.largeTitle, { color: colors.text }]}>
+          <Text style={[
+            authStyles.largeTitle,
+            { color: colors.text },
+            isTablet && {
+              fontSize: authStyles.largeTitle.fontSize * fontMultiplier,
+              lineHeight: authStyles.largeTitle.lineHeight * fontMultiplier,
+            },
+          ]}>
             Verify Your Email
           </Text>
-          <Text style={[authStyles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[
+            authStyles.subtitle,
+            { color: colors.textSecondary },
+            isTablet && {
+              fontSize: authStyles.subtitle.fontSize * fontMultiplier,
+              lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
+            },
+          ]}>
             Enter the 6-digit code sent to {email}
           </Text>
         </View>
@@ -250,12 +316,18 @@ export function CodeVerificationScreen() {
             paddingBottom: dynamicBottomSpacing,
             paddingTop: DesignSystem.spacing.xl,
           },
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
         ]}
         showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
       >
         {/* Form Section with Liquid Glass */}
-        <Animated.View style={[authStyles.formCard, formAnimatedStyle, { marginBottom: DesignSystem.spacing.lg }]}>
+        <Animated.View style={[
+          authStyles.formCard,
+          formAnimatedStyle,
+          { marginBottom: DesignSystem.spacing.lg },
+          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <LinearGradient
             colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
             start={{ x: 0, y: 0 }}
@@ -296,7 +368,10 @@ export function CodeVerificationScreen() {
         </Animated.View>
 
         {/* Verify Button with Gradient */}
-        <View style={authStyles.buttonContainer}>
+        <View style={[
+          authStyles.buttonContainer,
+          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <TouchableOpacity
             onPress={handleVerifyCode}
             disabled={loading || code.length !== 6}
@@ -327,7 +402,10 @@ export function CodeVerificationScreen() {
         </View>
 
         {/* Resend Code */}
-        <View style={authStyles.linkContainer}>
+        <View style={[
+          authStyles.linkContainer,
+          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
             Didn't receive the code?{" "}
             <Text
@@ -340,7 +418,10 @@ export function CodeVerificationScreen() {
         </View>
 
         {/* Sign In Link */}
-        <View style={authStyles.linkContainer}>
+        <View style={[
+          authStyles.linkContainer,
+          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
             Already verified?{" "}
             <Text

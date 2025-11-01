@@ -22,17 +22,26 @@ import {
   useAuthForm,
   useAuthInputTheme,
 } from "./hooks";
-import { useDynamicSpacing } from "../../hooks";
+import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
 // EmailEntryScreen for the EmailEntryScreen on the home screen
 export function EmailEntryScreen() {
   const { colors, isDark } = useTheme();
-  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient } = useGradients();
+  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
   const navigation = useNavigation();
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
+  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const gradientFadeHeight = getGradientFadeHeight();
+  const fontMultiplier = getFontMultiplier();
+  const fadeLocations = getGradientFadeLocations(isDark);
+  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const heroSectionHeight = getHeroSectionHeight();
+  const screenMax = Math.max(width, height);
   const { getInputTheme } = useAuthInputTheme();
 
   // Form management
@@ -72,18 +81,31 @@ export function EmailEntryScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* Hero Section with Gradient */}
-      <View style={authStyles.heroSection}>
+      <View style={[
+        authStyles.heroSection,
+        { backgroundColor: colors.background },
+        heroSectionHeight && {
+          minHeight: heroSectionHeight,
+          justifyContent: "center",
+        },
+      ]}>
         {/* Bottom fade mask */}
         <LinearGradient
-          colors={
-            isDark
-              ? ["transparent", "transparent", colors.background]
-              : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", colors.background]
-          }
-          locations={isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1]}
+          colors={fadeColors}
+          locations={fadeLocations}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={authStyles.bottomFade}
+          style={[
+            authStyles.bottomFade,
+            {
+              height: gradientFadeHeight,
+            },
+            isTablet && {
+              height: screenMax > 1300 
+                ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                : gradientFadeHeight * 1.3, // Standard iPads
+            },
+          ]}
           pointerEvents="none"
         />
         
@@ -103,6 +125,31 @@ export function EmailEntryScreen() {
           start={{ x: 0.5, y: 0.3 }}
           end={{ x: 1, y: 1 }}
           style={authStyles.gradientGlow}
+        />
+        
+        {/* Ambient light layer - fade to transparent on iPads */}
+        <LinearGradient
+          colors={
+            isTablet
+              ? isDark
+                ? [
+                    "rgba(46, 196, 182, 0.10)",
+                    "rgba(58, 134, 255, 0.06)",
+                    "rgba(46, 196, 182, 0.03)",
+                    "transparent",
+                  ]
+                : [
+                    "rgba(46, 196, 182, 0.12)",
+                    "rgba(58, 134, 255, 0.08)",
+                    "rgba(46, 196, 182, 0.025)",
+                    "transparent",
+                  ]
+              : ambientGradient
+          }
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={authStyles.gradientAmbient}
         />
 
           <TouchableOpacity
@@ -141,13 +188,32 @@ export function EmailEntryScreen() {
           </TouchableOpacity>
 
         {/* Header */}
-        <View style={[authStyles.headerContainer, authStyles.heroContent]}>
+        <View style={[
+          authStyles.headerContainer,
+          authStyles.heroContent,
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          { zIndex: 15 }, // Ensure text is above fade gradient
+        ]}>
           <LogoSection showText={false} compact={false} />
 
-          <Text style={[authStyles.title, { color: colors.text }]}>
+          <Text style={[
+            authStyles.title,
+            { color: colors.text },
+            isTablet && {
+              fontSize: authStyles.title.fontSize * fontMultiplier,
+              lineHeight: authStyles.title.lineHeight * fontMultiplier,
+            },
+          ]}>
             Email Verification
           </Text>
-          <Text style={[authStyles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[
+            authStyles.subtitle,
+            { color: colors.textSecondary },
+            isTablet && {
+              fontSize: authStyles.subtitle.fontSize * fontMultiplier,
+              lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
+            },
+          ]}>
             Enter your email address to verify your account
           </Text>
         </View>
@@ -161,12 +227,17 @@ export function EmailEntryScreen() {
             paddingBottom: dynamicBottomSpacing,
             paddingTop: DesignSystem.spacing.xl,
           },
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
         ]}
         showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
       >
         {/* Form Section with Liquid Glass */}
-        <View style={[authStyles.formCard, { marginBottom: DesignSystem.spacing.lg }]}>
+        <View style={[
+          authStyles.formCard,
+          { marginBottom: DesignSystem.spacing.lg },
+          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <LinearGradient
             colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
             start={{ x: 0, y: 0 }}
@@ -206,7 +277,10 @@ export function EmailEntryScreen() {
         </View>
 
         {/* Continue Button with Gradient */}
-        <View style={authStyles.buttonContainer}>
+        <View style={[
+          authStyles.buttonContainer,
+          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <TouchableOpacity
             onPress={handleContinue}
             disabled={!email || !!errors.email}

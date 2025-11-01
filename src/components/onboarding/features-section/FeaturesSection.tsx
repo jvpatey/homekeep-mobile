@@ -11,7 +11,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
-import { useFeatureAnimation, useGradients, useHaptics } from "../../../hooks";
+import { useFeatureAnimation, useGradients, useHaptics, useDevice } from "../../../hooks";
 import { styles } from "./styles";
 import { ActionButtons } from "../../ui";
 import { DesignSystem } from "../../../theme/designSystem";
@@ -22,6 +22,10 @@ export function FeaturesSection() {
   const { iconGradient, glassBorder, glowGradient } = useGradients();
   const featureAnimatedStyles = useFeatureAnimation(3, 600);
   const { triggerLight } = useHaptics();
+  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const fontMultiplier = getFontMultiplier();
 
   // State for modal
   const [selectedFeature, setSelectedFeature] = useState<number | null>(null);
@@ -100,7 +104,10 @@ export function FeaturesSection() {
   }));
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[
+      styles.cardContainer,
+      maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+    ]}>
       {/* Feature Highlights - Full Width Stacked Cards */}
       <View style={styles.featuresContainer}>
         {features.map((feature, index) => (
@@ -133,13 +140,24 @@ export function FeaturesSection() {
                   />
                 </LinearGradient>
                 <View style={styles.featureTextContainer}>
-                  <Text style={[styles.featureTitle, { color: colors.text }]}>
+                  <Text style={[
+                    styles.featureTitle,
+                    { color: colors.text },
+                    isTablet && {
+                      fontSize: styles.featureTitle.fontSize * fontMultiplier,
+                      lineHeight: styles.featureTitle.lineHeight * fontMultiplier,
+                    },
+                  ]}>
                     {feature.text}
                   </Text>
                   <Text
                     style={[
                       styles.featureSubtitle,
                       { color: colors.textSecondary },
+                      isTablet && {
+                        fontSize: styles.featureSubtitle.fontSize * fontMultiplier,
+                        lineHeight: (styles.featureSubtitle.lineHeight || styles.featureSubtitle.fontSize * 1.4) * fontMultiplier,
+                      },
                     ]}
                   >
                     {feature.subtitle}
@@ -159,14 +177,15 @@ export function FeaturesSection() {
       >
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
           <Animated.View
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: colors.glassStrong,
-                shadowColor: colors.primary,
-              },
-              modalAnimatedStyle,
-            ]}
+                style={[
+                  styles.modalContent,
+                  {
+                    backgroundColor: colors.glassStrong,
+                    shadowColor: colors.primary,
+                    maxWidth: isTablet ? getResponsiveValue(320, 450, 550) : 320,
+                  },
+                  modalAnimatedStyle,
+                ]}
           >
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>
@@ -182,7 +201,14 @@ export function FeaturesSection() {
                     color={colors.primary}
                   />
                 </LinearGradient>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                <Text style={[
+                  styles.modalTitle,
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: styles.modalTitle.fontSize * fontMultiplier,
+                    lineHeight: styles.modalTitle.lineHeight * fontMultiplier,
+                  },
+                ]}>
                   {features[selectedFeature].text}
                 </Text>
               </View>
@@ -193,6 +219,10 @@ export function FeaturesSection() {
                 style={[
                   styles.modalDescription,
                   { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: styles.modalDescription.fontSize * fontMultiplier,
+                    lineHeight: (styles.modalDescription.lineHeight || styles.modalDescription.fontSize * 1.4) * fontMultiplier,
+                  },
                 ]}
               >
                 {features[selectedFeature].description}

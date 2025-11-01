@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, ScrollView, View, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../context/ThemeContext";
-import { useDynamicSpacing, useGradients } from "../hooks";
+import { useDynamicSpacing, useGradients, useDevice } from "../hooks";
 import { LogoSection } from "../components/onboarding";
 import { WelcomeText } from "../components/onboarding";
 import { FeaturesSection } from "../components/onboarding";
@@ -17,24 +17,50 @@ export function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { dynamicBottomSpacing } = useDynamicSpacing();
   const { heroGradient, heroGradientLocations, ambientGradient, radialGlow } = useGradients();
+  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const gradientFadeHeight = getGradientFadeHeight();
+  const fadeLocations = getGradientFadeLocations(isDark);
+  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const heroSectionHeight = getHeroSectionHeight();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Hero Section with Modern Glow Gradient */}
-      <View style={[styles.heroSection, { marginBottom: DesignSystem.spacing.lg }]}>
-        {/* Bottom fade mask - inside the hero container */}
+      <View style={[
+        styles.heroSection,
+        { 
+          marginBottom: DesignSystem.spacing.lg,
+          backgroundColor: colors.background, // Set background color to prevent dark bar
+        },
+        heroSectionHeight && {
+          minHeight: heroSectionHeight,
+          paddingTop: DesignSystem.spacing.xxxl,
+          paddingBottom: DesignSystem.spacing.xxxl,
+        },
+      ]}>
+        {/* Bottom fade mask - positioned at bottom to blend gradients to background */}
         <LinearGradient
-          colors={
-            isDark
-              ? ["transparent", "transparent", colors.background]
-              : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", colors.background]
-          }
-          locations={isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1]}
+          colors={fadeColors}
+          locations={fadeLocations}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.bottomFade}
+          style={[
+            styles.bottomFade,
+            {
+              height: gradientFadeHeight,
+              bottom: 0,
+            },
+            // For iPads, make fade taller to cover transition area
+            isTablet && {
+              height: Math.max(width, height) > 1300 
+                ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                : gradientFadeHeight * 1.3, // Standard iPads
+            },
+          ]}
           pointerEvents="none"
         />
         
@@ -56,16 +82,35 @@ export function HomeScreen() {
           style={styles.gradientGlow}
         />
         
-        {/* Ambient light layer */}
+        {/* Ambient light layer - fade to transparent on iPads to prevent dark bar */}
         <LinearGradient
-          colors={ambientGradient}
+          colors={
+            isTablet
+              ? isDark
+                ? [
+                    "rgba(46, 196, 182, 0.10)",
+                    "rgba(58, 134, 255, 0.06)",
+                    "rgba(46, 196, 182, 0.03)",
+                    "transparent",
+                  ]
+                : [
+                    "rgba(46, 196, 182, 0.12)",
+                    "rgba(58, 134, 255, 0.08)",
+                    "rgba(46, 196, 182, 0.025)",
+                    "transparent",
+                  ]
+              : ambientGradient
+          }
           locations={[0, 0.4, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradientAmbient}
         />
 
-        <View style={styles.heroContent}>
+        <View style={[
+          styles.heroContent,
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+        ]}>
           <LogoSection showText={true} compact={false} />
           <WelcomeText />
         </View>
@@ -93,11 +138,12 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     position: "relative",
-    overflow: "hidden",
+    overflow: "hidden", // Keep hidden to contain gradients
     paddingTop: DesignSystem.spacing.xl,
     paddingBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
     justifyContent: "center",
+    alignItems: "center",
   },
   bottomFade: {
     position: "absolute",
@@ -135,7 +181,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
-    zIndex: 1,
+    zIndex: 15, // Higher than fade (10) so text isn't covered
+    width: "100%",
   },
   scrollView: {
     flex: 1,
@@ -144,5 +191,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingTop: DesignSystem.spacing.md,
     justifyContent: "flex-start",
+    alignItems: "center",
   },
 });

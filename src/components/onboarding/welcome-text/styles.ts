@@ -7,6 +7,8 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: DesignSystem.spacing.lg,
     maxWidth: 280,
+    width: "100%",
+    paddingHorizontal: DesignSystem.spacing.sm,
   },
   headline: {
     ...DesignSystem.typography.h2,

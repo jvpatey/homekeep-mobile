@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useGradients } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { useAuthHaptics } from "./hooks";
-import { useDynamicSpacing } from "../../hooks";
+import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -17,7 +17,7 @@ type VerificationStatus = "verifying" | "success" | "error";
 // EmailVerificationScreen for the EmailVerificationScreen on the home screen
 export function EmailVerificationScreen() {
   const { colors, isDark } = useTheme();
-  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient } = useGradients();
+  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
@@ -25,6 +25,15 @@ export function EmailVerificationScreen() {
   // Shared hooks
   const { dynamicTopSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError } = useAuthHaptics();
+  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const gradientFadeHeight = getGradientFadeHeight();
+  const fontMultiplier = getFontMultiplier();
+  const fadeLocations = getGradientFadeLocations(isDark);
+  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const heroSectionHeight = getHeroSectionHeight();
+  const screenMax = Math.max(width, height);
 
   const [status, setStatus] = useState<VerificationStatus>("verifying");
   const [message, setMessage] = useState("Verifying your email...");
@@ -249,18 +258,31 @@ export function EmailVerificationScreen() {
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
       {/* Hero Section with Gradient */}
-      <View style={authStyles.heroSection}>
+      <View style={[
+        authStyles.heroSection,
+        { backgroundColor: colors.background },
+        heroSectionHeight && {
+          minHeight: heroSectionHeight,
+          justifyContent: "center",
+        },
+      ]}>
         {/* Bottom fade mask */}
         <LinearGradient
-          colors={
-            isDark
-              ? ["transparent", colors.background]
-              : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", colors.background]
-          }
-          locations={isDark ? [0.5, 1] : [0, 0.6, 0.9, 1]}
+          colors={fadeColors}
+          locations={fadeLocations}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={authStyles.bottomFade}
+          style={[
+            authStyles.bottomFade,
+            {
+              height: gradientFadeHeight,
+            },
+            isTablet && {
+              height: screenMax > 1300 
+                ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                : gradientFadeHeight * 1.3, // Standard iPads
+            },
+          ]}
           pointerEvents="none"
         />
         
@@ -281,11 +303,48 @@ export function EmailVerificationScreen() {
           end={{ x: 1, y: 1 }}
           style={authStyles.gradientGlow}
         />
+        
+        {/* Ambient light layer - fade to transparent on iPads */}
+        <LinearGradient
+          colors={
+            isTablet
+              ? isDark
+                ? [
+                    "rgba(46, 196, 182, 0.10)",
+                    "rgba(58, 134, 255, 0.06)",
+                    "rgba(46, 196, 182, 0.03)",
+                    "transparent",
+                  ]
+                : [
+                    "rgba(46, 196, 182, 0.12)",
+                    "rgba(58, 134, 255, 0.08)",
+                    "rgba(46, 196, 182, 0.025)",
+                    "transparent",
+                  ]
+              : ambientGradient
+          }
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={authStyles.gradientAmbient}
+        />
 
         {/* Header */}
-        <View style={[authStyles.headerContainer, authStyles.heroContent]}>
+        <View style={[
+          authStyles.headerContainer,
+          authStyles.heroContent,
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          { zIndex: 15 }, // Ensure text is above fade gradient
+        ]}>
           <LogoSection showText={false} compact={false} />
-          <Text style={[authStyles.title, { color: colors.text }]}>
+          <Text style={[
+            authStyles.title,
+            { color: colors.text },
+            isTablet && {
+              fontSize: authStyles.title.fontSize * fontMultiplier,
+              lineHeight: authStyles.title.lineHeight * fontMultiplier,
+            },
+          ]}>
             Email Verification
           </Text>
           <View style={{ height: DesignSystem.spacing.lg }} />
@@ -296,9 +355,16 @@ export function EmailVerificationScreen() {
         paddingTop: DesignSystem.spacing.lg, 
         flex: 1,
         paddingHorizontal: DesignSystem.spacing.md,
+        alignItems: "center",
+        width: "100%",
       }}>
-        {/* Content */}
-        {renderContent()}
+        <View style={[
+          { width: "100%" },
+          maxContentWidth && { maxWidth: maxContentWidth },
+        ]}>
+          {/* Content */}
+          {renderContent()}
+        </View>
       </View>
     </View>
   );
