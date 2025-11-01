@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
   headline: {
     ...DesignSystem.typography.h2,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.xs,
+    marginBottom: DesignSystem.spacing.md,
     textShadowColor: "rgba(0, 0, 0, 0.05)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,

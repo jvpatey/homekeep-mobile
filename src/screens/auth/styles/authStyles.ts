@@ -150,7 +150,7 @@ export const authStyles = StyleSheet.create({
     minHeight: 52,
   },
   buttonContainer: {
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.lg,
     marginHorizontal: DesignSystem.spacing.md,
   },
   buttonContainerWithGap: {
@@ -178,24 +178,27 @@ export const authStyles = StyleSheet.create({
 
   // Link styles
   linkContainer: {
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.xl,
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.lg,
   },
   linkText: {
-    ...DesignSystem.typography.small,
+    ...DesignSystem.typography.body,
     textAlign: "center",
+    fontSize: 15,
   },
   link: {
     fontWeight: "600",
   },
   verificationContainer: {
-    marginTop: DesignSystem.spacing.xs,
-    alignItems: "center",
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.md,
+    alignItems: "flex-end",
   },
   verificationText: {
-    ...DesignSystem.typography.small,
-    textDecorationLine: "underline",
+    ...DesignSystem.typography.body,
+    fontSize: 15,
+    fontWeight: "600",
   },
 
   // Configuration card styles

@@ -201,36 +201,56 @@ export function LoginScreen() {
         />
         <TouchableOpacity
           onPress={handleBackPress}
-          style={{
-            position: "absolute",
-            top: dynamicTopSpacing,
-            left: DesignSystem.spacing.md,
-            zIndex: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.5)"
-              : "rgba(255, 255, 255, 0.5)",
-            borderRadius: 20,
-            paddingHorizontal: DesignSystem.spacing.lg,
-            paddingVertical: DesignSystem.spacing.sm,
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.15)"
-              : "rgba(255, 255, 255, 0.25)",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
+          style={[
+            {
+              position: "absolute",
+              top: dynamicTopSpacing,
+              left: DesignSystem.spacing.md,
+              zIndex: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: isDark
+                ? "rgba(35, 37, 38, 0.5)"
+                : "rgba(255, 255, 255, 0.5)",
+              borderRadius: 20,
+              paddingHorizontal: DesignSystem.spacing.lg,
+              paddingVertical: DesignSystem.spacing.sm,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.15)"
+                : "rgba(255, 255, 255, 0.25)",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 2,
+            },
+            isTablet && {
+              borderRadius: getResponsiveValue(20, 24, 28),
+              paddingHorizontal: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.sm,
+              ),
+              paddingVertical: getResponsiveValue(
+                DesignSystem.spacing.sm,
+                DesignSystem.spacing.md,
+                DesignSystem.spacing.md + DesignSystem.spacing.xs,
+              ),
+            },
+          ]}
         >
           <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: 15,
-              fontWeight: "600",
-              opacity: 0.7,
-            }}
+            style={[
+              {
+                color: colors.textSecondary,
+                fontSize: 15,
+                fontWeight: "600",
+                opacity: 0.7,
+              },
+              isTablet && {
+                fontSize: 15 * fontMultiplier,
+              },
+            ]}
           >
             ← Back
           </Text>
@@ -297,7 +317,12 @@ export function LoginScreen() {
               label="Email"
               value={email}
               onChangeText={(text) => setFieldValue("email", text)}
-              style={authStyles.input}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                },
+              ]}
               theme={getInputTheme()}
               autoCapitalize="none"
               keyboardType="email-address"
@@ -314,7 +339,12 @@ export function LoginScreen() {
               label="Password"
               value={password}
               onChangeText={(text) => setFieldValue("password", text)}
-              style={authStyles.input}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                },
+              ]}
               theme={getInputTheme()}
               secureTextEntry={!showPassword}
               autoComplete="password"
@@ -334,10 +364,30 @@ export function LoginScreen() {
 
             <TouchableOpacity
               onPress={handleEmailVerification}
-              style={authStyles.verificationContainer}
+              style={[
+                authStyles.verificationContainer,
+                isTablet && {
+                  marginTop: getResponsiveValue(
+                    DesignSystem.spacing.md,
+                    DesignSystem.spacing.lg,
+                    DesignSystem.spacing.xl,
+                  ),
+                  marginBottom: getResponsiveValue(
+                    DesignSystem.spacing.md,
+                    DesignSystem.spacing.lg,
+                    DesignSystem.spacing.xl,
+                  ),
+                },
+              ]}
             >
               <Text
-                style={[authStyles.verificationText, { color: colors.primary }]}
+                style={[
+                  authStyles.verificationText, 
+                  { color: colors.primary },
+                  isTablet && {
+                    fontSize: (authStyles.verificationText.fontSize || 15) * fontMultiplier,
+                  },
+                ]}
               >
                 Forgot your password?
               </Text>
@@ -350,7 +400,14 @@ export function LoginScreen() {
           style={[
             authStyles.buttonContainer,
             buttonAnimatedStyle,
-            isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+            isTablet && { 
+              marginHorizontal: getResponsiveValue(16, 32, 40),
+              marginTop: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              ),
+            },
           ]}
         >
           <TouchableOpacity
@@ -410,12 +467,36 @@ export function LoginScreen() {
         {/* Sign Up Link */}
         <View style={[
           authStyles.linkContainer,
-          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+          isTablet && { 
+            paddingHorizontal: getResponsiveValue(16, 32, 40),
+            marginTop: getResponsiveValue(
+              DesignSystem.spacing.xl,
+              DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+            ),
+            marginBottom: getResponsiveValue(
+              DesignSystem.spacing.lg,
+              DesignSystem.spacing.xl,
+              DesignSystem.spacing.xl + DesignSystem.spacing.md,
+            ),
+          },
         ]}>
-          <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
+          <Text style={[
+            authStyles.linkText, 
+            { color: colors.textSecondary },
+            isTablet && {
+              fontSize: (authStyles.linkText.fontSize || 15) * fontMultiplier,
+            },
+          ]}>
             Don't have an account?{" "}
             <Text
-              style={[authStyles.link, { color: colors.primary }]}
+              style={[
+                authStyles.link, 
+                { color: colors.primary },
+                isTablet && {
+                  fontSize: (authStyles.linkText.fontSize || 15) * fontMultiplier,
+                },
+              ]}
               onPress={handleSignUp}
             >
               Sign up

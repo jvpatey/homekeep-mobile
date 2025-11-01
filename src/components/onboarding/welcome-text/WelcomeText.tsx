@@ -3,6 +3,7 @@ import { View, Text } from "react-native";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
 import { useTextAnimation, useDevice } from "../../../hooks";
+import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 
 // WelcomeText component for the WelcomeText on the onboarding screen
@@ -16,7 +17,14 @@ export function WelcomeText() {
   return (
     <View style={[
       styles.textContainer,
-      isTablet && { maxWidth: getResponsiveValue(280, 480, 620) }, // Wider for iPad Pro 13-inch to prevent wrapping
+      isTablet && { 
+        maxWidth: getResponsiveValue(280, 480, 620), // Wider for iPad Pro 13-inch to prevent wrapping
+        marginTop: getResponsiveValue(
+          DesignSystem.spacing.lg,
+          DesignSystem.spacing.sm,
+          DesignSystem.spacing.md,
+        ),
+      },
     ]}>
       <Animated.Text
         style={[
@@ -26,6 +34,11 @@ export function WelcomeText() {
           isTablet && {
             fontSize: styles.headline.fontSize * fontMultiplier,
             lineHeight: styles.headline.lineHeight * fontMultiplier,
+            marginBottom: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.lg,
+              DesignSystem.spacing.xl,
+            ),
           },
         ]}
       >

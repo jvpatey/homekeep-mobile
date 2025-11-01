@@ -107,6 +107,13 @@ export function FeaturesSection() {
     <View style={[
       styles.cardContainer,
       maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+      isTablet && {
+        paddingTop: getResponsiveValue(
+          0,
+          DesignSystem.spacing.lg,
+          DesignSystem.spacing.xl,
+        ),
+      },
     ]}>
       {/* Feature Highlights - Full Width Stacked Cards */}
       <View style={[
@@ -114,8 +121,8 @@ export function FeaturesSection() {
         isTablet && {
           marginBottom: getResponsiveValue(
             DesignSystem.spacing.xxl,
-            DesignSystem.spacing.xxl + DesignSystem.spacing.lg,
-            DesignSystem.spacing.xxl + DesignSystem.spacing.xl,
+            DesignSystem.spacing.xxl,
+            DesignSystem.spacing.xxl + DesignSystem.spacing.md,
           ),
         },
       ]}>

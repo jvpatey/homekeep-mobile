@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { useTheme } from "../../../context/ThemeContext";
 import { useLogoAnimation, useDevice } from "../../../hooks";
+import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 
 interface LogoSectionProps {
@@ -57,6 +58,16 @@ export function LogoSection({
           isTablet && {
             fontSize: styles.logoText.fontSize * logoTextMultiplier,
             lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
+            marginTop: getResponsiveValue(
+              DesignSystem.spacing.sm,
+              0,
+              0,
+            ),
+            marginBottom: getResponsiveValue(
+              0,
+              DesignSystem.spacing.sm,
+              DesignSystem.spacing.md,
+            ),
           },
         ]}>HomeKeep</Text>}>
           <LinearGradient
@@ -71,6 +82,16 @@ export function LogoSection({
               isTablet && {
                 fontSize: styles.logoText.fontSize * logoTextMultiplier,
                 lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
+                marginTop: getResponsiveValue(
+                  DesignSystem.spacing.sm,
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.lg,
+                ),
+                marginBottom: getResponsiveValue(
+                  0,
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.lg,
+                ),
               },
             ]}>HomeKeep</Text>
           </LinearGradient>

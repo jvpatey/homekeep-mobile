@@ -228,36 +228,56 @@ export function SignUpScreen() {
         />
         <TouchableOpacity
           onPress={handleBackPress}
-          style={{
-            position: "absolute",
-            top: dynamicTopSpacing,
-            left: DesignSystem.spacing.md,
-            zIndex: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.5)"
-              : "rgba(255, 255, 255, 0.5)",
-            borderRadius: 20,
-            paddingHorizontal: DesignSystem.spacing.lg,
-            paddingVertical: DesignSystem.spacing.sm,
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.15)"
-              : "rgba(255, 255, 255, 0.25)",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
+          style={[
+            {
+              position: "absolute",
+              top: dynamicTopSpacing,
+              left: DesignSystem.spacing.md,
+              zIndex: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: isDark
+                ? "rgba(35, 37, 38, 0.5)"
+                : "rgba(255, 255, 255, 0.5)",
+              borderRadius: 20,
+              paddingHorizontal: DesignSystem.spacing.lg,
+              paddingVertical: DesignSystem.spacing.sm,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.15)"
+                : "rgba(255, 255, 255, 0.25)",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 2,
+            },
+            isTablet && {
+              borderRadius: getResponsiveValue(20, 24, 28),
+              paddingHorizontal: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.sm,
+              ),
+              paddingVertical: getResponsiveValue(
+                DesignSystem.spacing.sm,
+                DesignSystem.spacing.md,
+                DesignSystem.spacing.md + DesignSystem.spacing.xs,
+              ),
+            },
+          ]}
         >
           <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: 15,
-              fontWeight: "600",
-              opacity: 0.7,
-            }}
+            style={[
+              {
+                color: colors.textSecondary,
+                fontSize: 15,
+                fontWeight: "600",
+                opacity: 0.7,
+              },
+              isTablet && {
+                fontSize: 15 * fontMultiplier,
+              },
+            ]}
           >
             ← Back
           </Text>
@@ -333,7 +353,12 @@ export function SignUpScreen() {
               label="Full Name"
               value={fullName}
               onChangeText={(text) => setFieldValue("fullName", text)}
-              style={authStyles.input}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                },
+              ]}
               theme={getInputTheme()}
               autoCapitalize="words"
               autoComplete="name"
@@ -349,7 +374,12 @@ export function SignUpScreen() {
               label="Email"
               value={email}
               onChangeText={(text) => setFieldValue("email", text)}
-              style={authStyles.input}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                },
+              ]}
               theme={getInputTheme()}
               autoCapitalize="none"
               keyboardType="email-address"
@@ -366,7 +396,12 @@ export function SignUpScreen() {
               label="Password"
               value={password}
               onChangeText={(text) => setFieldValue("password", text)}
-              style={authStyles.input}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                },
+              ]}
               theme={getInputTheme()}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
@@ -388,7 +423,12 @@ export function SignUpScreen() {
               label="Confirm Password"
               value={confirmPassword}
               onChangeText={(text) => setFieldValue("confirmPassword", text)}
-              style={authStyles.input}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                },
+              ]}
               theme={getInputTheme()}
               secureTextEntry={!showConfirmPassword}
               autoComplete="new-password"
