@@ -269,14 +269,12 @@ export function CreateTaskModal({
   // Trigger typing when form changes
   useEffect(() => {
     const fullText = generateSummaryText();
-    if (
-      fullText !== summaryText &&
-      summaryText.length === fullText.length - 1
-    ) {
+    // Trigger animation whenever the summary text changes
+    if (fullText !== summaryText) {
       setSummaryText("");
       setIsTyping(true);
     }
-  }, [form.title, intervalValue, selectedInterval, form.startDate]);
+  }, [form.title, intervalValue, selectedInterval, form.startDate, form.category, form.priority, form.estimated_duration_minutes]);
 
   // Start typing animation when modal opens
   useEffect(() => {
