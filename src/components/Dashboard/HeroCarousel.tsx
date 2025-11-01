@@ -73,7 +73,7 @@ export function HeroCarousel({
   const gradientColors = [
     addAlpha(colors.primary, 0.5),
     addAlpha(colors.secondary, 0.5),
-  ];
+  ] as [string, string];
 
   // Animation for empty state
   // Removed animations for cleaner experience

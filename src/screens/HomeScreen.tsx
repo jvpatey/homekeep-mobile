@@ -21,8 +21,8 @@ export function HomeScreen() {
   
   const maxContentWidth = getMaxContentWidth();
   const gradientFadeHeight = getGradientFadeHeight();
-  const fadeLocations = getGradientFadeLocations(isDark);
-  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const fadeLocations = getGradientFadeLocations(isDark) as any;
+  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
 
   return (
@@ -36,7 +36,7 @@ export function HomeScreen() {
           marginBottom: DesignSystem.spacing.lg,
           backgroundColor: colors.background, // Set background color to prevent dark bar
         },
-        heroSectionHeight && {
+        heroSectionHeight !== undefined && {
           minHeight: heroSectionHeight,
           paddingTop: DesignSystem.spacing.xxxl,
           paddingBottom: DesignSystem.spacing.xxxl,

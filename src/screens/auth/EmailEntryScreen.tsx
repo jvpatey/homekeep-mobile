@@ -55,8 +55,8 @@ export function EmailEntryScreen() {
   const maxContentWidth = getMaxContentWidth();
   const gradientFadeHeight = getGradientFadeHeight();
   const fontMultiplier = getFontMultiplier();
-  const fadeLocations = getGradientFadeLocations(isDark);
-  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const fadeLocations = getGradientFadeLocations(isDark) as any;
+  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
   const screenMax = Math.max(width, height);
   const { getInputTheme } = useAuthInputTheme();
@@ -102,7 +102,7 @@ export function EmailEntryScreen() {
             style={[
               authStyles.heroSection,
               { backgroundColor: colors.background },
-              heroSectionHeight && {
+              heroSectionHeight !== undefined && {
                 minHeight: heroSectionHeight,
                 justifyContent: "center",
               },

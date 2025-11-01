@@ -31,7 +31,7 @@ export function CompletionCelebration({
   const confettiAnim = useRef(new Animated.Value(0)).current;
 
   // Glass-like purple/blue gradient with subtle transparency
-  const glassGradient = isDark
+  const glassGradient = (isDark
     ? [
         "rgba(102, 126, 234, 0.15)",
         "rgba(118, 75, 162, 0.25)",
@@ -41,11 +41,29 @@ export function CompletionCelebration({
         "rgba(102, 126, 234, 0.12)",
         "rgba(147, 165, 250, 0.18)",
         "rgba(255, 255, 255, 0.85)",
-      ];
+      ]) as [string, string, string];
+
+  const hideCelebration = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setTimeout(() => {
+        onClose();
+      }, 0);
+    });
+  }, [scaleAnim, opacityAnim, onClose]);
 
   useLayoutEffect(() => {
     if (isVisible) {
-      // Start celebration animation - faster and more responsive
       Animated.sequence([
         Animated.parallel([
           Animated.spring(scaleAnim, {
@@ -67,7 +85,6 @@ export function CompletionCelebration({
         }),
       ]).start();
 
-      // Auto-hide after 3 seconds
       const timer = setTimeout(() => {
         hideCelebration();
       }, 3000);
@@ -76,7 +93,6 @@ export function CompletionCelebration({
     }
   }, [isVisible, scaleAnim, opacityAnim, confettiAnim, hideCelebration]);
 
-  // Reset animations when component becomes invisible
   useEffect(() => {
     if (!isVisible) {
       scaleAnim.setValue(0);
@@ -84,26 +100,6 @@ export function CompletionCelebration({
       confettiAnim.setValue(0);
     }
   }, [isVisible, scaleAnim, opacityAnim, confettiAnim]);
-
-  const hideCelebration = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Use setTimeout to ensure onClose doesn't trigger during insertion effect
-      setTimeout(() => {
-        onClose();
-      }, 0);
-    });
-  }, [scaleAnim, opacityAnim, onClose]);
 
   const getAchievementMessage = () => {
     if (streak >= 7) return "🔥 Week Warrior!";

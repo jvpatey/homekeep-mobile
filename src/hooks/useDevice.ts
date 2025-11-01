@@ -75,34 +75,27 @@ export function useDevice() {
     return 150; // Default for phone
   };
 
-  // Get gradient fade locations adjusted for screen size
   const getGradientFadeLocations = (isDark: boolean) => {
     if (isTablet) {
       const screenMax = Math.max(width, height);
       if (screenMax > 1300) {
-        // iPad Pro 13-inch: fade should start earlier and be very gradual
         return isDark 
-          ? [0, 0.15, 0.35, 0.55, 0.75, 1] // Start fading earlier with 6 stops
-          : [0, 0.2, 0.45, 0.65, 0.85, 1]; // Start fading earlier with 6 stops
+          ? [0, 0.15, 0.35, 0.55, 0.75, 1]
+          : [0, 0.2, 0.45, 0.65, 0.85, 1];
       } else if (screenMax > 1100) {
-        // Standard iPads (Air, Pro 11"): more gradual fade
         return isDark 
-          ? [0, 0.25, 0.55, 1] // More gradual fade with 4 stops
-          : [0, 0.35, 0.7, 1]; // More gradual fade with 4 stops
+          ? [0, 0.25, 0.55, 1]
+          : [0, 0.35, 0.7, 1];
       }
-      // Smaller iPads: standard fade
       return isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1];
     }
-    // Standard fade locations for phones
     return isDark ? [0, 0.4, 1] : [0, 0.6, 0.9, 1];
   };
 
-  // Get gradient fade colors adjusted for screen size to prevent dark bar
   const getGradientFadeColors = (isDark: boolean, backgroundColor: string) => {
     if (isTablet) {
       const screenMax = Math.max(width, height);
       if (screenMax > 1300) {
-        // iPad Pro 13-inch: use more gradual color stops with intermediate colors
         return isDark
           ? [
               "transparent",
@@ -121,7 +114,6 @@ export function useDevice() {
               backgroundColor,
             ];
       } else if (screenMax > 1100) {
-        // Standard iPads: gradual fade with 4 stops
         return isDark
           ? [
               "transparent",
@@ -136,12 +128,10 @@ export function useDevice() {
               backgroundColor,
             ];
       }
-      // Smaller iPads: standard fade colors
       return isDark
         ? ["transparent", "transparent", backgroundColor]
         : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", backgroundColor];
     }
-    // Standard fade colors for phones
     return isDark
       ? ["transparent", "transparent", backgroundColor]
       : ["transparent", "rgba(255, 255, 255, 0.3)", "rgba(255, 255, 255, 0.6)", backgroundColor];

@@ -30,9 +30,9 @@ export function LogoSection({
     ? 1.35 // 35% larger on standard iPad
     : 1;
 
-  const gradientColors = isDark
+  const gradientColors = (isDark
     ? [colors.primary, colors.secondary, colors.accent]
-    : [colors.primary, colors.secondary, colors.accent];
+    : [colors.primary, colors.secondary, colors.accent]) as [string, string, string];
 
   return (
     <Animated.View

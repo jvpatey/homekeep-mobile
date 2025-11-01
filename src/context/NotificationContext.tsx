@@ -307,7 +307,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   };
 
-  // Listen for notifications
   useEffect(() => {
     const notificationListener = Notifications.addNotificationReceivedListener(
       (notification) => {
@@ -321,8 +320,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       });
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener);
-      Notifications.removeNotificationSubscription(responseListener);
+      notificationListener.remove();
+      responseListener.remove();
     };
   }, []);
 

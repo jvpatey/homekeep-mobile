@@ -38,7 +38,7 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   const continueButtonOpacity = useSharedValue(0);
 
   // Glass-like orange/red gradient with subtle transparency
-  const glassGradient = isDark
+  const glassGradient = (isDark
     ? [
         "rgba(255, 107, 53, 0.15)",
         "rgba(247, 147, 30, 0.25)",
@@ -48,7 +48,7 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
         "rgba(255, 107, 53, 0.12)",
         "rgba(255, 167, 108, 0.18)",
         "rgba(255, 255, 255, 0.85)",
-      ];
+      ]) as [string, string, string];
 
   useEffect(() => {
     // Entrance animation - faster and more responsive

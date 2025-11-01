@@ -45,8 +45,8 @@ export function LoginScreen() {
   const maxContentWidth = getMaxContentWidth();
   const gradientFadeHeight = getGradientFadeHeight();
   const fontMultiplier = getFontMultiplier();
-  const fadeLocations = getGradientFadeLocations(isDark);
-  const fadeColors = getGradientFadeColors(isDark, colors.background);
+  const fadeLocations = getGradientFadeLocations(isDark) as any;
+  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
   const screenMax = Math.max(width, height);
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
@@ -132,7 +132,7 @@ export function LoginScreen() {
       <View style={[
         authStyles.heroSection,
         { backgroundColor: colors.background }, // Set background to prevent dark bar
-        heroSectionHeight && {
+        heroSectionHeight !== undefined && {
           minHeight: heroSectionHeight,
           justifyContent: "center",
         },

@@ -43,7 +43,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
 
   // Glass-like blue gradient with subtle transparency
-  const glassGradient = isDark
+  const glassGradient = (isDark
     ? [
         "rgba(59, 130, 246, 0.15)",
         "rgba(29, 78, 216, 0.25)",
@@ -53,7 +53,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
         "rgba(59, 130, 246, 0.12)",
         "rgba(147, 197, 253, 0.18)",
         "rgba(255, 255, 255, 0.85)",
-      ];
+      ]) as [string, string, string];
 
   useEffect(() => {
     // Entrance animation - faster and more responsive

@@ -259,8 +259,9 @@ export class MaintenanceService {
         };
       }
 
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
       const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/delete-user`,
+        `${supabaseUrl}/functions/v1/delete-user`,
         {
           method: "POST",
           headers: {
