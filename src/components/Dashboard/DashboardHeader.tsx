@@ -46,11 +46,23 @@ export function DashboardHeader({
   const { colors, isDark } = useTheme();
   const { selectedGradient } = useUserPreferences();
   const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, width, height } = useDevice();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   
   const fontMultiplier = getFontMultiplier();
+  // Larger multipliers for hero text (greeting, userName, motivationalMessage)
+  const heroFontMultiplier = isTablet
+    ? Math.max(width, height) > 1300
+      ? 1.5  // iPad Pro 13": 1.5x
+      : 1.35 // Standard iPad: 1.35x
+    : 1;
+  // Larger multipliers for stats text
+  const statsFontMultiplier = isTablet
+    ? Math.max(width, height) > 1300
+      ? 1.65  // iPad Pro 13": 1.65x
+      : 1.5   // Standard iPad: 1.5x
+    : 1;
 
   // Helper function to calculate luminance of a hex color
   const getLuminance = (hex: string): number => {
@@ -258,8 +270,8 @@ export function DashboardHeader({
                 },
                 greetAnimatedStyle,
                 isTablet && {
-                  fontSize: headerStyles.greeting.fontSize * fontMultiplier,
-                  lineHeight: (headerStyles.greeting.fontSize * fontMultiplier) * 1.2,
+                  fontSize: headerStyles.greeting.fontSize * heroFontMultiplier,
+                  lineHeight: (headerStyles.greeting.fontSize * heroFontMultiplier) * 1.2,
                 },
               ]}
             >
@@ -279,6 +291,10 @@ export function DashboardHeader({
                           textShadowColor: "rgba(255, 255, 255, 0.6)",
                           textShadowOffset: { width: 0, height: 0 },
                           textShadowRadius: 2,
+                        },
+                        isTablet && {
+                          fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
+                          lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
                         },
                       ]}
                     >
@@ -314,8 +330,8 @@ export function DashboardHeader({
                         textShadowRadius: isDark ? 8 : 4,
                       },
                       isTablet && {
-                        fontSize: headerStyles.userName.fontSize * fontMultiplier,
-                        lineHeight: (headerStyles.userName.fontSize * fontMultiplier) * 1.2,
+                        fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
+                        lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
                       },
                     ]}
                   >
@@ -333,8 +349,8 @@ export function DashboardHeader({
                     headerStyles.userName,
                     { opacity: 0 },
                     isTablet && {
-                      fontSize: headerStyles.userName.fontSize * fontMultiplier,
-                      lineHeight: (headerStyles.userName.fontSize * fontMultiplier) * 1.2,
+                      fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
+                      lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
                     },
                   ]}>
                     {userName}
@@ -352,8 +368,8 @@ export function DashboardHeader({
                     : "rgba(15, 23, 42, 0.65)",
                 },
                 isTablet && {
-                  fontSize: (headerStyles.motivationalMessage.fontSize || 16) * fontMultiplier,
-                  lineHeight: ((headerStyles.motivationalMessage.fontSize || 16) * fontMultiplier) * 1.4,
+                  fontSize: (headerStyles.motivationalMessage.fontSize || 16) * heroFontMultiplier,
+                  lineHeight: ((headerStyles.motivationalMessage.fontSize || 16) * heroFontMultiplier) * 1.4,
                 },
               ]}
             >
@@ -377,14 +393,24 @@ export function DashboardHeader({
               isTablet && {
                 padding: getResponsiveValue(
                   DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                  DesignSystem.spacing.xxl + DesignSystem.spacing.lg,
+                ),
+                gap: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.lg,
                   DesignSystem.spacing.xl,
-                  DesignSystem.spacing.xxl,
                 ),
               },
             ]}
           >
             <TouchableOpacity
-              style={headerStyles.statItem}
+              style={[
+                headerStyles.statItem,
+                isTablet && {
+                  paddingHorizontal: getResponsiveValue(0, DesignSystem.spacing.sm, DesignSystem.spacing.md),
+                },
+              ]}
               onPress={onShowDueSoonPopup}
               activeOpacity={0.7}
             >
@@ -397,7 +423,8 @@ export function DashboardHeader({
                       : "rgba(15, 23, 42, 0.9)",
                   },
                   isTablet && {
-                    fontSize: headerStyles.statNumber.fontSize * fontMultiplier,
+                    fontSize: headerStyles.statNumber.fontSize * statsFontMultiplier,
+                    lineHeight: (headerStyles.statNumber.fontSize * statsFontMultiplier) * 1.2,
                   },
                 ]}
               >
@@ -412,7 +439,8 @@ export function DashboardHeader({
                       : "rgba(15, 23, 42, 0.7)",
                   },
                   isTablet && {
-                    fontSize: (headerStyles.statLabel.fontSize || 14) * fontMultiplier,
+                    fontSize: (headerStyles.statLabel.fontSize || 14) * statsFontMultiplier,
+                    lineHeight: ((headerStyles.statLabel.fontSize || 14) * statsFontMultiplier) * 1.3,
                   },
                 ]}
               >
@@ -421,7 +449,12 @@ export function DashboardHeader({
             </TouchableOpacity>
             <View style={headerStyles.statDivider} />
             <TouchableOpacity
-              style={headerStyles.statItem}
+              style={[
+                headerStyles.statItem,
+                isTablet && {
+                  paddingHorizontal: getResponsiveValue(0, DesignSystem.spacing.sm, DesignSystem.spacing.md),
+                },
+              ]}
               onPress={() => {
                 navigation.navigate("CompletionHistory");
               }}
@@ -436,7 +469,8 @@ export function DashboardHeader({
                       : "rgba(15, 23, 42, 0.9)",
                   },
                   isTablet && {
-                    fontSize: headerStyles.statNumber.fontSize * fontMultiplier,
+                    fontSize: headerStyles.statNumber.fontSize * statsFontMultiplier,
+                    lineHeight: (headerStyles.statNumber.fontSize * statsFontMultiplier) * 1.2,
                   },
                 ]}
               >
@@ -451,7 +485,8 @@ export function DashboardHeader({
                       : "rgba(15, 23, 42, 0.7)",
                   },
                   isTablet && {
-                    fontSize: (headerStyles.statLabel.fontSize || 14) * fontMultiplier,
+                    fontSize: (headerStyles.statLabel.fontSize || 14) * statsFontMultiplier,
+                    lineHeight: ((headerStyles.statLabel.fontSize || 14) * statsFontMultiplier) * 1.3,
                   },
                 ]}
               >
@@ -460,7 +495,12 @@ export function DashboardHeader({
             </TouchableOpacity>
             <View style={headerStyles.statDivider} />
             <TouchableOpacity
-              style={headerStyles.statItem}
+              style={[
+                headerStyles.statItem,
+                isTablet && {
+                  paddingHorizontal: getResponsiveValue(0, DesignSystem.spacing.sm, DesignSystem.spacing.md),
+                },
+              ]}
               onPress={onShowStreakPopup}
               activeOpacity={0.7}
             >
@@ -473,7 +513,8 @@ export function DashboardHeader({
                       : "rgba(15, 23, 42, 0.9)",
                   },
                   isTablet && {
-                    fontSize: headerStyles.statNumber.fontSize * fontMultiplier,
+                    fontSize: headerStyles.statNumber.fontSize * statsFontMultiplier,
+                    lineHeight: (headerStyles.statNumber.fontSize * statsFontMultiplier) * 1.2,
                   },
                 ]}
               >
@@ -488,7 +529,8 @@ export function DashboardHeader({
                       : "rgba(15, 23, 42, 0.7)",
                   },
                   isTablet && {
-                    fontSize: (headerStyles.statLabel.fontSize || 14) * fontMultiplier,
+                    fontSize: (headerStyles.statLabel.fontSize || 14) * statsFontMultiplier,
+                    lineHeight: ((headerStyles.statLabel.fontSize || 14) * statsFontMultiplier) * 1.3,
                   },
                 ]}
               >

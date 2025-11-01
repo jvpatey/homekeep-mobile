@@ -13,6 +13,8 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
+import { useDevice } from "../../hooks";
+import { DesignSystem } from "../../theme/designSystem";
 import { fabStyles } from "./styles";
 
 interface FloatingActionButtonProps {
@@ -25,6 +27,7 @@ export function FloatingActionButton({
   hasTasks,
 }: FloatingActionButtonProps) {
   const { colors } = useTheme();
+  const { isTablet, getResponsiveValue } = useDevice();
 
   // Animation for button press feedback
   const pressScale = useSharedValue(1);
@@ -87,13 +90,32 @@ export function FloatingActionButton({
             shadowRadius: 12,
             elevation: 8,
           },
+          isTablet && {
+            width: getResponsiveValue(64, 72, 80),
+            height: getResponsiveValue(64, 72, 80),
+            borderRadius: getResponsiveValue(32, 36, 40),
+            bottom: getResponsiveValue(
+              DesignSystem.spacing.xl,
+              DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+            ),
+            right: getResponsiveValue(
+              DesignSystem.spacing.xl,
+              DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+            ),
+          },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color={colors.primary} />
+        <Ionicons 
+          name="add" 
+          size={isTablet ? getResponsiveValue(28, 32, 36) : 28} 
+          color={colors.primary} 
+        />
       </TouchableOpacity>
     </Animated.View>
   );

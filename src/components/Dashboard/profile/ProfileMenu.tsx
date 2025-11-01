@@ -18,7 +18,7 @@ import Animated, {
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useTasks } from "../../../context/TasksContext";
-import { useGradients, useHaptics } from "../../../hooks";
+import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
@@ -41,6 +41,7 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { isTablet, getResponsiveValue } = useDevice();
   const [menuVisible, setMenuVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [customizationModalVisible, setCustomizationModalVisible] =
@@ -247,18 +248,42 @@ export function ProfileMenu({ onRefresh, navigation }: ProfileMenuProps) {
   return (
     <>
       <TouchableOpacity
-        style={[styles.profileButton, { backgroundColor: colors.surface }]}
+        style={[
+          styles.profileButton,
+          { backgroundColor: colors.surface },
+          isTablet && {
+            width: getResponsiveValue(40, 48, 52),
+            height: getResponsiveValue(40, 48, 52),
+            borderRadius: getResponsiveValue(20, 24, 26),
+          },
+        ]}
         onPress={showMenu}
       >
         <LinearGradient
           colors={avatarGradient}
-          style={styles.profileAvatar}
+          style={[
+            styles.profileAvatar,
+            isTablet && {
+              width: getResponsiveValue(40, 48, 52),
+              height: getResponsiveValue(40, 48, 52),
+              borderRadius: getResponsiveValue(20, 24, 26),
+            },
+          ]}
           start={
             (!preferencesLoading && selectedGradient?.start) || { x: 0, y: 0 }
           }
           end={(!preferencesLoading && selectedGradient?.end) || { x: 1, y: 1 }}
         >
-          <Text style={styles.profileInitial}>{getUserInitial()}</Text>
+          <Text
+            style={[
+              styles.profileInitial,
+              isTablet && {
+                fontSize: getResponsiveValue(16, 20, 22),
+              },
+            ]}
+          >
+            {getUserInitial()}
+          </Text>
         </LinearGradient>
       </TouchableOpacity>
 

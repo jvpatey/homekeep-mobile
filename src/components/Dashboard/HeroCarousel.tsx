@@ -51,7 +51,7 @@ export function HeroCarousel({
   onToggleTimelineView,
 }: HeroCarouselProps) {
   const { colors, isDark } = useTheme();
-  const { isTablet, getResponsiveValue } = useDevice();
+  const { isTablet, getResponsiveValue, getFontMultiplier, width, height } = useDevice();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   
@@ -120,6 +120,10 @@ export function HeroCarousel({
                 ? colors.text
                 : "rgba(15, 23, 42, 0.9)",
             },
+            isTablet && {
+              fontSize: (styles.title.fontSize || 24) * getFontMultiplier(),
+              lineHeight: ((styles.title.fontSize || 24) * getFontMultiplier()) * 1.2,
+            },
           ]}
         >
           What's Next
@@ -145,10 +149,26 @@ export function HeroCarousel({
                           : "rgba(255, 255, 255, 0.8)",
                         borderWidth: 1,
                       },
+                      isTablet && {
+                        paddingHorizontal: getResponsiveValue(12, 16, 18),
+                        paddingVertical: getResponsiveValue(8, 12, 14),
+                        borderRadius: getResponsiveValue(20, 24, 26),
+                        gap: getResponsiveValue(6, 8, 10),
+                      },
                     ]}
                   >
-                    <Ionicons name="calendar" size={16} color="#FFFFFF" />
-                    <Text style={[styles.toggleButtonText, { color: "#FFFFFF" }]}>
+                    <Ionicons 
+                      name="calendar" 
+                      size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
+                      color="#FFFFFF" 
+                    />
+                    <Text style={[
+                      styles.toggleButtonText, 
+                      { color: "#FFFFFF" },
+                      isTablet && {
+                        fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
+                      },
+                    ]}>
                       Timeline
                     </Text>
                   </LinearGradient>
@@ -165,11 +185,17 @@ export function HeroCarousel({
                           : "rgba(255, 255, 255, 0.6)",
                         borderWidth: 1,
                       },
+                      isTablet && {
+                        paddingHorizontal: getResponsiveValue(12, 16, 18),
+                        paddingVertical: getResponsiveValue(8, 12, 14),
+                        borderRadius: getResponsiveValue(20, 24, 26),
+                        gap: getResponsiveValue(6, 8, 10),
+                      },
                     ]}
                   >
                     <Ionicons
                       name="calendar"
-                      size={16}
+                      size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                       color={
                         isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.75)"
                       }
@@ -181,6 +207,9 @@ export function HeroCarousel({
                           color: isDark
                             ? "rgba(255, 255, 255, 0.8)"
                             : "rgba(15, 23, 42, 0.8)",
+                        },
+                        isTablet && {
+                          fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
                         },
                       ]}
                     >
@@ -282,6 +311,10 @@ export function HeroCarousel({
                 ? colors.text
                 : "rgba(15, 23, 42, 0.9)",
             },
+            isTablet && {
+              fontSize: (styles.title.fontSize || 24) * getFontMultiplier(),
+              lineHeight: ((styles.title.fontSize || 24) * getFontMultiplier()) * 1.2,
+            },
           ]}
         >
           What's Next
@@ -298,7 +331,7 @@ export function HeroCarousel({
                   locations={[0, 1]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={[
+                    style={[
                     styles.toggleButton,
                     styles.toggleButtonSelected,
                     {
@@ -307,10 +340,26 @@ export function HeroCarousel({
                         : "rgba(255, 255, 255, 0.8)",
                       borderWidth: 1,
                     },
+                    isTablet && {
+                      paddingHorizontal: getResponsiveValue(12, 16, 18),
+                      paddingVertical: getResponsiveValue(8, 12, 14),
+                      borderRadius: getResponsiveValue(20, 24, 26),
+                      gap: getResponsiveValue(6, 8, 10),
+                    },
                   ]}
                 >
-                  <Ionicons name="calendar" size={16} color="#FFFFFF" />
-                  <Text style={[styles.toggleButtonText, { color: "#FFFFFF" }]}>
+                  <Ionicons 
+                    name="calendar" 
+                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
+                    color="#FFFFFF" 
+                  />
+                  <Text style={[
+                    styles.toggleButtonText, 
+                    { color: "#FFFFFF" },
+                    isTablet && {
+                      fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
+                    },
+                  ]}>
                     Timeline
                   </Text>
                 </LinearGradient>
@@ -327,11 +376,17 @@ export function HeroCarousel({
                         : "rgba(255, 255, 255, 0.6)",
                       borderWidth: 1,
                     },
+                    isTablet && {
+                      paddingHorizontal: getResponsiveValue(12, 16, 18),
+                      paddingVertical: getResponsiveValue(8, 12, 14),
+                      borderRadius: getResponsiveValue(20, 24, 26),
+                      gap: getResponsiveValue(6, 8, 10),
+                    },
                   ]}
                 >
                   <Ionicons
                     name="calendar"
-                    size={16}
+                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
                     color={
                       isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.75)"
                     }
@@ -343,6 +398,9 @@ export function HeroCarousel({
                         color: isDark
                           ? "rgba(255, 255, 255, 0.8)"
                           : "rgba(15, 23, 42, 0.8)",
+                      },
+                      isTablet && {
+                        fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
                       },
                     ]}
                   >
@@ -365,13 +423,18 @@ export function HeroCarousel({
                     : "rgba(255, 255, 255, 0.6)",
                   borderWidth: 1,
                 },
+                isTablet && {
+                  width: getResponsiveValue(40, 48, 52),
+                  height: getResponsiveValue(40, 48, 52),
+                  borderRadius: getResponsiveValue(20, 24, 26),
+                },
               ]}
               onPress={scrollToPrevious}
               activeOpacity={0.7}
             >
               <Ionicons
                 name="chevron-back"
-                size={20}
+                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                 color={
                   isDark ? "rgba(255, 255, 255, 0.8)" : "rgba(15, 23, 42, 0.8)"
                 }
@@ -389,13 +452,18 @@ export function HeroCarousel({
                     : "rgba(255, 255, 255, 0.6)",
                   borderWidth: 1,
                 },
+                isTablet && {
+                  width: getResponsiveValue(40, 48, 52),
+                  height: getResponsiveValue(40, 48, 52),
+                  borderRadius: getResponsiveValue(20, 24, 26),
+                },
               ]}
               onPress={scrollToNext}
               activeOpacity={0.7}
             >
               <Ionicons
                 name="chevron-forward"
-                size={20}
+                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                 color={
                   isDark ? "rgba(255, 255, 255, 0.8)" : "rgba(15, 23, 42, 0.8)"
                 }
