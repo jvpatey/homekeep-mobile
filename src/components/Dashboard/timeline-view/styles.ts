@@ -24,7 +24,7 @@ export const timelineStyles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: DesignSystem.spacing.xxl,
+    paddingBottom: DesignSystem.spacing.xxxl + DesignSystem.spacing.xl,
   },
   dateGroup: {
     marginBottom: DesignSystem.spacing.xl,

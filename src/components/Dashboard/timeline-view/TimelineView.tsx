@@ -174,9 +174,9 @@ export function TimelineView({
           timelineStyles.scrollContent,
           isTablet && {
             paddingBottom: getResponsiveValue(
-              DesignSystem.spacing.xxl,
-              DesignSystem.spacing.xxl + DesignSystem.spacing.lg,
-              DesignSystem.spacing.xxl + DesignSystem.spacing.xl,
+              DesignSystem.spacing.xxxl + DesignSystem.spacing.xl,
+              DesignSystem.spacing.xxxl + DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              DesignSystem.spacing.xxxl + DesignSystem.spacing.xl + DesignSystem.spacing.lg,
             ),
           },
         ]}
