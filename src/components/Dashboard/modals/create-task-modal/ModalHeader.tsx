@@ -20,17 +20,14 @@ export function ModalHeader({ title, onClose }: ModalHeaderProps) {
       style={[
         styles.modalHeader,
         {
-          backgroundColor: colors.surface,
-          borderBottomColor: colors.border,
-        }
+          backgroundColor: colors.glass,
+          borderBottomColor: colors.glassBorder,
+        },
       ]}
     >
       <TouchableOpacity
         onPress={onClose}
-        style={[
-          styles.closeButton,
-          { backgroundColor: colors.background },
-        ]}
+        style={[styles.closeButton, { backgroundColor: colors.glass }]}
         activeOpacity={0.7}
       >
         <Ionicons name="close" size={24} color={colors.text} />

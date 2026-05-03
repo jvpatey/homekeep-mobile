@@ -1,10 +1,11 @@
-import React from "react";
-import { View, Text } from "react-native";
-import { Chip } from "react-native-paper";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
-import { styles } from "./styles";
+import { useDevice } from "../../../../hooks";
+import { DesignSystem } from "../../../../theme/designSystem";
 import { MaintenanceCategory } from "../../../../types/maintenance";
+import { styles as sharedStyles } from "./styles";
 
 // Category interface
 interface Category {
@@ -30,61 +31,189 @@ export function CategorySelector({
   error,
 }: CategorySelectorProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const [isOpen, setIsOpen] = useState(false);
+  const fontMultiplier = getFontMultiplier();
+
+  const selectedCategoryData = categories.find(
+    (c) => c.id === selectedCategory
+  );
 
   return (
-    <View style={styles.inputGroup}>
-      <Text style={[styles.inputLabel, { color: colors.text }]}>
-        Category <Text style={styles.required}>*</Text>
+    <View style={categoryStyles.container}>
+      <Text style={[
+        categoryStyles.label, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((categoryStyles.label.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>
+        Category <Text style={categoryStyles.required}>*</Text>
       </Text>
-      <View style={styles.chipContainer}>
-        {categories.map((category) => {
-          const isSelected = selectedCategory === category.id;
-          return (
-            <Chip
+
+      <TouchableOpacity
+        style={[
+          categoryStyles.dropdownButton,
+          {
+            backgroundColor: colors.glass,
+            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
+          },
+        ]}
+        onPress={() => setIsOpen(!isOpen)}
+        activeOpacity={0.7}
+      >
+        <View style={categoryStyles.dropdownContent}>
+          {selectedCategoryData && (
+            <>
+              <Ionicons
+                name={selectedCategoryData.icon as any}
+                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+                color={selectedCategoryData.color}
+              />
+              <Text
+                style={[
+                  categoryStyles.dropdownText,
+                  { color: colors.text, marginLeft: 8 },
+                  isTablet && {
+                    fontSize: ((categoryStyles.dropdownText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
+                ]}
+              >
+                {selectedCategoryData.name === "HVAC"
+                  ? "HVAC"
+                  : selectedCategoryData.name}
+              </Text>
+            </>
+          )}
+        </View>
+        <Ionicons
+          name={isOpen ? "chevron-up" : "chevron-down"}
+          size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      {isOpen && (
+        <View
+          style={[
+            categoryStyles.dropdownList,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.glassBorder,
+            },
+          ]}
+        >
+          {categories.map((category) => (
+            <TouchableOpacity
               key={category.id}
-              selected={isSelected}
-              onPress={() => onSelectCategory(category.id)}
               style={[
-                styles.categoryChip,
+                categoryStyles.dropdownItem,
                 {
-                  backgroundColor: isSelected 
-                    ? category.color + "15" 
-                    : colors.surface,
-                  borderColor: isSelected 
-                    ? category.color 
-                    : colors.border,
-                  transform: [{ scale: isSelected ? 1.02 : 1 }],
+                  backgroundColor:
+                    selectedCategory === category.id
+                      ? "rgba(46, 196, 182, 0.1)"
+                      : "transparent",
                 },
+                selectedCategory === category.id && [
+                  sharedStyles.selectedItemGlow,
+                  sharedStyles.selectedItemGlowAlt,
+                  sharedStyles.selectedItemGlowAccent,
+                ],
               ]}
-              textStyle={[
-                styles.chipText,
-                {
-                  color: isSelected 
-                    ? category.color 
-                    : colors.textSecondary,
-                  fontWeight: isSelected ? "700" : "600",
-                },
-              ]}
-              icon={() => (
-                <Ionicons
-                  name={category.icon as any}
-                  size={18}
-                  color={
-                    isSelected
-                      ? category.color
-                      : colors.textSecondary
-                  }
-                />
-              )}
+              onPress={() => {
+                onSelectCategory(category.id);
+                setIsOpen(false);
+              }}
             >
-              {category.name === "HVAC" ? "HVAC" : category.name}
-            </Chip>
-          );
-        })}
-      </View>
+              <Ionicons
+                name={category.icon as any}
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
+                color={category.color}
+              />
+              <Text
+                style={[
+                  categoryStyles.dropdownItemText,
+                  {
+                    color:
+                      selectedCategory === category.id
+                        ? category.color
+                        : colors.text,
+                    fontWeight:
+                      selectedCategory === category.id ? "700" : "400",
+                  },
+                  { marginLeft: 8 },
+                  isTablet && {
+                    fontSize: ((categoryStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                  },
+                ]}
+              >
+                {category.name === "HVAC" ? "HVAC" : category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <Text style={[categoryStyles.errorText, { color: colors.error }]}>
+          {error}
+        </Text>
       )}
     </View>
   );
 }
+
+const categoryStyles = StyleSheet.create({
+  container: {
+    marginBottom: DesignSystem.spacing.md,
+  },
+  label: {
+    ...DesignSystem.typography.bodyMedium,
+    fontWeight: "600",
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  required: {
+    color: "#EF4444",
+    fontWeight: "700",
+  },
+  dropdownButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: DesignSystem.glass.borderWidth,
+    minHeight: DesignSystem.components.inputLarge,
+  },
+  dropdownContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  dropdownText: {
+    ...DesignSystem.typography.body,
+    fontWeight: "600",
+  },
+  dropdownList: {
+    marginTop: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: DesignSystem.glass.borderWidth,
+    overflow: "hidden",
+    ...DesignSystem.shadows.medium,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: DesignSystem.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+  },
+  dropdownItemText: {
+    ...DesignSystem.typography.body,
+    flex: 1,
+  },
+  errorText: {
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.xs,
+  },
+});

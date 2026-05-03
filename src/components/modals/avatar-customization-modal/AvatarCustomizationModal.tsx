@@ -19,7 +19,8 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
-import { useHaptics } from "../../../hooks";
+import { useHaptics, useDevice } from "../../../hooks";
+import { DesignSystem } from "../../../theme/designSystem";
 import {
   useUserPreferences,
   GradientPreset,
@@ -45,24 +46,23 @@ export function AvatarCustomizationModal({
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const fontMultiplier = getFontMultiplier();
 
   const [previewGradient, setPreviewGradient] =
     useState<GradientPreset>(selectedGradient);
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(screenHeight);
 
   // useEffect hook to animate the modal
   React.useEffect(() => {
     if (visible) {
       scale.value = withSpring(1, { damping: 15, stiffness: 150 });
       opacity.value = withTiming(1, { duration: 300 });
-      translateY.value = withSpring(0, { damping: 20, stiffness: 120 });
     } else {
       scale.value = withTiming(0, { duration: 250 });
       opacity.value = withTiming(0, { duration: 250 });
-      translateY.value = withTiming(screenHeight, { duration: 250 });
     }
   }, [visible]);
 
@@ -89,10 +89,7 @@ export function AvatarCustomizationModal({
 
   // animatedModalStyle function to animate the modal
   const animatedModalStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: interpolate(scale.value, [0, 1], [0.8, 1]) },
-      { translateY: translateY.value },
-    ],
+    transform: [{ scale: interpolate(scale.value, [0, 1], [0.9, 1]) }],
     opacity: opacity.value,
   }));
 
@@ -129,28 +126,67 @@ export function AvatarCustomizationModal({
           <Animated.View
             style={[
               styles.modalContainer,
-              { backgroundColor: colors.surface },
+              {
+                backgroundColor: isDark
+                  ? "rgba(35, 37, 38, 0.85)"
+                  : "rgba(255, 255, 255, 0.85)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.9)",
+              },
+              isTablet && {
+                maxWidth: getResponsiveValue(420, 600, 700),
+              },
               animatedModalStyle,
             ]}
             onStartShouldSetResponder={() => true}
           >
             {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerContent}>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>
+            <View
+              style={[
+                styles.header,
+                {
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.08)",
+                },
+              ]}
+            >
+              <View style={[
+                styles.headerContent,
+                isTablet && {
+                  paddingTop: getResponsiveValue(20, 28, 32),
+                  paddingHorizontal: getResponsiveValue(20, 28, 32),
+                  paddingBottom: getResponsiveValue(16, 20, 24),
+                },
+              ]}>
+                <Text style={[
+                  styles.headerTitle, 
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: ((styles.headerTitle.fontSize || 22) * fontMultiplier),
+                    lineHeight: ((styles.headerTitle.fontSize || 22) * fontMultiplier) * 1.2,
+                  },
+                ]}>
                   Customize Avatar
                 </Text>
                 <TouchableOpacity
                   style={[
                     styles.closeButton,
                     { backgroundColor: colors.background },
+                    isTablet && {
+                      width: getResponsiveValue(36, 44, 48),
+                      height: getResponsiveValue(36, 44, 48),
+                      borderRadius: getResponsiveValue(18, 22, 24),
+                    },
                   ]}
                   onPress={handleClose}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons
                     name="close"
-                    size={20}
+                    size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
                     color={colors.textSecondary}
                   />
                 </TouchableOpacity>
@@ -158,24 +194,56 @@ export function AvatarCustomizationModal({
             </View>
 
             {/* Preview Section */}
-            <View style={styles.previewSection}>
+            <View style={[
+              styles.previewSection,
+              isTablet && {
+                paddingHorizontal: getResponsiveValue(20, 28, 32),
+                paddingVertical: getResponsiveValue(24, 32, 36),
+              },
+            ]}>
               <Text
-                style={[styles.previewLabel, { color: colors.textSecondary }]}
+                style={[
+                  styles.previewLabel, 
+                  { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: ((styles.previewLabel.fontSize || 14) * fontMultiplier),
+                  },
+                ]}
               >
                 Preview
               </Text>
               <View style={styles.previewContainer}>
                 <LinearGradient
                   colors={previewGradient.colors}
-                  style={styles.previewAvatar}
+                  style={[
+                    styles.previewAvatar,
+                    isTablet && {
+                      width: getResponsiveValue(100, 120, 140),
+                      height: getResponsiveValue(100, 120, 140),
+                      borderRadius: getResponsiveValue(50, 60, 70),
+                      marginBottom: getResponsiveValue(16, 20, 24),
+                    },
+                  ]}
                   start={previewGradient.start}
                   end={previewGradient.end}
                 >
-                  <Text style={styles.previewInitial}>{getUserInitial()}</Text>
+                  <Text style={[
+                    styles.previewInitial,
+                    isTablet && {
+                      fontSize: getResponsiveValue(36, 44, 52),
+                    },
+                  ]}>{getUserInitial()}</Text>
                 </LinearGradient>
                 <View style={styles.previewInfo}>
                   <Text
-                    style={[styles.previewGradientName, { color: colors.text }]}
+                    style={[
+                      styles.previewGradientName, 
+                      { color: colors.text },
+                      isTablet && {
+                        fontSize: ((styles.previewGradientName.fontSize || 18) * fontMultiplier),
+                        lineHeight: ((styles.previewGradientName.fontSize || 18) * fontMultiplier) * 1.2,
+                      },
+                    ]}
                   >
                     {previewGradient.name}
                   </Text>
@@ -183,6 +251,10 @@ export function AvatarCustomizationModal({
                     style={[
                       styles.previewDescription,
                       { color: colors.textSecondary },
+                      isTablet && {
+                        fontSize: ((styles.previewDescription.fontSize || 14) * fontMultiplier),
+                        lineHeight: ((styles.previewDescription.fontSize || 14) * fontMultiplier) * 1.4,
+                      },
                     ]}
                   >
                     This gradient will be used for your avatar across the app
@@ -203,15 +275,41 @@ export function AvatarCustomizationModal({
             </ScrollView>
 
             {/* Footer Actions */}
-            <View style={styles.footerActions}>
+            <View
+              style={[
+                styles.footerActions,
+                {
+                  borderTopWidth: 1,
+                  borderTopColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.08)",
+                },
+                isTablet && {
+                  paddingHorizontal: getResponsiveValue(20, 28, 32),
+                  paddingVertical: getResponsiveValue(20, 28, 32),
+                  paddingBottom: getResponsiveValue(32, 40, 48),
+                  gap: getResponsiveValue(12, 16, 20),
+                },
+              ]}
+            >
               <TouchableOpacity
-                style={[styles.cancelButton, { borderColor: colors.border }]}
+                style={[
+                  styles.cancelButton, 
+                  { borderColor: colors.border },
+                  isTablet && {
+                    height: getResponsiveValue(52, 60, 64),
+                    borderRadius: getResponsiveValue(16, 20, 24),
+                  },
+                ]}
                 onPress={handleClose}
               >
                 <Text
                   style={[
                     styles.cancelButtonText,
                     { color: colors.textSecondary },
+                    isTablet && {
+                      fontSize: ((styles.cancelButtonText.fontSize || 16) * fontMultiplier),
+                    },
                   ]}
                 >
                   Cancel
@@ -219,7 +317,13 @@ export function AvatarCustomizationModal({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[
+                  styles.saveButton,
+                  isTablet && {
+                    height: getResponsiveValue(52, 60, 64),
+                    borderRadius: getResponsiveValue(16, 20, 24),
+                  },
+                ]}
                 onPress={async () => {
                   await triggerMedium();
                   handleClose();
@@ -231,7 +335,12 @@ export function AvatarCustomizationModal({
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                  <Text style={[
+                    styles.saveButtonText,
+                    isTablet && {
+                      fontSize: ((styles.saveButtonText.fontSize || 16) * fontMultiplier),
+                    },
+                  ]}>Save Changes</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

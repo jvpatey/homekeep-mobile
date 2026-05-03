@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
+import {
+  View,
+  ScrollView,
+  RefreshControl,
+  Animated as RNAnimated,
+} from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+} from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
+import { useGradients, useDevice } from "../../hooks";
 import { MaintenanceTask } from "../../types/maintenance";
 import { HeroCarousel } from "./HeroCarousel";
 import { TimelineView } from "./timeline-view/TimelineView";
@@ -40,7 +53,9 @@ export function NewDashboard({
   refreshing = false,
 }: NewDashboardProps) {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { ambientGradient } = useGradients();
+  const { isTablet } = useDevice();
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
@@ -53,6 +68,77 @@ export function NewDashboard({
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
   const [timelineTasks, setTimelineTasks] = useState<MaintenanceTask[]>([]);
+  const [showTimelineView, setShowTimelineView] = useState(false);
+  const [timelineContentHeight, setTimelineContentHeight] = useState(0);
+  const timelineHeight = React.useRef(new RNAnimated.Value(0)).current;
+
+  // Animation values for page load
+  const headerOpacity = useSharedValue(0);
+  const headerTranslateY = useSharedValue(20);
+  const carouselOpacity = useSharedValue(0);
+  const carouselTranslateY = useSharedValue(20);
+  const timelineOpacity = useSharedValue(0);
+  const timelineTranslateY = useSharedValue(20);
+
+  // Function to trigger animations
+  const triggerAnimations = useCallback(() => {
+    headerOpacity.value = 0;
+    headerTranslateY.value = 20;
+    carouselOpacity.value = 0;
+    carouselTranslateY.value = 20;
+    timelineOpacity.value = 0;
+    timelineTranslateY.value = 20;
+
+    headerOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
+    headerTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
+    carouselOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
+    carouselTranslateY.value = withDelay(400, withTiming(0, { duration: 600 }));
+    timelineOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
+    timelineTranslateY.value = withDelay(600, withTiming(0, { duration: 600 }));
+  }, []);
+
+  // Trigger animations on mount only
+  useEffect(() => {
+    triggerAnimations();
+  }, [triggerAnimations]);
+
+  // Animation styles
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: headerOpacity.value,
+    transform: [{ translateY: headerTranslateY.value }],
+  }));
+
+  const carouselAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: carouselOpacity.value,
+    transform: [{ translateY: carouselTranslateY.value }],
+  }));
+
+  const timelineAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: timelineOpacity.value,
+    transform: [{ translateY: timelineTranslateY.value }],
+  }));
+
+  // Animate timeline height based on visibility
+  useEffect(() => {
+    if (showTimelineView) {
+      // Expand immediately when showing
+      RNAnimated.timing(timelineHeight, {
+        toValue: 1,
+        duration: 0,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      // Wait for exit animation to complete (300ms) then collapse
+      const timer = setTimeout(() => {
+        RNAnimated.timing(timelineHeight, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showTimelineView, timelineHeight]);
 
   // Load all future tasks and reduce to next instance per routine for timeline
   const loadTimelineTasks = useCallback(async () => {
@@ -91,29 +177,6 @@ export function NewDashboard({
   const upcomingTasks = tasks; // These are already upcoming tasks from the service
   const pastDueTasks = tasks.filter((task) => task.is_overdue); // This should also be empty since upcoming tasks shouldn't be overdue
 
-  // Debug logging for task visibility issues
-  console.log(
-    "📊 Dashboard - Received tasks (should be upcoming):",
-    tasks.length
-  );
-  console.log("📊 Dashboard - Filtered upcoming tasks:", upcomingTasks.length);
-  console.log(
-    "📊 Dashboard - Completed tasks from props:",
-    completedTasks.length
-  );
-  console.log(
-    "📊 Dashboard - Past due tasks (should be 0):",
-    pastDueTasks.length
-  );
-
-  if (tasks.length > 0) {
-    console.log("📊 Dashboard - First task:", {
-      title: tasks[0]?.title,
-      due_date: tasks[0]?.due_date,
-      is_completed: tasks[0]?.is_completed,
-      is_overdue: tasks[0]?.is_overdue,
-    });
-  }
 
   // Filter for "due soon" tasks (within next 7 days, excluding past due)
   const dueSoonTasks = getDueSoonTasks(tasks);
@@ -161,14 +224,10 @@ export function NewDashboard({
   };
 
   const handleTaskCreated = () => {
-    console.log("✅ Dashboard - Task created, closing modal and refreshing");
     setShowCreateModal(false);
     // Refresh tasks if refresh function is provided
     if (onRefresh) {
-      console.log("🔄 Dashboard - Calling onRefresh after task creation");
       onRefresh();
-    } else {
-      console.log("⚠️ Dashboard - No onRefresh function provided!");
     }
   };
 
@@ -191,35 +250,58 @@ export function NewDashboard({
           />
         }
       >
+        <View>
         {/* Header Section */}
-        <DashboardHeader
-          userName={getUserName(user?.user_metadata?.full_name, user?.email)}
-          greeting={getGreeting()}
-          motivationalMessage={getMotivationalMessage(upcomingTasks)}
-          dueSoonCount={dueSoonTasks.length}
-          completedCount={completedTasks.length}
-          streak={streak}
-          onRefresh={onRefresh}
-          onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
-          onShowStreakPopup={() => setShowStreakPopup(true)}
-        />
+        <Animated.View style={headerAnimatedStyle}>
+          <DashboardHeader
+            userName={getUserName(user?.user_metadata?.full_name, user?.email)}
+            greeting={getGreeting()}
+            motivationalMessage={getMotivationalMessage(upcomingTasks)}
+            dueSoonCount={dueSoonTasks.length}
+            completedCount={completedTasks.length}
+            streak={streak}
+            onRefresh={onRefresh}
+            onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
+            onShowStreakPopup={() => setShowStreakPopup(true)}
+          />
+        </Animated.View>
 
         {/* Hero Carousel */}
-        <HeroCarousel
-          tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
-          onCompleteTask={handleCompleteTask}
-          onTaskPress={handleTaskPress}
-        />
+        <Animated.View style={carouselAnimatedStyle}>
+          <HeroCarousel
+            tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
+            onCompleteTask={handleCompleteTask}
+            onTaskPress={handleTaskPress}
+            showTimelineView={showTimelineView}
+            onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
+          />
+        </Animated.View>
 
         {/* Timeline View */}
-        <TimelineView
-          tasks={timelineTasks}
-          onCompleteTask={handleCompleteTask}
-          onTaskPress={handleTaskPress}
-        />
+        <Animated.View style={timelineAnimatedStyle}>
+          <RNAnimated.View
+            style={{
+              overflow: "hidden",
+              height: timelineHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, timelineContentHeight || 2000],
+              }),
+            }}
+            pointerEvents={showTimelineView ? "auto" : "none"}
+          >
+            <TimelineView
+              tasks={timelineTasks}
+              onCompleteTask={handleCompleteTask}
+              onTaskPress={handleTaskPress}
+              visible={showTimelineView}
+              onContentSizeChange={(height) => setTimelineContentHeight(height)}
+            />
+          </RNAnimated.View>
+        </Animated.View>
 
         {/* Bottom Spacing */}
         <View style={dashboardStyles.bottomSpacing} />
+        </View>
       </ScrollView>
 
       {/* Floating Action Button - Add Task */}

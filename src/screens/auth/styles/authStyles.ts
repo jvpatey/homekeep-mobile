@@ -7,6 +7,50 @@ export const authStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  heroSection: {
+    position: "relative",
+    overflow: "hidden",
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.md,
+    minHeight: 280,
+  },
+  bottomFade: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 150,
+    zIndex: 10,
+  },
+  gradientBase: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  gradientGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  gradientAmbient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  heroContent: {
+    position: "relative",
+    zIndex: 3,
+  },
   scrollView: {
     flex: 1,
   },
@@ -17,24 +61,27 @@ export const authStyles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingTop: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.md,
   },
 
   // Header styles
   headerContainer: {
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.lg,
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
   },
   title: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.xs,
+    marginTop: 0,
+    marginBottom: 30,
   },
   largeTitle: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.xs,
+    marginTop: 0,
+    marginBottom: DesignSystem.spacing.md,
   },
   subtitle: {
     ...DesignSystem.typography.body,
@@ -49,8 +96,9 @@ export const authStyles = StyleSheet.create({
   // Form styles
   formCard: {
     borderRadius: DesignSystem.borders.radius.large,
-    marginBottom: DesignSystem.spacing.sm,
-    ...DesignSystem.shadows.medium,
+    marginBottom: DesignSystem.spacing.md,
+    marginHorizontal: DesignSystem.spacing.md,
+    ...DesignSystem.shadows.glass,
   },
   formContent: {
     padding: DesignSystem.spacing.md,
@@ -76,9 +124,9 @@ export const authStyles = StyleSheet.create({
   // Progress styles
   progressContainer: {
     marginBottom: DesignSystem.spacing.xs,
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.xs,
     width: "100%",
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: 0,
   },
   progressLabel: {
     ...DesignSystem.typography.captionMedium,
@@ -86,22 +134,24 @@ export const authStyles = StyleSheet.create({
     textAlign: "center",
   },
   progressBar: {
-    height: 6,
+    height: 4,
     borderRadius: DesignSystem.borders.radius.small,
     width: "100%",
+    backgroundColor: "transparent",
   },
 
   // Button styles
   primaryButton: {
     borderRadius: DesignSystem.borders.radius.large,
     paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: DesignSystem.components.buttonLarge,
+    minHeight: 52,
   },
   buttonContainer: {
     marginTop: DesignSystem.spacing.md,
+    marginHorizontal: DesignSystem.spacing.md,
   },
   buttonContainerWithGap: {
     marginTop: DesignSystem.spacing.md,
@@ -128,23 +178,27 @@ export const authStyles = StyleSheet.create({
 
   // Link styles
   linkContainer: {
-    marginTop: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.xl,
     alignItems: "center",
+    marginBottom: DesignSystem.spacing.lg,
   },
   linkText: {
-    ...DesignSystem.typography.small,
+    ...DesignSystem.typography.body,
     textAlign: "center",
+    fontSize: 15,
   },
   link: {
     fontWeight: "600",
   },
   verificationContainer: {
-    marginTop: DesignSystem.spacing.xs,
-    alignItems: "center",
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.md,
+    alignItems: "flex-end",
   },
   verificationText: {
-    ...DesignSystem.typography.small,
-    textDecorationLine: "underline",
+    ...DesignSystem.typography.body,
+    fontSize: 15,
+    fontWeight: "600",
   },
 
   // Configuration card styles
@@ -168,7 +222,6 @@ export const authStyles = StyleSheet.create({
 
   // Status styles
   statusContainer: {
-    marginTop: DesignSystem.spacing.lg,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -176,6 +229,7 @@ export const authStyles = StyleSheet.create({
     ...DesignSystem.typography.body,
     textAlign: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.lg,
   },
   successIcon: {
     width: 60,

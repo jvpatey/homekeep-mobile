@@ -6,10 +6,10 @@ export function useAuthInputTheme() {
 
   const getInputTheme = (hasError: boolean = false) => ({
     colors: {
-      primary: colors.primary,
-      outline: hasError ? colors.error : colors.border,
+      primary: colors.secondary, // Use blue for gradient effect
+      outline: hasError ? colors.error : colors.glassBorder,
       surface: colors.surface,
-      background: colors.surface,
+      background: "transparent",
       onSurface: colors.text,
       onSurfaceVariant: colors.textSecondary,
     },

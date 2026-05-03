@@ -1,14 +1,25 @@
 import React, { useState } from "react";
-import { View, Text, Alert, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Alert,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useGradients } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { useAuthAnimation, useAuthHaptics } from "./hooks";
-import { useDynamicSpacing } from "../../hooks";
+import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -16,11 +27,21 @@ import { DesignSystem } from "../../theme/designSystem";
 export function CodeVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { supabase } = useAuth();
+  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
   const navigation = useNavigation();
   const route = useRoute();
   const formAnimatedStyle = useAuthAnimation();
-  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
+  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const gradientFadeHeight = getGradientFadeHeight();
+  const fontMultiplier = getFontMultiplier();
+  const fadeLocations = getGradientFadeLocations(isDark) as any;
+  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
+  const heroSectionHeight = getHeroSectionHeight();
+  const screenMax = Math.max(width, height);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -138,83 +159,285 @@ export function CodeVerificationScreen() {
   });
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
-      <View style={{ paddingTop: dynamicTopSpacing, flex: 1 }}>
-        {/* Header */}
-        <View style={authStyles.headerContainer}>
-          <TouchableOpacity
-            onPress={handleBackPress}
-            style={{
+      {/* Hero Section with Gradient */}
+      <View style={[
+        authStyles.heroSection,
+        { backgroundColor: colors.background },
+        heroSectionHeight !== undefined && {
+          minHeight: heroSectionHeight,
+          justifyContent: "center",
+        },
+      ]}>
+        {/* Bottom fade mask */}
+        <LinearGradient
+          colors={fadeColors}
+          locations={fadeLocations}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={[
+            authStyles.bottomFade,
+            {
+              height: gradientFadeHeight,
+            },
+            isTablet && {
+              height: screenMax > 1300 
+                ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                : gradientFadeHeight * 1.3, // Standard iPads
+            },
+          ]}
+          pointerEvents="none"
+        />
+        
+        {/* Layered gradient background */}
+        <LinearGradient
+          colors={heroGradient}
+          locations={heroGradientLocations}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={authStyles.gradientBase}
+        />
+        
+        {/* Glow effect */}
+        <LinearGradient
+          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
+          locations={[0, 0.3, 0.6, 1]}
+          start={{ x: 0.5, y: 0.3 }}
+          end={{ x: 1, y: 1 }}
+          style={authStyles.gradientGlow}
+        />
+        
+        {/* Ambient light layer - fade to transparent to prevent dark bar */}
+        <LinearGradient
+          colors={
+            isTablet
+              ? isDark
+                ? [
+                    "rgba(46, 196, 182, 0.10)",
+                    "rgba(58, 134, 255, 0.06)",
+                    "rgba(46, 196, 182, 0.03)",
+                    "transparent",
+                  ]
+                : [
+                    "rgba(46, 196, 182, 0.12)",
+                    "rgba(58, 134, 255, 0.08)",
+                    "rgba(46, 196, 182, 0.025)",
+                    "transparent",
+                  ]
+              : isDark
+              ? ambientGradient
+              : [
+                  "transparent",
+                  "transparent",
+                  "transparent",
+                  "transparent",
+                ]
+          }
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={authStyles.gradientAmbient}
+        />
+
+        <TouchableOpacity
+          onPress={handleBackPress}
+          style={[
+            {
               position: "absolute",
-              top: 0,
-              left: 0,
-              padding: DesignSystem.spacing.sm,
-              zIndex: 10,
-            }}
+              top: dynamicTopSpacing,
+              left: DesignSystem.spacing.md,
+              zIndex: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: isDark
+                ? "rgba(35, 37, 38, 0.5)"
+                : "rgba(255, 255, 255, 0.5)",
+              borderRadius: 20,
+              paddingHorizontal: DesignSystem.spacing.lg,
+              paddingVertical: DesignSystem.spacing.sm,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.15)"
+                : "rgba(255, 255, 255, 0.25)",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 2,
+            },
+            isTablet && {
+              borderRadius: getResponsiveValue(20, 24, 28),
+              paddingHorizontal: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.sm,
+              ),
+              paddingVertical: getResponsiveValue(
+                DesignSystem.spacing.sm,
+                DesignSystem.spacing.md,
+                DesignSystem.spacing.md + DesignSystem.spacing.xs,
+              ),
+            },
+          ]}
+        >
+          <Text
+            style={[
+              {
+                color: colors.textSecondary,
+                fontSize: 15,
+                fontWeight: "600",
+                opacity: 0.7,
+              },
+              isTablet && {
+                fontSize: 15 * fontMultiplier,
+              },
+            ]}
           >
-            <Text style={{ color: colors.primary, fontSize: 18 }}>← Back</Text>
-          </TouchableOpacity>
+            ← Back
+          </Text>
+        </TouchableOpacity>
 
-          <LogoSection showText={false} compact={true} />
+        <View style={[
+          authStyles.headerContainer,
+          authStyles.heroContent,
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          { zIndex: 15 }, // Ensure text is above fade gradient
+        ]}>
+          <LogoSection showText={false} compact={false} />
 
-          <Text style={[authStyles.largeTitle, { color: colors.text }]}>
+          <Text style={[
+            authStyles.largeTitle,
+            { color: colors.text },
+            isTablet && {
+              fontSize: authStyles.largeTitle.fontSize * fontMultiplier,
+              lineHeight: authStyles.largeTitle.lineHeight * fontMultiplier,
+            },
+          ]}>
             Verify Your Email
           </Text>
-          <Text style={[authStyles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[
+            authStyles.subtitle,
+            { color: colors.textSecondary },
+            isTablet && {
+              fontSize: authStyles.subtitle.fontSize * fontMultiplier,
+              lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
+            },
+          ]}>
             Enter the 6-digit code sent to {email}
           </Text>
         </View>
+      </View>
 
-        {/* Form Section */}
-        <Animated.View style={[authStyles.formCard, formAnimatedStyle]}>
-          <View style={authStyles.formContent}>
-            <TextInput
-              label="Verification Code"
-              value={code}
-              onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
-              style={authStyles.input}
-              theme={getInputTheme()}
-              keyboardType="numeric"
-              maxLength={6}
-              placeholder="123456"
-              autoFocus
-            />
-            {error && (
-              <Text style={[authStyles.errorText, { color: colors.error }]}>
-                {error}
-              </Text>
-            )}
-          </View>
+      <ScrollView
+        style={authStyles.scrollView}
+        contentContainerStyle={[
+          authStyles.scrollContent,
+          {
+            paddingBottom: dynamicBottomSpacing,
+            paddingTop: DesignSystem.spacing.xl,
+          },
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+        ]}
+        showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+      >
+        {/* Form Section with Liquid Glass */}
+        <Animated.View style={[
+          authStyles.formCard,
+          formAnimatedStyle,
+          { marginBottom: DesignSystem.spacing.lg },
+          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
+          <LinearGradient
+            colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: DesignSystem.borders.radius.large,
+              padding: 1,
+            }}
+          >
+            <View style={[
+              authStyles.formContent,
+              {
+                backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
+                borderRadius: DesignSystem.borders.radius.large - 1,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
+              }
+            ]}>
+              <TextInput
+                label="Verification Code"
+                value={code}
+                onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
+                style={[
+                  authStyles.input,
+                  isTablet && {
+                    fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                  },
+                ]}
+                theme={getInputTheme()}
+                keyboardType="numeric"
+                maxLength={6}
+                placeholder="123456"
+                autoFocus
+                    keyboardAppearance={isDark ? "dark" : "light"}
+              />
+              {error && (
+                <Text style={[authStyles.errorText, { color: colors.error }]}>
+                  {error}
+                </Text>
+              )}
+            </View>
+          </LinearGradient>
         </Animated.View>
 
-        {/* Verify Button */}
-        <View style={authStyles.buttonContainer}>
+        {/* Verify Button with Gradient */}
+        <View style={[
+          authStyles.buttonContainer,
+          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <TouchableOpacity
             onPress={handleVerifyCode}
             disabled={loading || code.length !== 6}
-            style={[
-              authStyles.primaryButton,
-              {
-                backgroundColor: colors.primary,
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={primaryGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingVertical: DesignSystem.spacing.md,
+                paddingHorizontal: DesignSystem.spacing.lg,
+                borderRadius: DesignSystem.borders.radius.large,
+                alignItems: "center",
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.15,
                 shadowRadius: 8,
                 elevation: 6,
                 opacity: code.length !== 6 ? 0.6 : 1,
-              },
-            ]}
-          >
-            <Text style={[authStyles.buttonLabel, { color: "white" }]}>
-              {loading ? "Verifying..." : "Verify Code"}
-            </Text>
+              }}
+            >
+              <Text style={[authStyles.buttonLabel, { color: "white" }]}>
+                {loading ? "Verifying..." : "Verify Code"}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
         {/* Resend Code */}
-        <View style={authStyles.linkContainer}>
+        <View style={[
+          authStyles.linkContainer,
+          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
             Didn't receive the code?{" "}
             <Text
@@ -227,7 +450,10 @@ export function CodeVerificationScreen() {
         </View>
 
         {/* Sign In Link */}
-        <View style={authStyles.linkContainer}>
+        <View style={[
+          authStyles.linkContainer,
+          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+        ]}>
           <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
             Already verified?{" "}
             <Text
@@ -238,7 +464,9 @@ export function CodeVerificationScreen() {
             </Text>
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

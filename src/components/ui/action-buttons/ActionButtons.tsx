@@ -4,10 +4,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { AuthStackParamList } from "../../../navigation/types";
 import { useButtonAnimation, useGradients, useHaptics } from "../../../hooks";
 import { styles } from "./styles";
+import { DesignSystem } from "../../../theme/designSystem";
 
 type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -16,60 +18,66 @@ export function ActionButtons() {
   const { colors } = useTheme();
   const navigation = useNavigation<AuthNavigationProp>();
   const animatedStyle = useButtonAnimation();
-  const { primaryGradient, isDark } = useGradients();
+  const { primaryGradient, accentGradient, isDark } = useGradients();
   const { triggerMedium, triggerLight } = useHaptics();
 
-  // handleCreateAccount function to handle the create account button press
-  const handleCreateAccount = () => {
+  // handleGetStarted function to handle the get started button press
+  const handleGetStarted = () => {
     triggerMedium();
+    // Navigate to smart auth flow (will auto-detect signup vs login)
     navigation.navigate("SignUp");
   };
 
-  // handleSignIn function to handle the sign in button press
-  const handleSignIn = () => {
+  // handleEmailAuth function to handle the email auth link
+  const handleEmailAuth = () => {
     triggerLight();
     navigation.navigate("Login");
   };
 
   return (
     <Animated.View style={[styles.buttonContainer, animatedStyle]}>
-      <TouchableOpacity
-        onPress={handleCreateAccount}
-        style={[
-          styles.primaryButton,
-          {
-            backgroundColor: colors.primary,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-            elevation: 6,
-          },
-        ]}
-      >
-        <Text style={[styles.primaryButtonText, { color: "white" }]}>
-          Create Account
-        </Text>
+      {/* Primary Get Started Button */}
+      <TouchableOpacity onPress={handleGetStarted} activeOpacity={0.8}>
+        <LinearGradient
+          colors={[
+            isDark ? "rgba(32, 180, 134, 0.70)" : "rgba(46, 196, 182, 0.75)",
+            isDark ? "rgba(58, 134, 255, 0.65)" : "rgba(58, 134, 255, 0.70)",
+            isDark ? "rgba(255, 159, 28, 0.60)" : "rgba(255, 159, 28, 0.65)",
+          ]}
+          locations={[0, 0.5, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.primaryButton,
+            {
+              shadowColor: isDark
+                ? "rgba(32, 180, 134, 0.25)"
+                : "rgba(46, 196, 182, 0.30)",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.2,
+              shadowRadius: 16,
+              elevation: 5,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.15)"
+                : "rgba(255, 255, 255, 0.2)",
+            },
+          ]}
+        >
+          <Text style={[styles.primaryButtonText, { color: "white" }]}>
+            Get Started
+          </Text>
+        </LinearGradient>
       </TouchableOpacity>
 
+      {/* Email Auth Link */}
       <TouchableOpacity
-        onPress={handleSignIn}
-        style={[
-          styles.secondaryButton,
-          {
-            backgroundColor: colors.surface,
-            borderWidth: 2,
-            borderColor: colors.primary,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-            elevation: 3,
-          },
-        ]}
+        onPress={handleEmailAuth}
+        activeOpacity={0.7}
+        style={styles.emailLink}
       >
-        <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
-          Sign In
+        <Text style={[styles.emailLinkText, { color: colors.textSecondary }]}>
+          Continue with Email
         </Text>
       </TouchableOpacity>
     </Animated.View>

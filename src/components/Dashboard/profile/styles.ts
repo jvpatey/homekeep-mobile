@@ -36,19 +36,19 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   menuContainer: {
-    backgroundColor: "white",
     borderRadius: DesignSystem.borders.radius.large,
     padding: DesignSystem.spacing.lg,
     margin: DesignSystem.spacing.lg,
     maxWidth: 320,
     width: "100%",
+    borderWidth: 1,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
     elevation: 8,
   },
   profileSection: {

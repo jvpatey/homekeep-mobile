@@ -6,10 +6,18 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
   withDelay,
+  interpolate,
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
-import { MaintenanceTask } from "../../../types/maintenance";
+import {
+  MaintenanceTask,
+  HOME_MAINTENANCE_CATEGORIES,
+  PRIORITIES,
+} from "../../../types/maintenance";
+import { useTheme } from "../../../context/ThemeContext";
+import { useDevice } from "../../../hooks";
 
 interface DueSoonPopupProps {
   tasks: MaintenanceTask[];
@@ -18,26 +26,94 @@ interface DueSoonPopupProps {
 
 // DueSoonPopup component for the Dashboard
 export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
+  const { isDark } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+
   // Animation values
-  const scale = useSharedValue(0.8);
+  const scale = useSharedValue(0.7);
   const opacity = useSharedValue(0);
+  const translateY = useSharedValue(50);
   const contentOpacity = useSharedValue(0);
+  const headerIconScale = useSharedValue(0.5);
+  const headerIconRotation = useSharedValue(0);
+  const taskCardScale = useSharedValue(0.8);
+  const navButtonOpacity = useSharedValue(0);
 
   // Carousel state
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
 
-  useEffect(() => {
-    // Entrance animation
-    opacity.value = withTiming(1, { duration: 300 });
-    scale.value = withTiming(1, { duration: 400 });
+  // Glass-like blue gradient with subtle transparency
+  const glassGradient = (isDark
+    ? [
+        "rgba(59, 130, 246, 0.15)",
+        "rgba(29, 78, 216, 0.25)",
+        "rgba(15, 23, 42, 0.85)",
+      ]
+    : [
+        "rgba(59, 130, 246, 0.12)",
+        "rgba(147, 197, 253, 0.18)",
+        "rgba(255, 255, 255, 0.85)",
+      ]) as [string, string, string];
 
-    // Content animation
-    contentOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
+  useEffect(() => {
+    // Entrance animation - faster and more responsive
+    opacity.value = withTiming(1, { duration: 200 });
+    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
+    translateY.value = withTiming(0, { duration: 200 });
+
+    // Header icon animation - reduced delay
+    headerIconScale.value = withDelay(
+      50,
+      withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      })
+    );
+    headerIconRotation.value = withDelay(
+      50,
+      withTiming(360, { duration: 400 })
+    );
+
+    // Content animation - faster
+    contentOpacity.value = withDelay(
+      100,
+      withTiming(1, { duration: 200 })
+    );
+
+    // Task card animation - faster
+    taskCardScale.value = withDelay(
+      150,
+      withSpring(1, {
+        damping: 18,
+        stiffness: 180,
+      })
+    );
+
+    // Navigation buttons animation - faster
+    navButtonOpacity.value = withDelay(
+      200,
+      withTiming(1, { duration: 200 })
+    );
   }, []);
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const headerIconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: headerIconScale.value },
+      { rotate: `${headerIconRotation.value}deg` },
+    ],
+  }));
+
+  const taskCardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: taskCardScale.value }],
+  }));
+
+  const navButtonAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: navButtonOpacity.value,
   }));
 
   const contentAnimatedStyle = useAnimatedStyle(() => ({
@@ -45,12 +121,13 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   }));
 
   const handleClose = () => {
-    // Exit animation
-    opacity.value = withTiming(0, { duration: 200 });
-    scale.value = withTiming(0.8, { duration: 200 });
+    // Exit animation - faster
+    opacity.value = withTiming(0, { duration: 150 });
+    scale.value = withTiming(0.95, { duration: 150 });
+    translateY.value = withTiming(20, { duration: 150 });
 
     // Close after animation
-    setTimeout(onClose, 200);
+    setTimeout(onClose, 150);
   };
 
   const goToNextTask = () => {
@@ -82,61 +159,193 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
     });
   };
 
-  const renderTaskItem = ({ item }: { item: MaintenanceTask }) => (
-    <View style={styles.taskItem}>
-      {/* Task Header with Category Badge */}
-      <View style={styles.taskHeader}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>
-            {item.category === "HVAC"
-              ? "HVAC"
-              : item.category.charAt(0).toUpperCase() +
-                item.category.slice(1).toLowerCase()}
-          </Text>
+  const renderTaskItem = ({
+    item,
+    isDark,
+  }: {
+    item: MaintenanceTask;
+    isDark: boolean;
+  }) => {
+    const categoryInfo = HOME_MAINTENANCE_CATEGORIES[item.category];
+    const priorityInfo = PRIORITIES[item.priority];
+
+    return (
+      <View
+        style={[
+          styles.taskItem,
+          {
+            backgroundColor: isDark
+              ? "rgba(59, 130, 246, 0.1)"
+              : "rgba(147, 197, 253, 0.12)",
+            borderColor: isDark
+              ? "rgba(59, 130, 246, 0.2)"
+              : "rgba(59, 130, 246, 0.2)",
+          },
+        ]}
+      >
+        {/* Task Header with Category Badge */}
+        <View style={styles.taskHeader}>
+          <View
+            style={[
+              styles.categoryBadge,
+              {
+                backgroundColor: isDark
+                  ? `${categoryInfo.color}20`
+                  : `${categoryInfo.color}15`,
+                borderColor: `${categoryInfo.color}40`,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.categoryText,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.95)"
+                    : categoryInfo.color,
+                },
+                isTablet && {
+                  fontSize: ((styles.categoryText.fontSize || 12) * getFontMultiplier()),
+                },
+              ]}
+            >
+              {item.category === "HVAC"
+                ? "HVAC"
+                : item.category.charAt(0).toUpperCase() +
+                  item.category.slice(1).toLowerCase()}
+            </Text>
+          </View>
+          <View style={styles.urgencyIndicator}>
+            <View style={styles.urgencyDot} />
+          </View>
         </View>
-        <View style={styles.urgencyIndicator}>
-          <View style={styles.urgencyDot} />
+
+        {/* Task Title */}
+        <Text
+          style={[
+            styles.taskTitle,
+            {
+              color: isDark
+                ? "rgba(255, 255, 255, 0.95)"
+                : "rgba(15, 23, 42, 0.9)",
+            },
+            isTablet && {
+              fontSize: ((styles.taskTitle.fontSize || 18) * getFontMultiplier()),
+              lineHeight: ((styles.taskTitle.fontSize || 18) * getFontMultiplier()) * 1.3,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {item.title}
+        </Text>
+
+        {/* Task Details with Enhanced Layout */}
+        <View style={styles.taskDetails}>
+          <View style={styles.detailRow}>
+            <View
+              style={[
+                styles.iconContainer,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(59, 130, 246, 0.15)"
+                    : "rgba(147, 197, 253, 0.18)",
+                  borderColor: isDark
+                    ? "rgba(59, 130, 246, 0.25)"
+                    : "rgba(59, 130, 246, 0.22)",
+                },
+              ]}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
+                color={
+                  isDark
+                    ? "rgba(255, 255, 255, 0.8)"
+                    : "rgba(59, 130, 246, 0.85)"
+                }
+              />
+            </View>
+            <Text
+              style={[
+                styles.detailText,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.85)"
+                    : "rgba(15, 23, 42, 0.75)",
+                },
+                isTablet && {
+                  fontSize: ((styles.detailText.fontSize || 14) * getFontMultiplier()),
+                },
+              ]}
+            >
+              Due {formatDueDate(item.due_date)}
+            </Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <View
+              style={[
+                styles.iconContainer,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(59, 130, 246, 0.15)"
+                    : "rgba(147, 197, 253, 0.18)",
+                  borderColor: isDark
+                    ? "rgba(59, 130, 246, 0.25)"
+                    : "rgba(59, 130, 246, 0.22)",
+                },
+              ]}
+            >
+              <Ionicons
+                name="flag-outline"
+                size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
+                color={
+                  isDark
+                    ? "rgba(255, 255, 255, 0.8)"
+                    : "rgba(59, 130, 246, 0.85)"
+                }
+              />
+            </View>
+            <Text
+              style={[
+                styles.detailText,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.85)"
+                    : "rgba(15, 23, 42, 0.75)",
+                },
+                isTablet && {
+                  fontSize: ((styles.detailText.fontSize || 14) * getFontMultiplier()),
+                },
+              ]}
+            >
+              {priorityInfo.name}
+            </Text>
+          </View>
         </View>
       </View>
-
-      {/* Task Title */}
-      <Text style={styles.taskTitle} numberOfLines={2}>
-        {item.title}
-      </Text>
-
-      {/* Task Details with Enhanced Layout */}
-      <View style={styles.taskDetails}>
-        <View style={styles.detailRow}>
-          <View style={styles.iconContainer}>
-            <Ionicons
-              name="calendar-outline"
-              size={18}
-              color="rgba(255, 255, 255, 0.8)"
-            />
-          </View>
-          <Text style={styles.detailText}>
-            Due {formatDueDate(item.due_date)}
-          </Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <View style={styles.iconContainer}>
-            <Ionicons
-              name="construct-outline"
-              size={18}
-              color="rgba(255, 255, 255, 0.8)"
-            />
-          </View>
-          <Text style={styles.detailText}>{item.category}</Text>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="checkmark-circle" size={48} color="white" />
-      <Text style={styles.emptyStateTitle}>All Caught Up!</Text>
+      <Ionicons
+        name="checkmark-circle"
+        size={48}
+        color={isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(59, 130, 246, 0.85)"}
+      />
+      <Text
+        style={[
+          styles.emptyStateTitle,
+          {
+            color: isDark
+              ? "rgba(255, 255, 255, 0.95)"
+              : "rgba(15, 23, 42, 0.9)",
+          },
+        ]}
+      >
+        All Caught Up!
+      </Text>
     </View>
   );
 
@@ -147,27 +356,127 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
         onPress={handleClose}
         activeOpacity={1}
       />
-      <Animated.View style={[styles.container, containerAnimatedStyle]}>
+      <Animated.View
+        style={[
+          styles.container,
+          containerAnimatedStyle,
+          {
+            backgroundColor: isDark
+              ? "rgba(15, 23, 42, 0.85)"
+              : "rgba(255, 255, 255, 0.85)",
+            borderWidth: 1,
+            borderColor: isDark
+              ? "rgba(59, 130, 246, 0.3)"
+              : "rgba(59, 130, 246, 0.2)",
+          },
+          isTablet && {
+            maxWidth: getResponsiveValue(420, 600, 700),
+          },
+        ]}
+      >
         <LinearGradient
-          colors={["#3B82F6", "#1D4ED8"]}
-          style={styles.gradientBackground}
+          colors={glassGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.gradientBackground,
+            isTablet && {
+              padding: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              ),
+            },
+          ]}
         >
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color="white" />
+          <TouchableOpacity
+            style={[
+              styles.closeButton,
+              {
+                backgroundColor: isDark
+                  ? "rgba(59, 130, 246, 0.15)"
+                  : "rgba(59, 130, 246, 0.12)",
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: isDark
+                  ? "rgba(59, 130, 246, 0.3)"
+                  : "rgba(59, 130, 246, 0.25)",
+              },
+            ]}
+            onPress={handleClose}
+          >
+            <Ionicons
+              name="close"
+              size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
+              color={
+                isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
+              }
+            />
           </TouchableOpacity>
 
           {/* Content */}
           <Animated.View style={[styles.content, contentAnimatedStyle]}>
             {/* Header */}
             <View style={styles.header}>
-              <View style={styles.headerIconContainer}>
+              <Animated.View
+                style={[
+                  styles.headerIconContainer,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(59, 130, 246, 0.2)"
+                      : "rgba(147, 197, 253, 0.25)",
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(59, 130, 246, 0.4)"
+                      : "rgba(59, 130, 246, 0.3)",
+                  },
+                  headerIconAnimatedStyle,
+                  isTablet && {
+                    width: getResponsiveValue(64, 80, 96),
+                    height: getResponsiveValue(64, 80, 96),
+                    borderRadius: getResponsiveValue(32, 40, 48),
+                  },
+                ]}
+              >
                 <View style={styles.headerIcon}>
-                  <Ionicons name="time" size={32} color="#3B82F6" />
+                  <Ionicons
+                    name="time"
+                    size={isTablet ? getResponsiveValue(32, 40, 48) : 32}
+                    color={isDark ? "#60A5FA" : "#2563EB"}
+                  />
                 </View>
-              </View>
-              <Text style={styles.headerTitle}>Due Soon</Text>
-              <Text style={styles.headerSubtitle}>
+              </Animated.View>
+              <Text
+                style={[
+                  styles.headerTitle,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.95)"
+                      : "rgba(15, 23, 42, 0.9)",
+                  },
+                  isTablet && {
+                    fontSize: ((styles.headerTitle.fontSize || DesignSystem.typography.h1.fontSize) * getFontMultiplier()),
+                    lineHeight: ((styles.headerTitle.fontSize || DesignSystem.typography.h1.fontSize) * getFontMultiplier()) * 1.2,
+                  },
+                ]}
+              >
+                Due Soon
+              </Text>
+              <Text
+                style={[
+                  styles.headerSubtitle,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.8)"
+                      : "rgba(59, 130, 246, 0.85)",
+                  },
+                  isTablet && {
+                    fontSize: ((styles.headerSubtitle.fontSize || DesignSystem.typography.bodySemiBold.fontSize) * getFontMultiplier()),
+                    lineHeight: ((styles.headerSubtitle.fontSize || DesignSystem.typography.bodySemiBold.fontSize) * getFontMultiplier()) * 1.3,
+                  },
+                ]}
+              >
                 {tasks.length} task{tasks.length !== 1 ? "s" : ""} coming up
               </Text>
             </View>
@@ -176,22 +485,51 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
             {tasks.length > 0 ? (
               <View style={styles.tasksContainer}>
                 {/* Navigation Arrows */}
-                <View style={styles.navigationContainer}>
+                <Animated.View
+                  style={[styles.navigationContainer, navButtonAnimatedStyle]}
+                >
                   <TouchableOpacity
                     style={[
                       styles.navButton,
+                      {
+                        backgroundColor:
+                          currentTaskIndex === 0
+                            ? isDark
+                              ? "rgba(59, 130, 246, 0.08)"
+                              : "rgba(59, 130, 246, 0.06)"
+                            : isDark
+                            ? "rgba(59, 130, 246, 0.18)"
+                            : "rgba(59, 130, 246, 0.15)",
+                        borderColor:
+                          currentTaskIndex === 0
+                            ? isDark
+                              ? "rgba(59, 130, 246, 0.15)"
+                              : "rgba(59, 130, 246, 0.12)"
+                            : isDark
+                            ? "rgba(59, 130, 246, 0.3)"
+                            : "rgba(59, 130, 246, 0.25)",
+                      },
                       currentTaskIndex === 0 && styles.navButtonDisabled,
+                      isTablet && {
+                        width: getResponsiveValue(40, 48, 52),
+                        height: getResponsiveValue(40, 48, 52),
+                        borderRadius: getResponsiveValue(20, 24, 26),
+                      },
                     ]}
                     onPress={goToPreviousTask}
                     disabled={currentTaskIndex === 0}
                   >
                     <Ionicons
                       name="chevron-back"
-                      size={24}
+                      size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                       color={
                         currentTaskIndex === 0
-                          ? "rgba(255, 255, 255, 0.3)"
-                          : "white"
+                          ? isDark
+                            ? "rgba(255, 255, 255, 0.25)"
+                            : "rgba(15, 23, 42, 0.3)"
+                          : isDark
+                          ? "rgba(255, 255, 255, 0.9)"
+                          : "rgba(59, 130, 246, 0.9)"
                       }
                     />
                   </TouchableOpacity>
@@ -199,32 +537,73 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                   <TouchableOpacity
                     style={[
                       styles.navButton,
+                      {
+                        backgroundColor:
+                          currentTaskIndex === tasks.length - 1
+                            ? isDark
+                              ? "rgba(59, 130, 246, 0.08)"
+                              : "rgba(59, 130, 246, 0.06)"
+                            : isDark
+                            ? "rgba(59, 130, 246, 0.18)"
+                            : "rgba(59, 130, 246,ันท 0.15)",
+                        borderColor:
+                          currentTaskIndex === tasks.length - 1
+                            ? isDark
+                              ? "rgba(59, 130,位数 246, 0.15)"
+                              : "rgba(59, 130, 246, 0.12)"
+                            : isDark
+                            ? "rgba(59, 130, 246, 0.3)"
+                            : "rgba(59, 130, 246, 0.25)",
+                      },
                       currentTaskIndex === tasks.length - 1 &&
                         styles.navButtonDisabled,
+                      isTablet && {
+                        width: getResponsiveValue(40, 48, 52),
+                        height: getResponsiveValue(40, 48, 52),
+                        borderRadius: getResponsiveValue(20, 24, 26),
+                      },
                     ]}
                     onPress={goToNextTask}
                     disabled={currentTaskIndex === tasks.length - 1}
                   >
                     <Ionicons
                       name="chevron-forward"
-                      size={24}
+                      size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                       color={
                         currentTaskIndex === tasks.length - 1
-                          ? "rgba(255, 255, 255, 0.3)"
-                          : "white"
+                          ? isDark
+                            ? "rgba(255, 255, 255, 0.25)"
+                            : "rgba(15, 23, 42, 0.3)"
+                          : isDark
+                          ? "rgba(255, 255, 255, 0.9)"
+                          : "rgba(59, 130, 246, 0.9)"
                       }
                     />
                   </TouchableOpacity>
-                </View>
+                </Animated.View>
 
                 {/* Current Task */}
-                <View style={styles.currentTaskContainer}>
-                  {renderTaskItem({ item: tasks[currentTaskIndex] })}
-                </View>
+                <Animated.View
+                  style={[styles.currentTaskContainer, taskCardAnimatedStyle]}
+                >
+                  {renderTaskItem({ item: tasks[currentTaskIndex], isDark })}
+                </Animated.View>
 
                 {/* Pagination Indicator */}
                 <View style={styles.paginationContainer}>
-                  <Text style={styles.paginationText}>
+                  <Text
+                    style={[
+                      styles.paginationText,
+                      {
+                        color: isDark
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(59, 130, 246, 0.75)",
+                      },
+                        isTablet && {
+                          fontSize: ((styles.paginationText.fontSize || 14) * getFontMultiplier()),
+                        },
+                    ]}
+                  >
                     {currentTaskIndex + 1} of {tasks.length}
                   </Text>
                 </View>
@@ -246,7 +625,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
@@ -265,8 +644,6 @@ const styles = StyleSheet.create({
     borderRadius: DesignSystem.borders.radius.xlarge,
     overflow: "hidden",
     ...DesignSystem.shadows.large,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   gradientBackground: {
     padding: DesignSystem.spacing.lg,
@@ -290,7 +667,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: DesignSystem.spacing.md,
@@ -306,18 +682,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...DesignSystem.typography.h1,
-    color: "white",
     textAlign: "center",
     marginBottom: DesignSystem.spacing.sm,
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   headerSubtitle: {
     ...DesignSystem.typography.bodySemiBold,
-    color: "white",
     textAlign: "center",
-    opacity: 0.9,
   },
   tasksContainer: {
     width: "100%",
@@ -334,15 +704,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   navButtonDisabled: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    opacity: 0.5,
   },
   currentTaskContainer: {
     width: "100%",
@@ -354,23 +721,20 @@ const styles = StyleSheet.create({
   },
   paginationText: {
     ...DesignSystem.typography.caption,
-    color: "rgba(255, 255, 255, 0.8)",
     fontSize: 14,
     fontWeight: "500",
   },
   taskItem: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderRadius: DesignSystem.borders.radius.large,
     padding: DesignSystem.spacing.lg,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.18)",
     width: "100%",
     marginBottom: DesignSystem.spacing.md,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   taskHeader: {
     flexDirection: "row",
@@ -379,16 +743,13 @@ const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
   },
   categoryBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     paddingHorizontal: DesignSystem.spacing.sm,
     paddingVertical: DesignSystem.spacing.xs,
     borderRadius: DesignSystem.borders.radius.small,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   categoryText: {
     ...DesignSystem.typography.caption,
-    color: "white",
     fontWeight: "600",
     fontSize: 12,
   },
@@ -411,7 +772,6 @@ const styles = StyleSheet.create({
   },
   taskTitle: {
     ...DesignSystem.typography.bodySemiBold,
-    color: "white",
     fontSize: 18,
     marginBottom: DesignSystem.spacing.md,
     textAlign: "left",
@@ -430,16 +790,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   detailText: {
     ...DesignSystem.typography.caption,
-    color: "white",
-    opacity: 0.9,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -450,11 +806,7 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     ...DesignSystem.typography.bodySemiBold,
-    color: "white",
     textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    marginTop: DesignSystem.spacing.sm,
   },
 });

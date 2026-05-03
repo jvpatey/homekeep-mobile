@@ -1,12 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
-import {
-  intervalOptions,
-  intervalValueExamples,
-} from "../../../Dashboard/modals/create-task-modal/data";
+import { intervalOptions } from "../../../Dashboard/modals/create-task-modal/data";
+import { styles as sharedStyles } from "./styles";
 
 // IntervalSelectorProps
 interface IntervalSelectorProps {
@@ -26,6 +25,34 @@ export function IntervalSelector({
   error,
 }: IntervalSelectorProps) {
   const { colors } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const [isOpen, setIsOpen] = useState(false);
+  const fontMultiplier = getFontMultiplier();
+
+  const getIntervalLabel = (interval: number) => {
+    switch (interval) {
+      case 7:
+        return "week";
+      case 30:
+        return "month";
+      case 90:
+        return "quarter";
+      case 365:
+        return "year";
+      case 0:
+        return "days";
+      default:
+        return "days";
+    }
+  };
+
+  const getDisplayText = () => {
+    if (selectedInterval === 0) {
+      return `Every ${intervalValue} ${intervalValue === 1 ? "day" : "days"}`;
+    }
+    const unit = getIntervalLabel(selectedInterval);
+    return `Every ${intervalValue} ${intervalValue === 1 ? unit : unit + "s"}`;
+  };
 
   const handleIntervalValueChange = (increment: boolean) => {
     const newValue = increment
@@ -34,68 +61,101 @@ export function IntervalSelector({
     onIntervalValueChange(newValue);
   };
 
-  const getIntervalMultiplier = (
-    selectedInterval: number,
-    intervalValue: number
-  ) => {
-    if (selectedInterval === 0) {
-      // Custom interval - show the actual days
-      return intervalValue;
-    } else {
-      return intervalValue;
-    }
-  };
-
-  // getIntervalLabel function
-  const getIntervalLabel = (days: number) => {
-    if (days === 7) return "week";
-    if (days === 30) return "month";
-    if (days === 90) return "quarter";
-    if (days === 365) return "year";
-    return "day";
-  };
-
-  const getIntervalLabelPlural = (days: number) => {
-    const label = getIntervalLabel(days);
-    return intervalValue > 1 ? `${label}s` : label;
-  };
+  const selectedIntervalOption = intervalOptions.find(
+    (opt) => opt.id === selectedInterval
+  );
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.text }]}>
+    <View style={intervalStyles.container}>
+      <Text style={[
+        intervalStyles.label, 
+        { color: colors.text },
+        isTablet && {
+          fontSize: ((intervalStyles.label.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
+        },
+      ]}>
         Recurrence Interval
       </Text>
 
-      {/* Interval Type Selection */}
-      <View style={styles.intervalTypeContainer}>
-        {intervalOptions.map((option) => {
-          const isSelected = selectedInterval === option.id;
-          return (
+      <TouchableOpacity
+        style={[
+          intervalStyles.dropdownButton,
+          {
+            backgroundColor: colors.glass,
+            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
+          },
+        ]}
+        onPress={() => setIsOpen(!isOpen)}
+        activeOpacity={0.7}
+      >
+        <View style={intervalStyles.dropdownContent}>
+          <Text
+            style={[
+              intervalStyles.dropdownText, 
+              { color: colors.text },
+              isTablet && {
+                fontSize: ((intervalStyles.dropdownText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {getDisplayText()}
+          </Text>
+        </View>
+        <Ionicons
+          name={isOpen ? "chevron-up" : "chevron-down"}
+          size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      {isOpen && (
+        <View
+          style={[
+            intervalStyles.dropdownList,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.glassBorder,
+            },
+          ]}
+        >
+          {intervalOptions.map((option) => (
             <TouchableOpacity
               key={option.id}
               style={[
-                styles.intervalOption,
+                intervalStyles.dropdownItem,
                 {
-                  backgroundColor: isSelected ? colors.primary : colors.surface,
-                  borderColor: isSelected ? colors.primary : colors.border,
-                  transform: [{ scale: isSelected ? 1.02 : 1 }],
-                  ...DesignSystem.shadows.small,
+                  backgroundColor:
+                    selectedInterval === option.id
+                      ? "rgba(52, 152, 219, 0.1)"
+                      : "transparent",
                 },
+                selectedInterval === option.id && [
+                  sharedStyles.selectedItemGlow,
+                  sharedStyles.selectedItemGlowAlt,
+                  sharedStyles.selectedItemGlowAccent,
+                ],
               ]}
               onPress={() => {
                 onSelectInterval(option.id);
-                // Reset interval value to 1 when selecting a predefined interval
                 if (option.id !== 0) {
                   onIntervalValueChange(1);
                 }
+                setIsOpen(false);
               }}
             >
               <Text
                 style={[
-                  styles.intervalOptionText,
+                  intervalStyles.dropdownItemText,
                   {
-                    color: isSelected ? "white" : colors.text,
-                    fontWeight: isSelected ? "700" : "600",
+                    color:
+                      selectedInterval === option.id
+                        ? colors.primary
+                        : colors.text,
+                    fontWeight: selectedInterval === option.id ? "700" : "400",
+                  },
+                  isTablet && {
+                    fontSize: ((intervalStyles.dropdownItemText.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
                   },
                 ]}
               >
@@ -103,167 +163,151 @@ export function IntervalSelector({
               </Text>
               <Text
                 style={[
-                  styles.intervalDescription,
-                  {
-                    color: isSelected
-                      ? "rgba(255, 255, 255, 0.9)"
-                      : colors.textSecondary,
-                    fontWeight: isSelected ? "500" : "400",
+                  intervalStyles.dropdownItemDescription,
+                  { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: ((intervalStyles.dropdownItemDescription.fontSize || DesignSystem.typography.caption.fontSize) * fontMultiplier),
                   },
                 ]}
               >
                 {option.description}
               </Text>
             </TouchableOpacity>
-          );
-        })}
-      </View>
+          ))}
+        </View>
+      )}
 
-      {/* Interval Value Selection */}
+      {/* Custom Interval Value Stepper */}
       <View
         style={[
-          styles.intervalValueContainer,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          intervalStyles.stepperContainer,
+          {
+            backgroundColor: colors.glass,
+            borderColor: colors.glassBorder,
+          },
         ]}
       >
-        <Text style={[styles.intervalValueLabel, { color: colors.text }]}>
-          Every {getIntervalMultiplier(selectedInterval, intervalValue)}{" "}
-          {getIntervalLabelPlural(selectedInterval)}
+        <TouchableOpacity
+          style={[
+            intervalStyles.stepperButton,
+            { backgroundColor: colors.surface },
+          ]}
+          onPress={() => handleIntervalValueChange(false)}
+          disabled={intervalValue <= 1}
+        >
+          <Ionicons
+            name="remove"
+            size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
+            color={intervalValue <= 1 ? colors.textSecondary : colors.text}
+          />
+        </TouchableOpacity>
+
+        <Text style={[
+          intervalStyles.stepperValue, 
+          { color: colors.text },
+          isTablet && {
+            fontSize: ((intervalStyles.stepperValue.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+          },
+        ]}>
+          {intervalValue}
         </Text>
 
-        <View style={styles.valueControls}>
-          <TouchableOpacity
-            style={[
-              styles.valueButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                ...DesignSystem.shadows.small,
-              },
-            ]}
-            onPress={() => handleIntervalValueChange(false)}
-          >
-            <Ionicons name="remove" size={20} color={colors.text} />
-          </TouchableOpacity>
-
-          <Text style={[styles.valueDisplay, { color: colors.text }]}>
-            {intervalValue}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.valueButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                ...DesignSystem.shadows.small,
-              },
-            ]}
-            onPress={() => handleIntervalValueChange(true)}
-          >
-            <Ionicons name="add" size={20} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[styles.exampleText, { color: colors.textSecondary }]}>
-          {
-            intervalValueExamples[
-              selectedInterval as keyof typeof intervalValueExamples
-            ]
-          }
-        </Text>
+        <TouchableOpacity
+          style={[
+            intervalStyles.stepperButton,
+            { backgroundColor: colors.surface },
+          ]}
+          onPress={() => handleIntervalValueChange(true)}
+        >
+          <Ionicons 
+            name="add" 
+            size={isTablet ? getResponsiveValue(18, 22, 24) : 18} 
+            color={colors.text} 
+          />
+        </TouchableOpacity>
       </View>
 
       {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        <Text style={[intervalStyles.errorText, { color: colors.error }]}>
+          {error}
+        </Text>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const intervalStyles = StyleSheet.create({
   container: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md,
   },
   label: {
-    fontSize: DesignSystem.typography.bodyMedium.fontSize,
+    ...DesignSystem.typography.bodyMedium,
     fontWeight: "600",
-    marginBottom: DesignSystem.spacing.md,
-    color: "#1F2937",
-  },
-  intervalTypeContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  intervalOption: {
-    flex: 1,
-    minWidth: 80,
-    padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 2,
-    alignItems: "center",
-  },
-  intervalOptionText: {
-    fontSize: DesignSystem.typography.caption.fontSize,
-    fontWeight: "600",
-    marginBottom: DesignSystem.spacing.xs,
-    letterSpacing: 0.1,
-    textAlign: "center",
-  },
-  intervalDescription: {
-    fontSize: DesignSystem.typography.caption.fontSize,
-    textAlign: "center",
-    letterSpacing: 0.1,
-    lineHeight: 14,
-  },
-  intervalValueContainer: {
-    alignItems: "center",
-    padding: DesignSystem.spacing.lg,
-    backgroundColor: "rgba(0,0,0,0.02)",
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: 1,
-    ...DesignSystem.shadows.small,
-  },
-  intervalValueLabel: {
-    fontSize: DesignSystem.typography.bodyMedium.fontSize,
-    fontWeight: "600",
-    marginBottom: DesignSystem.spacing.md,
-    textAlign: "center",
-    color: "#1F2937",
-  },
-  valueControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.sm,
   },
-  valueButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
+  dropdownButton: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
+    justifyContent: "space-between",
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: DesignSystem.glass.borderWidth,
+    minHeight: DesignSystem.components.inputLarge,
   },
-  valueDisplay: {
-    fontSize: DesignSystem.typography.h3.fontSize,
+  dropdownContent: {
+    flex: 1,
+    marginRight: DesignSystem.spacing.sm,
+  },
+  dropdownText: {
+    ...DesignSystem.typography.body,
+    fontWeight: "600",
+  },
+  dropdownList: {
+    marginTop: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: DesignSystem.glass.borderWidth,
+    overflow: "hidden",
+    ...DesignSystem.shadows.medium,
+  },
+  dropdownItem: {
+    padding: DesignSystem.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+  },
+  dropdownItemText: {
+    ...DesignSystem.typography.body,
+    marginBottom: 2,
+  },
+  dropdownItemDescription: {
+    ...DesignSystem.typography.caption,
+    fontSize: 12,
+  },
+  stepperContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: DesignSystem.glass.borderWidth,
+    marginTop: DesignSystem.spacing.sm,
+  },
+  stepperButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    ...DesignSystem.shadows.small,
+  },
+  stepperValue: {
+    ...DesignSystem.typography.h3,
     fontWeight: "700",
-    minWidth: 44,
+    marginHorizontal: DesignSystem.spacing.md,
+    minWidth: 40,
     textAlign: "center",
-    color: "#1F2937",
-  },
-  exampleText: {
-    fontSize: DesignSystem.typography.caption.fontSize,
-    fontStyle: "italic",
-    textAlign: "center",
-    color: "#6B7280",
   },
   errorText: {
-    fontSize: DesignSystem.typography.caption.fontSize,
-    color: "#EF4444",
-    marginTop: DesignSystem.spacing.sm,
-    fontWeight: "500",
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.xs,
   },
 });

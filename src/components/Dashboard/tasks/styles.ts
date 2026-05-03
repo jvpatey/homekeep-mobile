@@ -9,13 +9,13 @@ export const styles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
     height: 200,
-    borderRadius: DesignSystem.borders.radius.large,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     marginHorizontal: DesignSystem.spacing.md,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 20,
+    elevation: 8,
   },
   completedContainer: {
     opacity: 0.7,

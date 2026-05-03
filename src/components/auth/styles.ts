@@ -4,22 +4,16 @@ import { DesignSystem } from "../../theme/designSystem";
 // Styles for OAuth buttons
 export const styles = StyleSheet.create({
   container: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md,
+    marginTop: 0,
+  },
+  orText: {
+    ...DesignSystem.typography.body,
+    textAlign: "center",
+    marginBottom: DesignSystem.spacing.md,
     marginTop: DesignSystem.spacing.md,
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    opacity: 0.3,
-  },
-  dividerText: {
-    ...DesignSystem.typography.small,
     marginHorizontal: DesignSystem.spacing.md,
+    fontWeight: "500",
     opacity: 0.7,
   },
   googleButton: {
@@ -48,8 +42,8 @@ export const styles = StyleSheet.create({
   appleButton: {
     borderRadius: DesignSystem.borders.radius.large,
     paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.lg,
-    minHeight: DesignSystem.components.buttonLarge,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    minHeight: 52,
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",

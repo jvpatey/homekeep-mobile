@@ -43,11 +43,12 @@ export function ProfileButton({ size = 44 }: ProfileButtonProps) {
   };
 
   const handleSignOut = async () => {
+    console.log("User confirmed sign out from ProfileButton");
     try {
       await signOut();
       setMenuVisible(false);
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error("Sign out error in ProfileButton:", error);
     }
   };
 

@@ -5,7 +5,7 @@ import { colors } from "src/theme/colors";
 export const timelineStyles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: DesignSystem.spacing.lg,
+    marginTop: DesignSystem.spacing.md,
   },
   header: {
     paddingHorizontal: DesignSystem.spacing.md,
@@ -24,7 +24,7 @@ export const timelineStyles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: DesignSystem.spacing.xxl,
+    paddingBottom: DesignSystem.spacing.xxxl + DesignSystem.spacing.xl,
   },
   dateGroup: {
     marginBottom: DesignSystem.spacing.xl,
@@ -39,11 +39,14 @@ export const timelineStyles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.light.primary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: DesignSystem.spacing.md,
-    ...DesignSystem.shadows.small,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
   },
   dateNumber: {
     ...DesignSystem.typography.h4,
@@ -97,10 +100,13 @@ export const timelineStyles = StyleSheet.create({
   },
   taskContent: {
     flex: 1,
-    backgroundColor: colors.light.surface,
     borderRadius: DesignSystem.borders.radius.medium,
     padding: DesignSystem.spacing.md,
-    ...DesignSystem.shadows.small,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
   },
   taskHeader: {
     marginBottom: DesignSystem.spacing.sm,
@@ -156,16 +162,16 @@ export const timelineStyles = StyleSheet.create({
     color: colors.light.textSecondary,
   },
   completeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   emptyContainer: {
     height: 180,

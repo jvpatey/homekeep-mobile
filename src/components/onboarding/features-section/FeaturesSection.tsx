@@ -11,24 +11,25 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
-import { useFeatureAnimation, useGradients, useHaptics } from "../../../hooks";
+import { useFeatureAnimation, useGradients, useHaptics, useDevice } from "../../../hooks";
 import { styles } from "./styles";
 import { ActionButtons } from "../../ui";
+import { DesignSystem } from "../../../theme/designSystem";
 
 // FeaturesSection component for the FeaturesSection on the onboarding screen
 export function FeaturesSection() {
-  const { colors } = useTheme();
-  const { iconGradient } = useGradients();
+  const { colors, isDark } = useTheme();
+  const { iconGradient, glassBorder, glowGradient } = useGradients();
   const featureAnimatedStyles = useFeatureAnimation(3, 600);
   const { triggerLight } = useHaptics();
+  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const fontMultiplier = getFontMultiplier();
 
   // State for modal
   const [selectedFeature, setSelectedFeature] = useState<number | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-
-  // Animation values for tap effect
-  const tapScale = useSharedValue(1);
-  const tapRotation = useSharedValue(0);
 
   // Animation values for modal
   const modalScale = useSharedValue(0.8);
@@ -39,6 +40,7 @@ export function FeaturesSection() {
     {
       icon: "list-outline",
       text: "Organize",
+      subtitle: "Manage all tasks in one place",
       description:
         "Create, organize, and manage all your home maintenance tasks in one place. Set priorities, due dates, and categories to keep everything organized.",
       animatedStyle: featureAnimatedStyles[0],
@@ -46,6 +48,7 @@ export function FeaturesSection() {
     {
       icon: "time-outline",
       text: "Schedule",
+      subtitle: "Never miss important maintenance",
       description:
         "Never forget when to clean your gutters, change filters, or service your HVAC again. Get automatic reminders for all your home maintenance needs.",
       animatedStyle: featureAnimatedStyles[1],
@@ -53,6 +56,7 @@ export function FeaturesSection() {
     {
       icon: "trophy-outline",
       text: "Track",
+      subtitle: "See your maintenance progress",
       description:
         "Celebrate your achievements and track your home maintenance progress. Build a complete history of completed tasks and maintenance milestones.",
       animatedStyle: featureAnimatedStyles[2],
@@ -65,38 +69,22 @@ export function FeaturesSection() {
 
     // triggerLight function to trigger the light haptic feedback
     triggerLight();
-    tapScale.value = withSequence(
-      withSpring(0.92, {
-        damping: 15,
-        stiffness: 300,
-      }),
-      withSpring(1, {
-        damping: 20,
-        stiffness: 200,
-      })
-    );
 
-    // tapRotation function to trigger the rotation of the tap
-    tapRotation.value = withSequence(
-      withSpring(-2, { damping: 15 }),
-      withSpring(0, { damping: 20 })
-    );
-
-    // Modal entrance animation
+    // Modal entrance animation - faster
     modalScale.value = withSpring(1, { damping: 20, stiffness: 200 });
     modalTranslateY.value = withSpring(0, { damping: 20, stiffness: 200 });
     modalOpacity.value = withTiming(1, {
-      duration: 300,
+      duration: 200,
       easing: Easing.out(Easing.cubic),
     });
   };
 
   const closeModal = () => {
-    // Modal exit animation
-    modalScale.value = withSpring(0.8, { damping: 20, stiffness: 200 });
-    modalTranslateY.value = withSpring(50, { damping: 20, stiffness: 200 });
+    // Modal exit animation - faster
+    modalScale.value = withSpring(0.95, { damping: 20, stiffness: 200 });
+    modalTranslateY.value = withTiming(20, { duration: 150 });
     modalOpacity.value = withTiming(0, {
-      duration: 200,
+      duration: 150,
       easing: Easing.in(Easing.cubic),
     });
 
@@ -104,15 +92,8 @@ export function FeaturesSection() {
     setTimeout(() => {
       setIsModalVisible(false);
       setSelectedFeature(null);
-    }, 200);
+    }, 150);
   };
-
-  const tapAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: tapScale.value },
-      { rotate: `${tapRotation.value}deg` },
-    ],
-  }));
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     opacity: modalOpacity.value,
@@ -123,46 +104,82 @@ export function FeaturesSection() {
   }));
 
   return (
-    <View style={styles.cardContainer}>
-      {/* Feature Highlights */}
-      <View style={styles.featuresContainer}>
+    <View style={[
+      styles.cardContainer,
+      maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+      isTablet && {
+        paddingTop: getResponsiveValue(
+          0,
+          DesignSystem.spacing.lg,
+          DesignSystem.spacing.xl,
+        ),
+      },
+    ]}>
+      {/* Feature Highlights - Full Width Stacked Cards */}
+      <View style={[
+        styles.featuresContainer,
+        isTablet && {
+          marginBottom: getResponsiveValue(
+            DesignSystem.spacing.xxl,
+            DesignSystem.spacing.xxl,
+            DesignSystem.spacing.xxl + DesignSystem.spacing.md,
+          ),
+        },
+      ]}>
         {features.map((feature, index) => (
           <TouchableOpacity
             key={index}
             onPress={() => handleFeaturePress(index)}
             activeOpacity={0.9}
-            style={styles.featureTouchable}
           >
             <Animated.View
               style={[
                 styles.featureItem,
                 {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  backgroundColor: colors.glass,
+                  shadowColor: colors.primary,
                 },
                 feature.animatedStyle,
-                tapAnimatedStyle,
               ]}
             >
-              <View
-                style={[
-                  styles.featureIcon,
-                  {
-                    backgroundColor: colors.background,
-                    borderWidth: 2,
-                    borderColor: colors.primary,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={feature.icon as any}
-                  size={24}
-                  color={colors.primary}
-                />
+              <View style={styles.featureContentRow}>
+                <LinearGradient
+                  colors={iconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.featureIcon}
+                >
+                  <Ionicons
+                    name={feature.icon as any}
+                    size={24}
+                    color={colors.primary}
+                  />
+                </LinearGradient>
+                <View style={styles.featureTextContainer}>
+                  <Text style={[
+                    styles.featureTitle,
+                    { color: colors.text },
+                    isTablet && {
+                      fontSize: styles.featureTitle.fontSize * fontMultiplier,
+                      lineHeight: styles.featureTitle.lineHeight * fontMultiplier,
+                    },
+                  ]}>
+                    {feature.text}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.featureSubtitle,
+                      { color: colors.textSecondary },
+                      isTablet && {
+                        fontSize: styles.featureSubtitle.fontSize * fontMultiplier,
+                        lineHeight: (styles.featureSubtitle.lineHeight || styles.featureSubtitle.fontSize * 1.4) * fontMultiplier,
+                      },
+                    ]}
+                  >
+                    {feature.subtitle}
+                  </Text>
+                </View>
               </View>
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {feature.text}
-              </Text>
             </Animated.View>
           </TouchableOpacity>
         ))}
@@ -178,29 +195,36 @@ export function FeaturesSection() {
           <Animated.View
             style={[
               styles.modalContent,
-              { backgroundColor: colors.surface },
+              {
+                backgroundColor: colors.glassStrong,
+                shadowColor: colors.primary,
+                    maxWidth: isTablet ? getResponsiveValue(320, 450, 550) : 320,
+              },
               modalAnimatedStyle,
             ]}
           >
             {selectedFeature !== null && (
               <View style={styles.modalHeader}>
-                <View
-                  style={[
-                    styles.modalIcon,
-                    {
-                      backgroundColor: colors.background,
-                      borderWidth: 2,
-                      borderColor: colors.primary,
-                    },
-                  ]}
+                <LinearGradient
+                  colors={iconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modalIcon}
                 >
                   <Ionicons
                     name={features[selectedFeature].icon as any}
                     size={32}
                     color={colors.primary}
                   />
-                </View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                </LinearGradient>
+                <Text style={[
+                  styles.modalTitle,
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: styles.modalTitle.fontSize * fontMultiplier,
+                    lineHeight: styles.modalTitle.lineHeight * fontMultiplier,
+                  },
+                ]}>
                   {features[selectedFeature].text}
                 </Text>
               </View>
@@ -211,30 +235,39 @@ export function FeaturesSection() {
                 style={[
                   styles.modalDescription,
                   { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: styles.modalDescription.fontSize * fontMultiplier,
+                    lineHeight: (styles.modalDescription.lineHeight || styles.modalDescription.fontSize * 1.4) * fontMultiplier,
+                  },
                 ]}
               >
                 {features[selectedFeature].description}
               </Text>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  backgroundColor: colors.primary,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                },
-              ]}
-              onPress={closeModal}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.closeButtonText, { color: "white" }]}>
-                Got it
-              </Text>
+            <TouchableOpacity onPress={closeModal} activeOpacity={0.8}>
+              <View
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(35, 37, 38, 0.5)"
+                      : "rgba(255, 255, 255, 0.5)",
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.15)"
+                      : "rgba(255, 255, 255, 0.25)",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  },
+                ]}
+              >
+                <Text style={[styles.closeButtonText, { color: colors.text }]}>
+                  Got it
+                </Text>
+              </View>
             </TouchableOpacity>
           </Animated.View>
         </Pressable>

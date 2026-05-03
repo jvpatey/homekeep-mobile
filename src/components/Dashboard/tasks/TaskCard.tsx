@@ -8,11 +8,13 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
+import { useDevice } from "../../../hooks";
 import {
   HOME_MAINTENANCE_CATEGORIES,
   CategoryKey,
 } from "../../../types/maintenance";
 import { colors } from "src/theme/colors";
+import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 
 // TaskCardProps interface for the TaskCard component
@@ -28,6 +30,7 @@ interface TaskCardProps {
   is_completed?: boolean;
   onComplete: (instanceId: string) => void;
   onPress?: (instanceId: string) => void;
+  cardWidth?: number;
 }
 
 // TaskCard component for the Dashboard
@@ -43,9 +46,17 @@ export function TaskCard({
   is_completed = false,
   onComplete,
   onPress,
+  cardWidth,
 }: TaskCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
+
+  const fontMultiplier = getFontMultiplier();
+  // Card height is responsive for iPad
+  const cardHeight = isTablet
+    ? getResponsiveValue(200, 240, 260) // Taller on iPad: 240px standard, 260px Pro 13"
+    : 200;
   // Check if task is overdue (due before today, not including today)
   const isOverdue = (() => {
     if (is_completed) return false;
@@ -158,10 +169,16 @@ export function TaskCard({
         style={[
           styles.container,
           {
-            backgroundColor: colors.surface,
-            borderColor: categoryInfo.color,
-            borderWidth: 2,
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.4)"
+              : "rgba(255, 255, 255, 0.4)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(255, 255, 255, 0.6)",
+            borderWidth: 1,
           },
+          cardWidth ? { width: cardWidth } : undefined,
+          { height: cardHeight },
           is_completed && styles.completedContainer,
           isOverdue && styles.overdueContainer,
         ]}
@@ -170,18 +187,39 @@ export function TaskCard({
         onPressOut={handleCardPressOut}
         activeOpacity={0.9}
       >
-        <View style={styles.content}>
+        <View
+          style={[
+            styles.content,
+            isTablet && {
+              padding: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xxl
+              ),
+            },
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.categoryContainer}>
               <Ionicons
                 name={categoryInfo.icon as any}
-                size={24}
+                size={isTablet ? 24 * fontMultiplier : 24}
                 color={categoryInfo.color}
-                style={styles.categoryIcon}
+                style={[styles.categoryIcon, { opacity: 0.7 }]}
               />
               <Text
-                style={[styles.categoryText, { color: categoryInfo.color }]}
+                style={[
+                  styles.categoryText,
+                  {
+                    color: categoryInfo.color,
+                    opacity: 0.7,
+                  },
+                  isTablet && {
+                    fontSize:
+                      (styles.categoryText.fontSize || 14) * fontMultiplier,
+                  },
+                ]}
               >
                 {categoryInfo.displayName}
               </Text>
@@ -192,10 +230,26 @@ export function TaskCard({
                 style={[
                   styles.priorityDot,
                   { backgroundColor: getPriorityColor() },
+                  isTablet && {
+                    width: 8 * fontMultiplier,
+                    height: 8 * fontMultiplier,
+                    borderRadius: 4 * fontMultiplier,
+                  },
                 ]}
               />
               <Text
-                style={[styles.priorityText, { color: colors.textSecondary }]}
+                style={[
+                  styles.priorityText,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : "rgba(15, 23, 42, 0.65)",
+                  },
+                  isTablet && {
+                    fontSize:
+                      (styles.priorityText.fontSize || 12) * fontMultiplier,
+                  },
+                ]}
               >
                 {priority.toUpperCase()}
               </Text>
@@ -204,7 +258,18 @@ export function TaskCard({
 
           {/* Title */}
           <Text
-            style={[styles.title, { color: colors.text }]}
+            style={[
+              styles.title,
+              {
+                color: isDark
+                  ? "rgba(255, 255, 255, 0.95)"
+                  : "rgba(15, 23, 42, 0.9)",
+              },
+              isTablet && {
+                fontSize: styles.title.fontSize * fontMultiplier,
+                lineHeight: styles.title.fontSize * fontMultiplier * 1.3,
+              },
+            ]}
             numberOfLines={2}
           >
             {title}
@@ -216,11 +281,26 @@ export function TaskCard({
               <View style={styles.metaItem}>
                 <Ionicons
                   name="time-outline"
-                  size={16}
-                  color={colors.textSecondary}
+                  size={isTablet ? 16 * fontMultiplier : 16}
+                  color={
+                    isDark
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : "rgba(15, 23, 42, 0.6)"
+                  }
                 />
                 <Text
-                  style={[styles.metaText, { color: colors.textSecondary }]}
+                  style={[
+                    styles.metaText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "rgba(15, 23, 42, 0.6)",
+                    },
+                    isTablet && {
+                      fontSize:
+                        (styles.metaText.fontSize || 14) * fontMultiplier,
+                    },
+                  ]}
                 >
                   {estimated_duration_minutes
                     ? `${estimated_duration_minutes} min`
@@ -231,8 +311,12 @@ export function TaskCard({
               <View style={styles.metaItem}>
                 <Ionicons
                   name="calendar-outline"
-                  size={16}
-                  color={colors.textSecondary}
+                  size={isTablet ? 16 * fontMultiplier : 16}
+                  color={
+                    isDark
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : "rgba(15, 23, 42, 0.6)"
+                  }
                 />
                 {(() => {
                   const formattedDate = formatDueDate(due_date);
@@ -245,10 +329,16 @@ export function TaskCard({
                         {
                           color: isDueToday
                             ? colors.error
-                            : colors.textSecondary,
+                            : isDark
+                            ? colors.textSecondary
+                            : "rgba(15, 23, 42, 0.75)",
                           fontWeight: isDueToday ? "600" : "normal",
                         },
                         isOverdue && styles.overdueText,
+                        isTablet && {
+                          fontSize:
+                            (styles.metaText.fontSize || 14) * fontMultiplier,
+                        },
                       ]}
                     >
                       {formattedDate}
@@ -260,11 +350,26 @@ export function TaskCard({
               <View style={styles.metaItem}>
                 <Ionicons
                   name="repeat-outline"
-                  size={16}
-                  color={colors.textSecondary}
+                  size={isTablet ? 16 * fontMultiplier : 16}
+                  color={
+                    isDark
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : "rgba(15, 23, 42, 0.6)"
+                  }
                 />
                 <Text
-                  style={[styles.metaText, { color: colors.textSecondary }]}
+                  style={[
+                    styles.metaText,
+                    {
+                      color: isDark
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "rgba(15, 23, 42, 0.6)",
+                    },
+                    isTablet && {
+                      fontSize:
+                        (styles.metaText.fontSize || 14) * fontMultiplier,
+                    },
+                  ]}
                 >
                   {formatInterval(interval_days)}
                 </Text>
@@ -277,9 +382,18 @@ export function TaskCard({
                 style={[
                   styles.completeButton,
                   {
-                    backgroundColor: colors.surface,
-                    borderColor: is_completed ? colors.success : colors.primary,
-                    borderWidth: 2,
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : "rgba(0, 0, 0, 0.05)",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "rgba(0, 0, 0, 0.2)",
+                    borderWidth: 1,
+                  },
+                  isTablet && {
+                    width: 48 * fontMultiplier,
+                    height: 48 * fontMultiplier,
+                    borderRadius: 24 * fontMultiplier,
                   },
                 ]}
                 onPress={handleComplete}
@@ -290,11 +404,23 @@ export function TaskCard({
                 {is_completed ? (
                   <Ionicons
                     name="checkmark-circle"
-                    size={24}
-                    color={colors.success}
+                    size={isTablet ? 24 * fontMultiplier : 24}
+                    color={
+                      isDark
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(15, 23, 42, 0.7)"
+                    }
                   />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                  <Ionicons
+                    name="checkmark"
+                    size={isTablet ? 20 * fontMultiplier : 20}
+                    color={
+                      isDark
+                        ? "rgba(255, 255, 255, 0.6)"
+                        : "rgba(15, 23, 42, 0.65)"
+                    }
+                  />
                 )}
               </TouchableOpacity>
             </Animated.View>

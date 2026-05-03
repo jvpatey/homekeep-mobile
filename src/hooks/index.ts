@@ -1,6 +1,7 @@
 // Animation hooks
 export {
   useSimpleAnimation,
+  useLogoAnimation,
   useTextAnimation,
   useFeatureAnimation,
   useButtonAnimation,
@@ -14,6 +15,9 @@ export { useHaptics } from "./useHaptics";
 
 // Spacing hooks
 export { useDynamicSpacing } from "./useDynamicSpacing";
+
+// Device detection hooks
+export { useDevice } from "./useDevice";
 
 // Auth-specific hooks
 export * from "../screens/auth/hooks";

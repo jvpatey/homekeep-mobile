@@ -151,6 +151,28 @@ export const DesignSystem = {
       shadowRadius: 16,
       elevation: 8,
     },
+    glass: {
+      shadowColor: "#2EC4B6",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    glassStrong: {
+      shadowColor: "#2EC4B6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      elevation: 5,
+    },
+  },
+
+  glass: {
+    blur: 10,
+    opacity: 0.7,
+    strongOpacity: 0.85,
+    borderWidth: 1,
+    borderOpacity: 0.3,
   },
 
   borders: {

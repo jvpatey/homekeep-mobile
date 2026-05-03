@@ -120,6 +120,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id || "no user");
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -276,20 +277,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // signOut function for the signOut on the home screen
   const signOut = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      console.warn("Cannot sign out: Supabase not configured");
+      return;
+    }
     try {
+      console.log("Starting sign out process, current user:", user?.id);
       // Best-effort: clear push token so logged-out device stops receiving pushes
       if (user?.id) {
+        try {
         await supabase
           .from("profiles")
           .update({ push_token: null, updated_at: new Date().toISOString() })
           .eq("id", user.id);
+          console.log("Push token cleared successfully");
+        } catch (err) {
+          // Non-fatal: proceed with sign-out even if token clearing fails
+          console.warn("Failed to clear push token on sign-out", err);
+        }
       }
+      
+      // Sign out from Supabase auth
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // If session is already missing, manually clear state to update UI
+        if (error.message && error.message.includes("session missing")) {
+          console.log("Session already missing, manually clearing state");
+          setSession(null);
+          setUser(null);
+          console.log("State cleared, user should be null now");
+          return;
+        }
+        console.error("Supabase sign out error:", error);
+        throw error;
+      }
+      console.log("Sign out successful");
     } catch (err) {
-      // Non-fatal: proceed with sign-out even if token clearing fails
-      console.warn("Failed to clear push token on sign-out", err);
-    } finally {
-      await supabase.auth.signOut();
+      console.error("Error during sign out:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
   };
 
@@ -300,12 +326,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
+      console.log("Starting account deletion");
       const result = await MaintenanceService.deleteUserAccount();
       if (result.success) {
+        console.log("Account deleted successfully, signing out");
         // Sign out the user after successful deletion
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          // If session is already missing, that's fine - account is deleted
+          if (error.message && error.message.includes("session missing")) {
+            console.log("Session already missing after account deletion");
+          } else {
+            console.error("Error signing out after account deletion:", error);
+          }
+          // Still return success since account was deleted
+        } else {
+          console.log("Sign out successful after account deletion");
+        }
         return { success: true };
       } else {
+        console.error("Account deletion failed:", result.error);
         return {
           success: false,
           error: result.error?.message || "Failed to delete account",

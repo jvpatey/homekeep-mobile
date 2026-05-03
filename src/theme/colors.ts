@@ -11,6 +11,10 @@ export const colors = {
     success: "#27AE60",
     warning: "#F2C94C",
     error: "#EB5757",
+    glass: "rgba(255, 255, 255, 0.7)",
+    glassStrong: "rgba(255, 255, 255, 0.85)",
+    glassBorder: "rgba(46, 196, 182, 0.3)",
+    glassGlow: "rgba(46, 196, 182, 0.15)",
   },
   dark: {
     primary: "#20B486",
@@ -24,5 +28,9 @@ export const colors = {
     success: "#6FCF97",
     warning: "#F2C94C",
     error: "#FF7675",
+    glass: "rgba(35, 37, 38, 0.7)",
+    glassStrong: "rgba(35, 37, 38, 0.85)",
+    glassBorder: "rgba(32, 180, 134, 0.3)",
+    glassGlow: "rgba(32, 180, 134, 0.15)",
   },
 };

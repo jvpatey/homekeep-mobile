@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useGradients } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { useAuthHaptics } from "./hooks";
-import { useDynamicSpacing } from "../../hooks";
+import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -14,7 +16,8 @@ type VerificationStatus = "verifying" | "success" | "error";
 
 // EmailVerificationScreen for the EmailVerificationScreen on the home screen
 export function EmailVerificationScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
@@ -22,6 +25,15 @@ export function EmailVerificationScreen() {
   // Shared hooks
   const { dynamicTopSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError } = useAuthHaptics();
+  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
+  
+  const maxContentWidth = getMaxContentWidth();
+  const gradientFadeHeight = getGradientFadeHeight();
+  const fontMultiplier = getFontMultiplier();
+  const fadeLocations = getGradientFadeLocations(isDark) as any;
+  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
+  const heroSectionHeight = getHeroSectionHeight();
+  const screenMax = Math.max(width, height);
 
   const [status, setStatus] = useState<VerificationStatus>("verifying");
   const [message, setMessage] = useState("Verifying your email...");
@@ -133,81 +145,110 @@ export function EmailVerificationScreen() {
 
       case "success":
         return (
-          <View style={authStyles.statusContainer}>
-            <View
-              style={[
-                authStyles.successIcon,
-                { backgroundColor: colors.primary },
-              ]}
-            >
-              <Text style={authStyles.checkmark}>✓</Text>
-            </View>
-            <Text style={[authStyles.message, { color: colors.text }]}>
-              {message}
-            </Text>
-            <TouchableOpacity
-              onPress={handleBackToHome}
-              style={{
-                marginTop: DesignSystem.spacing.lg,
-                paddingHorizontal: DesignSystem.spacing.lg,
-                paddingVertical: DesignSystem.spacing.md,
-                backgroundColor: colors.primary,
-                borderRadius: DesignSystem.borders.radius.large,
-              }}
-            >
-              <Text style={{ color: "white", fontWeight: "600" }}>
-                Continue to App
+          <>
+            <View style={authStyles.statusContainer}>
+              <View
+                style={[
+                  authStyles.successIcon,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text style={authStyles.checkmark}>✓</Text>
+              </View>
+              <Text style={[authStyles.message, { color: colors.text }]}>
+                {message}
               </Text>
-            </TouchableOpacity>
-          </View>
+            </View>
+            <View style={{ marginTop: DesignSystem.spacing.xl }}>
+              <TouchableOpacity
+                onPress={handleBackToHome}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={primaryGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    paddingVertical: DesignSystem.spacing.md,
+                    borderRadius: DesignSystem.borders.radius.large,
+                    alignItems: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  }}
+                >
+                  <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
+                    Continue to App
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </>
         );
 
       case "error":
         return (
-          <View style={authStyles.statusContainer}>
-            <View
-              style={[authStyles.errorIcon, { backgroundColor: colors.error }]}
-            >
-              <Text style={authStyles.errorMark}>✕</Text>
+          <>
+            <View style={authStyles.statusContainer}>
+              <View
+                style={[authStyles.errorIcon, { backgroundColor: colors.error }]}
+              >
+                <Text style={authStyles.errorMark}>✕</Text>
+              </View>
+              <Text style={[authStyles.message, { color: colors.text }]}>
+                {message}
+              </Text>
             </View>
-            <Text style={[authStyles.message, { color: colors.text }]}>
-              {message}
-            </Text>
             <View
               style={{
-                marginTop: DesignSystem.spacing.lg,
-                gap: DesignSystem.spacing.sm,
+                marginTop: DesignSystem.spacing.xl,
+                gap: DesignSystem.spacing.md,
               }}
             >
               <TouchableOpacity
                 onPress={handleManualCode}
-                style={{
-                  paddingHorizontal: DesignSystem.spacing.lg,
-                  paddingVertical: DesignSystem.spacing.md,
-                  backgroundColor: colors.primary,
-                  borderRadius: DesignSystem.borders.radius.large,
-                }}
+                activeOpacity={0.8}
               >
-                <Text style={{ color: "white", fontWeight: "600" }}>
-                  Enter Code Manually
-                </Text>
+                <LinearGradient
+                  colors={primaryGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    paddingVertical: DesignSystem.spacing.md,
+                    borderRadius: DesignSystem.borders.radius.large,
+                    alignItems: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  }}
+                >
+                  <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
+                    Enter Code Manually
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleBackToHome}
+                activeOpacity={0.8}
                 style={{
-                  paddingHorizontal: DesignSystem.spacing.lg,
                   paddingVertical: DesignSystem.spacing.md,
-                  borderWidth: 1,
+                  borderWidth: 2,
                   borderColor: colors.primary,
                   borderRadius: DesignSystem.borders.radius.large,
+                  alignItems: "center",
+                  backgroundColor: "transparent",
                 }}
               >
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 16 }}>
                   Back to Home
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </>
         );
     }
   };
@@ -216,17 +257,121 @@ export function EmailVerificationScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
-      <View style={{ paddingTop: dynamicTopSpacing, flex: 1 }}>
+      {/* Hero Section with Gradient */}
+      <View style={[
+        authStyles.heroSection,
+        { backgroundColor: colors.background },
+        heroSectionHeight !== undefined && {
+          minHeight: heroSectionHeight,
+          justifyContent: "center",
+        },
+      ]}>
+        {/* Bottom fade mask */}
+        <LinearGradient
+          colors={fadeColors}
+          locations={fadeLocations}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={[
+            authStyles.bottomFade,
+            {
+              height: gradientFadeHeight,
+            },
+            isTablet && {
+              height: screenMax > 1300 
+                ? gradientFadeHeight * 1.6  // iPad Pro 13"
+                : gradientFadeHeight * 1.3, // Standard iPads
+            },
+          ]}
+          pointerEvents="none"
+        />
+        
+        {/* Layered gradient background */}
+        <LinearGradient
+          colors={heroGradient}
+          locations={heroGradientLocations}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={authStyles.gradientBase}
+        />
+        
+        {/* Glow effect */}
+        <LinearGradient
+          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
+          locations={[0, 0.3, 0.6, 1]}
+          start={{ x: 0.5, y: 0.3 }}
+          end={{ x: 1, y: 1 }}
+          style={authStyles.gradientGlow}
+        />
+        
+        {/* Ambient light layer - fade to transparent to prevent dark bar */}
+        <LinearGradient
+          colors={
+            isTablet
+              ? isDark
+                ? [
+                    "rgba(46, 196, 182, 0.10)",
+                    "rgba(58, 134, 255, 0.06)",
+                    "rgba(46, 196, 182, 0.03)",
+                    "transparent",
+                  ]
+                : [
+                    "rgba(46, 196, 182, 0.12)",
+                    "rgba(58, 134, 255, 0.08)",
+                    "rgba(46, 196, 182, 0.025)",
+                    "transparent",
+                  ]
+              : isDark
+              ? ambientGradient
+              : [
+                  "transparent",
+                  "transparent",
+                  "transparent",
+                  "transparent",
+                ]
+          }
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={authStyles.gradientAmbient}
+        />
+
         {/* Header */}
-        <View style={authStyles.headerContainer}>
-          <LogoSection showText={false} compact={true} />
-          <Text style={[authStyles.title, { color: colors.text }]}>
+        <View style={[
+          authStyles.headerContainer,
+          authStyles.heroContent,
+          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          { zIndex: 15 }, // Ensure text is above fade gradient
+        ]}>
+          <LogoSection showText={false} compact={false} />
+          <Text style={[
+            authStyles.title,
+            { color: colors.text },
+            isTablet && {
+              fontSize: authStyles.title.fontSize * fontMultiplier,
+              lineHeight: authStyles.title.lineHeight * fontMultiplier,
+            },
+          ]}>
             Email Verification
           </Text>
+          <View style={{ height: DesignSystem.spacing.lg }} />
         </View>
+      </View>
 
+      <View style={{ 
+        paddingTop: DesignSystem.spacing.lg, 
+        flex: 1,
+        paddingHorizontal: DesignSystem.spacing.md,
+        alignItems: "center",
+        width: "100%",
+      }}>
+        <View style={[
+          { width: "100%" },
+          maxContentWidth && { maxWidth: maxContentWidth },
+        ]}>
         {/* Content */}
         {renderContent()}
+        </View>
       </View>
     </View>
   );

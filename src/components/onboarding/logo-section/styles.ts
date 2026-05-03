@@ -4,18 +4,21 @@ import { DesignSystem } from "../../../theme/designSystem";
 // styles for the logo section
 export const styles = StyleSheet.create({
   logoContainer: {
-    marginTop: 0,
-    marginBottom: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: 0,
     alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.md,
     backgroundColor: "transparent",
+    width: "100%",
+    alignSelf: "center",
   },
   logoContainerCompact: {
-    marginTop: 0,
-    marginBottom: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: 0,
     alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.md,
     backgroundColor: "transparent",
+    width: "100%",
+    maxWidth: 280,
+    alignSelf: "center",
   },
   logo: {
     width: 380,
@@ -40,7 +43,7 @@ export const styles = StyleSheet.create({
   logoText: {
     ...DesignSystem.typography.h1,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: 0,
     fontFamily: "System",
     fontWeight: "700",
     letterSpacing: -0.5,
