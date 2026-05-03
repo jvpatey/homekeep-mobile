@@ -11,6 +11,7 @@ import {
   Keyboard,
   Platform,
   TouchableWithoutFeedback,
+  InputAccessoryView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -42,6 +43,9 @@ import {
   MaintenanceCategory,
   Priority,
 } from "../../../../types/maintenance";
+
+const ESTIMATED_DURATION_INPUT_ACCESSORY_ID =
+  "createTaskEstimatedDurationInputAccessory";
 
 // CreateTaskModalProps
 interface CreateTaskModalProps {
@@ -343,6 +347,37 @@ export function CreateTaskModal({
       animationType="none"
       onRequestClose={handleClose}
     >
+      {Platform.OS === "ios" && (
+        <InputAccessoryView nativeID={ESTIMATED_DURATION_INPUT_ACCESSORY_ID}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              paddingHorizontal: DesignSystem.spacing.md,
+              paddingVertical: DesignSystem.spacing.sm,
+              backgroundColor: colors.surface,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.border,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => Keyboard.dismiss()}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Text
+                style={{
+                  fontSize: DesignSystem.typography.bodyMedium.fontSize,
+                  fontWeight: "600",
+                  color: colors.primary,
+                }}
+              >
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -437,6 +472,7 @@ export function CreateTaskModal({
                       paddingBottom: DesignSystem.spacing.xxxl,
                     }}
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
                   >
                     <FormField
                       label="Task Title"
@@ -489,6 +525,11 @@ export function CreateTaskModal({
                       }}
                       placeholder="e.g., 30"
                       keyboardType="numeric"
+                      inputAccessoryViewID={
+                        Platform.OS === "ios"
+                          ? ESTIMATED_DURATION_INPUT_ACCESSORY_ID
+                          : undefined
+                      }
                       error={errors.estimated_duration_minutes?.toString()}
                       required
                     />
@@ -586,7 +627,10 @@ export function CreateTaskModal({
                       }}
                     >
                       <SubmitButton
-                        onPress={handleSubmit}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          void handleSubmit();
+                        }}
                         disabled={!isFormValid}
                         title={isEdit ? "Save Changes" : "Add Task"}
                       />
