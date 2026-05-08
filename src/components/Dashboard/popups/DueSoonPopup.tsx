@@ -56,43 +56,48 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
       ]) as [string, string, string];
 
   useEffect(() => {
-    // Entrance animation - faster and more responsive
-    opacity.value = withTiming(1, { duration: 200 });
-    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-    translateY.value = withTiming(0, { duration: 200 });
+    opacity.value = withTiming(1, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withSpring(1, DesignSystem.motion.spring.snappy);
+    translateY.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
     // Header icon animation - reduced delay
     headerIconScale.value = withDelay(
-      50,
-      withSpring(1, {
-        damping: 15,
-        stiffness: 150,
-      })
+      DesignSystem.motion.stagger,
+      withSpring(1, DesignSystem.motion.spring.smooth)
     );
     headerIconRotation.value = withDelay(
-      50,
-      withTiming(360, { duration: 400 })
+      DesignSystem.motion.stagger,
+      withTiming(0, { duration: 0 })
     );
 
     // Content animation - faster
     contentOpacity.value = withDelay(
-      100,
-      withTiming(1, { duration: 200 })
+      DesignSystem.motion.stagger,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      })
     );
 
     // Task card animation - faster
     taskCardScale.value = withDelay(
-      150,
-      withSpring(1, {
-        damping: 18,
-        stiffness: 180,
-      })
+      DesignSystem.motion.stagger * 2,
+      withSpring(1, DesignSystem.motion.spring.smooth)
     );
 
     // Navigation buttons animation - faster
     navButtonOpacity.value = withDelay(
-      200,
-      withTiming(1, { duration: 200 })
+      DesignSystem.motion.stagger * 2,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      })
     );
   }, []);
 
@@ -121,13 +126,21 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   }));
 
   const handleClose = () => {
-    // Exit animation - faster
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.95, { duration: 150 });
-    translateY.value = withTiming(20, { duration: 150 });
+    opacity.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withTiming(0.96, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    translateY.value = withTiming(20, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
     // Close after animation
-    setTimeout(onClose, 150);
+    setTimeout(onClose, DesignSystem.motion.duration.fast);
   };
 
   const goToNextTask = () => {
@@ -545,11 +558,11 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                               : "rgba(59, 130, 246, 0.06)"
                             : isDark
                             ? "rgba(59, 130, 246, 0.18)"
-                            : "rgba(59, 130, 246,ันท 0.15)",
+                            : "rgba(59, 130, 246, 0.15)",
                         borderColor:
                           currentTaskIndex === tasks.length - 1
                             ? isDark
-                              ? "rgba(59, 130,位数 246, 0.15)"
+                              ? "rgba(59, 130, 246, 0.15)"
                               : "rgba(59, 130, 246, 0.12)"
                             : isDark
                             ? "rgba(59, 130, 246, 0.3)"

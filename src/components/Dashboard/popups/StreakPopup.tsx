@@ -51,45 +51,61 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
       ]) as [string, string, string];
 
   useEffect(() => {
-    // Entrance animation - faster and more responsive
-    opacity.value = withTiming(1, { duration: 200 });
-    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-    translateY.value = withTiming(0, { duration: 200 });
+    opacity.value = withTiming(1, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withSpring(1, DesignSystem.motion.spring.snappy);
+    translateY.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
-    // Streak number bounce animation - faster
     streakScale.value = withDelay(
-      100,
+      DesignSystem.motion.stagger,
       withSequence(
-        withSpring(1.3, { damping: 10, stiffness: 200 }),
-        withSpring(1, { damping: 15, stiffness: 150 })
+        withSpring(1.18, DesignSystem.motion.spring.bouncy),
+        withSpring(1, DesignSystem.motion.spring.smooth)
       )
     );
 
-    // Flame rotation animation - faster
-    flameRotation.value = withRepeat(
+    // Subtle single wobble (no looping)
+    flameRotation.value = withDelay(
+      DesignSystem.motion.stagger,
       withSequence(
-        withTiming(-10, { duration: 200 }),
-        withTiming(10, { duration: 200 }),
-        withTiming(0, { duration: 200 })
-      ),
-      2,
-      false
+        withTiming(-6, {
+          duration: DesignSystem.motion.duration.fast,
+          easing: DesignSystem.motion.easing.standard,
+        }),
+        withTiming(6, {
+          duration: DesignSystem.motion.duration.fast,
+          easing: DesignSystem.motion.easing.standard,
+        }),
+        withTiming(0, {
+          duration: DesignSystem.motion.duration.fast,
+          easing: DesignSystem.motion.easing.standard,
+        })
+      )
     );
 
-    // Dots animation - faster
     dotsOpacity.value = withDelay(
-      200,
-      withSpring(1, { damping: 20, stiffness: 180 })
+      DesignSystem.motion.stagger * 2,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      })
     );
     dotsScale.value = withDelay(
-      200,
-      withSpring(1, { damping: 15, stiffness: 180 })
+      DesignSystem.motion.stagger * 2,
+      withSpring(1, DesignSystem.motion.spring.smooth)
     );
 
-    // Continue button animation - faster
     continueButtonOpacity.value = withDelay(
-      300,
-      withTiming(1, { duration: 200 })
+      DesignSystem.motion.stagger * 3,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      })
     );
   }, []);
 
@@ -116,13 +132,21 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   }));
 
   const handleClose = () => {
-    // Exit animation - faster
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.95, { duration: 150 });
-    translateY.value = withTiming(20, { duration: 150 });
+    opacity.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withTiming(0.96, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    translateY.value = withTiming(20, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
     // Close after animation
-    setTimeout(onClose, 150);
+    setTimeout(onClose, DesignSystem.motion.duration.fast);
   };
 
   const getStreakMessage = (streakCount: number) => {

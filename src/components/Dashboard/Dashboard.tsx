@@ -4,6 +4,8 @@ import {
   ScrollView,
   RefreshControl,
   Animated as RNAnimated,
+  Text,
+  TouchableOpacity,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -11,7 +13,6 @@ import Animated, {
   withTiming,
   withDelay,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useGradients, useDevice } from "../../hooks";
 import { MaintenanceTask } from "../../types/maintenance";
@@ -24,6 +25,9 @@ import { NotificationPermissionRequest } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { MaintenanceService } from "../../services/maintenanceService";
+import { DesignSystem } from "../../theme/designSystem";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import {
   getGreeting,
   getUserName,
@@ -54,7 +58,7 @@ export function NewDashboard({
 }: NewDashboardProps) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const { ambientGradient } = useGradients();
+  const { ctaHighlight } = useGradients();
   const { isTablet } = useDevice();
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
@@ -89,12 +93,30 @@ export function NewDashboard({
     timelineOpacity.value = 0;
     timelineTranslateY.value = 20;
 
-    headerOpacity.value = withDelay(200, withTiming(1, { duration: 600 }));
-    headerTranslateY.value = withDelay(200, withTiming(0, { duration: 600 }));
-    carouselOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    carouselTranslateY.value = withDelay(400, withTiming(0, { duration: 600 }));
-    timelineOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
-    timelineTranslateY.value = withDelay(600, withTiming(0, { duration: 600 }));
+    const d = DesignSystem.motion.duration.base;
+    const stagger = DesignSystem.motion.stagger;
+
+    headerOpacity.value = withDelay(stagger, withTiming(1, { duration: d }));
+    headerTranslateY.value = withDelay(
+      stagger,
+      withTiming(0, { duration: d })
+    );
+    carouselOpacity.value = withDelay(
+      stagger + DesignSystem.motion.stagger,
+      withTiming(1, { duration: d })
+    );
+    carouselTranslateY.value = withDelay(
+      stagger + DesignSystem.motion.stagger,
+      withTiming(0, { duration: d })
+    );
+    timelineOpacity.value = withDelay(
+      stagger + DesignSystem.motion.stagger * 2,
+      withTiming(1, { duration: d })
+    );
+    timelineTranslateY.value = withDelay(
+      stagger + DesignSystem.motion.stagger * 2,
+      withTiming(0, { duration: d })
+    );
   }, []);
 
   // Trigger animations on mount only
@@ -250,8 +272,7 @@ export function NewDashboard({
           />
         }
       >
-        <View>
-        {/* Header Section */}
+        {/* Glance (Hero) */}
         <Animated.View style={headerAnimatedStyle}>
           <DashboardHeader
             userName={getUserName(user?.user_metadata?.full_name, user?.email)}
@@ -266,19 +287,120 @@ export function NewDashboard({
           />
         </Animated.View>
 
-        {/* Hero Carousel */}
+        {/* Primary action zone (Featured) */}
         <Animated.View style={carouselAnimatedStyle}>
           <HeroCarousel
-            tasks={upcomingTasks.slice(0, 10)} // Show first 10 upcoming tasks
+            tasks={upcomingTasks.slice(0, 10)}
             onCompleteTask={handleCompleteTask}
             onTaskPress={handleTaskPress}
-            showTimelineView={showTimelineView}
-            onToggleTimelineView={() => setShowTimelineView(!showTimelineView)}
+            onAddTask={() => {
+              setEditTaskInitial(null);
+              setShowCreateModal(true);
+            }}
           />
         </Animated.View>
 
-        {/* Timeline View */}
+        {/* Secondary zone (Progressive disclosure) */}
         <Animated.View style={timelineAnimatedStyle}>
+          <View
+            style={{
+              paddingHorizontal: DesignSystem.spacing.md,
+              paddingTop: DesignSystem.spacing.xs,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <View style={{ flex: 1, paddingRight: DesignSystem.spacing.md }}>
+              <Text
+                style={[
+                  DesignSystem.typography.h3,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.92)"
+                      : "rgba(15, 23, 42, 0.92)",
+                    letterSpacing: -0.2,
+                  },
+                ]}
+              >
+                Timeline
+              </Text>
+              <Text
+                style={[
+                  DesignSystem.typography.small,
+                  {
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.65)"
+                      : "rgba(15, 23, 42, 0.65)",
+                    marginTop: DesignSystem.spacing.xs,
+                  },
+                ]}
+              >
+                Upcoming tasks
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowTimelineView((v) => !v)}
+              activeOpacity={0.8}
+              style={[
+                {
+                  borderRadius: DesignSystem.borders.radius.round,
+                  overflow: "hidden",
+                  borderWidth: DesignSystem.borders.hairline,
+                  borderColor: colors.glassStroke,
+                },
+                DesignSystem.shadows.softAmbient,
+              ]}
+            >
+              <View
+                style={[
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: DesignSystem.spacing.xs,
+                    paddingHorizontal: DesignSystem.spacing.sm,
+                    paddingVertical: 8,
+                    backgroundColor: showTimelineView
+                      ? colors.primary
+                      : colors.glass,
+                  },
+                ]}
+              >
+                {showTimelineView && (
+                  <LinearGradient
+                    colors={ctaHighlight}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "55%",
+                    }}
+                    pointerEvents="none"
+                  />
+                )}
+                <Ionicons
+                  name={showTimelineView ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={showTimelineView ? "white" : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    DesignSystem.typography.captionSemiBold,
+                    {
+                      color: showTimelineView ? "white" : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {showTimelineView ? "Hide" : "Show"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           <RNAnimated.View
             style={{
               overflow: "hidden",
@@ -299,9 +421,7 @@ export function NewDashboard({
           </RNAnimated.View>
         </Animated.View>
 
-        {/* Bottom Spacing */}
         <View style={dashboardStyles.bottomSpacing} />
-        </View>
       </ScrollView>
 
       {/* Floating Action Button - Add Task */}

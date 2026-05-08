@@ -38,8 +38,7 @@ interface HeroCarouselProps {
   tasks: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
-  showTimelineView?: boolean;
-  onToggleTimelineView?: () => void;
+  onAddTask?: () => void;
 }
 
 // HeroCarousel component for the Dashboard
@@ -47,8 +46,7 @@ export function HeroCarousel({
   tasks,
   onCompleteTask,
   onTaskPress,
-  showTimelineView = false,
-  onToggleTimelineView,
+  onAddTask,
 }: HeroCarouselProps) {
   const { colors, isDark } = useTheme();
   const { isTablet, getResponsiveValue, getFontMultiplier, width, height } = useDevice();
@@ -71,8 +69,8 @@ export function HeroCarousel({
 
   // Two-color gradient for selected state - subtle and transparent (50% opacity)
   const gradientColors = [
-    addAlpha(colors.primary, 0.5),
-    addAlpha(colors.secondary, 0.5),
+    addAlpha(colors.primary, 0.42),
+    addAlpha(colors.secondary, 0.32),
   ] as [string, string];
 
   // Animation for empty state
@@ -110,120 +108,58 @@ export function HeroCarousel({
   if (tasks.length === 0) {
     return (
       <View style={styles.container}>
-        {/* Header with Timeline Toggle */}
+        {/* Header */}
         <View style={styles.header}>
-          <Text
-          style={[
-            styles.title,
-            {
-              color: isDark
-                ? colors.text
-                : "rgba(15, 23, 42, 0.9)",
-            },
-            isTablet && {
-              fontSize: (styles.title.fontSize || 24) * getFontMultiplier(),
-              lineHeight: ((styles.title.fontSize || 24) * getFontMultiplier()) * 1.2,
-            },
-          ]}
-        >
-          What's Next
-        </Text>
-          <View style={styles.headerRight}>
-            {onToggleTimelineView && (
-              <TouchableOpacity
-                onPress={onToggleTimelineView}
-                activeOpacity={0.7}
-              >
-                {showTimelineView ? (
-                  <LinearGradient
-                    colors={gradientColors}
-                    locations={[0, 1]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[
-                      styles.toggleButton,
-                      styles.toggleButtonSelected,
-                      {
-                        borderColor: isDark
-                          ? "rgba(255, 255, 255, 0.2)"
-                          : "rgba(255, 255, 255, 0.8)",
-                        borderWidth: 1,
-                      },
-                      isTablet && {
-                        paddingHorizontal: getResponsiveValue(12, 16, 18),
-                        paddingVertical: getResponsiveValue(8, 12, 14),
-                        borderRadius: getResponsiveValue(20, 24, 26),
-                        gap: getResponsiveValue(6, 8, 10),
-                      },
-                    ]}
-                  >
-                    <Ionicons 
-                      name="calendar" 
-                      size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
-                      color="#FFFFFF" 
-                    />
-                    <Text style={[
-                      styles.toggleButtonText, 
-                      { color: "#FFFFFF" },
-                      isTablet && {
-                        fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
-                      },
-                    ]}>
-                      Timeline
-                    </Text>
-                  </LinearGradient>
-                ) : (
-                  <View
-                    style={[
-                      styles.toggleButton,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(35, 37, 38, 0.4)"
-                          : "rgba(255, 255, 255, 0.4)",
-                        borderColor: isDark
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(255, 255, 255, 0.6)",
-                        borderWidth: 1,
-                      },
-                      isTablet && {
-                        paddingHorizontal: getResponsiveValue(12, 16, 18),
-                        paddingVertical: getResponsiveValue(8, 12, 14),
-                        borderRadius: getResponsiveValue(20, 24, 26),
-                        gap: getResponsiveValue(6, 8, 10),
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="calendar"
-                      size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                      color={
-                        isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.75)"
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.toggleButtonText,
-                        {
-                          color: isDark
-                            ? "rgba(255, 255, 255, 0.8)"
-                            : "rgba(15, 23, 42, 0.8)",
-                        },
-                        isTablet && {
-                          fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
-                        },
-                      ]}
-                    >
-                      Timeline
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+          <View style={styles.headerLeft}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: isDark
+                    ? colors.text
+                    : "rgba(15, 23, 42, 0.9)",
+                },
+                isTablet && {
+                  fontSize: (styles.title.fontSize || 20) * getFontMultiplier(),
+                  lineHeight:
+                    ((styles.title.fontSize || 20) * getFontMultiplier()) *
+                    1.2,
+                },
+              ]}
+            >
+              Up Next
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  color: isDark
+                    ? "rgba(255, 255, 255, 0.65)"
+                    : "rgba(15, 23, 42, 0.65)",
+                },
+                isTablet && {
+                  fontSize:
+                    (styles.subtitle.fontSize || 14) * getFontMultiplier(),
+                  lineHeight:
+                    ((styles.subtitle.fontSize || 14) * getFontMultiplier()) *
+                    1.3,
+                },
+              ]}
+            >
+              Tasks due soon
+            </Text>
           </View>
         </View>
 
         {/* Empty State */}
-        <View
+        <TouchableOpacity
+          onPress={onAddTask}
+          activeOpacity={onAddTask ? 0.85 : 1}
+          disabled={!onAddTask}
+          accessibilityRole={onAddTask ? "button" : undefined}
+          accessibilityLabel={
+            onAddTask ? "All caught up. Add a task." : "All caught up."
+          }
           style={[
             styles.emptyContainer,
             {
@@ -252,10 +188,12 @@ export function HeroCarousel({
             >
               <View style={styles.emptyIcon}>
                 <Ionicons
-                  name="checkmark-circle"
+                  name={onAddTask ? "add-circle" : "checkmark-circle"}
                   size={32}
                   color={
-                    isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(15, 23, 42, 0.65)"
+                    isDark
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(15, 23, 42, 0.7)"
                   }
                 />
               </View>
@@ -283,9 +221,9 @@ export function HeroCarousel({
               },
             ]}
           >
-            No tasks due right now
+            {onAddTask ? "Tap to add a task" : "No tasks due right now"}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -303,113 +241,44 @@ export function HeroCarousel({
           ),
         },
       ]}>
-        <Text
-          style={[
-            styles.title,
-            {
-              color: isDark
-                ? colors.text
-                : "rgba(15, 23, 42, 0.9)",
-            },
-            isTablet && {
-              fontSize: (styles.title.fontSize || 24) * getFontMultiplier(),
-              lineHeight: ((styles.title.fontSize || 24) * getFontMultiplier()) * 1.2,
-            },
-          ]}
-        >
-          What's Next
-        </Text>
+        <View style={styles.headerLeft}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: isDark
+                  ? colors.text
+                  : "rgba(15, 23, 42, 0.9)",
+              },
+              isTablet && {
+                fontSize: (styles.title.fontSize || 20) * getFontMultiplier(),
+                lineHeight:
+                  ((styles.title.fontSize || 20) * getFontMultiplier()) * 1.2,
+              },
+            ]}
+          >
+            Up Next
+          </Text>
+          <Text
+            style={[
+              styles.subtitle,
+              {
+                color: isDark
+                  ? "rgba(255, 255, 255, 0.65)"
+                  : "rgba(15, 23, 42, 0.65)",
+              },
+              isTablet && {
+                fontSize: (styles.subtitle.fontSize || 14) * getFontMultiplier(),
+                lineHeight:
+                  ((styles.subtitle.fontSize || 14) * getFontMultiplier()) *
+                  1.3,
+              },
+            ]}
+          >
+            Tasks due soon
+          </Text>
+        </View>
         <View style={styles.headerRight}>
-          {onToggleTimelineView && (
-            <TouchableOpacity
-              onPress={onToggleTimelineView}
-              activeOpacity={0.7}
-            >
-              {showTimelineView ? (
-                <LinearGradient
-                  colors={gradientColors}
-                  locations={[0, 1]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[
-                    styles.toggleButton,
-                    styles.toggleButtonSelected,
-                    {
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : "rgba(255, 255, 255, 0.8)",
-                      borderWidth: 1,
-                    },
-                    isTablet && {
-                      paddingHorizontal: getResponsiveValue(12, 16, 18),
-                      paddingVertical: getResponsiveValue(8, 12, 14),
-                      borderRadius: getResponsiveValue(20, 24, 26),
-                      gap: getResponsiveValue(6, 8, 10),
-                    },
-                  ]}
-                >
-                  <Ionicons 
-                    name="calendar" 
-                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16} 
-                    color="#FFFFFF" 
-                  />
-                  <Text style={[
-                    styles.toggleButtonText, 
-                    { color: "#FFFFFF" },
-                    isTablet && {
-                      fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
-                    },
-                  ]}>
-                    Timeline
-                  </Text>
-                </LinearGradient>
-              ) : (
-                <View
-                  style={[
-                    styles.toggleButton,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(35, 37, 38, 0.4)"
-                        : "rgba(255, 255, 255, 0.4)",
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.6)",
-                      borderWidth: 1,
-                    },
-                    isTablet && {
-                      paddingHorizontal: getResponsiveValue(12, 16, 18),
-                      paddingVertical: getResponsiveValue(8, 12, 14),
-                      borderRadius: getResponsiveValue(20, 24, 26),
-                      gap: getResponsiveValue(6, 8, 10),
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="calendar"
-                    size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                    color={
-                      isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(15, 23, 42, 0.75)"
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.toggleButtonText,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.8)"
-                          : "rgba(15, 23, 42, 0.8)",
-                      },
-                      isTablet && {
-                        fontSize: (styles.toggleButtonText.fontSize || 14) * getFontMultiplier(),
-                      },
-                    ]}
-                  >
-                    Timeline
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
           <View style={styles.navigationButtons}>
             <TouchableOpacity
               style={[
@@ -572,7 +441,7 @@ export function HeroCarousel({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.sm,
     marginBottom: DesignSystem.spacing.md,
   },
   header: {
@@ -582,37 +451,21 @@ const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
   },
+  headerLeft: {
+    flex: 1,
+    paddingRight: DesignSystem.spacing.md,
+  },
   title: {
-    ...DesignSystem.typography.h2,
+    ...DesignSystem.typography.h3,
+  },
+  subtitle: {
+    ...DesignSystem.typography.small,
+    marginTop: DesignSystem.spacing.xs,
   },
   headerRight: {
     flexDirection: "row",
     gap: DesignSystem.spacing.sm,
     alignItems: "center",
-  },
-  toggleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  toggleButtonSelected: {
-    shadowColor: "#2EC4B6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  toggleButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
   },
   navigationButtons: {
     flexDirection: "row",
@@ -624,11 +477,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    ...DesignSystem.shadows.softAmbient,
   },
   carouselContainer: {
     alignItems: "center",
@@ -651,11 +500,7 @@ const styles = StyleSheet.create({
     paddingVertical: DesignSystem.spacing.xl,
     paddingHorizontal: DesignSystem.spacing.lg,
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    ...DesignSystem.shadows.softKey,
   },
   emptyIconContainer: {
     width: 64,
@@ -671,11 +516,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...DesignSystem.shadows.softAmbient,
   },
   emptyIcon: {
     width: 60,

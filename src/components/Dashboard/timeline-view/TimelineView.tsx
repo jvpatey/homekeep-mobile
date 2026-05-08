@@ -46,12 +46,24 @@ export function TimelineView({
   useEffect(() => {
     if (visible) {
       // Animate in
-      opacity.value = withTiming(1, { duration: 400 });
-      translateY.value = withTiming(0, { duration: 400 });
+      opacity.value = withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      });
+      translateY.value = withTiming(0, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      });
     } else {
       // Animate out
-      opacity.value = withTiming(0, { duration: 300 });
-      translateY.value = withTiming(-20, { duration: 300 });
+      opacity.value = withTiming(0, {
+        duration: DesignSystem.motion.duration.fast,
+        easing: DesignSystem.motion.easing.standard,
+      });
+      translateY.value = withTiming(-20, {
+        duration: DesignSystem.motion.duration.fast,
+        easing: DesignSystem.motion.easing.standard,
+      });
     }
   }, [visible]);
 

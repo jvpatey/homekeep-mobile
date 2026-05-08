@@ -1,12 +1,12 @@
 import React, { useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import MaskedView from "@react-native-masked-view/masked-view";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
@@ -45,7 +45,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const { colors, isDark } = useTheme();
   const { selectedGradient } = useUserPreferences();
-  const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
+  const { haloGradient } = useGradients();
   const { isTablet, getFontMultiplier, getResponsiveValue, width, height, getGradientFadeColors, getGradientFadeLocations, getGradientFadeHeight } = useDevice();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -120,7 +120,7 @@ export function DashboardHeader({
     return gradientColors;
   };
 
-  const textGradientColors = adjustGradientForContrast(selectedGradient.colors);
+  const _textGradientColors = adjustGradientForContrast(selectedGradient.colors);
 
   // Spring animations for greeting, username, and profile icon
   const greetOpacity = useSharedValue(0);
@@ -147,17 +147,54 @@ export function DashboardHeader({
     statsTranslateY.value = 15;
     statsScale.value = 0.95;
 
-    // animate with springs and slight stagger
-    greetOpacity.value = withDelay(150, withSpring(1, { damping: 15, stiffness: 150 }));
-    greetTranslateY.value = withDelay(150, withSpring(0, { damping: 15, stiffness: 150 }));
-    nameOpacity.value = withDelay(250, withSpring(1, { damping: 15, stiffness: 150 }));
-    nameTranslateY.value = withDelay(250, withSpring(0, { damping: 15, stiffness: 150 }));
-    profileOpacity.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
-    profileScale.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
-    profileTranslateY.value = withDelay(100, withSpring(0, { damping: 15, stiffness: 150 }));
-    statsOpacity.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
-    statsTranslateY.value = withDelay(350, withSpring(0, { damping: 15, stiffness: 150 }));
-    statsScale.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
+    const d = DesignSystem.motion.duration.base;
+    const fast = DesignSystem.motion.duration.fast;
+    const s = DesignSystem.motion.stagger;
+
+    // Subtle, faster “settle” (less bouncy)
+    greetOpacity.value = withDelay(
+      s,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    greetTranslateY.value = withDelay(
+      s,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+
+    nameOpacity.value = withDelay(
+      s * 2,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    nameTranslateY.value = withDelay(
+      s * 2,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+
+    profileOpacity.value = withDelay(
+      s,
+      withTiming(1, {
+        duration: fast,
+        easing: DesignSystem.motion.easing.standard,
+      })
+    );
+    profileScale.value = withDelay(s, withSpring(1, DesignSystem.motion.spring.smooth));
+    profileTranslateY.value = withDelay(
+      s,
+      withTiming(0, {
+        duration: fast,
+        easing: DesignSystem.motion.easing.standard,
+      })
+    );
+
+    statsOpacity.value = withDelay(
+      s * 3,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    statsTranslateY.value = withDelay(
+      s * 3,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    statsScale.value = withDelay(s * 3, withSpring(1, DesignSystem.motion.spring.smooth));
   }, []);
 
   useEffect(() => {
@@ -273,47 +310,13 @@ export function DashboardHeader({
           pointerEvents="none"
         />
         
-        {/* Layered gradient background for depth */}
+        {/* Hero background — single halo (match Welcome/Auth) */}
         <LinearGradient
-          colors={heroGradient}
-          locations={heroGradientLocations}
-          start={{ x: 0.5, y: 0 }}
+          colors={haloGradient}
+          start={{ x: 0.5, y: 0.15 }}
           end={{ x: 0.5, y: 1 }}
-          style={headerStyles.gradientBase}
-        />
-        
-        {/* Radial glow effect centered on content - simulated with multiple linear gradients */}
-        <LinearGradient
-          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
-          locations={[0, 0.3, 0.6, 1]}
-          start={{ x: 0.5, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={headerStyles.gradientGlow}
-        />
-        
-        {/* Ambient light layer - fade to transparent on iPads to prevent dark bar */}
-        <LinearGradient
-          colors={
-            isTablet
-              ? isDark
-                ? [
-                    "rgba(46, 196, 182, 0.10)",
-                    "rgba(58, 134, 255, 0.06)",
-                    "rgba(46, 196, 182, 0.03)",
-                    "transparent",
-                  ]
-                : [
-                    "rgba(46, 196, 182, 0.12)",
-                    "rgba(58, 134, 255, 0.08)",
-                    "rgba(46, 196, 182, 0.025)",
-                    "transparent",
-                  ]
-              : ambientGradient
-          }
-          locations={[0, 0.4, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={headerStyles.gradientAmbient}
+          style={headerStyles.halo}
+          pointerEvents="none"
         />
 
         {/* Content layer */}
@@ -340,9 +343,7 @@ export function DashboardHeader({
               style={[
                 headerStyles.greeting,
                 {
-                  color: isDark
-                    ? colors.text
-                    : "rgba(15, 23, 42, 0.9)",
+                  color: isDark ? colors.text : "rgba(15, 23, 42, 0.9)",
                 },
                 greetAnimatedStyle,
                 isTablet && {
@@ -354,94 +355,27 @@ export function DashboardHeader({
               {greeting}
             </Animated.Text>
             <Animated.View style={nameAnimatedStyle}>
-              {/* Light mode: Add a subtle white outline behind for contrast */}
-              {!isDark && (
-                <MaskedView
-                  style={{ position: "absolute" }}
-                  maskElement={
-                    <Text
-                      style={[
-                        headerStyles.userName,
-                        {
-                          color: colors.text,
-                          textShadowColor: "rgba(255, 255, 255, 0.6)",
-                          textShadowOffset: { width: 0, height: 0 },
-                          textShadowRadius: 2,
-                        },
-                        isTablet && {
-                          fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
-                          lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
-                        },
-                      ]}
-                    >
-                      {userName}
-                    </Text>
-                  }
-                >
-                  <LinearGradient
-                    colors={["rgba(255, 255, 255, 0.4)", "rgba(255, 255, 255, 0.4)"]}
-                    locations={[0, 1]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <Text style={[headerStyles.userName, { opacity: 0 }]}>
-                      {userName}
-                    </Text>
-                  </LinearGradient>
-                </MaskedView>
-              )}
-              {/* Main gradient text layer */}
-              <MaskedView
-                maskElement={
-                  <Text
-                    style={[
-                      headerStyles.userName,
-                      { color: colors.text },
-                      {
-                        // Text shadow for depth
-                        textShadowColor: isDark
-                          ? "rgba(0, 0, 0, 0.5)"
-                          : "rgba(0, 0, 0, 0.3)",
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: isDark ? 8 : 4,
-                      },
-                      isTablet && {
-                        fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
-                        lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
-                      },
-                    ]}
-                  >
-                    {userName}
-                  </Text>
-                }
+              <Text
+                style={[
+                  headerStyles.userName,
+                  { color: isDark ? colors.text : "rgba(15, 23, 42, 0.92)" },
+                  isTablet && {
+                    fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
+                    lineHeight:
+                      (headerStyles.userName.fontSize * heroFontMultiplier) *
+                      1.2,
+                  },
+                ]}
               >
-                <LinearGradient
-                  colors={textGradientColors}
-                  locations={[0, 1]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={[
-                    headerStyles.userName,
-                    { opacity: 0 },
-                    isTablet && {
-                      fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
-                      lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
-                    },
-                  ]}>
-                    {userName}
-                  </Text>
-                </LinearGradient>
-              </MaskedView>
+                {userName}
+              </Text>
             </Animated.View>
 
             <Text
               style={[
                 headerStyles.motivationalMessage,
                 {
-                  color: isDark
-                    ? colors.textSecondary
-                    : "rgba(15, 23, 42, 0.65)",
+                  color: isDark ? colors.textSecondary : "rgba(15, 23, 42, 0.65)",
                 },
                 isTablet && {
                   fontSize: (headerStyles.motivationalMessage.fontSize || 16) * heroFontMultiplier,

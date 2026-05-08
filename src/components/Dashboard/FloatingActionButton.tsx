@@ -6,11 +6,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
   withSpring,
   withDelay,
+  withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useDevice } from "../../hooks";
@@ -43,10 +41,18 @@ export function FloatingActionButton({
     fabScale.value = 0.8;
     fabTranslateY.value = 20;
 
-    // animate with spring
-    fabOpacity.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
-    fabScale.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
-    fabTranslateY.value = withDelay(350, withSpring(0, { damping: 15, stiffness: 150 }));
+    const s = DesignSystem.motion.stagger * 2;
+    const d = DesignSystem.motion.duration.base;
+
+    fabOpacity.value = withDelay(
+      s,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    fabScale.value = withDelay(s, withSpring(1, DesignSystem.motion.spring.smooth));
+    fabTranslateY.value = withDelay(
+      s,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
   }, []);
 
   useEffect(() => {
@@ -68,11 +74,11 @@ export function FloatingActionButton({
   }));
 
   const handlePressIn = () => {
-    pressScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+    pressScale.value = withSpring(0.96, DesignSystem.motion.spring.snappy);
   };
 
   const handlePressOut = () => {
-    pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    pressScale.value = withSpring(1, DesignSystem.motion.spring.snappy);
   };
 
   return (
@@ -82,13 +88,13 @@ export function FloatingActionButton({
           fabStyles.floatingActionButton,
           {
             backgroundColor: colors.glass,
-            borderColor: colors.glassBorder,
-            borderWidth: 2,
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 12,
-            elevation: 8,
+            borderColor: colors.glassStroke,
+            borderWidth: DesignSystem.borders.hairline,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.06,
+            shadowRadius: 24,
+            elevation: 4,
           },
           isTablet && {
             width: getResponsiveValue(64, 72, 80),

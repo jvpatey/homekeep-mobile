@@ -56,35 +56,52 @@ export function CompletionCelebration({
       ]) as [string, string, string];
 
   const handleClose = () => {
-    // Exit animation - smooth and slower
-    opacity.value = withTiming(0, { duration: 200 });
-    scale.value = withTiming(0.95, { duration: 200 });
-    translateY.value = withTiming(20, { duration: 200 });
+    opacity.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withTiming(0.96, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    translateY.value = withTiming(20, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
     // Close after animation
-    setTimeout(onClose, 200);
+    setTimeout(onClose, DesignSystem.motion.duration.fast);
   };
 
   useEffect(() => {
     if (isVisible) {
       // Entrance animation - smoother and slower like other popups
-      opacity.value = withTiming(1, { duration: 300 });
-      scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-      translateY.value = withTiming(0, { duration: 300 });
+      opacity.value = withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      });
+      scale.value = withSpring(1, DesignSystem.motion.spring.smooth);
+      translateY.value = withTiming(0, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      });
 
       // Icon bounce animation - smoother
       iconScale.value = withDelay(
-        150,
+        DesignSystem.motion.stagger,
         withSequence(
-          withSpring(1.3, { damping: 12, stiffness: 200 }),
-          withSpring(1, { damping: 15, stiffness: 150 })
+          withSpring(1.18, DesignSystem.motion.spring.bouncy),
+          withSpring(1, DesignSystem.motion.spring.smooth)
         )
       );
 
       // Content fade in
       contentOpacity.value = withDelay(
-        200,
-        withTiming(1, { duration: 250 })
+        DesignSystem.motion.stagger * 2,
+        withTiming(1, {
+          duration: DesignSystem.motion.duration.base,
+          easing: DesignSystem.motion.easing.standard,
+        })
       );
 
       const timer = setTimeout(() => {
