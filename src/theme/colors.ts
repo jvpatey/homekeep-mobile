@@ -15,6 +15,9 @@ export const colors = {
     glassStrong: "rgba(255, 255, 255, 0.85)",
     glassBorder: "rgba(46, 196, 182, 0.3)",
     glassGlow: "rgba(46, 196, 182, 0.15)",
+    // 2026 Liquid Glass tokens
+    glassTint: "rgba(46, 196, 182, 0.06)",
+    glassStroke: "rgba(255, 255, 255, 0.55)",
   },
   dark: {
     primary: "#20B486",
@@ -32,5 +35,8 @@ export const colors = {
     glassStrong: "rgba(35, 37, 38, 0.85)",
     glassBorder: "rgba(32, 180, 134, 0.3)",
     glassGlow: "rgba(32, 180, 134, 0.15)",
+    // 2026 Liquid Glass tokens
+    glassTint: "rgba(46, 196, 182, 0.10)",
+    glassStroke: "rgba(255, 255, 255, 0.18)",
   },
 };

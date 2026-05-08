@@ -1,36 +1,43 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
 import { useTextAnimation, useDevice } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 
-// WelcomeText component for the WelcomeText on the onboarding screen
+/**
+ * WelcomeText — 2026 redesign.
+ *
+ * Type animates opacity-only (no scale, no translateY) to avoid sub-pixel
+ * blur during the tween. Both lines fade in at t=0 alongside the logo as
+ * one hero group.
+ */
 export function WelcomeText() {
   const { colors } = useTheme();
-  const { headlineAnimatedStyle, subtitleAnimatedStyle } = useTextAnimation();
+  const { headlineEntering, subtitleEntering } = useTextAnimation();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
-  
+
   const fontMultiplier = getFontMultiplier();
 
   return (
-    <View style={[
-      styles.textContainer,
-      isTablet && { 
-        maxWidth: getResponsiveValue(280, 480, 620), // Wider for iPad Pro 13-inch to prevent wrapping
-        marginTop: getResponsiveValue(
-          DesignSystem.spacing.lg,
-          DesignSystem.spacing.sm,
-          DesignSystem.spacing.md,
-        ),
-      },
-    ]}>
+    <View
+      style={[
+        styles.textContainer,
+        isTablet && {
+          maxWidth: getResponsiveValue(280, 480, 620),
+          marginTop: getResponsiveValue(
+            DesignSystem.spacing.lg,
+            DesignSystem.spacing.sm,
+            DesignSystem.spacing.md,
+          ),
+        },
+      ]}
+    >
       <Animated.Text
         style={[
           styles.headline,
           { color: colors.text },
-          headlineAnimatedStyle,
           isTablet && {
             fontSize: styles.headline.fontSize * fontMultiplier,
             lineHeight: styles.headline.lineHeight * fontMultiplier,
@@ -41,6 +48,7 @@ export function WelcomeText() {
             ),
           },
         ]}
+        entering={headlineEntering}
       >
         Never miss home maintenance again.
       </Animated.Text>
@@ -48,12 +56,12 @@ export function WelcomeText() {
         style={[
           styles.subtitle,
           { color: colors.textSecondary },
-          subtitleAnimatedStyle,
           isTablet && {
             fontSize: styles.subtitle.fontSize * fontMultiplier,
             lineHeight: styles.subtitle.lineHeight * fontMultiplier,
           },
         ]}
+        entering={subtitleEntering}
       >
         Track, schedule, and complete home maintenance.
       </Animated.Text>

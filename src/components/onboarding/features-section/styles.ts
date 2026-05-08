@@ -1,6 +1,5 @@
 import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../../theme/designSystem";
-import { colors } from "../../../theme/colors";
 
 // styles for the features section
 export const styles = StyleSheet.create({
@@ -14,85 +13,126 @@ export const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.xxl,
     gap: DesignSystem.spacing.md,
   },
-  featureItem: {
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
-    minHeight: 72,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+  // 2026: iOS grouped list inside one glass surface
+  groupedCard: {
+    width: "100%",
+    paddingVertical: 4,
   },
-  featureContentRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: DesignSystem.spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    minHeight: 68,
   },
-  featureIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  rowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: DesignSystem.borders.hairline,
+    marginRight: DesignSystem.spacing.md,
   },
-  featureTextContainer: {
+  rowText: {
     flex: 1,
+    minWidth: 0,
   },
-  featureTitle: {
-    ...DesignSystem.typography.h4,
-    marginBottom: DesignSystem.spacing.xs,
+  rowTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    lineHeight: 21,
+    letterSpacing: -0.22,
   },
-  featureSubtitle: {
-    ...DesignSystem.typography.body,
-    fontSize: 15,
-    opacity: 0.85,
+  rowSubtitle: {
+    marginTop: 2,
+    fontSize: 14,
+    fontWeight: "400",
+    lineHeight: 19,
+    letterSpacing: -0.12,
+    opacity: 0.9,
   },
-  // modalOverlay function to animate the modal overlay
+  rowChevron: {
+    marginLeft: DesignSystem.spacing.sm,
+    opacity: 0.6,
+  },
+  divider: {
+    height: DesignSystem.borders.hairline,
+    marginLeft: DesignSystem.spacing.lg + 36 + DesignSystem.spacing.md, // align under text (after icon)
+    marginRight: DesignSystem.spacing.lg,
+    opacity: 0.9,
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
   },
   modalContent: {
-    borderRadius: DesignSystem.borders.radius.xlarge,
-    padding: DesignSystem.spacing.xl,
-    width: "100%",
-    maxWidth: 320,
-    alignItems: "center",
-    ...DesignSystem.shadows.large,
+    // iOS 26 sheets have generous internal safe padding so content never
+    // kisses the glass edge.
+    paddingTop: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.xl,
+  },
+  modalGrabber: {
+    alignSelf: "center",
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    opacity: 0.55,
+    marginBottom: DesignSystem.spacing.md,
   },
   modalHeader: {
+    flexDirection: "row",
     alignItems: "center",
     marginBottom: DesignSystem.spacing.lg,
   },
   modalIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.md,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: DesignSystem.borders.hairline,
+  },
+  modalHeaderText: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: DesignSystem.spacing.md,
   },
   modalTitle: {
-    ...DesignSystem.typography.h3,
-    textAlign: "center",
+    fontSize: 19,
     fontWeight: "700",
+    lineHeight: 23,
+    letterSpacing: -0.28,
+  },
+  modalSubtitle: {
+    marginTop: 2,
+    fontSize: 14,
+    fontWeight: "400",
+    lineHeight: 19,
+    letterSpacing: -0.12,
+    opacity: 0.85,
   },
   modalDescription: {
-    ...DesignSystem.typography.bodyMedium,
-    textAlign: "center",
-    lineHeight: 22,
+    fontSize: 16,
+    fontWeight: "400",
+    lineHeight: 23,
+    letterSpacing: -0.12,
+    textAlign: "left",
     marginBottom: DesignSystem.spacing.xl,
+  },
+  modalCloseIconHit: {
+    position: "absolute",
+    top: DesignSystem.spacing.md,
+    right: DesignSystem.spacing.md,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   closeButton: {
     width: "100%",
@@ -103,7 +143,8 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
   closeButtonText: {
-    ...DesignSystem.typography.button,
+    fontSize: 16,
     fontWeight: "600",
+    letterSpacing: -0.1,
   },
 });

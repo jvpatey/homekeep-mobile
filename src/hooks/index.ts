@@ -7,6 +7,9 @@ export {
   useButtonAnimation,
 } from "./useAnimations";
 
+export { useReducedMotion } from "./useReducedMotion";
+export { useScalePress } from "./useScalePress";
+
 // Gradient hooks
 export { useGradients } from "./useGradients";
 
