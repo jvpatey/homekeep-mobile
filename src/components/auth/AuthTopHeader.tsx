@@ -47,6 +47,7 @@ export function AuthTopHeader({
     DesignSystem.spacing.sm,
   );
   const backChipMinWidth = getResponsiveValue(44, 48, 52);
+  const brandLogoSize = getResponsiveValue(30, 36, 40);
 
   return (
     <Animated.View style={animatedStyle}>
@@ -116,18 +117,19 @@ export function AuthTopHeader({
               <Image
                 source={require("../../../assets/images/homekeep-logo.png")}
                 style={{
-                  width: getResponsiveValue(34, 40, 44),
-                  height: getResponsiveValue(34, 40, 44),
+                  width: brandLogoSize,
+                  height: brandLogoSize,
                 }}
                 resizeMode="contain"
               />
               <Text
                 style={{
-                  color: colors.text,
-                  fontWeight: "800",
+                  color: colors.textSecondary,
+                  fontWeight: "700",
                   letterSpacing: -0.6,
-                  fontSize: (isTablet ? 20 : 18) * fontMultiplier,
-                  lineHeight: (isTablet ? 22 : 20) * fontMultiplier,
+                  fontSize: (isTablet ? 18 : 16) * fontMultiplier,
+                  lineHeight: (isTablet ? 20 : 18) * fontMultiplier,
+                  opacity: 0.9,
                 }}
               >
                 Home

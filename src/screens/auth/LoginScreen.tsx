@@ -237,7 +237,7 @@ export function LoginScreen() {
               </HelperText>
             )}
 
-            <TouchableOpacity
+            <Pressable
               onPress={handleEmailVerification}
               style={[
                 authStyles.verificationContainer,
@@ -266,7 +266,7 @@ export function LoginScreen() {
               >
                 Forgot your password?
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </GlassCard>
         </Animated.View>
 
