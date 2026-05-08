@@ -15,6 +15,8 @@ interface FormFieldProps {
   multiline?: boolean;
   numberOfLines?: number;
   keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
+  /** iOS: shows accessory above keyboard (e.g. Done for number pads). */
+  inputAccessoryViewID?: string;
   required?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }
@@ -29,6 +31,7 @@ export function FormField({
   multiline = false,
   numberOfLines = 1,
   keyboardType = "default",
+  inputAccessoryViewID,
   required = false,
   autoCapitalize = "none",
 }: FormFieldProps) {
@@ -91,6 +94,7 @@ export function FormField({
           multiline={multiline}
           numberOfLines={numberOfLines}
           keyboardType={keyboardType}
+          inputAccessoryViewID={inputAccessoryViewID}
           autoCapitalize={autoCapitalize}
           theme={getInputTheme()}
           dense={false}
