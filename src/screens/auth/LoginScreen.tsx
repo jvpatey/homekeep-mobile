@@ -9,6 +9,7 @@ import {
   Keyboard,
   Platform,
   TouchableWithoutFeedback,
+  Pressable,
 } from "react-native";
 import { TextInput, HelperText } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,14 +18,14 @@ import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useGradients } from "../../hooks";
+import { useGradients, useScalePress } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
 import { OAuthButtons } from "../../components/auth";
+import { GlassCard } from "../../components/ui/glass-card";
 import {
   useAuthStaggeredAnimation,
   useAuthHaptics,
   useAuthForm,
-  useAuthGradient,
   useAuthInputTheme,
 } from "./hooks";
 import { useDynamicSpacing, useDevice } from "../../hooks";
@@ -39,21 +40,25 @@ export function LoginScreen() {
 
   // Shared hooks
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
-  const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
-  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
-  
+  const { haloGradient, ctaHighlight } = useGradients();
+  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
+    useDevice();
+
   const maxContentWidth = getMaxContentWidth();
-  const gradientFadeHeight = getGradientFadeHeight();
   const fontMultiplier = getFontMultiplier();
-  const fadeLocations = getGradientFadeLocations(isDark) as any;
-  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
-  const screenMax = Math.max(width, height);
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
   const { getInputTheme } = useAuthInputTheme();
   const { headerAnimatedStyle, formAnimatedStyle, buttonAnimatedStyle } =
     useAuthStaggeredAnimation();
+  const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
+    useScalePress();
+  const {
+    animatedStyle: backAnimatedStyle,
+    onPressIn: onBackPressIn,
+    onPressOut: onBackPressOut,
+  } = useScalePress(0.98);
 
   // Form management with validation
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
@@ -123,179 +128,124 @@ export function LoginScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <View
-      style={[authStyles.container, { backgroundColor: colors.background }]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
-      {/* Fixed Hero Section with Modern Glow Gradient */}
-      <View style={[
-        authStyles.heroSection,
-        { backgroundColor: colors.background }, // Set background to prevent dark bar
-        heroSectionHeight !== undefined && {
-          minHeight: heroSectionHeight,
-          justifyContent: "center",
-        },
-      ]}>
-        {/* Bottom fade mask */}
-        <LinearGradient
-          colors={fadeColors}
-          locations={fadeLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[
-            authStyles.bottomFade,
-            {
-              height: gradientFadeHeight,
-            },
-            isTablet && {
-              height: screenMax > 1300 
-                ? gradientFadeHeight * 1.6  // iPad Pro 13"
-                : gradientFadeHeight * 1.3, // Standard iPads
-            },
-          ]}
-          pointerEvents="none"
-        />
-        
-        {/* Layered gradient background */}
-        <LinearGradient
-          colors={heroGradient}
-          locations={heroGradientLocations}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={authStyles.gradientBase}
-        />
-        
-        {/* Glow effect */}
-        <LinearGradient
-          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
-          locations={[0, 0.3, 0.6, 1]}
-          start={{ x: 0.5, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={authStyles.gradientGlow}
-        />
-        
-        {/* Ambient light layer - fade to transparent to prevent dark bar */}
-        <LinearGradient
-          colors={
-            isTablet
-              ? isDark
-                ? [
-                    "rgba(46, 196, 182, 0.10)",
-                    "rgba(58, 134, 255, 0.06)",
-                    "rgba(46, 196, 182, 0.03)",
-                    "transparent",
-                  ]
-                : [
-                    "rgba(46, 196, 182, 0.12)",
-                    "rgba(58, 134, 255, 0.08)",
-                    "rgba(46, 196, 182, 0.025)",
-                    "transparent",
-                  ]
-              : isDark
-              ? ambientGradient
-              : [
-                  "transparent",
-                  "transparent",
-                  "transparent",
-                  "transparent",
-                ]
-          }
-          locations={[0, 0.4, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={authStyles.gradientAmbient}
-        />
-        <TouchableOpacity
-          onPress={handleBackPress}
-          style={[
-            {
-              position: "absolute",
-              top: dynamicTopSpacing,
-              left: DesignSystem.spacing.md,
-              zIndex: 20,
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: isDark
-                ? "rgba(35, 37, 38, 0.5)"
-                : "rgba(255, 255, 255, 0.5)",
-              borderRadius: 20,
-              paddingHorizontal: DesignSystem.spacing.lg,
-              paddingVertical: DesignSystem.spacing.sm,
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.15)"
-                : "rgba(255, 255, 255, 0.25)",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              elevation: 2,
-            },
-            isTablet && {
-              borderRadius: getResponsiveValue(20, 24, 28),
-              paddingHorizontal: getResponsiveValue(
-                DesignSystem.spacing.lg,
-                DesignSystem.spacing.xl,
-                DesignSystem.spacing.xl + DesignSystem.spacing.sm,
-              ),
-              paddingVertical: getResponsiveValue(
-                DesignSystem.spacing.sm,
-                DesignSystem.spacing.md,
-                DesignSystem.spacing.md + DesignSystem.spacing.xs,
-              ),
-            },
-          ]}
+        <View
+          style={[authStyles.container, { backgroundColor: colors.background }]}
         >
-          <Text
+          <StatusBar style={isDark ? "light" : "dark"} />
+
+          {/* Hero Section — match Welcome screen (single halo) */}
+          <View
             style={[
-              {
-                color: colors.textSecondary,
-                fontSize: 15,
-                fontWeight: "600",
-                opacity: 0.7,
-              },
-              isTablet && {
-                fontSize: 15 * fontMultiplier,
+              authStyles.heroSection,
+              { backgroundColor: colors.background, justifyContent: "center" },
+              heroSectionHeight !== undefined && {
+                minHeight: heroSectionHeight,
               },
             ]}
           >
-            ← Back
-          </Text>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={haloGradient}
+              start={{ x: 0.5, y: 0.15 }}
+              end={{ x: 0.5, y: 1 }}
+              style={authStyles.gradientBase}
+              pointerEvents="none"
+            />
 
-        <Animated.View
-          style={[
-            authStyles.headerContainer,
-            authStyles.heroContent,
-            headerAnimatedStyle,
-            maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
-            { zIndex: 15 }, // Ensure text is above fade gradient
-          ]}
-        >
-          <LogoSection showText={false} compact={false} />
+            <View
+              style={{
+                position: "absolute",
+                top: dynamicTopSpacing,
+                left: DesignSystem.spacing.md,
+                zIndex: 20,
+              }}
+            >
+              <Pressable
+                onPress={handleBackPress}
+                onPressIn={onBackPressIn}
+                onPressOut={onBackPressOut}
+                hitSlop={10}
+              >
+                <Animated.View style={backAnimatedStyle}>
+                  <GlassCard
+                    material="regular"
+                    radius={getResponsiveValue(20, 24, 28)}
+                    style={{
+                      paddingHorizontal: getResponsiveValue(
+                        DesignSystem.spacing.lg,
+                        DesignSystem.spacing.xl,
+                        DesignSystem.spacing.xl + DesignSystem.spacing.sm,
+                      ),
+                      paddingVertical: getResponsiveValue(
+                        DesignSystem.spacing.sm,
+                        DesignSystem.spacing.md,
+                        DesignSystem.spacing.md + DesignSystem.spacing.xs,
+                      ),
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={[
+                        {
+                          color: colors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: "600",
+                          opacity: 0.8,
+                        },
+                        isTablet && {
+                          fontSize: 15 * fontMultiplier,
+                        },
+                      ]}
+                    >
+                      ← Back
+                    </Text>
+                  </GlassCard>
+                </Animated.View>
+              </Pressable>
+            </View>
 
-          <Text style={[
-            authStyles.title,
-            { color: colors.text },
-            isTablet && {
-              fontSize: authStyles.title.fontSize * fontMultiplier,
-              lineHeight: authStyles.title.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Welcome Back
-          </Text>
-          <Text style={[
-            authStyles.subtitle,
-            { color: colors.textSecondary },
-            isTablet && {
-              fontSize: authStyles.subtitle.fontSize * fontMultiplier,
-              lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Sign in to continue managing your home
-          </Text>
-        </Animated.View>
-      </View>
+            <Animated.View
+              style={[
+                authStyles.headerContainer,
+                authStyles.heroContent,
+                headerAnimatedStyle,
+                maxContentWidth && {
+                  maxWidth: maxContentWidth,
+                  alignSelf: "center",
+                  width: "100%",
+                },
+                { zIndex: 1 },
+              ]}
+            >
+              <LogoSection showText={false} compact={false} />
+
+              <Text
+                style={[
+                  authStyles.title,
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize: authStyles.title.fontSize * fontMultiplier,
+                    lineHeight: authStyles.title.lineHeight * fontMultiplier,
+                  },
+                ]}
+              >
+                Welcome Back
+              </Text>
+              <Text
+                style={[
+                  authStyles.subtitle,
+                  { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize: authStyles.subtitle.fontSize * fontMultiplier,
+                    lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
+                  },
+                ]}
+              >
+                Sign in to continue managing your home
+              </Text>
+            </Animated.View>
+          </View>
 
       {/* Scrollable Content Section */}
       <ScrollView
@@ -311,15 +261,15 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
       >
         {/* Form Section */}
-        <Animated.View
-          style={[
-            authStyles.formCard,
-            { backgroundColor: colors.glass, shadowColor: colors.primary },
-            formAnimatedStyle,
-            isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
-          ]}
-        >
-          <View style={authStyles.formContent}>
+        <Animated.View style={[formAnimatedStyle]}>
+          <GlassCard
+            material="regular"
+            containerStyle={[
+              authStyles.formCard,
+              isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+            ]}
+            style={authStyles.formContent}
+          >
             <TextInput
               label="Email"
               value={email}
@@ -399,7 +349,7 @@ export function LoginScreen() {
                 Forgot your password?
               </Text>
             </TouchableOpacity>
-          </View>
+          </GlassCard>
         </Animated.View>
 
         {/* Sign In Button */}
@@ -417,53 +367,55 @@ export function LoginScreen() {
             },
           ]}
         >
-          <TouchableOpacity
+          <Pressable
             onPress={handleSignIn}
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
             disabled={loading}
-            activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={[
-                isDark
-                  ? "rgba(32, 180, 134, 0.70)"
-                  : "rgba(46, 196, 182, 0.75)",
-                isDark
-                  ? "rgba(58, 134, 255, 0.65)"
-                  : "rgba(58, 134, 255, 0.70)",
-                isDark
-                  ? "rgba(255, 159, 28, 0.60)"
-                  : "rgba(255, 159, 28, 0.65)",
-              ]}
-              locations={[0, 0.5, 1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <Animated.View
               style={[
                 authStyles.primaryButton,
                 {
-                  shadowColor: isDark
-                    ? "rgba(32, 180, 134, 0.25)"
-                    : "rgba(46, 196, 182, 0.30)",
+                  position: "relative",
+                  overflow: "hidden",
+                  backgroundColor: colors.primary,
+                  shadowColor: colors.primary,
                   shadowOffset: { width: 0, height: 8 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 16,
+                  shadowOpacity: 0.18,
+                  shadowRadius: 18,
                   elevation: 5,
                   borderWidth: 1,
                   borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.15)"
-                    : "rgba(255, 255, 255, 0.2)",
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(255, 255, 255, 0.22)",
                 },
+                ctaAnimatedStyle,
               ]}
             >
+              <LinearGradient
+                colors={ctaHighlight}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "45%",
+                }}
+                pointerEvents="none"
+              />
               <Text
                 style={[
                   authStyles.buttonLabel,
-                  { color: "white", fontWeight: "700", fontSize: 17 },
+                  { color: "white", fontWeight: "600", fontSize: 17 },
                 ]}
               >
                 {loading ? "Signing In..." : "Sign In"}
               </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </Animated.View>
+          </Pressable>
         </Animated.View>
 
         {/* OAuth Section */}
@@ -511,7 +463,7 @@ export function LoginScreen() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+        </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );

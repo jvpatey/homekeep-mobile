@@ -8,14 +8,17 @@ import {
   Keyboard,
   Platform,
   TouchableWithoutFeedback,
+  Pressable,
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
-import { useGradients } from "../../hooks";
+import Animated from "react-native-reanimated";
+import { useGradients, useScalePress } from "../../hooks";
 import { LogoSection } from "../../components/onboarding";
+import { GlassCard } from "../../components/ui/glass-card";
 import {
   useAuthAnimation,
   useAuthHaptics,
@@ -29,37 +32,30 @@ import { DesignSystem } from "../../theme/designSystem";
 // EmailEntryScreen for the EmailEntryScreen on the home screen
 export function EmailEntryScreen() {
   const { colors, isDark } = useTheme();
-  const {
-    heroGradient,
-    heroGradientLocations,
-    radialGlow,
-    primaryGradient,
-    ambientGradient,
-  } = useGradients();
+  const { haloGradient, ctaHighlight } = useGradients();
   const navigation = useNavigation();
   const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
   const {
     isTablet,
     getMaxContentWidth,
-    getGradientFadeHeight,
     getFontMultiplier,
     getResponsiveValue,
-    getGradientFadeLocations,
-    getGradientFadeColors,
     getHeroSectionHeight,
-    width,
-    height,
   } = useDevice();
 
   const maxContentWidth = getMaxContentWidth();
-  const gradientFadeHeight = getGradientFadeHeight();
   const fontMultiplier = getFontMultiplier();
-  const fadeLocations = getGradientFadeLocations(isDark) as any;
-  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
-  const screenMax = Math.max(width, height);
   const { getInputTheme } = useAuthInputTheme();
+  const formAnimatedStyle = useAuthAnimation();
+  const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
+    useScalePress();
+  const {
+    animatedStyle: backAnimatedStyle,
+    onPressIn: onBackPressIn,
+    onPressOut: onBackPressOut,
+  } = useScalePress(0.98);
 
   // Form management
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
@@ -97,149 +93,77 @@ export function EmailEntryScreen() {
         >
           <StatusBar style={isDark ? "light" : "dark"} />
 
-          {/* Hero Section with Gradient */}
+          {/* Hero Section — match Welcome screen (single halo) */}
           <View
             style={[
               authStyles.heroSection,
-              { backgroundColor: colors.background },
+              { backgroundColor: colors.background, justifyContent: "center" },
               heroSectionHeight !== undefined && {
                 minHeight: heroSectionHeight,
-                justifyContent: "center",
               },
             ]}
           >
-            {/* Bottom fade mask */}
             <LinearGradient
-              colors={fadeColors}
-              locations={fadeLocations}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={[
-                authStyles.bottomFade,
-                {
-                  height: gradientFadeHeight,
-                },
-                isTablet && {
-                  height:
-                    screenMax > 1300
-                      ? gradientFadeHeight * 1.6 // iPad Pro 13"
-                      : gradientFadeHeight * 1.3, // Standard iPads
-                },
-              ]}
+              colors={haloGradient}
+              start={{ x: 0.5, y: 0.15 }}
+              end={{ x: 0.5, y: 1 }}
+              style={authStyles.gradientBase}
               pointerEvents="none"
             />
 
-            {/* Layered gradient background */}
-            <LinearGradient
-              colors={heroGradient}
-              locations={heroGradientLocations}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={authStyles.gradientBase}
-            />
-
-            {/* Glow effect */}
-            <LinearGradient
-              colors={[
-                radialGlow.innerColor,
-                radialGlow.midColor,
-                radialGlow.outerColor,
-                radialGlow.fadeColor,
-              ]}
-              locations={[0, 0.3, 0.6, 1]}
-              start={{ x: 0.5, y: 0.3 }}
-              end={{ x: 1, y: 1 }}
-              style={authStyles.gradientGlow}
-            />
-
-            {/* Ambient light layer - fade to transparent to prevent dark bar */}
-            <LinearGradient
-              colors={
-                isTablet
-                  ? isDark
-                    ? [
-                        "rgba(46, 196, 182, 0.10)",
-                        "rgba(58, 134, 255, 0.06)",
-                        "rgba(46, 196, 182, 0.03)",
-                        "transparent",
-                      ]
-                    : [
-                        "rgba(46, 196, 182, 0.12)",
-                        "rgba(58, 134, 255, 0.08)",
-                        "rgba(46, 196, 182, 0.025)",
-                        "transparent",
-                      ]
-                  : isDark
-                  ? ambientGradient
-                  : [
-                      "transparent",
-                      "transparent",
-                      "transparent",
-                      "transparent",
-                    ]
-              }
-              locations={[0, 0.4, 1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={authStyles.gradientAmbient}
-            />
-
-            <TouchableOpacity
-              onPress={handleBackPress}
-              style={[
-                {
-                  position: "absolute",
-                  top: dynamicTopSpacing,
-                  left: DesignSystem.spacing.md,
-                  zIndex: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: isDark
-                    ? "rgba(35, 37, 38, 0.5)"
-                    : "rgba(255, 255, 255, 0.5)",
-                  borderRadius: 20,
-                  paddingHorizontal: DesignSystem.spacing.lg,
-                  paddingVertical: DesignSystem.spacing.sm,
-                  borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.15)"
-                    : "rgba(255, 255, 255, 0.25)",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  elevation: 2,
-                },
-                isTablet && {
-                  borderRadius: getResponsiveValue(20, 24, 28),
-                  paddingHorizontal: getResponsiveValue(
-                    DesignSystem.spacing.lg,
-                    DesignSystem.spacing.xl,
-                    DesignSystem.spacing.xl + DesignSystem.spacing.sm
-                  ),
-                  paddingVertical: getResponsiveValue(
-                    DesignSystem.spacing.sm,
-                    DesignSystem.spacing.md,
-                    DesignSystem.spacing.md + DesignSystem.spacing.xs
-                  ),
-                },
-              ]}
+            <View
+              style={{
+                position: "absolute",
+                top: dynamicTopSpacing,
+                left: DesignSystem.spacing.md,
+                zIndex: 20,
+              }}
             >
-              <Text
-                style={[
-                  {
-                    color: colors.textSecondary,
-                    fontSize: 15,
-                    fontWeight: "600",
-                    opacity: 0.7,
-                  },
-                  isTablet && {
-                    fontSize: 15 * fontMultiplier,
-                  },
-                ]}
+              <Pressable
+                onPress={handleBackPress}
+                onPressIn={onBackPressIn}
+                onPressOut={onBackPressOut}
+                hitSlop={10}
               >
-                ← Back
-              </Text>
-            </TouchableOpacity>
+                <Animated.View style={backAnimatedStyle}>
+                  <GlassCard
+                    material="regular"
+                    radius={getResponsiveValue(20, 24, 28)}
+                    style={{
+                      paddingHorizontal: getResponsiveValue(
+                        DesignSystem.spacing.lg,
+                        DesignSystem.spacing.xl,
+                        DesignSystem.spacing.xl + DesignSystem.spacing.sm,
+                      ),
+                      paddingVertical: getResponsiveValue(
+                        DesignSystem.spacing.sm,
+                        DesignSystem.spacing.md,
+                        DesignSystem.spacing.md + DesignSystem.spacing.xs,
+                      ),
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={[
+                        {
+                          color: colors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: "600",
+                          opacity: 0.8,
+                        },
+                        isTablet && {
+                          fontSize: 15 * fontMultiplier,
+                        },
+                      ]}
+                    >
+                      ← Back
+                    </Text>
+                  </GlassCard>
+                </Animated.View>
+              </Pressable>
+            </View>
 
             {/* Header */}
             <View
@@ -251,7 +175,7 @@ export function EmailEntryScreen() {
                   alignSelf: "center",
                   width: "100%",
                 },
-                { zIndex: 15 }, // Ensure text is above fade gradient
+                { zIndex: 1 },
               ]}
             >
               <LogoSection showText={false} compact={false} />
@@ -300,75 +224,46 @@ export function EmailEntryScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Form Section with Liquid Glass */}
-            <View
-              style={[
-                authStyles.formCard,
-                { marginBottom: DesignSystem.spacing.lg },
-                isTablet && {
-                  marginHorizontal: getResponsiveValue(16, 32, 40),
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={
-                  isDark
-                    ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"]
-                    : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  borderRadius: DesignSystem.borders.radius.large,
-                  padding: 1,
-                }}
+            <Animated.View style={[formAnimatedStyle]}>
+              <GlassCard
+                material="regular"
+                containerStyle={[
+                  authStyles.formCard,
+                  { marginBottom: DesignSystem.spacing.lg },
+                  isTablet && {
+                    marginHorizontal: getResponsiveValue(16, 32, 40),
+                  },
+                ]}
+                style={authStyles.formContent}
               >
-                <View
+                <TextInput
+                  label="Email Address"
+                  value={email}
+                  onChangeText={(text) => setFieldValue("email", text)}
                   style={[
-                    authStyles.formContent,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(35, 37, 38, 0.9)"
-                        : "rgba(255, 255, 255, 0.9)",
-                      borderRadius: DesignSystem.borders.radius.large - 1,
-                      borderWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.6)",
+                    authStyles.input,
+                    isTablet && {
+                      fontSize:
+                        (authStyles.input.fontSize ||
+                          DesignSystem.typography.body.fontSize) *
+                        fontMultiplier,
                     },
                   ]}
-                >
-                  <TextInput
-                    label="Email Address"
-                    value={email}
-                    onChangeText={(text) => setFieldValue("email", text)}
-                    style={[
-                      authStyles.input,
-                      isTablet && {
-                        fontSize:
-                          (authStyles.input.fontSize ||
-                            DesignSystem.typography.body.fontSize) *
-                          fontMultiplier,
-                      },
-                    ]}
-                    theme={getInputTheme()}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardAppearance={isDark ? "dark" : "light"}
-                  />
-                  {errors.email && (
-                    <Text
-                      style={[authStyles.errorText, { color: colors.error }]}
-                    >
-                      {errors.email}
-                    </Text>
-                  )}
-                </View>
-              </LinearGradient>
-            </View>
+                  theme={getInputTheme(!!errors.email)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardAppearance={isDark ? "dark" : "light"}
+                />
+                {errors.email && (
+                  <Text style={[authStyles.errorText, { color: colors.error }]}>
+                    {errors.email}
+                  </Text>
+                )}
+              </GlassCard>
+            </Animated.View>
 
-            {/* Continue Button with Gradient */}
+            {/* Continue Button */}
             <View
               style={[
                 authStyles.buttonContainer,
@@ -377,33 +272,51 @@ export function EmailEntryScreen() {
                 },
               ]}
             >
-              <TouchableOpacity
+              <Pressable
                 onPress={handleContinue}
                 disabled={!email || !!errors.email}
-                activeOpacity={0.8}
+                onPressIn={onPressIn}
+                onPressOut={onPressOut}
               >
-                <LinearGradient
-                  colors={primaryGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    paddingVertical: DesignSystem.spacing.md,
-                    paddingHorizontal: DesignSystem.spacing.lg,
-                    borderRadius: DesignSystem.borders.radius.large,
-                    alignItems: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 6,
-                    opacity: !email || !!errors.email ? 0.6 : 1,
-                  }}
+                <Animated.View
+                  style={[
+                    authStyles.primaryButton,
+                    {
+                      position: "relative",
+                      overflow: "hidden",
+                      backgroundColor: colors.primary,
+                      shadowColor: colors.primary,
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowOpacity: 0.18,
+                      shadowRadius: 18,
+                      elevation: 5,
+                      borderWidth: 1,
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(255, 255, 255, 0.22)",
+                      opacity: !email || !!errors.email ? 0.6 : 1,
+                    },
+                    ctaAnimatedStyle,
+                  ]}
                 >
+                  <LinearGradient
+                    colors={ctaHighlight}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "45%",
+                    }}
+                    pointerEvents="none"
+                  />
                   <Text style={[authStyles.buttonLabel, { color: "white" }]}>
                     Continue
                   </Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                </Animated.View>
+              </Pressable>
             </View>
           </ScrollView>
         </View>
