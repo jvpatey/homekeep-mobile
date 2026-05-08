@@ -9,6 +9,8 @@ import { styles } from "./styles";
 interface LogoSectionProps {
   showText?: boolean;
   compact?: boolean;
+  /** Optional brand accent: render "Keep" in `colors.accent`. */
+  accentKeep?: boolean;
 }
 
 /**
@@ -22,6 +24,7 @@ interface LogoSectionProps {
 export function LogoSection({
   showText = true,
   compact = false,
+  accentKeep = false,
 }: LogoSectionProps) {
   const { colors } = useTheme();
   const { entering } = useLogoAnimation(0);
@@ -68,7 +71,12 @@ export function LogoSection({
             },
           ]}
         >
-          HomeKeep
+          Home
+          {accentKeep ? (
+            <Text style={{ color: colors.accent }}>Keep</Text>
+          ) : (
+            "Keep"
+          )}
         </Text>
       )}
     </Animated.View>
