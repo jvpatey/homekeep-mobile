@@ -11,6 +11,8 @@ interface LogoSectionProps {
   compact?: boolean;
   /** Optional brand accent: render "Keep" in `colors.accent`. */
   accentKeep?: boolean;
+  /** Slightly larger/tighter wordmark for hero contexts (e.g. Welcome). */
+  variant?: "default" | "hero";
 }
 
 /**
@@ -25,6 +27,7 @@ export function LogoSection({
   showText = true,
   compact = false,
   accentKeep = false,
+  variant = "default",
 }: LogoSectionProps) {
   const { colors } = useTheme();
   const { entering } = useLogoAnimation(0);
@@ -47,10 +50,12 @@ export function LogoSection({
         source={require("../../../../assets/images/homekeep-logo.png")}
         style={[
           compact ? styles.logoCompact : styles.logo,
+          variant === "hero" && !compact && { marginBottom: -10 },
           isTablet && !compact && {
             width: getResponsiveValue(380, 520, 620),
             height: getResponsiveValue(190, 260, 310),
           },
+          variant === "hero" && isTablet && !compact && { marginBottom: -14 },
         ]}
         resizeMode="contain"
       />
@@ -59,10 +64,21 @@ export function LogoSection({
           style={[
             styles.logoText,
             { color: colors.text },
+            variant === "hero" && !compact && {
+              fontSize: styles.logoText.fontSize * 1.1,
+              lineHeight: styles.logoText.lineHeight * 1.1,
+              marginTop: -16,
+            },
             isTablet && {
-              fontSize: styles.logoText.fontSize * logoTextMultiplier,
-              lineHeight: styles.logoText.lineHeight * logoTextMultiplier,
-              marginTop: 0,
+              fontSize:
+                styles.logoText.fontSize *
+                logoTextMultiplier *
+                (variant === "hero" && !compact ? 1.06 : 1),
+              lineHeight:
+                styles.logoText.lineHeight *
+                logoTextMultiplier *
+                (variant === "hero" && !compact ? 1.06 : 1),
+              marginTop: variant === "hero" && !compact ? -22 : 0,
               marginBottom: getResponsiveValue(
                 0,
                 DesignSystem.spacing.sm,

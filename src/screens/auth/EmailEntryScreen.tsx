@@ -2,7 +2,6 @@ import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Keyboard,
@@ -17,7 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import Animated from "react-native-reanimated";
 import { useGradients, useScalePress } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
+import { AuthTopHeader } from "../../components/auth";
 import { GlassCard } from "../../components/ui/glass-card";
 import {
   useAuthAnimation,
@@ -34,7 +33,7 @@ export function EmailEntryScreen() {
   const { colors, isDark } = useTheme();
   const { haloGradient, ctaHighlight } = useGradients();
   const navigation = useNavigation();
-  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
   const {
     isTablet,
@@ -51,11 +50,6 @@ export function EmailEntryScreen() {
   const formAnimatedStyle = useAuthAnimation();
   const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
     useScalePress();
-  const {
-    animatedStyle: backAnimatedStyle,
-    onPressIn: onBackPressIn,
-    onPressOut: onBackPressOut,
-  } = useScalePress(0.98);
 
   // Form management
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
@@ -111,60 +105,6 @@ export function EmailEntryScreen() {
               pointerEvents="none"
             />
 
-            <View
-              style={{
-                position: "absolute",
-                top: dynamicTopSpacing,
-                left: DesignSystem.spacing.md,
-                zIndex: 20,
-              }}
-            >
-              <Pressable
-                onPress={handleBackPress}
-                onPressIn={onBackPressIn}
-                onPressOut={onBackPressOut}
-                hitSlop={10}
-              >
-                <Animated.View style={backAnimatedStyle}>
-                  <GlassCard
-                    material="regular"
-                    radius={getResponsiveValue(20, 24, 28)}
-                    style={{
-                      paddingHorizontal: getResponsiveValue(
-                        DesignSystem.spacing.lg,
-                        DesignSystem.spacing.xl,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.sm,
-                      ),
-                      paddingVertical: getResponsiveValue(
-                        DesignSystem.spacing.sm,
-                        DesignSystem.spacing.md,
-                        DesignSystem.spacing.md + DesignSystem.spacing.xs,
-                      ),
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text
-                      style={[
-                        {
-                          color: colors.textSecondary,
-                          fontSize: 15,
-                          fontWeight: "600",
-                          opacity: 0.8,
-                        },
-                        isTablet && {
-                          fontSize: 15 * fontMultiplier,
-                        },
-                      ]}
-                    >
-                      ← Back
-                    </Text>
-                  </GlassCard>
-                </Animated.View>
-              </Pressable>
-            </View>
-
             {/* Header */}
             <View
               style={[
@@ -178,32 +118,11 @@ export function EmailEntryScreen() {
                 { zIndex: 1 },
               ]}
             >
-              <LogoSection showText={false} compact={false} />
-
-              <Text
-                style={[
-                  authStyles.title,
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize: authStyles.title.fontSize * fontMultiplier,
-                    lineHeight: authStyles.title.lineHeight * fontMultiplier,
-                  },
-                ]}
-              >
-                Email Verification
-              </Text>
-              <Text
-                style={[
-                  authStyles.subtitle,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize: authStyles.subtitle.fontSize * fontMultiplier,
-                    lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
-                  },
-                ]}
-              >
-                Enter your email address to verify your account
-              </Text>
+              <AuthTopHeader
+                title="Email Verification"
+                subtitle="Enter your email address to verify your account"
+                onBack={handleBackPress}
+              />
             </View>
           </View>
 

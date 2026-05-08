@@ -61,7 +61,12 @@ export function HomeScreen() {
             },
           ]}
         >
-          <LogoSection showText={true} compact={false} accentKeep />
+          <LogoSection
+            showText={true}
+            compact={false}
+            accentKeep
+            variant="hero"
+          />
           <WelcomeText />
         </View>
       </View>

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Alert,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Keyboard,
@@ -19,8 +18,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useScalePress } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
 import { GlassCard } from "../../components/ui/glass-card";
+import { AuthTopHeader } from "../../components/auth";
 import { useAuthAnimation, useAuthHaptics } from "./hooks";
 import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
@@ -34,7 +33,7 @@ export function CodeVerificationScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const formAnimatedStyle = useAuthAnimation();
-  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
   const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
     useDevice();
@@ -44,11 +43,6 @@ export function CodeVerificationScreen() {
   const heroSectionHeight = getHeroSectionHeight();
   const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
     useScalePress();
-  const {
-    animatedStyle: backAnimatedStyle,
-    onPressIn: onBackPressIn,
-    onPressOut: onBackPressOut,
-  } = useScalePress(0.98);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -193,88 +187,17 @@ export function CodeVerificationScreen() {
           pointerEvents="none"
         />
 
-        <View
-          style={{
-            position: "absolute",
-            top: dynamicTopSpacing,
-            left: DesignSystem.spacing.md,
-            zIndex: 20,
-          }}
-        >
-          <Pressable
-            onPress={handleBackPress}
-            onPressIn={onBackPressIn}
-            onPressOut={onBackPressOut}
-            hitSlop={10}
-          >
-            <Animated.View style={backAnimatedStyle}>
-              <GlassCard
-                material="regular"
-                radius={getResponsiveValue(20, 24, 28)}
-                style={{
-                  paddingHorizontal: getResponsiveValue(
-                    DesignSystem.spacing.lg,
-                    DesignSystem.spacing.xl,
-                    DesignSystem.spacing.xl + DesignSystem.spacing.sm,
-                  ),
-                  paddingVertical: getResponsiveValue(
-                    DesignSystem.spacing.sm,
-                    DesignSystem.spacing.md,
-                    DesignSystem.spacing.md + DesignSystem.spacing.xs,
-                  ),
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={[
-                    {
-                      color: colors.textSecondary,
-                      fontSize: 15,
-                      fontWeight: "600",
-                      opacity: 0.8,
-                    },
-                    isTablet && {
-                      fontSize: 15 * fontMultiplier,
-                    },
-                  ]}
-                >
-                  ← Back
-                </Text>
-              </GlassCard>
-            </Animated.View>
-          </Pressable>
-        </View>
-
         <View style={[
           authStyles.headerContainer,
           authStyles.heroContent,
           maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
           { zIndex: 1 },
         ]}>
-          <LogoSection showText={false} compact={false} />
-
-          <Text style={[
-            authStyles.largeTitle,
-            { color: colors.text },
-            isTablet && {
-              fontSize: authStyles.largeTitle.fontSize * fontMultiplier,
-              lineHeight: authStyles.largeTitle.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Verify Your Email
-          </Text>
-          <Text style={[
-            authStyles.subtitle,
-            { color: colors.textSecondary },
-            isTablet && {
-              fontSize: authStyles.subtitle.fontSize * fontMultiplier,
-              lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Enter the 6-digit code sent to {email}
-          </Text>
+          <AuthTopHeader
+            title="Verify Your Email"
+            subtitle={`Enter the 6-digit code sent to ${email}`}
+            onBack={handleBackPress}
+          />
         </View>
       </View>
 

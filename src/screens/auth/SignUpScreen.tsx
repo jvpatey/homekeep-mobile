@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   Alert,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
@@ -19,8 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useScalePress } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
-import { OAuthButtons } from "../../components/auth";
+import { AuthTopHeader, OAuthButtons } from "../../components/auth";
 import { GlassCard } from "../../components/ui/glass-card";
 import {
   useAuthStaggeredAnimation,
@@ -39,7 +37,7 @@ export function SignUpScreen() {
   const navigation = useNavigation();
 
   // Shared hooks
-  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { haloGradient, ctaHighlight } = useGradients();
   const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
     useDevice();
@@ -57,11 +55,6 @@ export function SignUpScreen() {
     onPressIn,
     onPressOut,
   } = useScalePress();
-  const {
-    animatedStyle: backAnimatedStyle,
-    onPressIn: onBackPressIn,
-    onPressOut: onBackPressOut,
-  } = useScalePress(0.98);
     useScalePress();
 
   // Form management with validation
@@ -182,65 +175,10 @@ export function SignUpScreen() {
               pointerEvents="none"
             />
 
-            <View
-              style={{
-                position: "absolute",
-                top: dynamicTopSpacing,
-                left: DesignSystem.spacing.md,
-                zIndex: 20,
-              }}
-            >
-              <Pressable
-                onPress={handleBackPress}
-                onPressIn={onBackPressIn}
-                onPressOut={onBackPressOut}
-                hitSlop={10}
-              >
-                <Animated.View style={backAnimatedStyle}>
-                  <GlassCard
-                    material="regular"
-                    radius={getResponsiveValue(20, 24, 28)}
-                    style={{
-                      paddingHorizontal: getResponsiveValue(
-                        DesignSystem.spacing.lg,
-                        DesignSystem.spacing.xl,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.sm,
-                      ),
-                      paddingVertical: getResponsiveValue(
-                        DesignSystem.spacing.sm,
-                        DesignSystem.spacing.md,
-                        DesignSystem.spacing.md + DesignSystem.spacing.xs,
-                      ),
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text
-                      style={[
-                        {
-                          color: colors.textSecondary,
-                          fontSize: 15,
-                          fontWeight: "600",
-                          opacity: 0.8,
-                        },
-                        isTablet && {
-                          fontSize: 15 * fontMultiplier,
-                        },
-                      ]}
-                    >
-                      ← Back
-                    </Text>
-                  </GlassCard>
-                </Animated.View>
-              </Pressable>
-            </View>
-
             <Animated.View
               style={[
                 authStyles.headerContainer,
                 authStyles.heroContent,
-                headerAnimatedStyle,
                 maxContentWidth && {
                   maxWidth: maxContentWidth,
                   alignSelf: "center",
@@ -249,34 +187,12 @@ export function SignUpScreen() {
                 { zIndex: 1 },
               ]}
             >
-              <LogoSection showText={false} compact={false} />
-
-              <Text
-                style={[
-                  authStyles.largeTitle,
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize: authStyles.largeTitle.fontSize * fontMultiplier,
-                    lineHeight:
-                      authStyles.largeTitle.lineHeight * fontMultiplier,
-                  },
-                ]}
-              >
-                Create Account
-              </Text>
-              <Text
-                style={[
-                  authStyles.subtitle,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize: authStyles.subtitle.fontSize * fontMultiplier,
-                    lineHeight:
-                      authStyles.subtitle.lineHeight * fontMultiplier,
-                  },
-                ]}
-              >
-                Join HomeKeep to start managing your home maintenance
-              </Text>
+              <AuthTopHeader
+                title="Create Account"
+                subtitle="Join HomeKeep to start managing your home maintenance"
+                onBack={handleBackPress}
+                animatedStyle={headerAnimatedStyle}
+              />
 
               {/* Progress Bar */}
               <View style={authStyles.progressContainer}>

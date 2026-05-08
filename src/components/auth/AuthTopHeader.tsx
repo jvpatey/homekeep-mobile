@@ -1,0 +1,174 @@
+import React from "react";
+import { View, Text, Image, Pressable } from "react-native";
+import Animated from "react-native-reanimated";
+import { useTheme } from "../../context/ThemeContext";
+import { useDevice, useDynamicSpacing, useScalePress } from "../../hooks";
+import { GlassCard } from "../ui/glass-card";
+import { DesignSystem } from "../../theme/designSystem";
+
+interface AuthTopHeaderProps {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  animatedStyle?: any;
+}
+
+export function AuthTopHeader({
+  title,
+  subtitle,
+  onBack,
+  animatedStyle,
+}: AuthTopHeaderProps) {
+  const { colors } = useTheme();
+  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const fontMultiplier = getFontMultiplier();
+
+  // Parent hero containers already include their own top padding (e.g. `authStyles.heroSection`).
+  // Only add the *extra* inset beyond that baseline to avoid a large gap on notched iPhones.
+  const heroBaselineTopPadding = DesignSystem.spacing.md;
+  const safeTopPadding = Math.max(0, dynamicTopSpacing - heroBaselineTopPadding);
+
+  const {
+    animatedStyle: backAnimatedStyle,
+    onPressIn: onBackPressIn,
+    onPressOut: onBackPressOut,
+  } = useScalePress(0.98);
+
+  const backChipRadius = getResponsiveValue(18, 20, 22);
+  const backChipPaddingH = getResponsiveValue(
+    DesignSystem.spacing.md,
+    DesignSystem.spacing.lg,
+    DesignSystem.spacing.lg,
+  );
+  const backChipPaddingV = getResponsiveValue(
+    DesignSystem.spacing.xs,
+    DesignSystem.spacing.sm,
+    DesignSystem.spacing.sm,
+  );
+  const backChipMinWidth = getResponsiveValue(44, 48, 52);
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <View
+        style={{
+          width: "100%",
+          paddingTop: safeTopPadding,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <View style={{ minWidth: backChipMinWidth, alignItems: "flex-start" }}>
+            {onBack ? (
+              <Pressable
+                onPress={onBack}
+                onPressIn={onBackPressIn}
+                onPressOut={onBackPressOut}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+              >
+                <Animated.View style={backAnimatedStyle}>
+                  <GlassCard
+                    material="regular"
+                    radius={backChipRadius}
+                    style={{
+                      paddingHorizontal: backChipPaddingH,
+                      paddingVertical: backChipPaddingV,
+                      minWidth: backChipMinWidth,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.textSecondary,
+                        fontSize: 18 * fontMultiplier,
+                        fontWeight: "700",
+                        opacity: 0.85,
+                      }}
+                    >
+                      ‹
+                    </Text>
+                  </GlassCard>
+                </Animated.View>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              pointerEvents: "none",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Image
+                source={require("../../../assets/images/homekeep-logo.png")}
+                style={{
+                  width: getResponsiveValue(34, 40, 44),
+                  height: getResponsiveValue(34, 40, 44),
+                }}
+                resizeMode="contain"
+              />
+              <Text
+                style={{
+                  color: colors.text,
+                  fontWeight: "800",
+                  letterSpacing: -0.6,
+                  fontSize: (isTablet ? 20 : 18) * fontMultiplier,
+                  lineHeight: (isTablet ? 22 : 20) * fontMultiplier,
+                }}
+              >
+                Home
+                <Text style={{ color: colors.accent }}>Keep</Text>
+              </Text>
+            </View>
+          </View>
+
+          {/* Spacer to keep brand perfectly centered */}
+          <View style={{ minWidth: backChipMinWidth }} />
+        </View>
+      </View>
+
+      <View style={{ marginTop: DesignSystem.spacing.lg, alignItems: "center" }}>
+        <Text
+          style={{
+            ...DesignSystem.typography.h1,
+            color: colors.text,
+            textAlign: "center",
+            marginBottom: DesignSystem.spacing.md,
+            fontSize: DesignSystem.typography.h1.fontSize * fontMultiplier,
+            lineHeight: DesignSystem.typography.h1.lineHeight * fontMultiplier,
+          }}
+        >
+          {title}
+        </Text>
+        {!!subtitle && (
+          <Text
+            style={{
+              ...DesignSystem.typography.body,
+              color: colors.textSecondary,
+              textAlign: "center",
+              fontSize: DesignSystem.typography.body.fontSize * fontMultiplier,
+              lineHeight: DesignSystem.typography.body.lineHeight * fontMultiplier,
+            }}
+          >
+            {subtitle}
+          </Text>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+

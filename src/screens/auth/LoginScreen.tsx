@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   Alert,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
@@ -19,8 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useScalePress } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
-import { OAuthButtons } from "../../components/auth";
+import { AuthTopHeader, OAuthButtons } from "../../components/auth";
 import { GlassCard } from "../../components/ui/glass-card";
 import {
   useAuthStaggeredAnimation,
@@ -39,7 +37,7 @@ export function LoginScreen() {
   const navigation = useNavigation();
 
   // Shared hooks
-  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { haloGradient, ctaHighlight } = useGradients();
   const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
     useDevice();
@@ -54,11 +52,6 @@ export function LoginScreen() {
     useAuthStaggeredAnimation();
   const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
     useScalePress();
-  const {
-    animatedStyle: backAnimatedStyle,
-    onPressIn: onBackPressIn,
-    onPressOut: onBackPressOut,
-  } = useScalePress(0.98);
 
   // Form management with validation
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
@@ -151,65 +144,10 @@ export function LoginScreen() {
               pointerEvents="none"
             />
 
-            <View
-              style={{
-                position: "absolute",
-                top: dynamicTopSpacing,
-                left: DesignSystem.spacing.md,
-                zIndex: 20,
-              }}
-            >
-              <Pressable
-                onPress={handleBackPress}
-                onPressIn={onBackPressIn}
-                onPressOut={onBackPressOut}
-                hitSlop={10}
-              >
-                <Animated.View style={backAnimatedStyle}>
-                  <GlassCard
-                    material="regular"
-                    radius={getResponsiveValue(20, 24, 28)}
-                    style={{
-                      paddingHorizontal: getResponsiveValue(
-                        DesignSystem.spacing.lg,
-                        DesignSystem.spacing.xl,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.sm,
-                      ),
-                      paddingVertical: getResponsiveValue(
-                        DesignSystem.spacing.sm,
-                        DesignSystem.spacing.md,
-                        DesignSystem.spacing.md + DesignSystem.spacing.xs,
-                      ),
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text
-                      style={[
-                        {
-                          color: colors.textSecondary,
-                          fontSize: 15,
-                          fontWeight: "600",
-                          opacity: 0.8,
-                        },
-                        isTablet && {
-                          fontSize: 15 * fontMultiplier,
-                        },
-                      ]}
-                    >
-                      ← Back
-                    </Text>
-                  </GlassCard>
-                </Animated.View>
-              </Pressable>
-            </View>
-
             <Animated.View
               style={[
                 authStyles.headerContainer,
                 authStyles.heroContent,
-                headerAnimatedStyle,
                 maxContentWidth && {
                   maxWidth: maxContentWidth,
                   alignSelf: "center",
@@ -218,32 +156,12 @@ export function LoginScreen() {
                 { zIndex: 1 },
               ]}
             >
-              <LogoSection showText={false} compact={false} />
-
-              <Text
-                style={[
-                  authStyles.title,
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize: authStyles.title.fontSize * fontMultiplier,
-                    lineHeight: authStyles.title.lineHeight * fontMultiplier,
-                  },
-                ]}
-              >
-                Welcome Back
-              </Text>
-              <Text
-                style={[
-                  authStyles.subtitle,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize: authStyles.subtitle.fontSize * fontMultiplier,
-                    lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
-                  },
-                ]}
-              >
-                Sign in to continue managing your home
-              </Text>
+              <AuthTopHeader
+                title="Welcome Back"
+                subtitle="Sign in to continue managing your home"
+                onBack={handleBackPress}
+                animatedStyle={headerAnimatedStyle}
+              />
             </Animated.View>
           </View>
 

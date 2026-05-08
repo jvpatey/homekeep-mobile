@@ -13,7 +13,7 @@ import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useGradients, useScalePress } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
+import { AuthTopHeader } from "../../components/auth";
 import { GlassCard } from "../../components/ui/glass-card";
 import { useAuthHaptics } from "./hooks";
 import { useDynamicSpacing, useDevice } from "../../hooks";
@@ -365,18 +365,10 @@ export function EmailVerificationScreen() {
           maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
           { zIndex: 1 },
         ]}>
-          <LogoSection showText={false} compact={false} />
-          <Text style={[
-            authStyles.title,
-            { color: colors.text },
-            isTablet && {
-              fontSize: authStyles.title.fontSize * fontMultiplier,
-              lineHeight: authStyles.title.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Email Verification
-          </Text>
-          <View style={{ height: DesignSystem.spacing.lg }} />
+          <AuthTopHeader
+            title="Email Verification"
+            onBack={handleBackToHome}
+          />
         </View>
       </View>
 
