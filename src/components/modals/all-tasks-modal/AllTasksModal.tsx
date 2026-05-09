@@ -28,10 +28,7 @@ import { PriorityBadge } from "../../Dashboard";
 import { MaintenanceRoutine } from "../../../types/maintenance";
 import { MaintenanceService } from "../../../services/maintenanceService";
 import { styles } from "./styles";
-import {
-  getPlanTheme,
-  getPlanTaskSurfaceStyle,
-} from "../../../data/maintenancePlans/planThemes";
+import { getPlanTheme } from "../../../data/maintenancePlans/planThemes";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -191,9 +188,6 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
   const renderRoutineItem = ({ item }: { item: MaintenanceRoutine }) => {
     const isDeleting = deletingTasks.has(item.id);
     const planTheme = getPlanTheme(item.source_plan_id ?? undefined);
-    const planSurface = planTheme
-      ? getPlanTaskSurfaceStyle(planTheme, isDark)
-      : null;
 
     return (
       <View
@@ -201,16 +195,12 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
         style={[
           styles.taskItem,
           {
-            backgroundColor: planSurface
-              ? planSurface.backgroundColor
-              : isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)",
-            borderColor: planSurface
-              ? planSurface.borderColor
-              : isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.05)",
+            backgroundColor: isDark
+              ? "rgba(35, 37, 38, 0.4)"
+              : "rgba(255, 255, 255, 0.4)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(255, 255, 255, 0.6)",
             ...(planTheme && {
               borderLeftWidth: 4,
               borderLeftColor: planTheme.primary,
