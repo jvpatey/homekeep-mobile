@@ -86,7 +86,7 @@ export const timelineStyles = StyleSheet.create({
   },
   taskContent: {
     flex: 1,
-    borderRadius: DesignSystem.borders.radius.medium,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     padding: DesignSystem.spacing.md,
     ...DesignSystem.shadows.softKey,
   },

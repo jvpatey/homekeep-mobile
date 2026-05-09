@@ -346,6 +346,9 @@ export function DashboardScheduleList({
         <ScheduleTaskRow
           task={item}
           showConnectorBelow={index < section.data.length - 1}
+          variant={
+            section.headerVariant === "due_soon" ? "dueSoon" : "default"
+          }
           onCompleteTask={onCompleteTask}
           onTaskPress={onTaskPress}
         />

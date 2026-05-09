@@ -7,10 +7,13 @@ import { MaintenanceTask } from "../../types/maintenance";
 import { DesignSystem } from "../../theme/designSystem";
 import { timelineStyles } from "./timeline-view/styles";
 import { getPriorityColor } from "./timeline-view/utils";
+import { hexWithAlpha } from "./popups/popupChrome";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
   showConnectorBelow: boolean;
+  /** Slightly stronger glass + primary accent for the Due soon section. */
+  variant?: "default" | "dueSoon";
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
 }
@@ -19,10 +22,12 @@ interface ScheduleTaskRowProps {
 export function ScheduleTaskRow({
   task,
   showConnectorBelow,
+  variant = "default",
   onCompleteTask,
   onTaskPress,
 }: ScheduleTaskRowProps) {
   const { colors, isDark } = useTheme();
+  const isDueSoon = variant === "dueSoon";
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
 
@@ -42,7 +47,9 @@ export function ScheduleTaskRow({
       onPress={() => onTaskPress?.(task.instance_id)}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`${task.title}. ${task.priority} priority.`}
+      accessibilityLabel={`${isDueSoon ? "Due soon. " : ""}${task.title}. ${
+        task.priority
+      } priority.`}
     >
       <View
         style={[
@@ -57,7 +64,9 @@ export function ScheduleTaskRow({
             timelineStyles.timelineDot,
             {
               backgroundColor: colors.primary,
-              borderColor: colors.surface,
+              borderColor: isDueSoon
+                ? hexWithAlpha(colors.primary, isDark ? 0.45 : 0.35)
+                : colors.surface,
             },
             isTablet && {
               width: getResponsiveValue(12, 14, 16),
@@ -87,10 +96,17 @@ export function ScheduleTaskRow({
             backgroundColor: isDark
               ? "rgba(35, 37, 38, 0.4)"
               : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
+            borderColor: isDueSoon
+              ? hexWithAlpha(colors.primary, isDark ? 0.22 : 0.32)
+              : isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(255, 255, 255, 0.6)",
             borderWidth: 1,
+            ...(isDueSoon && {
+              backgroundColor: isDark
+                ? hexWithAlpha(colors.primary, 0.07)
+                : hexWithAlpha(colors.primary, 0.05),
+            }),
           },
           isTablet && {
             padding: getResponsiveValue(
