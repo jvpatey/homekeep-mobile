@@ -1,190 +1,200 @@
-import { StyleSheet, Dimensions } from "react-native";
+import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../../../theme/designSystem";
 
-const { width: screenWidth } = Dimensions.get("window");
+export const sheetChromeStyles = StyleSheet.create({
+  sheetOverlay: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  backdropPressable: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sheetContainer: {
+    width: "100%",
+    flexShrink: 1,
+  },
+  sheetGlassOuter: {
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+  sheetGlassInner: {
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+  gradientBackground: {
+    paddingTop: DesignSystem.spacing.xs,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+  sheetSafeArea: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    maxHeight: "100%",
+  },
+  sheetTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.md,
+  },
+  sheetTitleSideSpacer: {
+    width: 40,
+  },
+  sheetTitlePressable: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sheetCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalTitle: {
+    ...DesignSystem.typography.h2,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    textAlign: "center",
+  },
+  scrollSection: {
+    minHeight: 0,
+  },
+});
 
-export const createStyles = (colors: any, isTablet: boolean = false) =>
+export const createContentStyles = (
+  colors: {
+    glass: string;
+    glassBorder: string;
+    text: string;
+    textSecondary: string;
+  },
+  isTablet: boolean
+) =>
   StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.md,
-      paddingVertical: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
-      zIndex: 9999,
-    },
-    modalContainer: {
-      width: isTablet ? Math.min(screenWidth - 80, 600) : screenWidth - 40,
-      height: isTablet ? "75%" : "85%",
-      borderRadius: DesignSystem.borders.radius.xlarge,
-      overflow: "hidden",
-      ...DesignSystem.shadows.glassStrong,
-    },
-    gradientBackground: {
-      flex: 1,
-      width: "100%",
-      height: "100%",
-      flexDirection: "column",
-    },
-    modalContentWrapper: {
-      flex: 1,
-    },
-    headerGradient: {
-      paddingTop: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.xl,
-      paddingBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
-      paddingHorizontal: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.lg,
-      borderBottomWidth: DesignSystem.glass.borderWidth,
-    },
-    headerContent: {
-      alignItems: "center",
-    },
-    closeButton: {
-      position: "absolute",
-      top: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-      right: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-      width: isTablet ? 50 : 40,
-      height: isTablet ? 50 : 40,
-      alignItems: "center",
-      justifyContent: "center",
-      ...DesignSystem.shadows.small,
-    },
-    categorySection: {
-      alignItems: "center",
-      marginBottom: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-    },
-    categoryIconContainer: {
-      width: isTablet ? 80 : 64,
-      height: isTablet ? 80 : 64,
-      borderRadius: isTablet ? 40 : 32,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: isTablet ? DesignSystem.spacing.md : DesignSystem.spacing.sm,
-      ...DesignSystem.shadows.medium,
-    },
-    categoryIcon: {
-      // No margin needed since container handles spacing
-    },
-    categoryName: {
-      fontSize: isTablet ? 20 : 16,
-      fontWeight: "600",
-      letterSpacing: 0.5,
-    },
     taskTitle: {
-      fontSize: isTablet ? 32 : 24,
+      ...DesignSystem.typography.h3,
       fontWeight: "700",
-      textAlign: "center",
-      marginBottom: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-      lineHeight: isTablet ? 40 : 30,
+      letterSpacing: -0.2,
+      marginBottom: DesignSystem.spacing.md,
     },
-    priorityContainer: {
+    metaRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: DesignSystem.spacing.sm,
+      marginBottom: DesignSystem.spacing.lg,
+    },
+    categoryChip: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: DesignSystem.spacing.md,
-      paddingVertical: DesignSystem.spacing.sm,
-      borderRadius: DesignSystem.borders.radius.medium,
-      ...DesignSystem.shadows.small,
+      gap: DesignSystem.spacing.xs,
+      paddingHorizontal: DesignSystem.spacing.sm,
+      paddingVertical: DesignSystem.spacing.xs,
+      borderRadius: DesignSystem.borders.radius.round,
+      borderWidth: DesignSystem.borders.hairline,
+    },
+    categoryIconWrap: {
+      width: isTablet ? 36 : 28,
+      height: isTablet ? 36 : 28,
+      borderRadius: isTablet ? 18 : 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    categoryLabel: {
+      ...DesignSystem.typography.smallSemiBold,
+    },
+    priorityPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: DesignSystem.spacing.sm,
+      paddingVertical: DesignSystem.spacing.xs,
+      borderRadius: DesignSystem.borders.radius.round,
+      borderWidth: DesignSystem.borders.hairline,
+      gap: DesignSystem.spacing.xs,
     },
     priorityDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
-      marginRight: DesignSystem.spacing.xs,
     },
     priorityText: {
-      fontSize: 14,
-      fontWeight: "600",
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: DesignSystem.spacing.lg,
-      paddingTop: DesignSystem.spacing.lg,
-      minHeight: 0,
-    },
-    contentContainer: {
-      flexGrow: 1,
-      paddingBottom: DesignSystem.spacing.lg,
+      ...DesignSystem.typography.smallSemiBold,
     },
     section: {
-      marginBottom: DesignSystem.spacing.xl,
+      marginBottom: DesignSystem.spacing.lg,
     },
     sectionTitle: {
-      ...DesignSystem.typography.h4,
-      fontWeight: "600",
-      marginBottom: DesignSystem.spacing.md,
+      ...DesignSystem.typography.smallSemiBold,
+      marginBottom: DesignSystem.spacing.sm,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
     descriptionText: {
       ...DesignSystem.typography.body,
       lineHeight: 24,
     },
-    detailsGrid: {
-      marginBottom: DesignSystem.spacing.xl,
-    },
-    detailItem: {
+    detailCard: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
+      padding: DesignSystem.spacing.md,
+      borderRadius: DesignSystem.borders.radius.medium,
+      marginBottom: DesignSystem.spacing.sm,
+      borderWidth: DesignSystem.borders.hairline,
     },
-    detailIconContainer: {
-      width: isTablet ? 60 : 48,
-      height: isTablet ? 60 : 48,
-      borderRadius: isTablet ? 30 : 24,
-      backgroundColor: colors.glass,
+    detailIconBox: {
+      width: isTablet ? 44 : 40,
+      height: isTablet ? 44 : 40,
+      borderRadius: DesignSystem.borders.radius.medium,
       alignItems: "center",
       justifyContent: "center",
-      marginRight: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-      borderWidth: DesignSystem.glass.borderWidth,
-      borderColor: colors.glassBorder,
-      ...DesignSystem.shadows.small,
-    },
-    detailContent: {
-      flex: 1,
+      marginRight: DesignSystem.spacing.md,
+      borderWidth: DesignSystem.borders.hairline,
     },
     detailLabel: {
-      ...DesignSystem.typography.smallMedium,
-      marginBottom: 4,
+      ...DesignSystem.typography.small,
+      marginBottom: 2,
     },
     detailValue: {
       ...DesignSystem.typography.bodySemiBold,
     },
-    categoryDescription: {
-      fontSize: 16,
-      lineHeight: 24,
-      color: colors.textSecondary,
-    },
-    actionsContainer: {
-      paddingHorizontal: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.lg,
-      paddingBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
-      paddingTop: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-      borderTopWidth: DesignSystem.glass.borderWidth,
-      backgroundColor: "transparent",
-    },
-    buttonRow: {
+    actionsRow: {
       flexDirection: "row",
       gap: DesignSystem.spacing.md,
-      justifyContent: "center",
-      alignItems: "center",
+      paddingTop: DesignSystem.spacing.md,
+      marginTop: DesignSystem.spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
     },
-    pillButton: {
+    secondaryButton: {
       flex: 1,
-      maxWidth: isTablet ? 250 : 180,
-      borderRadius: DesignSystem.borders.radius.round,
-      overflow: "hidden",
-    },
-    pillButtonGradient: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: isTablet ? DesignSystem.spacing.md : DesignSystem.spacing.sm,
-      paddingHorizontal: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-      borderRadius: DesignSystem.borders.radius.round,
+      gap: DesignSystem.spacing.xs,
+      paddingVertical: DesignSystem.spacing.md,
+      borderRadius: DesignSystem.borders.radius.large,
+      borderWidth: DesignSystem.borders.hairline,
+      minHeight: DesignSystem.components.buttonLarge,
     },
-    completeButtonDisabled: {
-      opacity: 0.6,
+    primaryButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: DesignSystem.spacing.xs,
+      paddingVertical: DesignSystem.spacing.md,
+      borderRadius: DesignSystem.borders.radius.large,
+      minHeight: DesignSystem.components.buttonLarge,
+      overflow: "hidden",
     },
-    pillButtonText: {
-      ...DesignSystem.typography.buttonSmall,
-      marginLeft: DesignSystem.spacing.xs,
-      fontWeight: "600",
+    primaryButtonLabel: {
+      ...DesignSystem.typography.bodySemiBold,
+      color: "#FFFFFF",
     },
   });

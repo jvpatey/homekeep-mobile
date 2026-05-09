@@ -70,6 +70,7 @@ export class MaintenanceTaskService {
             interval_days,
             start_date,
             is_active,
+            source_plan_id,
             created_at,
             updated_at
           )
@@ -145,6 +146,7 @@ export class MaintenanceTaskService {
             interval_days,
             start_date,
             is_active,
+            source_plan_id,
             created_at,
             updated_at
           )
@@ -205,6 +207,7 @@ export class MaintenanceTaskService {
             interval_days,
             start_date,
             is_active,
+            source_plan_id,
             created_at,
             updated_at
           )
@@ -264,6 +267,7 @@ export class MaintenanceTaskService {
             interval_days,
             start_date,
             is_active,
+            source_plan_id,
             created_at,
             updated_at
           )

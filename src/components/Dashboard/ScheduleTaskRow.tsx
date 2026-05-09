@@ -8,11 +8,12 @@ import { DesignSystem } from "../../theme/designSystem";
 import { timelineStyles } from "./timeline-view/styles";
 import { getPriorityColor } from "./timeline-view/utils";
 import { hexWithAlpha } from "./popups/popupChrome";
+import { getPlanTheme } from "../../data/maintenancePlans/planThemes";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
   showConnectorBelow: boolean;
-  /** Slightly stronger glass + primary accent for the Due soon section. */
+  /** Section variant (Due soon vs timeline); tile styling matches dashboard glass for both. */
   variant?: "default" | "dueSoon";
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
@@ -30,6 +31,19 @@ export function ScheduleTaskRow({
   const isDueSoon = variant === "dueSoon";
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
+
+  const planTheme = getPlanTheme(task.source_plan_id ?? undefined);
+
+  const defaultGlassBg = isDark
+    ? "rgba(35, 37, 38, 0.4)"
+    : "rgba(255, 255, 255, 0.4)";
+  const defaultGlassBorder = isDark
+    ? "rgba(255, 255, 255, 0.1)"
+    : "rgba(255, 255, 255, 0.6)";
+
+  const timelineDotFill = colors.primary;
+
+  const timelineDotRing = colors.surface;
 
   return (
     <TouchableOpacity
@@ -63,10 +77,8 @@ export function ScheduleTaskRow({
           style={[
             timelineStyles.timelineDot,
             {
-              backgroundColor: colors.primary,
-              borderColor: isDueSoon
-                ? hexWithAlpha(colors.primary, isDark ? 0.45 : 0.35)
-                : colors.surface,
+              backgroundColor: timelineDotFill,
+              borderColor: timelineDotRing,
             },
             isTablet && {
               width: getResponsiveValue(12, 14, 16),
@@ -93,19 +105,12 @@ export function ScheduleTaskRow({
         style={[
           timelineStyles.taskContent,
           {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDueSoon
-              ? hexWithAlpha(colors.primary, isDark ? 0.22 : 0.32)
-              : isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(255, 255, 255, 0.6)",
+            backgroundColor: defaultGlassBg,
+            borderColor: defaultGlassBorder,
             borderWidth: 1,
-            ...(isDueSoon && {
-              backgroundColor: isDark
-                ? hexWithAlpha(colors.primary, 0.07)
-                : hexWithAlpha(colors.primary, 0.05),
+            ...(planTheme && {
+              borderLeftWidth: 4,
+              borderLeftColor: planTheme.primary,
             }),
           },
           isTablet && {
@@ -292,13 +297,12 @@ export function ScheduleTaskRow({
             style={[
               timelineStyles.completeButton,
               {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(0, 0, 0, 0.2)",
-                borderWidth: 1,
+                backgroundColor: hexWithAlpha(
+                  colors.primary,
+                  isDark ? 0.14 : 0.1
+                ),
+                borderColor: colors.primary,
+                borderWidth: 1.5,
               },
               isTablet && {
                 width: 48 * fontMultiplier,
@@ -316,21 +320,13 @@ export function ScheduleTaskRow({
               <Ionicons
                 name="checkmark-circle"
                 size={isTablet ? 24 * fontMultiplier : 24}
-                color={
-                  isDark
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(15, 23, 42, 0.7)"
-                }
+                color={colors.primary}
               />
             ) : (
               <Ionicons
                 name="checkmark"
                 size={isTablet ? 20 * fontMultiplier : 20}
-                color={
-                  isDark
-                    ? "rgba(255, 255, 255, 0.6)"
-                    : "rgba(15, 23, 42, 0.65)"
-                }
+                color={colors.primary}
               />
             )}
           </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Modal,
@@ -6,99 +6,148 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withDelay,
   withTiming,
+  withDelay,
+  runOnJS,
 } from "react-native-reanimated";
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../../../types/maintenance";
-import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useGradients, useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
-import { createStyles } from "./styles";
-// Removed inline reschedule to simplify and rely on edit flow
+import { GlassCard } from "../../../ui/glass-card/GlassCard";
+import { SheetGrabber } from "../../../ui/sheet-grabber";
+import { sheetChromeStyles, createContentStyles } from "./styles";
 
-// SimpleTaskDetailModalProps
 interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
   visible: boolean;
   onClose: () => void;
   onComplete: (instanceId: string) => void;
   onEdit?: (task: MaintenanceTask) => void;
+  /** Reserved for callers that refresh after external edits */
   onModified?: () => void;
 }
 
-// SimpleTaskDetailModal component
 export function SimpleTaskDetailModal({
   task,
   visible,
   onClose,
   onComplete,
   onEdit,
-  onModified,
 }: SimpleTaskDetailModalProps) {
-  const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const { glassBorder } = useGradients();
-  const { isTablet, getResponsiveValue, getFontMultiplier } = useDevice();
+  const { haloGradient, ctaHighlight } = useGradients();
+  const { height: windowHeight } = useWindowDimensions();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const fontMultiplier = getFontMultiplier();
   const [isCompleting, setIsCompleting] = useState(false);
-  const styles = createStyles(colors, isTablet);
 
-  // Animation values
-  const scale = useSharedValue(0.7);
+  const contentStyles = createContentStyles(
+    {
+      glass: colors.glass,
+      glassBorder: colors.glassBorder,
+      text: colors.text,
+      textSecondary: colors.textSecondary,
+    },
+    isTablet
+  );
+
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(20);
+  const translateY = useSharedValue(windowHeight);
   const contentOpacity = useSharedValue(0);
 
-  // Entrance animation
-  useEffect(() => {
-    if (visible) {
-      opacity.value = withTiming(1, { duration: 200 });
-      scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-      translateY.value = withTiming(0, { duration: 200 });
-      contentOpacity.value = withTiming(1, { duration: 200 });
-    }
-  }, [visible]);
+  const sheetTabletMaxWidth = isTablet
+    ? getResponsiveValue(500, 640, 720)
+    : undefined;
+  const sheetMaxHeight = windowHeight * 0.9;
 
-  const containerAnimatedStyle = useAnimatedStyle(() => ({
+  const motionFast = DesignSystem.motion.duration.fast;
+  const motionEasing = DesignSystem.motion.easing.standard;
+
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
   }));
 
   const contentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
   }));
 
-  // Glass gradient
-  const glassGradient = isDark
-    ? ([
-        "rgba(46, 196, 182, 0.15)",
-        "rgba(58, 134, 255, 0.25)",
-        "rgba(15, 23, 42, 0.85)",
-      ] as const)
-    : ([
-        "rgba(46, 196, 182, 0.12)",
-        "rgba(147, 197, 253, 0.18)",
-        "rgba(255, 255, 255, 0.85)",
-      ] as const);
+  const openSheet = useCallback(() => {
+    translateY.value = windowHeight;
+    opacity.value = 0;
+    contentOpacity.value = 0;
+    opacity.value = withTiming(1, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
+    contentOpacity.value = withDelay(
+      DesignSystem.motion.stagger,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: motionEasing,
+      })
+    );
+  }, [
+    contentOpacity,
+    motionEasing,
+    motionFast,
+    opacity,
+    translateY,
+    windowHeight,
+  ]);
 
-  if (!task) return null;
+  useEffect(() => {
+    if (visible && task) {
+      setIsCompleting(false);
+      openSheet();
+    }
+  }, [visible, task?.instance_id, openSheet, task]);
 
-  // Map category to display info
+  const handleClose = () => {
+    contentOpacity.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    opacity.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    translateY.value = withTiming(
+      windowHeight,
+      {
+        duration: motionFast,
+        easing: motionEasing,
+      },
+      (finished) => {
+        if (finished) runOnJS(onClose)();
+      }
+    );
+  };
+
   const getCategoryInfo = (category: string) => {
-    const categoryMap: {
-      [key: string]: {
-        icon: string;
-        gradient: [string, string];
-        displayName: string;
-      };
-    } = {
+    const categoryMap: Record<
+      string,
+      { icon: string; gradient: [string, string]; displayName: string }
+    > = {
       HVAC: {
         icon: "snow-outline",
         gradient: ["#FF6B6B", "#FF8E8E"],
@@ -149,13 +198,12 @@ export function SimpleTaskDetailModal({
     return (
       categoryMap[category] || {
         icon: "construct-outline",
-        gradient: ["#C7CEEA", "#D8E0F0"],
+        gradient: ["#C7CEEA", "#D8E0F0"] as [string, string],
         displayName: category,
       }
     );
   };
 
-  const category = getCategoryInfo(task.category);
   const priorityColors = {
     low: colors.success,
     medium: colors.warning,
@@ -171,15 +219,15 @@ export function SimpleTaskDetailModal({
 
     if (date.toDateString() === today.toDateString()) {
       return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    } else {
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      });
     }
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    }
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const formatTime = (minutes?: number) => {
@@ -205,32 +253,42 @@ export function SimpleTaskDetailModal({
   };
 
   const handleComplete = async () => {
-    if (isCompleting) return; // Prevent multiple clicks
-
+    if (!task || isCompleting) return;
     setIsCompleting(true);
-
     try {
-      // Complete the task first
       await onComplete(task.instance_id);
-
-      // Then close the modal after successful completion
-      onClose();
+      handleClose();
     } catch (error) {
       console.error("Error completing task:", error);
-      // Reset completion state on error
       setIsCompleting(false);
     }
   };
 
-  const handleClose = () => {
-    // Exit animation
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.95, { duration: 150 });
-    translateY.value = withTiming(20, { duration: 150 });
-    setTimeout(onClose, 150);
+  const mutedSurface = {
+    backgroundColor: isDark
+      ? "rgba(35, 37, 38, 0.45)"
+      : "rgba(255, 255, 255, 0.55)",
+    borderColor: isDark
+      ? "rgba(255, 255, 255, 0.1)"
+      : "rgba(255, 255, 255, 0.55)",
   };
 
-  // Rescheduling is handled through the Edit flow
+  const scrollChromeOverhead =
+    DesignSystem.spacing.sm +
+    4 +
+    DesignSystem.spacing.md * 2 +
+    56 +
+    DesignSystem.spacing.lg +
+    DesignSystem.spacing.xl +
+    120;
+  const scrollViewportMaxHeight = Math.max(
+    240,
+    sheetMaxHeight - scrollChromeOverhead - 140
+  );
+
+  if (!task) return null;
+
+  const category = getCategoryInfo(task.category);
 
   return (
     <Modal
@@ -238,414 +296,396 @@ export function SimpleTaskDetailModal({
       transparent
       animationType="none"
       onRequestClose={handleClose}
-      statusBarTranslucent={true}
+      statusBarTranslucent
       presentationStyle="overFullScreen"
     >
-      <View style={styles.overlay}>
+      <Animated.View
+        style={[sheetChromeStyles.sheetOverlay, backdropAnimatedStyle]}
+      >
+        <Pressable
+          style={sheetChromeStyles.backdropPressable}
+          onPress={handleClose}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss task details"
+        />
         <Animated.View
+          pointerEvents="box-none"
           style={[
-            styles.modalContainer,
-            containerAnimatedStyle,
-            {
-              backgroundColor: isDark
-                ? "rgba(15, 23, 42, 0.95)"
-                : "rgba(255, 255, 255, 0.95)",
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(46, 196, 182, 0.3)"
-                : "rgba(46, 196, 182, 0.2)",
+            sheetChromeStyles.sheetContainer,
+            sheetTabletMaxWidth != null && {
+              maxWidth: sheetTabletMaxWidth,
+              alignSelf: "center",
             },
+            { maxHeight: sheetMaxHeight },
+            sheetAnimatedStyle,
           ]}
         >
-          <LinearGradient
-            colors={glassGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientBackground}
+          <GlassCard
+            material="thick"
+            radius={DesignSystem.borders.radius.glass}
+            containerStyle={sheetChromeStyles.sheetGlassOuter}
+            style={sheetChromeStyles.sheetGlassInner}
           >
-            <Animated.View style={[contentAnimatedStyle, styles.modalContentWrapper]}>
-              {/* Minimalist Header */}
-              <View
-                style={[
-                  styles.headerGradient,
-                  {
-                    borderBottomColor: isDark
-                      ? "rgba(46, 196, 182, 0.2)"
-                      : "rgba(46, 196, 182, 0.15)",
-                  },
-                ]}
-              >
-                <View style={styles.headerContent}>
-              {/* Close button */}
-              <TouchableOpacity
-                style={[
-                  styles.closeButton,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(46, 196, 182, 0.15)"
-                      : "rgba(46, 196, 182, 0.12)",
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(46, 196, 182, 0.3)"
-                      : "rgba(46, 196, 182, 0.25)",
-                  },
-                ]}
-                onPress={handleClose}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="close"
-                  size={isTablet ? 28 : 22}
-                  color={
-                    isDark
-                      ? "rgba(255, 255, 255, 0.9)"
-                      : "rgba(15, 23, 42, 0.85)"
-                  }
-                />
-              </TouchableOpacity>
-
-              {/* Category icon and name */}
-              <View style={styles.categorySection}>
-                <LinearGradient
-                  colors={category.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.categoryIconContainer}
-                >
-                  <Ionicons
-                    name={category.icon as any}
-                    size={isTablet ? 40 : 32}
-                    color="white"
-                    style={styles.categoryIcon}
-                  />
-                </LinearGradient>
-                <Text
-                  style={[
-                    styles.categoryName,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.95)"
-                        : "rgba(15, 23, 42, 0.9)",
-                    },
-                  ]}
-                >
-                  {category.displayName}
-                </Text>
-              </View>
-
-              {/* Task title */}
-              <Text
-                style={[
-                  styles.taskTitle,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.95)"
-                      : "rgba(15, 23, 42, 0.9)",
-                  },
-                ]}
-              >
-                {task.title}
-              </Text>
-
-              {/* Priority badge */}
-              <View
-                style={[
-                  styles.priorityContainer,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(46, 196, 182, 0.15)"
-                      : "rgba(46, 196, 182, 0.12)",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(46, 196, 182, 0.3)"
-                      : "rgba(46, 196, 182, 0.25)",
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.priorityDot,
-                    { backgroundColor: priorityColors[task.priority] },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.priorityText,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.9)"
-                        : "rgba(15, 23, 42, 0.85)",
-                    },
-                  ]}
-                >
-                  {task.priority.charAt(0).toUpperCase() +
-                    task.priority.slice(1)}{" "}
-                  Priority
-                </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Content */}
-            <ScrollView
-              style={styles.content}
-              contentContainerStyle={styles.contentContainer}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
+            <LinearGradient
+              colors={[...haloGradient]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[
+                sheetChromeStyles.gradientBackground,
+                { maxHeight: sheetMaxHeight },
+                isTablet && {
+                  paddingHorizontal: getResponsiveValue(
+                    DesignSystem.spacing.lg,
+                    DesignSystem.spacing.xl,
+                    DesignSystem.spacing.xl + DesignSystem.spacing.md
+                  ),
+                },
+              ]}
             >
-            {/* Description */}
-            {task.description && (
-              <View style={styles.section}>
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.95)"
-                        : "rgba(15, 23, 42, 0.9)",
-                    },
-                  ]}
-                >
-                  Description
-                </Text>
-                <Text
-                  style={[
-                    styles.descriptionText,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.8)"
-                        : "rgba(15, 23, 42, 0.7)",
-                    },
-                  ]}
-                >
-                  {task.description}
-                </Text>
-              </View>
-            )}
-
-            {/* Task details */}
-            <View style={styles.detailsGrid}>
-              <View style={styles.detailItem}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons
-                    name="time-outline"
-                    size={isTablet ? 24 : 20}
-                    color={colors.primary}
-                  />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text
-                    style={[
-                      styles.detailLabel,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.7)"
-                          : "rgba(15, 23, 42, 0.6)",
-                      },
-                    ]}
-                  >
-                    Estimated Time
-                  </Text>
-                  <Text
-                    style={[
-                      styles.detailValue,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
-                      },
-                    ]}
-                  >
-                    {formatTime(task.estimated_duration_minutes)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.detailItem}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={isTablet ? 24 : 20}
-                    color={colors.secondary}
-                  />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text
-                    style={[
-                      styles.detailLabel,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.7)"
-                          : "rgba(15, 23, 42, 0.6)",
-                      },
-                    ]}
-                  >
-                    Due Date
-                  </Text>
-                  <Text
-                    style={[
-                      styles.detailValue,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
-                      },
-                    ]}
-                  >
-                    {formatDate(task.due_date)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.detailItem}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons
-                    name="repeat-outline"
-                    size={isTablet ? 24 : 20}
-                    color={colors.accent}
-                  />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text
-                    style={[
-                      styles.detailLabel,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.7)"
-                          : "rgba(15, 23, 42, 0.6)",
-                      },
-                    ]}
-                  >
-                    Recurrence
-                  </Text>
-                  <Text
-                    style={[
-                      styles.detailValue,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
-                      },
-                    ]}
-                  >
-                    {formatInterval(task.interval_days)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </ScrollView>
-          </Animated.View>
-
-          {/* Action buttons - Fixed at bottom */}
-          <View
-            style={[
-              styles.actionsContainer,
-              {
-                borderTopColor: isDark
-                  ? "rgba(46, 196, 182, 0.2)"
-                  : "rgba(46, 196, 182, 0.15)",
-              },
-            ]}
-          >
-            <View style={styles.buttonRow}>
-              {onEdit && (
-                <TouchableOpacity
-                  style={[
-                    styles.pillButton,
-                    {
-                      borderWidth: 2,
-                      borderColor: colors.glassBorder,
-                    },
-                  ]}
-                  onPress={() => onEdit(task)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={glassBorder}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[
-                      styles.pillButtonGradient,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255, 159, 28, 0.15)"
-                          : "rgba(255, 159, 28, 0.12)",
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="create-outline"
-                      size={isTablet ? 24 : 20}
-                      color={isDark ? "rgba(255, 255, 255, 0.95)" : "rgba(15, 23, 42, 0.9)"}
-                    />
+              <SafeAreaView
+                edges={["bottom"]}
+                style={sheetChromeStyles.sheetSafeArea}
+              >
+                <SheetGrabber />
+                <View style={sheetChromeStyles.sheetTitleRow}>
+                  <View style={sheetChromeStyles.sheetTitleSideSpacer} />
+                  <Pressable style={sheetChromeStyles.sheetTitlePressable}>
                     <Text
                       style={[
-                        styles.pillButtonText,
-                        {
-                          color: isDark
-                            ? "rgba(255, 255, 255, 0.95)"
-                            : "rgba(15, 23, 42, 0.9)",
+                        sheetChromeStyles.modalTitle,
+                        { color: colors.text },
+                        isTablet && {
+                          fontSize:
+                            (sheetChromeStyles.modalTitle.fontSize ||
+                              DesignSystem.typography.h2.fontSize) *
+                            fontMultiplier,
                         },
                       ]}
+                      numberOfLines={1}
                     >
-                      Edit
+                      Task details
                     </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              {/* Reschedule removed; use Edit to change due date */}
-              <TouchableOpacity
-                style={[
-                  styles.pillButton,
-                  {
-                    borderWidth: 2,
-                    borderColor: colors.glassBorder,
-                  },
-                  isCompleting && styles.completeButtonDisabled,
-                ]}
-                onPress={handleComplete}
-                activeOpacity={0.8}
-                disabled={isCompleting}
-              >
-                <LinearGradient
-                  colors={glassBorder}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[
-                    styles.pillButtonGradient,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(46, 196, 182, 0.15)"
-                        : "rgba(46, 196, 182, 0.12)",
-                      opacity: isCompleting ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={isTablet ? 24 : 20}
-                    color={isDark ? "rgba(255, 255, 255, 0.95)" : "rgba(15, 23, 42, 0.9)"}
-                  />
-                  <Text
+                  </Pressable>
+                  <TouchableOpacity
                     style={[
-                      styles.pillButtonText,
+                      sheetChromeStyles.sheetCloseButton,
                       {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
+                        backgroundColor: isDark
+                          ? "rgba(35, 37, 38, 0.55)"
+                          : "rgba(255, 255, 255, 0.45)",
+                        borderWidth: DesignSystem.borders.hairline,
+                        borderColor: colors.glassStroke,
+                      },
+                    ]}
+                    onPress={handleClose}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                  >
+                    <Ionicons
+                      name="close"
+                      size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <Animated.View
+                  style={[contentAnimatedStyle, sheetChromeStyles.scrollSection]}
+                >
+                  <ScrollView
+                    style={{ maxHeight: scrollViewportMaxHeight }}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{
+                      paddingBottom: DesignSystem.spacing.md,
+                    }}
+                    bounces={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={
+                      Platform.OS === "ios" ? "interactive" : "on-drag"
+                    }
+                  >
+                    <Text
+                      style={[contentStyles.taskTitle, { color: colors.text }]}
+                    >
+                      {task.title}
+                    </Text>
+
+                    <View style={contentStyles.metaRow}>
+                      <View
+                        style={[
+                          contentStyles.categoryChip,
+                          mutedSurface,
+                        ]}
+                      >
+                        <LinearGradient
+                          colors={category.gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={contentStyles.categoryIconWrap}
+                        >
+                          <Ionicons
+                            name={category.icon as any}
+                            size={isTablet ? 18 : 16}
+                            color="#fff"
+                          />
+                        </LinearGradient>
+                        <Text
+                          style={[
+                            contentStyles.categoryLabel,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {category.displayName}
+                        </Text>
+                      </View>
+                      <View
+                        style={[contentStyles.priorityPill, mutedSurface]}
+                      >
+                        <View
+                          style={[
+                            contentStyles.priorityDot,
+                            {
+                              backgroundColor:
+                                priorityColors[task.priority],
+                            },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            contentStyles.priorityText,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {task.priority.charAt(0).toUpperCase() +
+                            task.priority.slice(1)}{" "}
+                          priority
+                        </Text>
+                      </View>
+                    </View>
+
+                    {task.description ? (
+                      <View style={contentStyles.section}>
+                        <Text
+                          style={[
+                            contentStyles.sectionTitle,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Notes
+                        </Text>
+                        <Text
+                          style={[
+                            contentStyles.descriptionText,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {task.description}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    <Text
+                      style={[
+                        contentStyles.sectionTitle,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Schedule
+                    </Text>
+                    <View style={[contentStyles.detailCard, mutedSurface]}>
+                      <View
+                        style={[
+                          contentStyles.detailIconBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.06)"
+                              : "rgba(0,0,0,0.04)",
+                            borderColor: colors.glassStroke,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={22}
+                          color={colors.primary}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            contentStyles.detailLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Estimated time
+                        </Text>
+                        <Text
+                          style={[
+                            contentStyles.detailValue,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {formatTime(task.estimated_duration_minutes)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={[contentStyles.detailCard, mutedSurface]}>
+                      <View
+                        style={[
+                          contentStyles.detailIconBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.06)"
+                              : "rgba(0,0,0,0.04)",
+                            borderColor: colors.glassStroke,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={22}
+                          color={colors.primary}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            contentStyles.detailLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Due
+                        </Text>
+                        <Text
+                          style={[
+                            contentStyles.detailValue,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {formatDate(task.due_date)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={[contentStyles.detailCard, mutedSurface]}>
+                      <View
+                        style={[
+                          contentStyles.detailIconBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.06)"
+                              : "rgba(0,0,0,0.04)",
+                            borderColor: colors.glassStroke,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="repeat-outline"
+                          size={22}
+                          color={colors.primary}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            contentStyles.detailLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Recurrence
+                        </Text>
+                        <Text
+                          style={[
+                            contentStyles.detailValue,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {formatInterval(task.interval_days)}
+                        </Text>
+                      </View>
+                    </View>
+                  </ScrollView>
+
+                  <View
+                    style={[
+                      contentStyles.actionsRow,
+                      {
+                        borderTopColor: colors.border,
+                        paddingBottom: DesignSystem.spacing.sm,
                       },
                     ]}
                   >
-                    {isCompleting ? "Completing..." : "Complete"}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-          </LinearGradient>
+                    {onEdit ? (
+                      <TouchableOpacity
+                        style={[
+                          contentStyles.secondaryButton,
+                          {
+                            borderColor: colors.glassStroke,
+                            backgroundColor: isDark
+                              ? "rgba(35, 37, 38, 0.35)"
+                              : "rgba(255, 255, 255, 0.45)",
+                          },
+                        ]}
+                        onPress={() => onEdit(task)}
+                        activeOpacity={0.85}
+                        accessibilityRole="button"
+                        accessibilityLabel="Edit task"
+                      >
+                        <Ionicons
+                          name="create-outline"
+                          size={22}
+                          color={colors.text}
+                        />
+                        <Text
+                          style={[
+                            DesignSystem.typography.bodySemiBold,
+                            { color: colors.text },
+                          ]}
+                        >
+                          Edit
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+
+                    <TouchableOpacity
+                      style={[
+                        contentStyles.primaryButton,
+                        {
+                          position: "relative",
+                          backgroundColor: colors.primary,
+                          opacity: isCompleting ? 0.65 : 1,
+                        },
+                      ]}
+                      onPress={() => void handleComplete()}
+                      disabled={isCompleting}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel="Mark task complete"
+                    >
+                      <LinearGradient
+                        colors={ctaHighlight}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                        pointerEvents="none"
+                      />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={22}
+                        color="#fff"
+                      />
+                      <Text style={contentStyles.primaryButtonLabel}>
+                        {isCompleting ? "Completing…" : "Complete"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+              </SafeAreaView>
+            </LinearGradient>
+          </GlassCard>
         </Animated.View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

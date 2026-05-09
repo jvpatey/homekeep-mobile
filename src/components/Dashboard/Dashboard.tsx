@@ -28,6 +28,7 @@ import {
 import { dashboardStyles } from "./styles";
 import { buildDashboardSections } from "./dashboardSections";
 import { DashboardScheduleList } from "./DashboardScheduleList";
+import { DashboardQuickActions } from "./DashboardQuickActions";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
@@ -36,6 +37,7 @@ interface NewDashboardProps {
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onBrowseMaintenancePlans?: () => void;
 }
 
 /** Persisted so returning users skip the header entrance delay. */
@@ -49,6 +51,7 @@ export function NewDashboard({
   onTaskPress,
   onRefresh,
   refreshing = false,
+  onBrowseMaintenancePlans,
 }: NewDashboardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -201,6 +204,15 @@ export function NewDashboard({
         onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
         onShowStreakPopup={() => setShowStreakPopup(true)}
       />
+      {sections.length > 0 ? (
+        <DashboardQuickActions
+          onAddTask={() => {
+            setEditTaskInitial(null);
+            setShowCreateModal(true);
+          }}
+          onBrowseMaintenancePlans={onBrowseMaintenancePlans}
+        />
+      ) : null}
     </Animated.View>
   );
 
@@ -222,6 +234,7 @@ export function NewDashboard({
           setEditTaskInitial(null);
           setShowCreateModal(true);
         }}
+        onBrowseMaintenancePlans={onBrowseMaintenancePlans}
         contentPaddingBottom={contentPaddingBottom}
       />
 

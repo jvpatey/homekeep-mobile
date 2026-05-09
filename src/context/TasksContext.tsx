@@ -5,6 +5,7 @@ import {
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
 } from "../types/maintenance";
+import type { MaintenancePlanItemTemplate } from "../data/maintenancePlans";
 
 // TimeRange type for the time range
 export type TimeRange = 30 | 60 | 90 | 120 | "all";
@@ -32,6 +33,15 @@ interface UseTasksReturn {
   createTask: (
     taskData: CreateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
+  applyMaintenancePlan: (
+    planId: string,
+    itemsOverride?: MaintenancePlanItemTemplate[]
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    skippedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData

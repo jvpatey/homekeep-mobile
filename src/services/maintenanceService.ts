@@ -33,6 +33,12 @@ export class MaintenanceService {
     return MaintenanceRoutineService.createMaintenanceRoutine(routineData);
   }
 
+  static async createMaintenanceRoutines(
+    routinesData: CreateMaintenanceRoutineData[]
+  ): Promise<MaintenanceRoutinesResponse> {
+    return MaintenanceRoutineService.createMaintenanceRoutines(routinesData);
+  }
+
   // Get all maintenance routines for the current user
   static async getMaintenanceRoutines(
     filters?: Partial<MaintenanceFilters>

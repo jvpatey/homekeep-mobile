@@ -13,6 +13,8 @@ export interface MaintenanceRoutine {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  /** Set when the routine was created from a guided maintenance plan. */
+  source_plan_id?: string | null;
 }
 
 export interface RoutineInstance {
@@ -46,6 +48,7 @@ export interface MaintenanceTask {
   created_at: string;
   updated_at: string;
   is_active: boolean;
+  source_plan_id?: string | null;
 }
 
 export type MaintenanceCategory =
@@ -77,6 +80,7 @@ export interface CreateMaintenanceRoutineData {
   estimated_duration_minutes: number;
   interval_days: number;
   start_date: string;
+  source_plan_id?: string | null;
 }
 
 // Data for updating maintenance routines
@@ -89,6 +93,7 @@ export interface UpdateMaintenanceRoutineData {
   interval_days?: number;
   start_date?: string;
   is_active?: boolean;
+  source_plan_id?: string | null;
 }
 
 // Data for updating routine instances

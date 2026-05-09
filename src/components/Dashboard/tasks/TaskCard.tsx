@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -13,9 +12,12 @@ import {
   HOME_MAINTENANCE_CATEGORIES,
   CategoryKey,
 } from "../../../types/maintenance";
-import { colors } from "src/theme/colors";
 import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
+import { hexWithAlpha } from "../popups/popupChrome";
+import {
+  getPlanTheme,
+} from "../../../data/maintenancePlans/planThemes";
 
 // TaskCardProps interface for the TaskCard component
 interface TaskCardProps {
@@ -28,6 +30,8 @@ interface TaskCardProps {
   interval_days: number;
   due_date: string;
   is_completed?: boolean;
+  /** When set, card shows subtle plan theme tint (guided plan provenance). */
+  source_plan_id?: string | null;
   onComplete: (instanceId: string) => void;
   onPress?: (instanceId: string) => void;
   cardWidth?: number;
@@ -44,6 +48,7 @@ export function TaskCard({
   interval_days,
   due_date,
   is_completed = false,
+  source_plan_id,
   onComplete,
   onPress,
   cardWidth,
@@ -51,6 +56,8 @@ export function TaskCard({
   const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
+
+  const planTheme = getPlanTheme(source_plan_id ?? undefined);
 
   const fontMultiplier = getFontMultiplier();
   // Card height is responsive for iPad
@@ -176,6 +183,10 @@ export function TaskCard({
               ? "rgba(255, 255, 255, 0.1)"
               : "rgba(255, 255, 255, 0.6)",
             borderWidth: 1,
+            ...(planTheme && {
+              borderLeftWidth: 4,
+              borderLeftColor: planTheme.primary,
+            }),
           },
           cardWidth ? { width: cardWidth } : undefined,
           { height: cardHeight },
@@ -382,13 +393,12 @@ export function TaskCard({
                 style={[
                   styles.completeButton,
                   {
-                    backgroundColor: isDark
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.05)",
-                    borderColor: isDark
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : "rgba(0, 0, 0, 0.2)",
-                    borderWidth: 1,
+                    backgroundColor: hexWithAlpha(
+                      colors.primary,
+                      isDark ? 0.14 : 0.1
+                    ),
+                    borderColor: colors.primary,
+                    borderWidth: 1.5,
                   },
                   isTablet && {
                     width: 48 * fontMultiplier,
@@ -405,21 +415,13 @@ export function TaskCard({
                   <Ionicons
                     name="checkmark-circle"
                     size={isTablet ? 24 * fontMultiplier : 24}
-                    color={
-                      isDark
-                        ? "rgba(255, 255, 255, 0.7)"
-                        : "rgba(15, 23, 42, 0.7)"
-                    }
+                    color={colors.primary}
                   />
                 ) : (
                   <Ionicons
                     name="checkmark"
                     size={isTablet ? 20 * fontMultiplier : 20}
-                    color={
-                      isDark
-                        ? "rgba(255, 255, 255, 0.6)"
-                        : "rgba(15, 23, 42, 0.65)"
-                    }
+                    color={colors.primary}
                   />
                 )}
               </TouchableOpacity>

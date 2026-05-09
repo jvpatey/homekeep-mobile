@@ -173,7 +173,7 @@ export function DashboardHeader({
   }));
 
   return (
-    <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.sm, backgroundColor: colors.background }]}>
+    <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.xs, backgroundColor: colors.background }]}>
       <View style={[headerStyles.headerGradient, { backgroundColor: colors.background }]}>
         {/* Content layer — solid surface (gradients reserved for welcome / auth) */}
         <View style={[

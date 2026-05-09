@@ -183,6 +183,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       type: "navigation",
     },
     {
+      id: "maintenance-plans",
+      title: "Maintenance plans",
+      icon: "layers-outline",
+      onPress: () => {
+        void triggerLight();
+        navigation.navigate("MaintenancePlans");
+      },
+      type: "navigation",
+    },
+    {
       id: "delete-tasks",
       title: "Delete All Tasks",
       icon: "trash-bin-outline",

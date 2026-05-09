@@ -6,6 +6,13 @@ import {
   UpdateMaintenanceRoutineData,
   MaintenanceFilters,
 } from "../types/maintenance";
+import {
+  buildRoutinePayloads,
+  buildRoutinePayloadsFromItems,
+  filterNewRoutinePayloads,
+  getMaintenancePlanById,
+  MaintenancePlanItemTemplate,
+} from "../data/maintenancePlans";
 import { useAuth } from "../context/AuthContext";
 import { TimeRange } from "../context/TasksContext";
 
@@ -32,6 +39,15 @@ interface UseTasksReturn {
   createTask: (
     taskData: CreateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
+  applyMaintenancePlan: (
+    planId: string,
+    itemsOverride?: MaintenancePlanItemTemplate[]
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    skippedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData
@@ -172,6 +188,85 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         const errorMessage =
           error.message || "Failed to create maintenance routine";
         console.error("Error creating maintenance routine:", error);
+        return { success: false, error: errorMessage };
+      }
+    },
+    [user, loadTasks]
+  );
+
+  const applyMaintenancePlan = useCallback(
+    async (
+      planId: string,
+      itemsOverride?: MaintenancePlanItemTemplate[]
+    ) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      const plan = getMaintenancePlanById(planId);
+      if (!plan) {
+        return { success: false, error: "Maintenance plan not found" };
+      }
+
+      if (plan.requiresQuestionnaire) {
+        if (!itemsOverride?.length) {
+          return {
+            success: false,
+            error:
+              "Complete the questionnaire and select at least one task to add.",
+          };
+        }
+      }
+
+      const payloads = (
+        itemsOverride !== undefined
+          ? buildRoutinePayloadsFromItems(itemsOverride)
+          : buildRoutinePayloads(plan)
+      ).map((row) => ({
+        ...row,
+        source_plan_id: planId,
+      }));
+
+      if (payloads.length === 0) {
+        return { success: true, addedCount: 0, skippedCount: 0 };
+      }
+
+      try {
+        const existingResult = await MaintenanceService.getMaintenanceRoutines({
+          is_active: true,
+        });
+        if (existingResult.error) throw existingResult.error;
+
+        const { newPayloads, skippedCount } = filterNewRoutinePayloads(
+          payloads,
+          existingResult.data ?? []
+        );
+
+        if (newPayloads.length === 0) {
+          return {
+            success: true,
+            addedCount: 0,
+            skippedCount,
+          };
+        }
+
+        const { error } =
+          await MaintenanceService.createMaintenanceRoutines(newPayloads);
+
+        if (error) throw error;
+
+        await loadTasks();
+
+        return {
+          success: true,
+          addedCount: newPayloads.length,
+          skippedCount,
+        };
+      } catch (err) {
+        const error = err as Error;
+        const errorMessage =
+          error.message || "Failed to apply maintenance plan";
+        console.error("Error applying maintenance plan:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -456,6 +551,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     lookbackDays,
     stats,
     createTask,
+    applyMaintenancePlan,
     updateTask,
     completeTask,
     uncompleteTask,
