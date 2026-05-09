@@ -202,12 +202,15 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: "Maintenance plan not found" };
       }
 
-      if (planId === "spring-refresh") {
+      if (
+        planId === "spring-refresh" ||
+        planId === "cold-weather-prep"
+      ) {
         if (!itemsOverride?.length) {
           return {
             success: false,
             error:
-              "Choose your Spring refresh checklist first and select at least one task.",
+              "Complete the questionnaire and select at least one task to add.",
           };
         }
       }

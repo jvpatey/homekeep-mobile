@@ -1,5 +1,6 @@
 import { MaintenancePlanDefinition } from "./types";
 import { getSpringRefreshBaseItems } from "./springRefresh";
+import { getColdWeatherPrepBaseItems } from "./fallWinter";
 
 export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
   {
@@ -13,54 +14,13 @@ export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
     items: getSpringRefreshBaseItems(),
   },
   {
-    id: "fall-winter-readiness",
-    title: "Fall & winter readiness",
+    id: "cold-weather-prep",
+    title: "Cold-weather prep",
     shortDescription:
-      "Heating, plumbing freeze risks, and moisture control before cold weather.",
-    body: "Align tasks with your local frost dates; adjust offsets when you apply if needed.",
+      "Fall yard and exterior work, freeze protection, and heating tuned to how your home is built.",
+    body: "Answer the same short profile as Spring refresh — we tailor gutters, roof, outdoor plumbing, and HVAC extras (gas furnace vs heat pump) before you pick tasks.",
     tag: "fall",
-    items: [
-      {
-        title: "Furnace / heating service",
-        description:
-          "Inspection, filter, and burner or heat exchanger check before heating season.",
-        category: "HVAC",
-        priority: "high",
-        estimated_duration_minutes: 120,
-        interval_days: 365,
-        start_offset_days: 0,
-      },
-      {
-        title: "Seal or weatherstrip doors & windows",
-        description:
-          "Reduce drafts and condensation before sustained cold.",
-        category: "INTERIOR",
-        priority: "medium",
-        estimated_duration_minutes: 90,
-        interval_days: 365,
-        start_offset_days: 7,
-      },
-      {
-        title: "Winterize outdoor faucets & hoses",
-        description:
-          "Shut off interior valves if present; drain and store hoses.",
-        category: "PLUMBING",
-        priority: "high",
-        estimated_duration_minutes: 45,
-        interval_days: 365,
-        start_offset_days: 14,
-      },
-      {
-        title: "Clean gutters after leaves",
-        description:
-          "Second pass after fall drop to keep winter melt draining correctly.",
-        category: "EXTERIOR",
-        priority: "high",
-        estimated_duration_minutes: 90,
-        interval_days: 180,
-        start_offset_days: 30,
-      },
-    ],
+    items: getColdWeatherPrepBaseItems(),
   },
   {
     id: "year-round-safety",

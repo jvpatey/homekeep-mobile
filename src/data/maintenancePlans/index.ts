@@ -17,3 +17,9 @@ export {
   getSpringRefreshBaseItems,
   SPRING_REFRESH_BASE_TASK_CAP,
 } from "./springRefresh";
+export {
+  type ColdWeatherPrepAnswers,
+  filterColdWeatherPrepItems,
+  getColdWeatherPrepBaseItems,
+  COLD_WEATHER_PREP_BASE_TASK_CAP,
+} from "./fallWinter";

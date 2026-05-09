@@ -26,11 +26,16 @@ import {
   MaintenancePlanItemTemplate,
   MaintenancePlanTag,
   filterSpringRefreshItems,
+  filterColdWeatherPrepItems,
 } from "../../data/maintenancePlans";
-import type { SpringRefreshAnswers } from "../../data/maintenancePlans";
+import type {
+  SpringRefreshAnswers,
+  ColdWeatherPrepAnswers,
+} from "../../data/maintenancePlans";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
 import { maintenancePlansStyles } from "./styles";
 import { SpringRefreshQuestionnaire } from "./SpringRefreshQuestionnaire";
+import { ColdWeatherPrepQuestionnaire } from "./ColdWeatherPrepQuestionnaire";
 
 const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   spring: "Spring",
@@ -40,7 +45,12 @@ const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   general: "General",
 };
 
-type FlowPhase = "list" | "springQuestions" | "pickTasks";
+type FlowPhase = "list" | "questionnaire" | "pickTasks";
+
+const QUESTIONNAIRE_PLAN_IDS = new Set([
+  "spring-refresh",
+  "cold-weather-prep",
+]);
 
 function formatIntervalDays(days: number): string {
   if (days === 7) return "Every week";
@@ -64,6 +74,8 @@ export function MaintenancePlansScreen() {
     useState<MaintenancePlanDefinition | null>(null);
   const [springAnswers, setSpringAnswers] =
     useState<SpringRefreshAnswers | null>(null);
+  const [coldWeatherAnswers, setColdWeatherAnswers] =
+    useState<ColdWeatherPrepAnswers | null>(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
   const [applying, setApplying] = useState(false);
 
@@ -73,8 +85,12 @@ export function MaintenancePlansScreen() {
       if (!springAnswers) return [];
       return filterSpringRefreshItems(springAnswers);
     }
+    if (detailPlan.id === "cold-weather-prep") {
+      if (!coldWeatherAnswers) return [];
+      return filterColdWeatherPrepItems(coldWeatherAnswers);
+    }
     return detailPlan.items;
-  }, [detailPlan, springAnswers]);
+  }, [detailPlan, springAnswers, coldWeatherAnswers]);
 
   useEffect(() => {
     if (phase !== "pickTasks") return;
@@ -83,7 +99,13 @@ export function MaintenancePlansScreen() {
       if (prev.length === n && n > 0) return prev;
       return Array(n).fill(true);
     });
-  }, [phase, detailPlan?.id, springAnswers, resolvedDetailItems.length]);
+  }, [
+    phase,
+    detailPlan?.id,
+    springAnswers,
+    coldWeatherAnswers,
+    resolvedDetailItems.length,
+  ]);
 
   const selectedItems = useMemo(() => {
     return resolvedDetailItems.filter((_, i) => selectedMask[i]);
@@ -93,9 +115,10 @@ export function MaintenancePlansScreen() {
 
   const openPlan = useCallback((plan: MaintenancePlanDefinition) => {
     setDetailPlan(plan);
-    if (plan.id === "spring-refresh") {
+    if (QUESTIONNAIRE_PLAN_IDS.has(plan.id)) {
       setSpringAnswers(null);
-      setPhase("springQuestions");
+      setColdWeatherAnswers(null);
+      setPhase("questionnaire");
     } else {
       setPhase("pickTasks");
     }
@@ -175,15 +198,16 @@ export function MaintenancePlansScreen() {
   );
 
   const headerBack = () => {
-    if (phase === "springQuestions") {
+    if (phase === "questionnaire") {
       setDetailPlan(null);
       setSpringAnswers(null);
+      setColdWeatherAnswers(null);
       setPhase("list");
       return;
     }
     if (phase === "pickTasks") {
-      if (detailPlan?.id === "spring-refresh") {
-        setPhase("springQuestions");
+      if (detailPlan && QUESTIONNAIRE_PLAN_IDS.has(detailPlan.id)) {
+        setPhase("questionnaire");
         return;
       }
       setDetailPlan(null);
@@ -194,7 +218,9 @@ export function MaintenancePlansScreen() {
   };
 
   const headerTitle = () => {
-    if (phase === "springQuestions") return "Spring refresh";
+    if (phase === "questionnaire" && detailPlan) {
+      return detailPlan.title;
+    }
     if (phase === "pickTasks" && detailPlan) {
       return detailPlan.title;
     }
@@ -273,7 +299,7 @@ export function MaintenancePlansScreen() {
                   },
                 ]}
               >
-                {plan.id === "spring-refresh"
+                {QUESTIONNAIRE_PLAN_IDS.has(plan.id)
                   ? `Questionnaire · pick tasks to add`
                   : `${plan.items.length} recurring task${
                       plan.items.length === 1 ? "" : "s"
@@ -443,20 +469,46 @@ export function MaintenancePlansScreen() {
     );
   };
 
-  const renderSpringQuestionnaire = () => (
-    <SpringRefreshQuestionnaire
-      initialAnswers={springAnswers}
-      onComplete={(answers) => {
-        setSpringAnswers(answers);
-        setPhase("pickTasks");
-      }}
-      onBack={() => {
-        setDetailPlan(null);
-        setSpringAnswers(null);
-        setPhase("list");
-      }}
-    />
-  );
+  const renderQuestionnaire = () => {
+    if (!detailPlan) return null;
+    if (detailPlan.id === "spring-refresh") {
+      return (
+        <SpringRefreshQuestionnaire
+          initialAnswers={springAnswers}
+          onComplete={(answers) => {
+            setSpringAnswers(answers);
+            setColdWeatherAnswers(null);
+            setPhase("pickTasks");
+          }}
+          onBack={() => {
+            setDetailPlan(null);
+            setSpringAnswers(null);
+            setColdWeatherAnswers(null);
+            setPhase("list");
+          }}
+        />
+      );
+    }
+    if (detailPlan.id === "cold-weather-prep") {
+      return (
+        <ColdWeatherPrepQuestionnaire
+          initialAnswers={coldWeatherAnswers}
+          onComplete={(answers) => {
+            setColdWeatherAnswers(answers);
+            setSpringAnswers(null);
+            setPhase("pickTasks");
+          }}
+          onBack={() => {
+            setDetailPlan(null);
+            setColdWeatherAnswers(null);
+            setSpringAnswers(null);
+            setPhase("list");
+          }}
+        />
+      );
+    }
+    return null;
+  };
 
   return (
     <SafeAreaView
@@ -494,7 +546,7 @@ export function MaintenancePlansScreen() {
       </View>
 
       {phase === "list" && renderPlanList()}
-      {phase === "springQuestions" && renderSpringQuestionnaire()}
+      {phase === "questionnaire" && renderQuestionnaire()}
       {phase === "pickTasks" && detailPlan ? (
         <View style={{ flex: 1 }}>{renderTaskPicker(detailPlan)}</View>
       ) : null}
