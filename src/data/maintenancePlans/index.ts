@@ -23,3 +23,7 @@ export {
   getColdWeatherPrepBaseItems,
   COLD_WEATHER_PREP_BASE_TASK_CAP,
 } from "./fallWinter";
+export {
+  getYearRoundSafetyBaseItems,
+  YEAR_ROUND_SAFETY_BASE_TASK_CAP,
+} from "./yearRoundSafety";

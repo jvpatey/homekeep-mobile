@@ -1,6 +1,7 @@
 import { MaintenancePlanDefinition } from "./types";
 import { getSpringRefreshBaseItems } from "./springRefresh";
 import { getColdWeatherPrepBaseItems } from "./fallWinter";
+import { getYearRoundSafetyBaseItems } from "./yearRoundSafety";
 
 export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
   {
@@ -26,48 +27,10 @@ export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
     id: "year-round-safety",
     title: "Year-round safety",
     shortDescription:
-      "Smoke/CO alarms, fire readiness, and lint buildup that affects safety.",
+      "Smoke/CO, electrical checks, dryer vent, HVAC clearance — pick what to track.",
+    body: "Choose which safety routines to add to your schedule. Skip anything that does not apply (for example dryer vent if you use shared laundry only).",
     tag: "safety",
-    items: [
-      {
-        title: "Test smoke & CO alarms",
-        description: "Press test buttons; replace batteries or units per manufacturer.",
-        category: "SAFETY",
-        priority: "high",
-        estimated_duration_minutes: 20,
-        interval_days: 90,
-        start_offset_days: 0,
-      },
-      {
-        title: "Check fire extinguisher(s)",
-        description: "Pressure gauge in green zone, accessible mount, not expired.",
-        category: "SAFETY",
-        priority: "medium",
-        estimated_duration_minutes: 15,
-        interval_days: 365,
-        start_offset_days: 3,
-      },
-      {
-        title: "Clean dryer vent duct",
-        description:
-          "Lint buildup is a common fire risk; deep clean per run length.",
-        category: "SAFETY",
-        priority: "high",
-        estimated_duration_minutes: 60,
-        interval_days: 365,
-        start_offset_days: 10,
-      },
-      {
-        title: "Exercise GFCI outlets",
-        description:
-          "Press TEST/RESET on kitchen, bath, garage, and outdoor GFCIs.",
-        category: "ELECTRICAL",
-        priority: "medium",
-        estimated_duration_minutes: 20,
-        interval_days: 180,
-        start_offset_days: 17,
-      },
-    ],
+    items: getYearRoundSafetyBaseItems(),
   },
   {
     id: "new-homeowner-starter",
