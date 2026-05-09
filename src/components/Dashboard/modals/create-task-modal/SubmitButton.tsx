@@ -26,8 +26,11 @@ export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
         onPress={onPress}
         disabled={disabled}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
       >
         <LinearGradient
+          pointerEvents="none"
           colors={[
             isDark ? "rgba(32, 180, 134, 0.70)" : "rgba(46, 196, 182, 0.75)",
             isDark ? "rgba(58, 134, 255, 0.65)" : "rgba(58, 134, 255, 0.70)",

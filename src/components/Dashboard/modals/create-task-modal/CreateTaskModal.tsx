@@ -10,8 +10,9 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
-  TouchableWithoutFeedback,
+  Pressable,
   InputAccessoryView,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -25,7 +26,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useHaptics } from "../../../../hooks/useHaptics";
 import { useDevice } from "../../../../hooks";
 import { useTasks } from "../../../../context/TasksContext";
-import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { FormField } from "./FormField";
@@ -76,9 +76,16 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
-  const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { width: windowWidth } = useWindowDimensions();
+  const maxModalWidth = isTablet
+    ? getResponsiveValue(420, 600, 700)
+    : 420;
+  const modalCardWidth = Math.min(
+    Math.max(windowWidth * 0.92, 280),
+    maxModalWidth
+  );
 
   // Animation values
   const scale = useSharedValue(0.7);
@@ -154,7 +161,15 @@ export function CreateTaskModal({
     return input.replace(/^\s*([a-zA-Z])/, (m, p1) => p1.toUpperCase());
   };
 
-  const validateForm = (): boolean => {
+  /** Matches interval math in handleSubmit */
+  const getEffectiveIntervalDays = (): number => {
+    if (selectedInterval === 0) {
+      return intervalValue;
+    }
+    return selectedInterval * intervalValue;
+  };
+
+  const validateForm = (): { ok: boolean; firstError?: string } => {
     const newErrors: Partial<{ [K in keyof MaintenanceRoutineForm]: string }> =
       {};
 
@@ -173,30 +188,34 @@ export function CreateTaskModal({
       newErrors.estimated_duration_minutes = "Duration must be greater than 0";
     }
 
-    if (!form.interval_days || form.interval_days <= 0) {
+    const effectiveDays = getEffectiveIntervalDays();
+    if (!effectiveDays || effectiveDays <= 0) {
       newErrors.interval_days = "Interval must be greater than 0";
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const firstError = Object.values(newErrors).find(
+      (v): v is string => Boolean(v)
+    );
+    return {
+      ok: Object.keys(newErrors).length === 0,
+      firstError,
+    };
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    const { ok, firstError } = validateForm();
+    if (!ok) {
       triggerMedium();
+      Alert.alert(
+        "Check your task",
+        firstError ?? "Please fix the highlighted fields and try again."
+      );
       return;
     }
 
     try {
-      // Calculate the actual interval_days based on selected interval and multiplier
-      let actualIntervalDays: number;
-      if (selectedInterval === 0) {
-        // Custom interval - use the intervalValue directly as days
-        actualIntervalDays = intervalValue;
-      } else {
-        // For predefined intervals, multiply the base interval by the multiplier
-        actualIntervalDays = selectedInterval * intervalValue;
-      }
+      const actualIntervalDays = getEffectiveIntervalDays();
 
       // Ensure we persist start_date at local noon (stable day boundary)
       const startAtNoon = new Date(form.startDate);
@@ -301,7 +320,10 @@ export function CreateTaskModal({
   };
 
   const isFormValid =
-    form.title && form.category && form.estimated_duration_minutes > 0;
+    Boolean(form.title.trim()) &&
+    Boolean(form.category) &&
+    form.estimated_duration_minutes > 0 &&
+    getEffectiveIntervalDays() > 0;
 
   const getIntervalLabel = (interval: number) => {
     switch (interval) {
@@ -378,17 +400,24 @@ export function CreateTaskModal({
           </View>
         </InputAccessoryView>
       )}
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.overlay}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-        >
-          <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.overlay}>
-              <Animated.View
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlayRoot}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <View style={styles.overlayRoot}>
+          <Pressable
+            style={styles.backdrop}
+            onPress={Keyboard.dismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss keyboard"
+          />
+          <View style={styles.overlayForeground} pointerEvents="box-none">
+            <Animated.View
+              pointerEvents="auto"
                 style={[
                   styles.container,
+                  { width: modalCardWidth },
                   containerAnimatedStyle,
                   {
                     backgroundColor: isDark
@@ -398,9 +427,6 @@ export function CreateTaskModal({
                     borderColor: isDark
                       ? "rgba(46, 196, 182, 0.3)"
                       : "rgba(46, 196, 182, 0.2)",
-                  },
-                  isTablet && {
-                    maxWidth: getResponsiveValue(420, 600, 700),
                   },
                 ]}
               >
@@ -471,7 +497,7 @@ export function CreateTaskModal({
                     contentContainerStyle={{
                       paddingBottom: DesignSystem.spacing.xxxl,
                     }}
-                    keyboardShouldPersistTaps="handled"
+                    keyboardShouldPersistTaps="always"
                     keyboardDismissMode="on-drag"
                   >
                     <FormField
@@ -638,29 +664,31 @@ export function CreateTaskModal({
                   </ScrollView>
                 </LinearGradient>
               </Animated.View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  overlayRoot: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 0,
+  },
+  overlayForeground: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
   },
   container: {
-    width: "92%",
-    maxWidth: 420,
     maxHeight: "85%",
     borderRadius: DesignSystem.borders.radius.xlarge,
     overflow: "hidden",
