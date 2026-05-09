@@ -55,7 +55,6 @@ export function SignUpScreen() {
     onPressIn,
     onPressOut,
   } = useScalePress();
-    useScalePress();
 
   // Form management with validation
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
