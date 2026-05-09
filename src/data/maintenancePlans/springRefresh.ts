@@ -115,15 +115,27 @@ const SPRING_REFRESH_CATALOG: SpringItemDefinition[] = [
   },
 ];
 
-const HEAT_PUMP_EXTRA: MaintenancePlanItemTemplate = {
-  title: "Clean outdoor heat pump unit",
+/** Heat pump: homeowner filter cadence + annual pro service. */
+const HEAT_PUMP_FILTERS_MONTHLY: MaintenancePlanItemTemplate = {
+  title: "Clean / replace heat pump filters",
   description:
-    "Clear leaves and debris around the outdoor unit; maintain clearance per manufacturer.",
+    "Wash or replace air filters per manufacturer — typically monthly during peak heating and cooling.",
+  category: "HVAC",
+  priority: "medium",
+  estimated_duration_minutes: 25,
+  interval_days: 30,
+  start_offset_days: 8,
+};
+
+const HEAT_PUMP_PRO_YEARLY: MaintenancePlanItemTemplate = {
+  title: "Professional heat pump clean & inspection",
+  description:
+    "Annual technician visit for deep cleaning, refrigerant check, and safe operation per manufacturer.",
   category: "HVAC",
   priority: "high",
-  estimated_duration_minutes: 30,
+  estimated_duration_minutes: 120,
   interval_days: 365,
-  start_offset_days: 8,
+  start_offset_days: 9,
 };
 
 const GAS_FURNACE_EXTRA: MaintenancePlanItemTemplate = {
@@ -134,7 +146,7 @@ const GAS_FURNACE_EXTRA: MaintenancePlanItemTemplate = {
   priority: "medium",
   estimated_duration_minutes: 15,
   interval_days: 90,
-  start_offset_days: 9,
+  start_offset_days: 10,
 };
 
 function toTemplate(row: SpringItemDefinition): MaintenancePlanItemTemplate {
@@ -169,7 +181,10 @@ export function filterSpringRefreshItems(
   }
 
   if (answers.heatSource === "heat_pump") {
-    out.push({ ...HEAT_PUMP_EXTRA });
+    out.push(
+      { ...HEAT_PUMP_FILTERS_MONTHLY },
+      { ...HEAT_PUMP_PRO_YEARLY }
+    );
   } else if (answers.heatSource === "gas_furnace") {
     out.push({ ...GAS_FURNACE_EXTRA });
   }
