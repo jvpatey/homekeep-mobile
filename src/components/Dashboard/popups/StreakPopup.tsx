@@ -284,7 +284,7 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
                 <Text
                   style={[
                     styles.streakText,
-                    { color: colors.primary },
+                    { color: colors.accent },
                     isTablet && {
                       fontSize:
                         (styles.streakText.fontSize || 72) * getFontMultiplier(),
