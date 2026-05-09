@@ -10,7 +10,8 @@ export type MaintenancePlanTag =
   | "fall"
   | "safety"
   | "starter"
-  | "general";
+  | "general"
+  | "pool";
 
 /** One row in a bundled plan — maps to CreateMaintenanceRoutineData after resolving dates. */
 export interface MaintenancePlanItemTemplate {

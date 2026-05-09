@@ -28,17 +28,20 @@ import {
   filterSpringRefreshItems,
   filterColdWeatherPrepItems,
   filterNewHomeownerStarterItems,
+  filterPoolSpaItems,
 } from "../../data/maintenancePlans";
 import type {
   SpringRefreshAnswers,
   ColdWeatherPrepAnswers,
   NewHomeownerStarterAnswers,
+  PoolSpaAnswers,
 } from "../../data/maintenancePlans";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
 import { maintenancePlansStyles } from "./styles";
 import { SpringRefreshQuestionnaire } from "./SpringRefreshQuestionnaire";
 import { ColdWeatherPrepQuestionnaire } from "./ColdWeatherPrepQuestionnaire";
 import { NewHomeownerStarterQuestionnaire } from "./NewHomeownerStarterQuestionnaire";
+import { PoolSpaQuestionnaire } from "./PoolSpaQuestionnaire";
 
 const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   spring: "Spring",
@@ -46,6 +49,7 @@ const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   safety: "Safety",
   starter: "Starter",
   general: "General",
+  pool: "Pool & spa",
 };
 
 type FlowPhase = "list" | "questionnaire" | "pickTasks";
@@ -54,6 +58,7 @@ const QUESTIONNAIRE_PLAN_IDS = new Set([
   "spring-refresh",
   "cold-weather-prep",
   "new-homeowner-starter",
+  "pool-spa-care",
 ]);
 
 function formatIntervalDays(days: number): string {
@@ -85,6 +90,8 @@ export function MaintenancePlansScreen() {
     useState<ColdWeatherPrepAnswers | null>(null);
   const [starterAnswers, setStarterAnswers] =
     useState<NewHomeownerStarterAnswers | null>(null);
+  const [poolSpaAnswers, setPoolSpaAnswers] =
+    useState<PoolSpaAnswers | null>(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
   const [applying, setApplying] = useState(false);
 
@@ -102,8 +109,12 @@ export function MaintenancePlansScreen() {
       if (!starterAnswers) return [];
       return filterNewHomeownerStarterItems(starterAnswers);
     }
+    if (detailPlan.id === "pool-spa-care") {
+      if (!poolSpaAnswers) return [];
+      return filterPoolSpaItems(poolSpaAnswers);
+    }
     return detailPlan.items;
-  }, [detailPlan, springAnswers, coldWeatherAnswers, starterAnswers]);
+  }, [detailPlan, springAnswers, coldWeatherAnswers, starterAnswers, poolSpaAnswers]);
 
   useEffect(() => {
     if (phase !== "pickTasks") return;
@@ -118,6 +129,7 @@ export function MaintenancePlansScreen() {
     springAnswers,
     coldWeatherAnswers,
     starterAnswers,
+    poolSpaAnswers,
     resolvedDetailItems.length,
   ]);
 
@@ -133,6 +145,7 @@ export function MaintenancePlansScreen() {
       setSpringAnswers(null);
       setColdWeatherAnswers(null);
       setStarterAnswers(null);
+      setPoolSpaAnswers(null);
       setPhase("questionnaire");
     } else {
       setPhase("pickTasks");
@@ -218,6 +231,7 @@ export function MaintenancePlansScreen() {
       setSpringAnswers(null);
       setColdWeatherAnswers(null);
       setStarterAnswers(null);
+      setPoolSpaAnswers(null);
       setPhase("list");
       return;
     }
@@ -495,6 +509,7 @@ export function MaintenancePlansScreen() {
             setSpringAnswers(answers);
             setColdWeatherAnswers(null);
             setStarterAnswers(null);
+            setPoolSpaAnswers(null);
             setPhase("pickTasks");
           }}
           onBack={() => {
@@ -502,6 +517,7 @@ export function MaintenancePlansScreen() {
             setSpringAnswers(null);
             setColdWeatherAnswers(null);
             setStarterAnswers(null);
+            setPoolSpaAnswers(null);
             setPhase("list");
           }}
         />
@@ -515,6 +531,7 @@ export function MaintenancePlansScreen() {
             setColdWeatherAnswers(answers);
             setSpringAnswers(null);
             setStarterAnswers(null);
+            setPoolSpaAnswers(null);
             setPhase("pickTasks");
           }}
           onBack={() => {
@@ -522,6 +539,7 @@ export function MaintenancePlansScreen() {
             setColdWeatherAnswers(null);
             setSpringAnswers(null);
             setStarterAnswers(null);
+            setPoolSpaAnswers(null);
             setPhase("list");
           }}
         />
@@ -535,6 +553,7 @@ export function MaintenancePlansScreen() {
             setStarterAnswers(answers);
             setSpringAnswers(null);
             setColdWeatherAnswers(null);
+            setPoolSpaAnswers(null);
             setPhase("pickTasks");
           }}
           onBack={() => {
@@ -542,6 +561,29 @@ export function MaintenancePlansScreen() {
             setStarterAnswers(null);
             setSpringAnswers(null);
             setColdWeatherAnswers(null);
+            setPoolSpaAnswers(null);
+            setPhase("list");
+          }}
+        />
+      );
+    }
+    if (detailPlan.id === "pool-spa-care") {
+      return (
+        <PoolSpaQuestionnaire
+          initialAnswers={poolSpaAnswers}
+          onComplete={(answers) => {
+            setPoolSpaAnswers(answers);
+            setSpringAnswers(null);
+            setColdWeatherAnswers(null);
+            setStarterAnswers(null);
+            setPhase("pickTasks");
+          }}
+          onBack={() => {
+            setDetailPlan(null);
+            setPoolSpaAnswers(null);
+            setSpringAnswers(null);
+            setColdWeatherAnswers(null);
+            setStarterAnswers(null);
             setPhase("list");
           }}
         />

@@ -3,6 +3,7 @@ import { getSpringRefreshBaseItems } from "./springRefresh";
 import { getColdWeatherPrepBaseItems } from "./fallWinter";
 import { getYearRoundSafetyBaseItems } from "./yearRoundSafety";
 import { getNewHomeownerStarterBaseItems } from "./newHomeownerStarter";
+import { getPoolSpaBaseItems } from "./poolSpa";
 
 export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
   {
@@ -32,6 +33,15 @@ export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
     body: "Choose which safety routines to add to your schedule. Skip anything that does not apply (for example dryer vent if you use shared laundry only).",
     tag: "safety",
     items: getYearRoundSafetyBaseItems(),
+  },
+  {
+    id: "pool-spa-care",
+    title: "Pool & spa care",
+    shortDescription:
+      "Tailored water testing, filtration, seasonal open/close for pools, and spa drain cycles—answer what you own, then pick tasks.",
+    body: "Intervals are typical reminders; adjust after you learn your water and climate. Pool closing may not apply if you swim year-round—leave those rows off.",
+    tag: "pool",
+    items: getPoolSpaBaseItems(),
   },
   {
     id: "new-homeowner-starter",

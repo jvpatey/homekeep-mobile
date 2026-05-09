@@ -205,7 +205,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       if (
         planId === "spring-refresh" ||
         planId === "cold-weather-prep" ||
-        planId === "new-homeowner-starter"
+        planId === "new-homeowner-starter" ||
+        planId === "pool-spa-care"
       ) {
         if (!itemsOverride?.length) {
           return {

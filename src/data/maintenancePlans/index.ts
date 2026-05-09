@@ -28,6 +28,12 @@ export {
   YEAR_ROUND_SAFETY_BASE_TASK_CAP,
 } from "./yearRoundSafety";
 export {
+  type PoolSpaAnswers,
+  filterPoolSpaItems,
+  getPoolSpaBaseItems,
+  POOL_SPA_BASE_TASK_CAP,
+} from "./poolSpa";
+export {
   type NewHomeownerStarterAnswers,
   filterNewHomeownerStarterItems,
   getNewHomeownerStarterBaseItems,
