@@ -1,53 +1,65 @@
 import { StyleSheet, Dimensions } from "react-native";
+import { DesignSystem } from "../../../theme/designSystem";
 
 const { height: screenHeight } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
 
   backdropPressable: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
+    ...StyleSheet.absoluteFillObject,
   },
 
-  modalContainer: {
-    width: "92%",
-    maxWidth: 420,
-    minHeight: screenHeight * 0.6,
-    maxHeight: screenHeight * 0.85,
-    borderRadius: 24,
-    borderWidth: 1,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: -8,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 16,
+  sheetContainer: {
+    width: "100%",
+    height: screenHeight * 0.85,
+  },
+
+  glassOuter: {
+    flex: 1,
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+
+  glassInner: {
+    flex: 1,
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+
+  haloFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  sheetSafeArea: {
+    flex: 1,
   },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
+    borderBottomWidth: 1,
   },
 
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: -0.4,
+    ...DesignSystem.typography.h3,
+    fontSize: 20,
+    flex: 1,
+    marginRight: DesignSystem.spacing.md,
   },
 
   closeButton: {
@@ -58,71 +70,74 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  flatList: {
+  list: {
     flex: 1,
   },
 
-  listContainer: {
-    padding: 20,
+  listContent: {
+    padding: DesignSystem.spacing.lg,
     flexGrow: 1,
+    paddingBottom: DesignSystem.spacing.xxxl,
   },
 
   taskItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
+    padding: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: 1,
   },
 
   taskContent: {
     flex: 1,
-    marginRight: 12,
+    marginRight: DesignSystem.spacing.md,
   },
 
   taskHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: DesignSystem.spacing.sm,
   },
 
   taskTitle: {
+    ...DesignSystem.typography.bodySemiBold,
     fontSize: 16,
-    fontWeight: "600",
     flex: 1,
-    marginRight: 8,
+    marginRight: DesignSystem.spacing.sm,
   },
 
   taskDetails: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: DesignSystem.spacing.xs,
   },
 
   taskCategory: {
+    ...DesignSystem.typography.smallMedium,
     fontSize: 14,
-    fontWeight: "500",
-    marginRight: 12,
+    marginRight: DesignSystem.spacing.md,
   },
 
   taskInterval: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
   },
 
   taskDuration: {
+    ...DesignSystem.typography.caption,
     fontSize: 12,
     fontStyle: "italic",
   },
 
   routineStatus: {
-    marginTop: 4,
+    marginTop: DesignSystem.spacing.xs,
   },
 
   statusText: {
+    ...DesignSystem.typography.captionMedium,
     fontSize: 12,
-    fontWeight: "500",
   },
 
   deleteButton: {
@@ -141,19 +156,20 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
-    paddingVertical: 80,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingVertical: DesignSystem.spacing.xxxl,
   },
 
   emptyText: {
+    ...DesignSystem.typography.h4,
     fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
     textAlign: "center",
   },
 
   emptySubtext: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,

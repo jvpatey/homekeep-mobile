@@ -1,56 +1,65 @@
 import { StyleSheet, Dimensions } from "react-native";
+import { DesignSystem } from "../../../theme/designSystem";
 
 const { height: screenHeight } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
 
   backdropPressable: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
+    ...StyleSheet.absoluteFillObject,
   },
 
-  modalContainer: {
-    width: "92%",
-    maxWidth: 420,
-    minHeight: screenHeight * 0.6,
-    maxHeight: screenHeight * 0.85,
-    borderRadius: 24,
-    borderWidth: 1,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: -8,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 16,
+  sheetContainer: {
+    width: "100%",
+    height: screenHeight * 0.85,
+  },
+
+  glassOuter: {
+    flex: 1,
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+
+  glassInner: {
+    flex: 1,
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+
+  haloFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  sheetSafeArea: {
+    flex: 1,
   },
 
   header: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-
-  headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
+    borderBottomWidth: 1,
   },
 
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: -0.4,
+    ...DesignSystem.typography.h3,
+    fontSize: 20,
+    flex: 1,
+    marginRight: DesignSystem.spacing.md,
   },
 
   closeButton: {
@@ -61,18 +70,21 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  content: {
+  scroll: {
     flex: 1,
-    paddingHorizontal: 20,
+  },
+
+  scrollContent: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
   },
 
   globalSection: {
-    marginTop: 20,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: DesignSystem.borders.radius.large,
+    padding: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.lg,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
   },
 
   globalHeader: {
@@ -93,7 +105,7 @@ export const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: DesignSystem.spacing.md,
   },
 
   globalInfo: {
@@ -101,20 +113,21 @@ export const styles = StyleSheet.create({
   },
 
   globalTitle: {
+    ...DesignSystem.typography.h4,
     fontSize: 18,
-    fontWeight: "600",
     marginBottom: 4,
   },
 
   globalDescription: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
     lineHeight: 20,
   },
 
   permissionSection: {
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 16,
+    marginBottom: DesignSystem.spacing.lg,
+    borderRadius: DesignSystem.borders.radius.large,
+    padding: DesignSystem.spacing.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -128,43 +141,44 @@ export const styles = StyleSheet.create({
   },
 
   permissionText: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
-    marginLeft: 12,
+    marginLeft: DesignSystem.spacing.sm,
     flex: 1,
     lineHeight: 20,
   },
 
   permissionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.small,
   },
 
   permissionButtonText: {
+    ...DesignSystem.typography.smallSemiBold,
     color: "white",
     fontSize: 14,
-    fontWeight: "600",
   },
 
   sectionTitle: {
+    ...DesignSystem.typography.h4,
     fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    marginTop: 20,
+    marginBottom: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.lg,
   },
 
   sectionDescription: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
 
   notificationTypeSection: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: DesignSystem.borders.radius.large,
+    padding: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.md,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
   },
 
   notificationTypeHeader: {
@@ -185,7 +199,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: DesignSystem.spacing.md,
   },
 
   notificationTypeInfo: {
@@ -193,12 +207,13 @@ export const styles = StyleSheet.create({
   },
 
   notificationTypeName: {
+    ...DesignSystem.typography.bodySemiBold,
     fontSize: 16,
-    fontWeight: "600",
     marginBottom: 2,
   },
 
   notificationTypeDescription: {
+    ...DesignSystem.typography.caption,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -206,43 +221,45 @@ export const styles = StyleSheet.create({
   notificationTypeHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: DesignSystem.spacing.sm,
   },
 
   expandIcon: {
-    marginLeft: 4,
+    marginLeft: DesignSystem.spacing.xs,
   },
 
   categoriesContainer: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.05)",
   },
 
   categoriesTitle: {
+    ...DesignSystem.typography.smallSemiBold,
     fontSize: 14,
-    fontWeight: "600",
     marginBottom: 4,
   },
 
   categoriesDescription: {
+    ...DesignSystem.typography.caption,
     fontSize: 13,
     lineHeight: 18,
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.md,
   },
 
   categoryRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
 
   categoryRowLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    gap: DesignSystem.spacing.sm,
   },
 
   categoryRowIcon: {
@@ -251,15 +268,14 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
 
   categoryRowName: {
+    ...DesignSystem.typography.smallMedium,
     fontSize: 14,
-    fontWeight: "500",
   },
 
   bottomSpacer: {
-    height: 32,
+    height: DesignSystem.spacing.lg,
   },
 });

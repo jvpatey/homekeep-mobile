@@ -1,56 +1,65 @@
 import { StyleSheet, Dimensions } from "react-native";
+import { DesignSystem } from "../../../theme/designSystem";
 
-const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
+const { height: screenHeight } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
 
   backdropPressable: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
+    ...StyleSheet.absoluteFillObject,
   },
 
-  modalContainer: {
-    width: "92%",
-    maxWidth: 420,
-    minHeight: screenHeight * 0.6,
-    maxHeight: screenHeight * 0.85,
-    borderRadius: 24,
-    borderWidth: 1,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: -8,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 16,
+  sheetContainer: {
+    width: "100%",
+    height: screenHeight * 0.85,
+  },
+
+  glassOuter: {
+    flex: 1,
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+
+  glassInner: {
+    flex: 1,
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+
+  haloFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  sheetSafeArea: {
+    flex: 1,
   },
 
   header: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-
-  headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
+    borderBottomWidth: 1,
   },
 
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: -0.4,
+    ...DesignSystem.typography.h3,
+    fontSize: 20,
+    flex: 1,
+    marginRight: DesignSystem.spacing.md,
   },
 
   closeButton: {
@@ -61,48 +70,33 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  scroll: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+  },
+
   previewSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.lg,
     alignItems: "center",
   },
 
   previewLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 16,
+    ...DesignSystem.typography.smallMedium,
+    fontSize: 13,
+    marginBottom: DesignSystem.spacing.md,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    opacity: 0.7,
+    opacity: 0.85,
   },
 
   previewContainer: {
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  previewAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-    marginBottom: 16,
-  },
-
-  previewInitial: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: "white",
-    letterSpacing: 0.1,
+    gap: DesignSystem.spacing.md,
   },
 
   previewInfo: {
@@ -111,65 +105,48 @@ export const styles = StyleSheet.create({
   },
 
   previewGradientName: {
+    ...DesignSystem.typography.h4,
     fontSize: 18,
-    fontWeight: "600",
-    letterSpacing: -0.2,
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
   previewDescription: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
-    opacity: 0.8,
+    opacity: 0.85,
   },
 
-  pickerScrollView: {
-    flex: 1,
-    paddingTop: 8,
+  pickerWrap: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.md,
   },
 
   footerActions: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingBottom: 32,
-    gap: 12,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.md,
+    borderTopWidth: 1,
   },
 
   cancelButton: {
     flex: 1,
     height: 52,
-    borderRadius: 16,
+    borderRadius: DesignSystem.borders.radius.large,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
 
   cancelButtonText: {
+    ...DesignSystem.typography.button,
     fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.1,
   },
 
-  saveButton: {
+  saveButtonWrap: {
     flex: 1,
-    height: 52,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-
-  saveButtonGradient: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-    letterSpacing: 0.1,
   },
 });

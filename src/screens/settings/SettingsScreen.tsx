@@ -15,44 +15,37 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useHaptics } from "../../hooks";
+import { useGradients, useHaptics } from "../../hooks";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
-import { SettingsScreenProps } from "./types";
+import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
+import { GlassCard, TintedGlassAvatar } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
+import { SettingsScreenProps } from "./types";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
   const { user, signOut, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
-  const { selectedGradient, loading: preferencesLoading } =
-    useUserPreferences();
+  const { selectedGradient } = useUserPreferences();
+  const { haloGradient } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
   const [customizationModalVisible, setCustomizationModalVisible] =
+    useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
 
   const getUserInitial = () => {
     const fullName = user?.user_metadata?.full_name;
-    if (fullName) {
-      return fullName.split(" ")[0].charAt(0).toUpperCase();
-    }
+    if (fullName) return fullName.split(" ")[0].charAt(0).toUpperCase();
     return user?.email?.charAt(0).toUpperCase() || "U";
   };
 
   const getUserName = () => {
     const fullName = user?.user_metadata?.full_name;
-    if (fullName) {
-      return fullName;
-    }
-    return "User";
+    return fullName || "User";
   };
 
-  const getUserEmail = () => {
-    return user?.email || "";
-  };
-
-  const avatarGradient = preferencesLoading
-    ? ([colors.primary, colors.secondary] as [string, string])
-    : (selectedGradient.colors as [string, string]);
+  const getUserEmail = () => user?.email || "";
 
   const handleCustomizeAvatar = async () => {
     await triggerMedium();
@@ -61,7 +54,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
   const handleNotificationSettings = async () => {
     await triggerLight();
-    navigation.navigate("NotificationPreferences");
+    setNotificationModalVisible(true);
   };
 
   const handleDeleteAllTasks = async () => {
@@ -93,15 +86,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const handleSignOut = async () => {
     await triggerMedium();
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
+      { text: "Cancel", style: "cancel" },
       {
         text: "Sign Out",
         style: "destructive",
         onPress: async () => {
-          console.log("User confirmed sign out from Settings");
           try {
             await signOut();
           } catch (error) {
@@ -119,23 +108,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       "Delete Account",
       "This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you absolutely sure you want to delete your account?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete Account",
           style: "destructive",
           onPress: async () => {
-            // Second confirmation
             Alert.alert(
               "Final Confirmation",
               "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.\n\nType 'DELETE' to confirm account deletion.",
               [
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                },
+                { text: "Cancel", style: "cancel" },
                 {
                   text: "I understand, delete my account",
                   style: "destructive",
@@ -173,34 +155,39 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     );
   };
 
-  const handleCloseCustomization = () => {
-    setCustomizationModalVisible(false);
-  };
-
   // Disable destructive delete-all when there are no tasks/instances
   const hasAnyTasks = (stats?.totalInstances || 0) > 0;
 
-  const settingsOptions = [
+  type SettingsOption = {
+    id: string;
+    title: string;
+    icon: string;
+    onPress: () => void;
+    type: "navigation" | "destructive";
+    disabled?: boolean;
+  };
+
+  const settingsOptions: SettingsOption[] = [
     {
       id: "customize-avatar",
       title: "Customize Avatar",
       icon: "color-palette-outline",
       onPress: handleCustomizeAvatar,
-      type: "navigation" as const,
+      type: "navigation",
     },
     {
       id: "notifications",
       title: "Notification Settings",
       icon: "notifications-outline",
       onPress: handleNotificationSettings,
-      type: "navigation" as const,
+      type: "navigation",
     },
     {
       id: "delete-tasks",
       title: "Delete All Tasks",
       icon: "trash-bin-outline",
       onPress: handleDeleteAllTasks,
-      type: "destructive" as const,
+      type: "destructive",
       disabled: !hasAnyTasks,
     },
     {
@@ -208,54 +195,63 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       title: "Delete Account",
       icon: "person-remove-outline",
       onPress: handleDeleteAccount,
-      type: "destructive" as const,
+      type: "destructive",
     },
     {
       id: "sign-out",
       title: "Sign Out",
       icon: "log-out-outline",
       onPress: handleSignOut,
-      type: "destructive" as const,
+      type: "destructive",
     },
   ];
 
-  const renderSettingsOption = (option: (typeof settingsOptions)[0]) => {
+  const renderSettingsOption = (
+    option: SettingsOption,
+    index: number,
+    total: number
+  ) => {
     const getIconColor = () => {
-      switch (option.type) {
-        case "destructive":
-          return option.disabled ? colors.textSecondary : colors.error;
-        case "navigation":
-        default:
-          return option.disabled ? colors.textSecondary : colors.primary;
+      if (option.type === "destructive") {
+        return option.disabled ? colors.textSecondary : colors.error;
       }
+      return option.disabled ? colors.textSecondary : colors.primary;
     };
 
     const getTextColor = () => {
-      switch (option.type) {
-        case "destructive":
-          return option.disabled ? colors.textSecondary : colors.error;
-        default:
-          return option.disabled ? colors.textSecondary : colors.text;
+      if (option.type === "destructive") {
+        return option.disabled ? colors.textSecondary : colors.error;
       }
+      return option.disabled ? colors.textSecondary : colors.text;
     };
 
     const getIconBackgroundColor = () => {
-      switch (option.type) {
-        case "destructive":
-          return (option.disabled ? colors.border : colors.error) + "15";
-        case "navigation":
-        default:
-          return (option.disabled ? colors.border : colors.primary) + "15";
+      if (option.type === "destructive") {
+        return (option.disabled ? colors.border : colors.error) + "15";
       }
+      return (option.disabled ? colors.border : colors.primary) + "15";
     };
+
+    const isLast = index === total - 1;
 
     return (
       <TouchableOpacity
         key={option.id}
-        style={[styles.optionButton, { borderBottomColor: colors.border }]}
+        style={[
+          styles.optionButton,
+          !isLast && {
+            borderBottomColor: isDark
+              ? "rgba(255, 255, 255, 0.08)"
+              : "rgba(0, 0, 0, 0.06)",
+            borderBottomWidth: StyleSheet.hairlineWidth,
+          },
+        ]}
         onPress={option.disabled ? undefined : option.onPress}
         activeOpacity={0.7}
-        disabled={Boolean((option as any).disabled)}
+        disabled={Boolean(option.disabled)}
+        accessibilityRole="button"
+        accessibilityLabel={option.title}
+        accessibilityState={{ disabled: Boolean(option.disabled) }}
       >
         <View
           style={[
@@ -272,13 +268,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Text style={[styles.optionText, { color: getTextColor() }]}>
           {option.title}
         </Text>
-        {option.type === "navigation" && (
+        {option.type === "navigation" ? (
           <Ionicons
             name="chevron-forward"
             size={16}
             color={colors.textSecondary}
           />
-        )}
+        ) : null}
       </TouchableOpacity>
     );
   };
@@ -286,14 +282,26 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top", "left", "right"]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
+      {/* Subtle halo background to match the rest of the app */}
+      <LinearGradient
+        colors={[...haloGradient]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.heroHalo}
+        pointerEvents="none"
+      />
+
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -304,77 +312,84 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Account Details Section */}
-        <TouchableOpacity
-          style={[
-            styles.accountCard,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.08)"
-                : "rgba(255, 255, 255, 0.85)",
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.15)"
-                : "rgba(255, 255, 255, 0.9)",
-            },
-          ]}
-          onPress={handleCustomizeAvatar}
-          activeOpacity={0.8}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Account card */}
+        <GlassCard
+          material="regular"
+          radius={DesignSystem.borders.radius.glass}
+          containerStyle={styles.cardContainer}
+          style={styles.cardSurface}
         >
-          <LinearGradient
-            colors={avatarGradient}
-            start={
-              preferencesLoading || !selectedGradient
-                ? { x: 0, y: 0 }
-                : selectedGradient.start
-            }
-            end={
-              preferencesLoading || !selectedGradient
-                ? { x: 1, y: 1 }
-                : selectedGradient.end
-            }
-            style={styles.accountAvatar}
+          <TouchableOpacity
+            style={styles.accountCard}
+            onPress={handleCustomizeAvatar}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Customize avatar"
           >
-            <Text style={styles.accountAvatarInitial}>{getUserInitial()}</Text>
-          </LinearGradient>
-          <View style={styles.accountInfo}>
-            <Text style={[styles.accountName, { color: colors.text }]}>
-              {getUserName()}
-            </Text>
-            <Text
-              style={[styles.accountEmail, { color: colors.textSecondary }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {getUserEmail()}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.editIconContainer,
-              { backgroundColor: colors.primary + "15" },
-            ]}
-          >
-            <Ionicons
-              name="color-palette-outline"
-              size={20}
-              color={colors.primary}
+            <TintedGlassAvatar
+              size={64}
+              gradient={selectedGradient}
+              initial={getUserInitial()}
+              pressable={false}
             />
-          </View>
-        </TouchableOpacity>
+            <View style={styles.accountInfo}>
+              <Text
+                style={[styles.accountName, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {getUserName()}
+              </Text>
+              <Text
+                style={[styles.accountEmail, { color: colors.textSecondary }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {getUserEmail()}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.editIconContainer,
+                { backgroundColor: colors.primary + "15" },
+              ]}
+            >
+              <Ionicons
+                name="color-palette-outline"
+                size={20}
+                color={colors.primary}
+              />
+            </View>
+          </TouchableOpacity>
+        </GlassCard>
 
-        {/* Settings Options */}
-        <View
-          style={[styles.optionsContainer, { backgroundColor: colors.surface }]}
+        {/* Options list */}
+        <GlassCard
+          material="regular"
+          radius={DesignSystem.borders.radius.glass}
+          containerStyle={styles.cardContainer}
+          style={[styles.cardSurface, styles.optionsSurface]}
         >
-          {settingsOptions.map(renderSettingsOption)}
-        </View>
+          {settingsOptions.map((option, index) =>
+            renderSettingsOption(option, index, settingsOptions.length)
+          )}
+        </GlassCard>
       </ScrollView>
 
       {/* Avatar Customization Modal */}
       <AvatarCustomizationModal
         visible={customizationModalVisible}
-        onClose={handleCloseCustomization}
+        onClose={() => setCustomizationModalVisible(false)}
+      />
+
+      {/* Notification Settings Modal */}
+      <NotificationSettingsModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
       />
     </SafeAreaView>
   );
@@ -384,97 +399,70 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  heroHalo: {
+    ...StyleSheet.absoluteFillObject,
+    height: 320,
+    bottom: undefined,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    position: "relative",
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.md,
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    padding: DesignSystem.spacing.sm,
+    marginLeft: -DesignSystem.spacing.sm,
     zIndex: 1,
   },
   headerTitle: {
+    ...DesignSystem.typography.h3,
     fontSize: 20,
-    fontWeight: "600",
-    letterSpacing: -0.2,
-    position: "absolute",
-    left: 0,
-    right: 0,
+    flex: 1,
     textAlign: "center",
-    zIndex: 0,
   },
   headerRightSpacer: {
-    width: 40, // Same as back button width for visual balance
+    width: 40,
     zIndex: 1,
   },
   content: {
     flex: 1,
-    paddingTop: 20,
+  },
+  contentInner: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.xxxl,
+    gap: DesignSystem.spacing.md,
+  },
+  cardContainer: {
+    width: "100%",
+  },
+  cardSurface: {
+    overflow: "hidden",
+  },
+  optionsSurface: {
+    paddingVertical: DesignSystem.spacing.xs,
   },
   accountCard: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: 1,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  accountAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  accountAvatarInitial: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "white",
-    letterSpacing: 0.5,
+    padding: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.md,
   },
   accountInfo: {
     flex: 1,
+    minWidth: 0,
   },
   accountName: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-    letterSpacing: -0.3,
+    ...DesignSystem.typography.h4,
+    fontSize: 18,
+    marginBottom: 2,
   },
   accountEmail: {
-    fontSize: 15,
-    opacity: 0.7,
-    letterSpacing: 0.2,
+    ...DesignSystem.typography.small,
+    fontSize: 14,
+    opacity: 0.85,
   },
   editIconContainer: {
     width: 36,
@@ -483,25 +471,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  optionsContainer: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
   optionButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.md,
   },
   iconContainer: {
     width: 36,
@@ -509,12 +483,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: DesignSystem.spacing.md,
   },
   optionText: {
-    fontSize: 16,
-    fontWeight: "500",
-    letterSpacing: 0.1,
+    ...DesignSystem.typography.bodyMedium,
     flex: 1,
+    fontSize: 16,
   },
 });
