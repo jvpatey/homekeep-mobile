@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
@@ -21,6 +21,8 @@ interface CategorySelectorProps {
   selectedCategory: MaintenanceCategory;
   onSelectCategory: (categoryId: MaintenanceCategory) => void;
   error?: string;
+  /** Increment from parent to close dropdown (backdrop / tap-outside). */
+  dismissChromeToken?: number;
 }
 
 // CategorySelector component for the CreateTaskModal
@@ -29,11 +31,16 @@ export function CategorySelector({
   selectedCategory,
   onSelectCategory,
   error,
+  dismissChromeToken = 0,
 }: CategorySelectorProps) {
   const { colors } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [dismissChromeToken]);
 
   const selectedCategoryData = categories.find(
     (c) => c.id === selectedCategory

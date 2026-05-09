@@ -1,12 +1,19 @@
 import React, { useState } from "react";
-import { View, Text } from "react-native";
+import {
+  View,
+  Text,
+  TextInput as RNTextInput,
+  Platform,
+  type NativeSyntheticEvent,
+  type TextInputSubmitEditingEventData,
+} from "react-native";
 import { TextInput, HelperText } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
 
-interface FormFieldProps {
+export interface FormFieldProps {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
@@ -19,23 +26,35 @@ interface FormFieldProps {
   inputAccessoryViewID?: string;
   required?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  returnKeyType?: React.ComponentProps<typeof TextInput>["returnKeyType"];
+  blurOnSubmit?: boolean;
+  onSubmitEditing?: (
+    e: NativeSyntheticEvent<TextInputSubmitEditingEventData>
+  ) => void;
 }
 
 // FormField component for the CreateTaskModal
-export function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  error,
-  multiline = false,
-  numberOfLines = 1,
-  keyboardType = "default",
-  inputAccessoryViewID,
-  required = false,
-  autoCapitalize = "none",
-}: FormFieldProps) {
-  const { colors } = useTheme();
+export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
+  function FormField(
+    {
+      label,
+      value,
+      onChangeText,
+      placeholder,
+      error,
+      multiline = false,
+      numberOfLines = 1,
+      keyboardType = "default",
+      inputAccessoryViewID,
+      required = false,
+      autoCapitalize = "none",
+      returnKeyType,
+      blurOnSubmit,
+      onSubmitEditing,
+    },
+    ref
+  ) {
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier } = useDevice();
   const [isFocused, setIsFocused] = useState(false);
   const fontMultiplier = getFontMultiplier();
@@ -77,6 +96,7 @@ export function FormField({
         ]}
       >
         <TextInput
+          ref={ref}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -89,13 +109,23 @@ export function FormField({
           ]}
           textColor={colors.text}
           placeholderTextColor={colors.textSecondary}
+          cursorColor={colors.primary}
+          selectionColor={
+            Platform.OS === "ios"
+              ? `${colors.primary}55`
+              : `${colors.primary}99`
+          }
           mode="flat"
           error={!!error}
           multiline={multiline}
           numberOfLines={numberOfLines}
           keyboardType={keyboardType}
           inputAccessoryViewID={inputAccessoryViewID}
+          keyboardAppearance={isDark ? "dark" : "light"}
           autoCapitalize={autoCapitalize}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={blurOnSubmit}
+          onSubmitEditing={onSubmitEditing}
           theme={getInputTheme()}
           dense={false}
           underlineColor="transparent"
@@ -113,4 +143,5 @@ export function FormField({
       )}
     </View>
   );
-}
+  }
+);

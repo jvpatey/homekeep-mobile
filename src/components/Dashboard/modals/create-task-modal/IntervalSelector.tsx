@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
@@ -14,6 +14,8 @@ interface IntervalSelectorProps {
   onSelectInterval: (interval: number) => void;
   onIntervalValueChange: (value: number) => void;
   error?: string;
+  /** Increment from parent to close dropdown (backdrop / tap-outside). */
+  dismissChromeToken?: number;
 }
 
 // IntervalSelector component
@@ -23,11 +25,16 @@ export function IntervalSelector({
   onSelectInterval,
   onIntervalValueChange,
   error,
+  dismissChromeToken = 0,
 }: IntervalSelectorProps) {
   const { colors } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [dismissChromeToken]);
 
   const getIntervalLabel = (interval: number) => {
     switch (interval) {

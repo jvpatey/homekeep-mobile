@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
@@ -18,6 +18,8 @@ interface PrioritySelectorProps {
   priorities: PriorityOption[];
   selectedPriority: Priority;
   onSelectPriority: (priorityId: Priority) => void;
+  /** Increment from parent to close dropdown (backdrop / tap-outside). */
+  dismissChromeToken?: number;
 }
 
 // PrioritySelector component for the CreateTaskModal
@@ -25,11 +27,16 @@ export function PrioritySelector({
   priorities,
   selectedPriority,
   onSelectPriority,
+  dismissChromeToken = 0,
 }: PrioritySelectorProps) {
   const { colors } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [dismissChromeToken]);
 
   const selectedPriorityData = priorities.find(
     (p) => p.id === selectedPriority

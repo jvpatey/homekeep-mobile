@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   ScrollView,
   Alert,
@@ -13,7 +13,9 @@ import {
   Pressable,
   InputAccessoryView,
   useWindowDimensions,
+  TextInput as RNTextInput,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -28,6 +30,7 @@ import { useDevice } from "../../../../hooks";
 import { useTasks } from "../../../../context/TasksContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
+import { GlassCard } from "../../../ui/glass-card/GlassCard";
 import { FormField } from "./FormField";
 import { CategorySelector } from "./CategorySelector";
 import { PrioritySelector } from "./PrioritySelector";
@@ -77,8 +80,21 @@ export function CreateTaskModal({
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const sheetMaxHeight = windowHeight * 0.85;
+  /** Title row + gradient padding; avoids flex-collapsed BlurView (hairline sheet bug). */
+  const scrollViewportMaxHeight = Math.max(
+    300,
+    sheetMaxHeight -
+      (DesignSystem.spacing.lg * 2 +
+        DesignSystem.spacing.md +
+        DesignSystem.spacing.lg +
+        72)
+  );
+  const descriptionFieldRef = useRef<RNTextInput | null>(null);
+  const durationFieldRef = useRef<RNTextInput | null>(null);
   const maxModalWidth = isTablet
     ? getResponsiveValue(420, 600, 700)
     : 420;
@@ -90,7 +106,7 @@ export function CreateTaskModal({
   // Animation values
   const scale = useSharedValue(0.7);
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(20);
+  const translateY = useSharedValue(50);
   const contentOpacity = useSharedValue(0);
 
   const [form, setForm] = useState<MaintenanceRoutineForm>({
@@ -139,12 +155,33 @@ export function CreateTaskModal({
   const [isTyping, setIsTyping] = useState(false);
   const summaryRef = useRef<View>(null);
 
-  // Entrance animation
+  const [dismissChromeToken, setDismissChromeToken] = useState(0);
+  const dismissFormChrome = useCallback(() => {
+    Keyboard.dismiss();
+    setDismissChromeToken((t) => t + 1);
+  }, []);
+
+  const motionFast = DesignSystem.motion.duration.fast;
+  const motionEasing = DesignSystem.motion.easing.standard;
+
+  // Entrance animation (aligned with DueSoonPopup / StreakPopup)
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 200 });
-    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-    translateY.value = withTiming(0, { duration: 200 });
-    contentOpacity.value = withTiming(1, { duration: 200 });
+    opacity.value = withTiming(1, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    scale.value = withSpring(1, DesignSystem.motion.spring.snappy);
+    translateY.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    contentOpacity.value = withDelay(
+      DesignSystem.motion.stagger,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: motionEasing,
+      })
+    );
   }, []);
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
@@ -354,12 +391,27 @@ export function CreateTaskModal({
         "rgba(255, 255, 255, 0.85)",
       ] as const);
 
+  const scrollBottomPadding =
+    insets.bottom + DesignSystem.spacing.xxxl + DesignSystem.spacing.md;
+
   const handleClose = () => {
-    // Exit animation
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.95, { duration: 150 });
-    translateY.value = withTiming(20, { duration: 150 });
-    setTimeout(onClose, 150);
+    contentOpacity.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    opacity.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    scale.value = withTiming(0.96, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    translateY.value = withTiming(20, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    setTimeout(onClose, motionFast);
   };
 
   return (
@@ -384,7 +436,7 @@ export function CreateTaskModal({
             }}
           >
             <TouchableOpacity
-              onPress={() => Keyboard.dismiss()}
+              onPress={dismissFormChrome}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Text
@@ -408,27 +460,24 @@ export function CreateTaskModal({
         <View style={styles.overlayRoot}>
           <Pressable
             style={styles.backdrop}
-            onPress={Keyboard.dismiss}
+            onPress={dismissFormChrome}
             accessibilityRole="button"
-            accessibilityLabel="Dismiss keyboard"
+            accessibilityLabel="Dismiss keyboard and close menus"
           />
           <View style={styles.overlayForeground} pointerEvents="box-none">
             <Animated.View
               pointerEvents="auto"
-                style={[
-                  styles.container,
-                  { width: modalCardWidth },
-                  containerAnimatedStyle,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(15, 23, 42, 0.95)"
-                      : "rgba(255, 255, 255, 0.95)",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(46, 196, 182, 0.3)"
-                      : "rgba(46, 196, 182, 0.2)",
-                  },
-                ]}
+              style={[
+                styles.container,
+                { width: modalCardWidth, maxHeight: sheetMaxHeight },
+                containerAnimatedStyle,
+              ]}
+            >
+              <GlassCard
+                material="thick"
+                radius={DesignSystem.borders.radius.glass}
+                containerStyle={styles.glassCardOuter}
+                style={styles.glassCardInner}
               >
                 <LinearGradient
                   colors={glassGradient}
@@ -436,6 +485,7 @@ export function CreateTaskModal({
                   end={{ x: 1, y: 1 }}
                   style={[
                     styles.gradientBackground,
+                    { maxHeight: sheetMaxHeight },
                     isTablet && {
                       padding: getResponsiveValue(
                         DesignSystem.spacing.xl,
@@ -473,33 +523,39 @@ export function CreateTaskModal({
                     />
                   </TouchableOpacity>
 
-                  {/* Title */}
-                  <Text
-                    style={[
-                      styles.modalTitle,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
-                      },
-                      isTablet && {
-                        fontSize: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()),
-                        lineHeight: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()) * 1.2,
-                      },
-                    ]}
-                  >
-                    {isEdit ? "Edit Task" : "Let's add your task"}
-                  </Text>
+                  <Animated.View style={contentAnimatedStyle}>
+                    <Pressable onPress={dismissFormChrome}>
+                      {/* Title — tap dismisses keyboard / closes dropdowns */}
+                      <Text
+                        style={[
+                          styles.modalTitle,
+                          {
+                            color: isDark
+                              ? "rgba(255, 255, 255, 0.95)"
+                              : "rgba(15, 23, 42, 0.9)",
+                          },
+                          isTablet && {
+                            fontSize: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()),
+                            lineHeight: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()) * 1.2,
+                          },
+                        ]}
+                      >
+                        {isEdit ? "Edit Task" : "Let's add your task"}
+                      </Text>
+                    </Pressable>
 
-                  {/* Content */}
-                  <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{
-                      paddingBottom: DesignSystem.spacing.xxxl,
-                    }}
-                    keyboardShouldPersistTaps="always"
-                    keyboardDismissMode="on-drag"
-                  >
+                    <ScrollView
+                      style={{ maxHeight: scrollViewportMaxHeight }}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{
+                        paddingBottom: scrollBottomPadding,
+                      }}
+                      keyboardShouldPersistTaps="handled"
+                      keyboardDismissMode={
+                        Platform.OS === "ios" ? "interactive" : "on-drag"
+                      }
+                      onScrollBeginDrag={dismissFormChrome}
+                    >
                     <FormField
                       label="Task Title"
                       value={form.title}
@@ -508,11 +564,16 @@ export function CreateTaskModal({
                       error={errors.title}
                       autoCapitalize="words"
                       required
+                      returnKeyType="next"
+                      onSubmitEditing={() =>
+                        descriptionFieldRef.current?.focus()
+                      }
                     />
 
                     <CategorySelector
                       categories={categories}
                       selectedCategory={form.category}
+                      dismissChromeToken={dismissChromeToken}
                       onSelectCategory={(categoryId) => {
                         updateForm("category", categoryId);
                       }}
@@ -522,12 +583,14 @@ export function CreateTaskModal({
                     <PrioritySelector
                       priorities={priorities}
                       selectedPriority={form.priority}
+                      dismissChromeToken={dismissChromeToken}
                       onSelectPriority={(priorityId) =>
                         updateForm("priority", priorityId)
                       }
                     />
 
                     <FormField
+                      ref={descriptionFieldRef}
                       label="Instructions (Optional)"
                       value={form.description || ""}
                       onChangeText={(text) =>
@@ -537,9 +600,11 @@ export function CreateTaskModal({
                       multiline
                       numberOfLines={3}
                       autoCapitalize="sentences"
+                      blurOnSubmit={false}
                     />
 
                     <FormField
+                      ref={durationFieldRef}
                       label="Estimated Duration (minutes)"
                       value={form.estimated_duration_minutes.toString()}
                       onChangeText={(text) => {
@@ -558,11 +623,14 @@ export function CreateTaskModal({
                       }
                       error={errors.estimated_duration_minutes?.toString()}
                       required
+                      returnKeyType="done"
+                      onSubmitEditing={dismissFormChrome}
                     />
 
                     <IntervalSelector
                       selectedInterval={selectedInterval}
                       intervalValue={intervalValue}
+                      dismissChromeToken={dismissChromeToken}
                       onSelectInterval={(interval: number) =>
                         setSelectedInterval(interval)
                       }
@@ -572,33 +640,35 @@ export function CreateTaskModal({
 
                     <StartDateSelector
                       startDate={form.startDate}
+                      dismissChromeToken={dismissChromeToken}
                       onStartDateChange={(date) =>
                         updateForm("startDate", date)
                       }
                     />
 
                     {/* Summary Section */}
-                    <View
-                      ref={summaryRef}
-                      style={[
-                        styles.summaryContainer,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(46, 196, 182, 0.1)"
-                            : "rgba(147, 197, 253, 0.12)",
-                          borderColor: isDark
-                            ? "rgba(46, 196, 182, 0.2)"
-                            : "rgba(59, 130, 246, 0.2)",
-                        },
-                        isTablet && {
-                          padding: getResponsiveValue(
-                            DesignSystem.spacing.md,
-                            DesignSystem.spacing.lg,
-                            DesignSystem.spacing.xl,
-                          ),
-                        },
-                      ]}
-                    >
+                    <Pressable onPress={dismissFormChrome}>
+                      <View
+                        ref={summaryRef}
+                        style={[
+                          styles.summaryContainer,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(46, 196, 182, 0.1)"
+                              : "rgba(147, 197, 253, 0.12)",
+                            borderColor: isDark
+                              ? "rgba(46, 196, 182, 0.2)"
+                              : "rgba(59, 130, 246, 0.2)",
+                          },
+                          isTablet && {
+                            padding: getResponsiveValue(
+                              DesignSystem.spacing.md,
+                              DesignSystem.spacing.lg,
+                              DesignSystem.spacing.xl,
+                            ),
+                          },
+                        ]}
+                      >
                       <Text
                         style={[
                           styles.summaryTitle,
@@ -644,6 +714,7 @@ export function CreateTaskModal({
                         )}
                       </Text>
                     </View>
+                    </Pressable>
 
                     {/* Submit Button */}
                     <View
@@ -661,9 +732,11 @@ export function CreateTaskModal({
                         title={isEdit ? "Save Changes" : "Add Task"}
                       />
                     </View>
-                  </ScrollView>
+                    </ScrollView>
+                  </Animated.View>
                 </LinearGradient>
-              </Animated.View>
+              </GlassCard>
+            </Animated.View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -689,8 +762,13 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   container: {
-    maxHeight: "85%",
-    borderRadius: DesignSystem.borders.radius.xlarge,
+    borderRadius: DesignSystem.borders.radius.glass,
+    overflow: "hidden",
+  },
+  glassCardOuter: {
+    width: "100%",
+  },
+  glassCardInner: {
     overflow: "hidden",
   },
   gradientBackground: {
