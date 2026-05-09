@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,6 +28,7 @@ interface DashboardHeaderProps {
   onRefresh?: () => void;
   onShowDueSoonPopup: () => void;
   onShowStreakPopup: () => void;
+  onOpenEquipmentManuals?: () => void;
 }
 
 // DashboardHeader Component used in the Dashboard
@@ -40,6 +42,7 @@ export function DashboardHeader({
   onRefresh,
   onShowDueSoonPopup,
   onShowStreakPopup,
+  onOpenEquipmentManuals,
 }: DashboardHeaderProps) {
   const { colors, isDark } = useTheme();
   const { isTablet, getResponsiveValue, width, height } = useDevice();
@@ -202,7 +205,35 @@ export function DashboardHeader({
               accessibilityRole="image"
               accessibilityLabel="HomeKeep"
             />
-            <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: DesignSystem.spacing.sm,
+              }}
+            >
+              {onOpenEquipmentManuals ? (
+                <TouchableOpacity
+                  onPress={onOpenEquipmentManuals}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{
+                    minWidth: headerAvatarSize,
+                    minHeight: headerAvatarSize,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open equipment manuals"
+                >
+                  <Ionicons
+                    name="book-outline"
+                    size={isTablet ? getResponsiveValue(24, 26, 28) : 24}
+                    color={isDark ? colors.text : "rgba(15, 23, 42, 0.85)"}
+                  />
+                </TouchableOpacity>
+              ) : null}
+              <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
+            </View>
           </Animated.View>
 
           <View style={headerStyles.headerContent}>
