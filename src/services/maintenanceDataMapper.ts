@@ -27,6 +27,7 @@ export class MaintenanceDataMapper {
       created_at: instance.routine.created_at,
       updated_at: instance.routine.updated_at,
       is_active: instance.routine.is_active,
+      source_plan_id: instance.routine.source_plan_id ?? null,
     };
   }
 

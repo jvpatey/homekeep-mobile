@@ -11,6 +11,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { GlassCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import type { NewHomeownerStarterAnswers } from "../../data/maintenancePlans";
+import { useMaintenancePlanAccent } from "./MaintenancePlanAccentContext";
 
 interface NewHomeownerStarterQuestionnaireProps {
   onComplete: (answers: NewHomeownerStarterAnswers) => void;
@@ -24,6 +25,7 @@ export function NewHomeownerStarterQuestionnaire({
   initialAnswers,
 }: NewHomeownerStarterQuestionnaireProps) {
   const { colors, isDark } = useTheme();
+  const accent = useMaintenancePlanAccent();
   const [hasHeatPump, setHasHeatPump] = useState<boolean | null>(null);
   const [hasAirExchanger, setHasAirExchanger] = useState<boolean | null>(null);
   const [hasWaterSoftener, setHasWaterSoftener] = useState<boolean | null>(
@@ -109,7 +111,7 @@ export function NewHomeownerStarterQuestionnaire({
       style={[
         styles.choiceRow,
         {
-          borderColor: selected ? colors.primary : colors.border,
+          borderColor: selected ? accent : colors.border,
           backgroundColor: selected
             ? isDark
               ? "rgba(255,255,255,0.06)"
@@ -125,7 +127,7 @@ export function NewHomeownerStarterQuestionnaire({
     >
       <Text style={[styles.choiceLabel, { color: colors.text }]}>{label}</Text>
       {selected ? (
-        <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+        <Ionicons name="checkmark-circle" size={22} color={accent} />
       ) : (
         <View
           style={[
@@ -345,7 +347,7 @@ export function NewHomeownerStarterQuestionnaire({
           style={[
             styles.primaryBtn,
             {
-              backgroundColor: canContinue ? colors.primary : colors.border,
+              backgroundColor: canContinue ? accent : colors.border,
             },
           ]}
           onPress={handleContinue}

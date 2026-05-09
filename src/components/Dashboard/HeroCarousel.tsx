@@ -370,6 +370,7 @@ export function HeroCarousel({
                 interval_days={task.interval_days}
                 due_date={task.due_date}
                 is_completed={task.is_completed}
+                source_plan_id={task.source_plan_id}
                 onComplete={onCompleteTask}
                 onPress={onTaskPress}
                 cardWidth={cardWidth}

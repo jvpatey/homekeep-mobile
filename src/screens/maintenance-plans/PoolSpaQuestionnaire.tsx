@@ -11,6 +11,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { GlassCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import type { PoolSpaAnswers } from "../../data/maintenancePlans";
+import { useMaintenancePlanAccent } from "./MaintenancePlanAccentContext";
 
 interface PoolSpaQuestionnaireProps {
   onComplete: (answers: PoolSpaAnswers) => void;
@@ -24,6 +25,7 @@ export function PoolSpaQuestionnaire({
   initialAnswers,
 }: PoolSpaQuestionnaireProps) {
   const { colors, isDark } = useTheme();
+  const accent = useMaintenancePlanAccent();
   const [hasPool, setHasPool] = useState<boolean | null>(null);
   const [hasSpa, setHasSpa] = useState<boolean | null>(null);
   const [poolUsesSaltChlorination, setPoolUsesSaltChlorination] = useState<
@@ -100,7 +102,7 @@ export function PoolSpaQuestionnaire({
       style={[
         styles.choiceRow,
         {
-          borderColor: selected ? colors.primary : colors.border,
+          borderColor: selected ? accent : colors.border,
           backgroundColor: selected
             ? isDark
               ? "rgba(255,255,255,0.06)"
@@ -116,7 +118,7 @@ export function PoolSpaQuestionnaire({
     >
       <Text style={[styles.choiceLabel, { color: colors.text }]}>{label}</Text>
       {selected ? (
-        <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+        <Ionicons name="checkmark-circle" size={22} color={accent} />
       ) : (
         <View
           style={[
@@ -244,7 +246,7 @@ export function PoolSpaQuestionnaire({
           style={[
             styles.primaryBtn,
             {
-              backgroundColor: canContinue ? colors.primary : colors.border,
+              backgroundColor: canContinue ? accent : colors.border,
             },
           ]}
           onPress={handleContinue}

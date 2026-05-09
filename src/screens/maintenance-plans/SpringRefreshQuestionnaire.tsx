@@ -11,6 +11,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { GlassCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import type { SpringRefreshAnswers } from "../../data/maintenancePlans";
+import { useMaintenancePlanAccent } from "./MaintenancePlanAccentContext";
 
 interface SpringRefreshQuestionnaireProps {
   /** When continuing with answers (never submit invalid state — parent validates). */
@@ -26,6 +27,7 @@ export function SpringRefreshQuestionnaire({
   initialAnswers,
 }: SpringRefreshQuestionnaireProps) {
   const { colors, isDark } = useTheme();
+  const accent = useMaintenancePlanAccent();
   const [hasLawn, setHasLawn] = useState<boolean | null>(null);
   const [propertyType, setPropertyType] = useState<
     "house" | "condo_townhome" | null
@@ -90,7 +92,7 @@ export function SpringRefreshQuestionnaire({
       style={[
         styles.choiceRow,
         {
-          borderColor: selected ? colors.primary : colors.border,
+          borderColor: selected ? accent : colors.border,
           backgroundColor: selected
             ? isDark
               ? "rgba(255,255,255,0.06)"
@@ -106,7 +108,7 @@ export function SpringRefreshQuestionnaire({
     >
       <Text style={[styles.choiceLabel, { color: colors.text }]}>{label}</Text>
       {selected ? (
-        <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+        <Ionicons name="checkmark-circle" size={22} color={accent} />
       ) : (
         <View
           style={[
@@ -235,7 +237,7 @@ export function SpringRefreshQuestionnaire({
           style={[
             styles.primaryBtn,
             {
-              backgroundColor: canContinue ? colors.primary : colors.border,
+              backgroundColor: canContinue ? accent : colors.border,
             },
           ]}
           onPress={handleContinue}

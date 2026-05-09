@@ -5,9 +5,6 @@ export const maintenancePlansStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  heroHalo: {
-    ...StyleSheet.absoluteFillObject,
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -48,6 +45,13 @@ export const maintenancePlansStyles = StyleSheet.create({
   },
   planRowText: {
     flex: 1,
+  },
+  planIconBubble: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   planTitle: {
     ...DesignSystem.typography.bodySemiBold,

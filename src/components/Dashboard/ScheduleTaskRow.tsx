@@ -8,6 +8,10 @@ import { DesignSystem } from "../../theme/designSystem";
 import { timelineStyles } from "./timeline-view/styles";
 import { getPriorityColor } from "./timeline-view/utils";
 import { hexWithAlpha } from "./popups/popupChrome";
+import {
+  getPlanTheme,
+  getPlanTaskSurfaceStyle,
+} from "../../data/maintenancePlans/planThemes";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
@@ -30,6 +34,40 @@ export function ScheduleTaskRow({
   const isDueSoon = variant === "dueSoon";
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
+
+  const planTheme = getPlanTheme(task.source_plan_id ?? undefined);
+  const planSurface = planTheme
+    ? getPlanTaskSurfaceStyle(planTheme, isDark)
+    : null;
+
+  const defaultGlassBg = isDark
+    ? "rgba(35, 37, 38, 0.4)"
+    : "rgba(255, 255, 255, 0.4)";
+  const defaultGlassBorder = isDark
+    ? "rgba(255, 255, 255, 0.1)"
+    : "rgba(255, 255, 255, 0.6)";
+
+  const cardBackground = isDueSoon
+    ? isDark
+      ? hexWithAlpha(colors.primary, 0.07)
+      : hexWithAlpha(colors.primary, 0.05)
+    : planSurface
+      ? planSurface.backgroundColor
+      : defaultGlassBg;
+
+  const cardBorderColor = isDueSoon
+    ? hexWithAlpha(colors.primary, isDark ? 0.22 : 0.32)
+    : planSurface
+      ? planSurface.borderColor
+      : defaultGlassBorder;
+
+  const timelineDotFill = isDueSoon
+    ? colors.primary
+    : planTheme?.primary ?? colors.primary;
+
+  const timelineDotRing = isDueSoon
+    ? hexWithAlpha(colors.primary, isDark ? 0.45 : 0.35)
+    : colors.surface;
 
   return (
     <TouchableOpacity
@@ -63,10 +101,8 @@ export function ScheduleTaskRow({
           style={[
             timelineStyles.timelineDot,
             {
-              backgroundColor: colors.primary,
-              borderColor: isDueSoon
-                ? hexWithAlpha(colors.primary, isDark ? 0.45 : 0.35)
-                : colors.surface,
+              backgroundColor: timelineDotFill,
+              borderColor: timelineDotRing,
             },
             isTablet && {
               width: getResponsiveValue(12, 14, 16),
@@ -93,19 +129,12 @@ export function ScheduleTaskRow({
         style={[
           timelineStyles.taskContent,
           {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDueSoon
-              ? hexWithAlpha(colors.primary, isDark ? 0.22 : 0.32)
-              : isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(255, 255, 255, 0.6)",
+            backgroundColor: cardBackground,
+            borderColor: cardBorderColor,
             borderWidth: 1,
-            ...(isDueSoon && {
-              backgroundColor: isDark
-                ? hexWithAlpha(colors.primary, 0.07)
-                : hexWithAlpha(colors.primary, 0.05),
+            ...(planTheme && !isDueSoon && {
+              borderLeftWidth: 4,
+              borderLeftColor: planTheme.primary,
             }),
           },
           isTablet && {

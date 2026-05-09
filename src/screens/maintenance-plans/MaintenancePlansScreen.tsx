@@ -11,13 +11,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
-import { useGradients, useHaptics } from "../../hooks";
+import { useHaptics } from "../../hooks";
 import { GlassCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import {
@@ -29,6 +28,7 @@ import {
   filterColdWeatherPrepItems,
   filterNewHomeownerStarterItems,
   filterPoolSpaItems,
+  getPlanTheme,
 } from "../../data/maintenancePlans";
 import type {
   SpringRefreshAnswers,
@@ -42,6 +42,7 @@ import { SpringRefreshQuestionnaire } from "./SpringRefreshQuestionnaire";
 import { ColdWeatherPrepQuestionnaire } from "./ColdWeatherPrepQuestionnaire";
 import { NewHomeownerStarterQuestionnaire } from "./NewHomeownerStarterQuestionnaire";
 import { PoolSpaQuestionnaire } from "./PoolSpaQuestionnaire";
+import { MaintenancePlanAccentProvider } from "./MaintenancePlanAccentContext";
 
 const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   spring: "Spring",
@@ -76,7 +77,6 @@ function formatIntervalDays(days: number): string {
 
 export function MaintenancePlansScreen() {
   const { colors, isDark } = useTheme();
-  const { haloGradient } = useGradients();
   const { triggerMedium, triggerLight } = useHaptics();
   const { applyMaintenancePlan } = useTasks();
   const navigation =
@@ -94,6 +94,16 @@ export function MaintenancePlansScreen() {
     useState<PoolSpaAnswers | null>(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
   const [applying, setApplying] = useState(false);
+
+  const planFlowAccent = useMemo(() => {
+    if (
+      !detailPlan ||
+      (phase !== "questionnaire" && phase !== "pickTasks")
+    ) {
+      return undefined;
+    }
+    return getPlanTheme(detailPlan.id)?.primary;
+  }, [detailPlan, phase]);
 
   const resolvedDetailItems = useMemo((): MaintenancePlanItemTemplate[] => {
     if (!detailPlan) return [];
@@ -257,7 +267,15 @@ export function MaintenancePlansScreen() {
     return "Maintenance plans";
   };
 
-  const renderPlanList = () => (
+  const renderPlanList = () => {
+    const mutedFill = isDark
+      ? "rgba(255,255,255,0.08)"
+      : "rgba(0,0,0,0.05)";
+    const mutedBorder = isDark
+      ? "rgba(255,255,255,0.12)"
+      : "rgba(0,0,0,0.08)";
+
+    return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={maintenancePlansStyles.scrollContent}
@@ -268,7 +286,9 @@ export function MaintenancePlansScreen() {
         containerStyle={maintenancePlansStyles.cardContainer}
         style={maintenancePlansStyles.cardSurface}
       >
-        {MAINTENANCE_PLANS.map((plan, index) => (
+        {MAINTENANCE_PLANS.map((plan, index) => {
+          const theme = getPlanTheme(plan.id);
+          return (
           <TouchableOpacity
             key={plan.id}
             onPress={() => openPlan(plan)}
@@ -285,15 +305,29 @@ export function MaintenancePlansScreen() {
               },
             ]}
           >
+            {theme ? (
+              <View
+                style={[
+                  maintenancePlansStyles.planIconBubble,
+                  { backgroundColor: mutedFill },
+                ]}
+              >
+                <Ionicons
+                  name={theme.icon}
+                  size={22}
+                  color={theme.primary}
+                />
+              </View>
+            ) : null}
             <View style={maintenancePlansStyles.planRowText}>
               {plan.tag ? (
                 <View
                   style={[
                     maintenancePlansStyles.tagPill,
                     {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.05)",
+                      backgroundColor: mutedFill,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: mutedBorder,
                     },
                   ]}
                 >
@@ -339,18 +373,21 @@ export function MaintenancePlansScreen() {
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={colors.textSecondary}
+              color={theme?.primary ?? colors.textSecondary}
             />
           </TouchableOpacity>
-        ))}
+          );
+        })}
       </GlassCard>
     </ScrollView>
-  );
+    );
+  };
 
   const renderTaskPicker = (plan: MaintenancePlanDefinition) => {
     const items = resolvedDetailItems;
     const maskOk =
       selectedMask.length === items.length && items.length > 0;
+    const accent = getPlanTheme(plan.id)?.primary ?? colors.primary;
 
     return (
       <>
@@ -368,12 +405,12 @@ export function MaintenancePlansScreen() {
 
           <View style={maintenancePlansStyles.pickActionsRow}>
             <TouchableOpacity onPress={selectAllTasks} accessibilityRole="button">
-              <Text style={[maintenancePlansStyles.pickActionText, { color: colors.primary }]}>
+              <Text style={[maintenancePlansStyles.pickActionText, { color: accent }]}>
                 Select all
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={clearAllTasks} accessibilityRole="button">
-              <Text style={[maintenancePlansStyles.pickActionText, { color: colors.primary }]}>
+              <Text style={[maintenancePlansStyles.pickActionText, { color: accent }]}>
                 Clear all
               </Text>
             </TouchableOpacity>
@@ -430,7 +467,7 @@ export function MaintenancePlansScreen() {
                     <Ionicons
                       name={checked ? "checkbox" : "square-outline"}
                       size={26}
-                      color={checked ? colors.primary : colors.textSecondary}
+                      color={checked ? accent : colors.textSecondary}
                     />
                   </View>
                   <View style={maintenancePlansStyles.taskRowMain}>
@@ -468,7 +505,7 @@ export function MaintenancePlansScreen() {
               maintenancePlansStyles.applyButton,
               {
                 backgroundColor:
-                  applying || selectedCount === 0 ? colors.border : colors.primary,
+                  applying || selectedCount === 0 ? colors.border : accent,
                 opacity: applying ? 0.7 : 1,
               },
             ]}
@@ -599,14 +636,6 @@ export function MaintenancePlansScreen() {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <LinearGradient
-        colors={[...haloGradient]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={maintenancePlansStyles.heroHalo}
-        pointerEvents="none"
-      />
-
       <View style={maintenancePlansStyles.header}>
         <TouchableOpacity
           style={maintenancePlansStyles.backButton}
@@ -627,11 +656,24 @@ export function MaintenancePlansScreen() {
         <View style={maintenancePlansStyles.headerRightSpacer} />
       </View>
 
+      {planFlowAccent ? (
+        <View
+          style={{
+            height: 3,
+            backgroundColor: planFlowAccent,
+            marginHorizontal: DesignSystem.spacing.lg,
+            borderRadius: 2,
+          }}
+        />
+      ) : null}
+
+      <MaintenancePlanAccentProvider accentHex={planFlowAccent}>
       {phase === "list" && renderPlanList()}
       {phase === "questionnaire" && renderQuestionnaire()}
       {phase === "pickTasks" && detailPlan ? (
         <View style={{ flex: 1 }}>{renderTaskPicker(detailPlan)}</View>
       ) : null}
+      </MaintenancePlanAccentProvider>
     </SafeAreaView>
   );
 }

@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -16,6 +15,10 @@ import {
 import { colors } from "src/theme/colors";
 import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
+import {
+  getPlanTheme,
+  getPlanTaskSurfaceStyle,
+} from "../../../data/maintenancePlans/planThemes";
 
 // TaskCardProps interface for the TaskCard component
 interface TaskCardProps {
@@ -28,6 +31,8 @@ interface TaskCardProps {
   interval_days: number;
   due_date: string;
   is_completed?: boolean;
+  /** When set, card shows subtle plan theme tint (guided plan provenance). */
+  source_plan_id?: string | null;
   onComplete: (instanceId: string) => void;
   onPress?: (instanceId: string) => void;
   cardWidth?: number;
@@ -44,6 +49,7 @@ export function TaskCard({
   interval_days,
   due_date,
   is_completed = false,
+  source_plan_id,
   onComplete,
   onPress,
   cardWidth,
@@ -51,6 +57,11 @@ export function TaskCard({
   const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
+
+  const planTheme = getPlanTheme(source_plan_id ?? undefined);
+  const planSurface = planTheme
+    ? getPlanTaskSurfaceStyle(planTheme, isDark)
+    : null;
 
   const fontMultiplier = getFontMultiplier();
   // Card height is responsive for iPad
@@ -169,13 +180,21 @@ export function TaskCard({
         style={[
           styles.container,
           {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
+            backgroundColor: planSurface
+              ? planSurface.backgroundColor
+              : isDark
+                ? "rgba(35, 37, 38, 0.4)"
+                : "rgba(255, 255, 255, 0.4)",
+            borderColor: planSurface
+              ? planSurface.borderColor
+              : isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(255, 255, 255, 0.6)",
             borderWidth: 1,
+            ...(planTheme && {
+              borderLeftWidth: 4,
+              borderLeftColor: planTheme.primary,
+            }),
           },
           cardWidth ? { width: cardWidth } : undefined,
           { height: cardHeight },

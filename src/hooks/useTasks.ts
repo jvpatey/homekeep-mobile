@@ -217,10 +217,14 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         }
       }
 
-      const payloads =
+      const payloads = (
         itemsOverride !== undefined
           ? buildRoutinePayloadsFromItems(itemsOverride)
-          : buildRoutinePayloads(plan);
+          : buildRoutinePayloads(plan)
+      ).map((row) => ({
+        ...row,
+        source_plan_id: planId,
+      }));
 
       if (payloads.length === 0) {
         return { success: true };

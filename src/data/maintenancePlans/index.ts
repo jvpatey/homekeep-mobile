@@ -34,6 +34,16 @@ export {
   POOL_SPA_BASE_TASK_CAP,
 } from "./poolSpa";
 export {
+  type MaintenancePlanTheme,
+  type PlanThemeIcon,
+  PLAN_THEMES,
+  getPlanTheme,
+  getPlanTaskSurfaceStyle,
+  getPlanAccentStripColor,
+  getPlanIconBubbleStyle,
+  getPlanTagPillStyle,
+} from "./planThemes";
+export {
   type NewHomeownerStarterAnswers,
   filterNewHomeownerStarterItems,
   getNewHomeownerStarterBaseItems,
