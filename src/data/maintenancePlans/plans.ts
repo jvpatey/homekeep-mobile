@@ -37,8 +37,8 @@ export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
     id: "new-homeowner-starter",
     title: "New homeowner starter",
     shortDescription:
-      "First-owner chores with short questions so HVAC, ventilator, softener, fridge filter, and septic tasks match your home—then pick what to add.",
-    body: "We only show heat pump, HRV/ERV, water-softener, refrigerator filter, and septic routines when you say you have that setup. Everything else is general; skip duplicates you already track in other plans.",
+      "First-owner chores with short questions so HVAC, ventilator, softener, fridge and vent-hood filters, and septic tasks match your home—then pick what to add.",
+    body: "We only show heat pump, HRV/ERV, water-softener, refrigerator filter, kitchen vent hood grease filters, and septic routines when you say you have that setup. Everything else is general; skip duplicates you already track in other plans.",
     tag: "starter",
     /** Full catalog; UI runs questionnaire filtering before the task picker. */
     items: getNewHomeownerStarterBaseItems(),
