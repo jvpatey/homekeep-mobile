@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -77,6 +80,7 @@ function formatIntervalDays(days: number): string {
 
 export function MaintenancePlansScreen() {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { triggerMedium, triggerLight } = useHaptics();
   const { applyMaintenancePlan } = useTasks();
   const navigation =
@@ -394,7 +398,13 @@ export function MaintenancePlansScreen() {
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={maintenancePlansStyles.scrollContent}
+          contentContainerStyle={[
+            maintenancePlansStyles.scrollContent,
+            {
+              paddingBottom:
+                DesignSystem.spacing.xxxl + 72 + insets.bottom,
+            },
+          ]}
         >
           <Text
             style={[maintenancePlansStyles.pickIntro, { color: colors.textSecondary }]}
@@ -494,9 +504,9 @@ export function MaintenancePlansScreen() {
           style={[
             maintenancePlansStyles.applyFooter,
             {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.background,
               borderTopColor: colors.border,
-              paddingBottom: DesignSystem.spacing.md,
+              paddingBottom: DesignSystem.spacing.md + insets.bottom,
             },
           ]}
         >
@@ -655,17 +665,6 @@ export function MaintenancePlansScreen() {
         </Text>
         <View style={maintenancePlansStyles.headerRightSpacer} />
       </View>
-
-      {planFlowAccent ? (
-        <View
-          style={{
-            height: 3,
-            backgroundColor: planFlowAccent,
-            marginHorizontal: DesignSystem.spacing.lg,
-            borderRadius: 2,
-          }}
-        />
-      ) : null}
 
       <MaintenancePlanAccentProvider accentHex={planFlowAccent}>
       {phase === "list" && renderPlanList()}

@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { GlassCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ColdWeatherPrepAnswers } from "../../data/maintenancePlans";
 import { useMaintenancePlanAccent } from "./MaintenancePlanAccentContext";
 
@@ -25,6 +26,7 @@ export function ColdWeatherPrepQuestionnaire({
   initialAnswers,
 }: ColdWeatherPrepQuestionnaireProps) {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const accent = useMaintenancePlanAccent();
   const [hasLawn, setHasLawn] = useState<boolean | null>(null);
   const [propertyType, setPropertyType] = useState<
@@ -217,7 +219,8 @@ export function ColdWeatherPrepQuestionnaire({
           styles.footer,
           {
             borderTopColor: colors.border,
-            backgroundColor: colors.surface,
+            backgroundColor: colors.background,
+            paddingBottom: DesignSystem.spacing.md + insets.bottom,
           },
         ]}
       >
