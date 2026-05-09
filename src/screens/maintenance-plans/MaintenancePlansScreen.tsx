@@ -24,6 +24,7 @@ import { GlassCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   MAINTENANCE_PLANS,
+  QUESTIONNAIRE_PLAN_IDS,
   MaintenancePlanDefinition,
   MaintenancePlanItemTemplate,
   MaintenancePlanTag,
@@ -57,13 +58,6 @@ const TAG_LABELS: Record<MaintenancePlanTag, string> = {
 };
 
 type FlowPhase = "list" | "questionnaire" | "pickTasks";
-
-const QUESTIONNAIRE_PLAN_IDS = new Set([
-  "spring-refresh",
-  "cold-weather-prep",
-  "new-homeowner-starter",
-  "pool-spa-care",
-]);
 
 function formatIntervalDays(days: number): string {
   if (days === 7) return "Every week";
@@ -130,22 +124,22 @@ export function MaintenancePlansScreen() {
     return detailPlan.items;
   }, [detailPlan, springAnswers, coldWeatherAnswers, starterAnswers, poolSpaAnswers]);
 
+  /** Stable identity for the resolved task list so selection resets when items change, not only when length does. */
+  const resolvedDetailItemsFingerprint = useMemo(
+    () =>
+      resolvedDetailItems
+        .map(
+          (item) =>
+            `${item.category}|${item.interval_days}|${item.title}`
+        )
+        .join("\x1e"),
+    [resolvedDetailItems]
+  );
+
   useEffect(() => {
     if (phase !== "pickTasks") return;
-    const n = resolvedDetailItems.length;
-    setSelectedMask((prev) => {
-      if (prev.length === n && n > 0) return prev;
-      return Array(n).fill(true);
-    });
-  }, [
-    phase,
-    detailPlan?.id,
-    springAnswers,
-    coldWeatherAnswers,
-    starterAnswers,
-    poolSpaAnswers,
-    resolvedDetailItems.length,
-  ]);
+    setSelectedMask(Array(resolvedDetailItems.length).fill(true));
+  }, [phase, detailPlan?.id, resolvedDetailItemsFingerprint, resolvedDetailItems]);
 
   const selectedItems = useMemo(() => {
     return resolvedDetailItems.filter((_, i) => selectedMask[i]);

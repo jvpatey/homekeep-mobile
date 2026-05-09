@@ -208,12 +208,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: "Maintenance plan not found" };
       }
 
-      if (
-        planId === "spring-refresh" ||
-        planId === "cold-weather-prep" ||
-        planId === "new-homeowner-starter" ||
-        planId === "pool-spa-care"
-      ) {
+      if (plan.requiresQuestionnaire) {
         if (!itemsOverride?.length) {
           return {
             success: false,

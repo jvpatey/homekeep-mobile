@@ -33,6 +33,8 @@ export interface MaintenancePlanDefinition {
   /** Optional longer copy on the detail view. */
   body?: string;
   tag?: MaintenancePlanTag;
+  /** When true, the UI collects answers before filtering tasks; apply must pass selected items. */
+  requiresQuestionnaire?: boolean;
   items: MaintenancePlanItemTemplate[];
 }
 
