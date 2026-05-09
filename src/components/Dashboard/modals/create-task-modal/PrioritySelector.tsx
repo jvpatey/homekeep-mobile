@@ -5,6 +5,7 @@ import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { Priority } from "../../../../types/maintenance";
+import { formControlFill } from "./formChrome";
 import { styles as sharedStyles } from "./styles";
 
 // PriorityOption interface
@@ -29,7 +30,7 @@ export function PrioritySelector({
   onSelectPriority,
   dismissChromeToken = 0,
 }: PrioritySelectorProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
@@ -58,8 +59,8 @@ export function PrioritySelector({
         style={[
           priorityStyles.dropdownButton,
           {
-            backgroundColor: colors.glass,
-            borderColor: "rgba(0, 0, 0, 0.1)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: colors.glassStroke,
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}

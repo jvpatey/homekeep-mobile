@@ -5,6 +5,7 @@ import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { intervalOptions } from "../../../Dashboard/modals/create-task-modal/data";
+import { formControlFill } from "./formChrome";
 import { styles as sharedStyles } from "./styles";
 
 // IntervalSelectorProps
@@ -27,7 +28,7 @@ export function IntervalSelector({
   error,
   dismissChromeToken = 0,
 }: IntervalSelectorProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
@@ -88,8 +89,8 @@ export function IntervalSelector({
         style={[
           intervalStyles.dropdownButton,
           {
-            backgroundColor: colors.glass,
-            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: error ? colors.error : colors.glassStroke,
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}
@@ -189,8 +190,8 @@ export function IntervalSelector({
         style={[
           intervalStyles.stepperContainer,
           {
-            backgroundColor: colors.glass,
-            borderColor: colors.glassBorder,
+            backgroundColor: formControlFill(isDark),
+            borderColor: colors.glassStroke,
           },
         ]}
       >

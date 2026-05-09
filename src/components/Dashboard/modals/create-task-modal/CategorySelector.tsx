@@ -5,6 +5,7 @@ import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { MaintenanceCategory } from "../../../../types/maintenance";
+import { formControlFill } from "./formChrome";
 import { styles as sharedStyles } from "./styles";
 
 // Category interface
@@ -33,7 +34,7 @@ export function CategorySelector({
   error,
   dismissChromeToken = 0,
 }: CategorySelectorProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
@@ -62,8 +63,8 @@ export function CategorySelector({
         style={[
           categoryStyles.dropdownButton,
           {
-            backgroundColor: colors.glass,
-            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: error ? colors.error : colors.glassStroke,
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}

@@ -26,7 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useHaptics } from "../../../../hooks/useHaptics";
-import { useDevice } from "../../../../hooks";
+import { useDevice, useGradients } from "../../../../hooks";
 import { useTasks } from "../../../../context/TasksContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
@@ -80,6 +80,7 @@ export function CreateTaskModal({
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
   const { colors, isDark } = useTheme();
+  const { haloGradient } = useGradients();
   const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -379,18 +380,6 @@ export function CreateTaskModal({
     }
   };
 
-  const glassGradient = isDark
-    ? ([
-        "rgba(46, 196, 182, 0.15)",
-        "rgba(58, 134, 255, 0.25)",
-        "rgba(15, 23, 42, 0.85)",
-      ] as const)
-    : ([
-        "rgba(46, 196, 182, 0.12)",
-        "rgba(147, 197, 253, 0.18)",
-        "rgba(255, 255, 255, 0.85)",
-      ] as const);
-
   const scrollBottomPadding =
     insets.bottom + DesignSystem.spacing.xxxl + DesignSystem.spacing.md;
 
@@ -480,9 +469,9 @@ export function CreateTaskModal({
                 style={styles.glassCardInner}
               >
                 <LinearGradient
-                  colors={glassGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                  colors={[...haloGradient]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
                   style={[
                     styles.gradientBackground,
                     { maxHeight: sheetMaxHeight },
@@ -501,13 +490,11 @@ export function CreateTaskModal({
                       styles.closeButton,
                       {
                         backgroundColor: isDark
-                          ? "rgba(46, 196, 182, 0.15)"
-                          : "rgba(46, 196, 182, 0.12)",
+                          ? "rgba(35, 37, 38, 0.55)"
+                          : "rgba(255, 255, 255, 0.45)",
                         borderRadius: 20,
-                        borderWidth: 1,
-                        borderColor: isDark
-                          ? "rgba(46, 196, 182, 0.3)"
-                          : "rgba(46, 196, 182, 0.25)",
+                        borderWidth: DesignSystem.borders.hairline,
+                        borderColor: colors.glassStroke,
                       },
                     ]}
                     onPress={handleClose}
@@ -515,11 +502,7 @@ export function CreateTaskModal({
                     <Ionicons
                       name="close"
                       size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
-                      color={
-                        isDark
-                          ? "rgba(255, 255, 255, 0.9)"
-                          : "rgba(15, 23, 42, 0.85)"
-                      }
+                      color={colors.text}
                     />
                   </TouchableOpacity>
 
@@ -529,11 +512,7 @@ export function CreateTaskModal({
                       <Text
                         style={[
                           styles.modalTitle,
-                          {
-                            color: isDark
-                              ? "rgba(255, 255, 255, 0.95)"
-                              : "rgba(15, 23, 42, 0.9)",
-                          },
+                          { color: colors.text },
                           isTablet && {
                             fontSize: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()),
                             lineHeight: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()) * 1.2,
@@ -654,11 +633,11 @@ export function CreateTaskModal({
                           styles.summaryContainer,
                           {
                             backgroundColor: isDark
-                              ? "rgba(46, 196, 182, 0.1)"
-                              : "rgba(147, 197, 253, 0.12)",
+                              ? "rgba(35, 37, 38, 0.4)"
+                              : "rgba(255, 255, 255, 0.4)",
                             borderColor: isDark
-                              ? "rgba(46, 196, 182, 0.2)"
-                              : "rgba(59, 130, 246, 0.2)",
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "rgba(255, 255, 255, 0.6)",
                           },
                           isTablet && {
                             padding: getResponsiveValue(
@@ -672,11 +651,7 @@ export function CreateTaskModal({
                       <Text
                         style={[
                           styles.summaryTitle,
-                          {
-                            color: isDark
-                              ? "rgba(255, 255, 255, 0.95)"
-                              : "rgba(15, 23, 42, 0.9)",
-                          },
+                          { color: colors.text },
                           isTablet && {
                             fontSize: ((styles.summaryTitle.fontSize || DesignSystem.typography.h4.fontSize) * getFontMultiplier()),
                             lineHeight: ((styles.summaryTitle.fontSize || DesignSystem.typography.h4.fontSize) * getFontMultiplier()) * 1.2,
@@ -688,11 +663,7 @@ export function CreateTaskModal({
                       <Text
                         style={[
                           styles.summaryText,
-                          {
-                            color: isDark
-                              ? "rgba(255, 255, 255, 0.8)"
-                              : "rgba(59, 130, 246, 0.85)",
-                          },
+                          { color: colors.textSecondary },
                           isTablet && {
                             fontSize: ((styles.summaryText.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),
                             lineHeight: ((styles.summaryText.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()) * 1.4,
@@ -701,13 +672,7 @@ export function CreateTaskModal({
                       >
                         {summaryText}
                         {isTyping && (
-                          <Text
-                            style={{
-                              color: isDark
-                                ? "rgba(46, 196, 182, 1)"
-                                : "rgba(59, 130, 246, 1)",
-                            }}
-                          >
+                          <Text style={{ color: colors.primary }}>
                             {" "}
                             ▊
                           </Text>

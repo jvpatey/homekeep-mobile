@@ -49,7 +49,6 @@ export const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.sm,
   },
   required: {
-    color: "#EF4444",
     fontWeight: "700",
   },
   glassInputWrapper: {
@@ -107,23 +106,21 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // Summary section styles - Glass card with gradient
+  // Summary — dashboard-style inset card
   summaryContainer: {
     borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.lg,
-    marginTop: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.lg,
-    borderWidth: DesignSystem.glass.borderWidth,
-    ...DesignSystem.shadows.glassStrong,
+    padding: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.md,
+    borderWidth: DesignSystem.borders.hairline,
+    ...DesignSystem.shadows.softKey,
   },
   summaryTitle: {
-    fontSize: DesignSystem.typography.h4.fontSize,
+    ...DesignSystem.typography.h4,
     fontWeight: "700",
     marginBottom: DesignSystem.spacing.sm,
   },
   summaryText: {
-    fontSize: DesignSystem.typography.body.fontSize,
-    lineHeight: 24,
+    ...DesignSystem.typography.body,
   },
 
   // Submit button footer - Glass treatment

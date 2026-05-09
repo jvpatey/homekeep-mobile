@@ -9,9 +9,10 @@ import {
 } from "react-native";
 import { TextInput, HelperText } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
-import { useDevice } from "../../../../hooks";
+import { useAuthInputTheme, useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
+import { formControlFill } from "./formChrome";
 
 export interface FormFieldProps {
   label: string;
@@ -55,20 +56,12 @@ export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
     ref
   ) {
   const { colors, isDark } = useTheme();
+  const { getInputTheme } = useAuthInputTheme();
   const { isTablet, getFontMultiplier } = useDevice();
   const [isFocused, setIsFocused] = useState(false);
   const fontMultiplier = getFontMultiplier();
 
-  const getInputTheme = () => ({
-    colors: {
-      primary: colors.primary,
-      outline: error ? colors.error : colors.border,
-      surface: colors.surface,
-      background: colors.surface,
-      onSurface: colors.text,
-      onSurfaceVariant: colors.textSecondary,
-    },
-  });
+  const inputTheme = getInputTheme(!!error);
 
   return (
     <View style={styles.inputGroup}>
@@ -79,18 +72,19 @@ export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
           fontSize: ((styles.inputLabel.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
         },
       ]}>
-        {label} {required && <Text style={styles.required}>*</Text>}
+        {label}{" "}
+        {required && <Text style={{ color: colors.error, fontWeight: "700" }}>*</Text>}
       </Text>
       <View
         style={[
           styles.glassInputWrapper,
           {
-            backgroundColor: colors.glass,
+            backgroundColor: formControlFill(isDark),
             borderColor: error
               ? colors.error
               : isFocused
-              ? colors.primary + "40"
-              : "rgba(0, 0, 0, 0.1)",
+                ? `${colors.primary}99`
+                : colors.glassStroke,
           },
           isFocused && !error && styles.focusGlow,
         ]}
@@ -126,7 +120,7 @@ export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
           returnKeyType={returnKeyType}
           blurOnSubmit={blurOnSubmit}
           onSubmitEditing={onSubmitEditing}
-          theme={getInputTheme()}
+          theme={inputTheme}
           dense={false}
           underlineColor="transparent"
           underlineColorAndroid="transparent"

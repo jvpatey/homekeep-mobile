@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
+import { formControlFill } from "./formChrome";
 import { styles as sharedStyles } from "./styles";
 import { DatePickerEvent } from "../../../../types/navigation";
 
@@ -30,7 +31,7 @@ export function StartDateSelector({
   error,
   dismissChromeToken = 0,
 }: StartDateSelectorProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isQuickOptionsOpen, setIsQuickOptionsOpen] = useState(false);
@@ -103,8 +104,8 @@ export function StartDateSelector({
         style={[
           dateStyles.dropdownButton,
           {
-            backgroundColor: colors.glass,
-            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: error ? colors.error : colors.glassStroke,
           },
         ]}
         onPress={() => setIsQuickOptionsOpen(!isQuickOptionsOpen)}
