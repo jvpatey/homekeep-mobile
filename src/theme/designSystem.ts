@@ -1,4 +1,6 @@
 // DesignSystem for the home screen
+import { StyleSheet } from "react-native";
+import { Easing } from "react-native-reanimated";
 
 export const DesignSystem = {
   spacing: {
@@ -165,6 +167,21 @@ export const DesignSystem = {
       shadowRadius: 20,
       elevation: 5,
     },
+    // 2026 layered, monochrome shadows. Soft ambient + soft key.
+    softAmbient: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    softKey: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.06,
+      shadowRadius: 24,
+      elevation: 4,
+    },
   },
 
   glass: {
@@ -175,16 +192,50 @@ export const DesignSystem = {
     borderOpacity: 0.3,
   },
 
+  // 2026 Liquid Glass material intensities for expo-blur BlurView.
+  materials: {
+    regular: { intensity: 25, tintOpacity: 0.55 },
+    thick: { intensity: 40, tintOpacity: 0.7 },
+    chrome: { intensity: 60, tintOpacity: 0.8 },
+  },
+
   borders: {
     width: 1,
     widthThick: 2,
+    hairline: StyleSheet.hairlineWidth,
     radius: {
       small: 8,
       medium: 12,
       large: 16,
       xlarge: 20,
+      glass: 22,
       round: 999,
     },
+  },
+
+  // 2026 motion tokens. Map to SwiftUI named springs (.smooth/.snappy/.bouncy).
+  motion: {
+    duration: {
+      instant: 120,
+      fast: 220,
+      base: 280,
+      slow: 360,
+    },
+    easing: {
+      // iOS 26 default deceleration curve
+      standard: Easing.bezier(0.2, 0.0, 0.0, 1.0),
+      emphasized: Easing.bezier(0.3, 0.0, 0.0, 1.0),
+    },
+    spring: {
+      // No overshoot; entrance + dismissal
+      smooth: { mass: 1, damping: 30, stiffness: 280 },
+      // Tactile, slight bounce; press states + modal opens
+      snappy: { mass: 1, damping: 22, stiffness: 320 },
+      // Playful; reserved for celebratory/empty-state moments
+      bouncy: { mass: 1, damping: 16, stiffness: 240 },
+    },
+    // Maximum gap between staggered groups (we use two groups max).
+    stagger: 60,
   },
 } as const;
 

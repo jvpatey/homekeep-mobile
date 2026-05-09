@@ -19,7 +19,10 @@ export function useGradients() {
     isDark ? [colors.primary, colors.accent] : [colors.primary, colors.accent]
   ) as [string, string];
 
-  // Full spectrum gradient (teal → blue → orange)
+  /**
+   * @deprecated Multi-hue gradients read as pre-iOS 26. Prefer a solid brand color
+   * with a subtle highlight overlay (`ctaHighlight`).
+   */
   const spectrumGradient = (
     isDark
       ? [colors.primary, colors.secondary, colors.accent]
@@ -65,7 +68,10 @@ export function useGradients() {
     colors.background,
   ] as const;
 
-  // 2025 Modern Hero Gradient - natural glow that fades smoothly to background
+  /**
+   * @deprecated Use `haloGradient` instead. This 8-stop multi-hue gradient is the
+   * pre-iOS 26 look; new screens should use the single-hue halo.
+   */
   const heroGradient = (
     isDark
       ? [
@@ -109,7 +115,9 @@ export function useGradients() {
         }
   );
 
-  // Ambient light gradient for transition fade - seamlessly blends to background
+  /**
+   * @deprecated Use a single tint color or `haloGradient` instead.
+   */
   const ambientGradient = (
     isDark
       ? [
@@ -126,6 +134,34 @@ export function useGradients() {
         ]
   ) as [string, string, string, string];
 
+  /**
+   * 2026 single-hue teal halo. Use as the only background gradient on a
+   * Liquid Glass screen, positioned behind the focal element (logo, hero icon).
+   * Fades to transparent so the system background shows through.
+   */
+  const haloGradient = (
+    isDark
+      ? [
+          "rgba(46, 196, 182, 0.18)",
+          "rgba(46, 196, 182, 0.06)",
+          "transparent",
+        ]
+      : [
+          "rgba(46, 196, 182, 0.22)",
+          "rgba(46, 196, 182, 0.08)",
+          "transparent",
+        ]
+  ) as [string, string, string];
+
+  /**
+   * 2026 specular highlight for solid CTAs. Two-stop white-to-transparent that
+   * sits on the top portion of a button to suggest a glass gleam.
+   */
+  const ctaHighlight = [
+    "rgba(255, 255, 255, 0.18)",
+    "rgba(255, 255, 255, 0)",
+  ] as [string, string];
+
   return {
     primaryGradient,
     accentGradient,
@@ -139,6 +175,8 @@ export function useGradients() {
     heroGradientLocations,
     radialGlow,
     ambientGradient,
+    haloGradient,
+    ctaHighlight,
     isDark,
     colors,
   };

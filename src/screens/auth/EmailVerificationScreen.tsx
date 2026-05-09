@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  TouchableOpacity,
+  Pressable,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
+import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useGradients } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
+import { useGradients, useScalePress } from "../../hooks";
+import { AuthTopHeader } from "../../components/auth";
+import { GlassCard } from "../../components/ui/glass-card";
 import { useAuthHaptics } from "./hooks";
 import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
@@ -17,23 +26,22 @@ type VerificationStatus = "verifying" | "success" | "error";
 // EmailVerificationScreen for the EmailVerificationScreen on the home screen
 export function EmailVerificationScreen() {
   const { colors, isDark } = useTheme();
-  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
+  const { haloGradient, ctaHighlight } = useGradients();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
 
   // Shared hooks
-  const { dynamicTopSpacing } = useDynamicSpacing();
+  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError } = useAuthHaptics();
-  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
-  
+  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
+    useDevice();
+
   const maxContentWidth = getMaxContentWidth();
-  const gradientFadeHeight = getGradientFadeHeight();
   const fontMultiplier = getFontMultiplier();
-  const fadeLocations = getGradientFadeLocations(isDark) as any;
-  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
-  const screenMax = Math.max(width, height);
+  const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
+    useScalePress();
 
   const [status, setStatus] = useState<VerificationStatus>("verifying");
   const [message, setMessage] = useState("Verifying your email...");
@@ -160,30 +168,62 @@ export function EmailVerificationScreen() {
               </Text>
             </View>
             <View style={{ marginTop: DesignSystem.spacing.xl }}>
-              <TouchableOpacity
+              <Pressable
                 onPress={handleBackToHome}
-                activeOpacity={0.8}
+                onPressIn={onPressIn}
+                onPressOut={onPressOut}
               >
-                <LinearGradient
-                  colors={primaryGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    paddingVertical: DesignSystem.spacing.md,
-                    borderRadius: DesignSystem.borders.radius.large,
-                    alignItems: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 6,
-                  }}
+                <Animated.View
+                  style={[
+                    {
+                      borderRadius: DesignSystem.borders.radius.large,
+                      backgroundColor: colors.primary,
+                      shadowColor: colors.primary,
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowOpacity: 0.18,
+                      shadowRadius: 18,
+                      elevation: 5,
+                      borderWidth: 1,
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(255, 255, 255, 0.22)",
+                      overflow: "hidden",
+                      position: "relative",
+                    },
+                    ctaAnimatedStyle,
+                  ]}
                 >
-                  <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
-                    Continue to App
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <LinearGradient
+                    colors={ctaHighlight}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "45%",
+                    }}
+                    pointerEvents="none"
+                  />
+                  <View
+                    style={{
+                      paddingVertical: DesignSystem.spacing.md,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "white",
+                        fontWeight: "600",
+                        fontSize: 16,
+                      }}
+                    >
+                      Continue to App
+                    </Text>
+                  </View>
+                </Animated.View>
+              </Pressable>
             </View>
           </>
         );
@@ -207,46 +247,87 @@ export function EmailVerificationScreen() {
                 gap: DesignSystem.spacing.md,
               }}
             >
-              <TouchableOpacity
+              <Pressable
                 onPress={handleManualCode}
-                activeOpacity={0.8}
+                onPressIn={onPressIn}
+                onPressOut={onPressOut}
               >
-                <LinearGradient
-                  colors={primaryGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <Animated.View
+                  style={[
+                    {
+                      borderRadius: DesignSystem.borders.radius.large,
+                      backgroundColor: colors.primary,
+                      shadowColor: colors.primary,
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowOpacity: 0.18,
+                      shadowRadius: 18,
+                      elevation: 5,
+                      borderWidth: 1,
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(255, 255, 255, 0.22)",
+                      overflow: "hidden",
+                      position: "relative",
+                    },
+                    ctaAnimatedStyle,
+                  ]}
+                >
+                  <LinearGradient
+                    colors={ctaHighlight}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "45%",
+                    }}
+                    pointerEvents="none"
+                  />
+                  <View
+                    style={{
+                      paddingVertical: DesignSystem.spacing.md,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "white",
+                        fontWeight: "600",
+                        fontSize: 16,
+                      }}
+                    >
+                      Enter Code Manually
+                    </Text>
+                  </View>
+                </Animated.View>
+              </Pressable>
+
+              <Pressable onPress={handleBackToHome}>
+                <GlassCard
+                  material="regular"
+                  radius={DesignSystem.borders.radius.large}
                   style={{
                     paddingVertical: DesignSystem.spacing.md,
-                    borderRadius: DesignSystem.borders.radius.large,
                     alignItems: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 6,
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(255, 255, 255, 0.22)",
                   }}
                 >
-                  <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
-                    Enter Code Manually
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontWeight: "600",
+                      fontSize: 16,
+                    }}
+                  >
+                    Back to Home
                   </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleBackToHome}
-                activeOpacity={0.8}
-                style={{
-                  paddingVertical: DesignSystem.spacing.md,
-                  borderWidth: 2,
-                  borderColor: colors.primary,
-                  borderRadius: DesignSystem.borders.radius.large,
-                  alignItems: "center",
-                  backgroundColor: "transparent",
-                }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 16 }}>
-                  Back to Home
-                </Text>
-              </TouchableOpacity>
+                </GlassCard>
+              </Pressable>
             </View>
           </>
         );
@@ -257,83 +338,24 @@ export function EmailVerificationScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
-      {/* Hero Section with Gradient */}
-      <View style={[
-        authStyles.heroSection,
-        { backgroundColor: colors.background },
-        heroSectionHeight !== undefined && {
-          minHeight: heroSectionHeight,
-          justifyContent: "center",
-        },
-      ]}>
-        {/* Bottom fade mask */}
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      {/* Hero Section — match Welcome screen (single halo) */}
+      <View
+        style={[
+          authStyles.heroSection,
+          { backgroundColor: colors.background, justifyContent: "center" },
+          heroSectionHeight !== undefined && {
+            minHeight: heroSectionHeight,
+          },
+        ]}
+      >
         <LinearGradient
-          colors={fadeColors}
-          locations={fadeLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[
-            authStyles.bottomFade,
-            {
-              height: gradientFadeHeight,
-            },
-            isTablet && {
-              height: screenMax > 1300 
-                ? gradientFadeHeight * 1.6  // iPad Pro 13"
-                : gradientFadeHeight * 1.3, // Standard iPads
-            },
-          ]}
-          pointerEvents="none"
-        />
-        
-        {/* Layered gradient background */}
-        <LinearGradient
-          colors={heroGradient}
-          locations={heroGradientLocations}
-          start={{ x: 0.5, y: 0 }}
+          colors={haloGradient}
+          start={{ x: 0.5, y: 0.15 }}
           end={{ x: 0.5, y: 1 }}
           style={authStyles.gradientBase}
-        />
-        
-        {/* Glow effect */}
-        <LinearGradient
-          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
-          locations={[0, 0.3, 0.6, 1]}
-          start={{ x: 0.5, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={authStyles.gradientGlow}
-        />
-        
-        {/* Ambient light layer - fade to transparent to prevent dark bar */}
-        <LinearGradient
-          colors={
-            isTablet
-              ? isDark
-                ? [
-                    "rgba(46, 196, 182, 0.10)",
-                    "rgba(58, 134, 255, 0.06)",
-                    "rgba(46, 196, 182, 0.03)",
-                    "transparent",
-                  ]
-                : [
-                    "rgba(46, 196, 182, 0.12)",
-                    "rgba(58, 134, 255, 0.08)",
-                    "rgba(46, 196, 182, 0.025)",
-                    "transparent",
-                  ]
-              : isDark
-              ? ambientGradient
-              : [
-                  "transparent",
-                  "transparent",
-                  "transparent",
-                  "transparent",
-                ]
-          }
-          locations={[0, 0.4, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={authStyles.gradientAmbient}
+          pointerEvents="none"
         />
 
         {/* Header */}
@@ -341,20 +363,12 @@ export function EmailVerificationScreen() {
           authStyles.headerContainer,
           authStyles.heroContent,
           maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
-          { zIndex: 15 }, // Ensure text is above fade gradient
+          { zIndex: 1 },
         ]}>
-          <LogoSection showText={false} compact={false} />
-          <Text style={[
-            authStyles.title,
-            { color: colors.text },
-            isTablet && {
-              fontSize: authStyles.title.fontSize * fontMultiplier,
-              lineHeight: authStyles.title.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Email Verification
-          </Text>
-          <View style={{ height: DesignSystem.spacing.lg }} />
+          <AuthTopHeader
+            title="Email Verification"
+            onBack={handleBackToHome}
+          />
         </View>
       </View>
 
@@ -368,6 +382,7 @@ export function EmailVerificationScreen() {
         <View style={[
           { width: "100%" },
           maxContentWidth && { maxWidth: maxContentWidth },
+          { paddingBottom: dynamicBottomSpacing },
         ]}>
         {/* Content */}
         {renderContent()}

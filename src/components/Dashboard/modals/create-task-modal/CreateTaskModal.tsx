@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   ScrollView,
   Alert,
@@ -10,9 +16,15 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
-  TouchableWithoutFeedback,
+  Pressable,
   InputAccessoryView,
+  useWindowDimensions,
+  TextInput as RNTextInput,
 } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -20,14 +32,16 @@ import Animated, {
   withSpring,
   withDelay,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useHaptics } from "../../../../hooks/useHaptics";
-import { useDevice } from "../../../../hooks";
+import { useDevice, useGradients } from "../../../../hooks";
 import { useTasks } from "../../../../context/TasksContext";
-import { useAuth } from "../../../../context/AuthContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
+import { GlassCard } from "../../../ui/glass-card/GlassCard";
+import { SheetGrabber } from "../../../ui/sheet-grabber";
 import { FormField } from "./FormField";
 import { CategorySelector } from "./CategorySelector";
 import { PrioritySelector } from "./PrioritySelector";
@@ -67,6 +81,23 @@ interface MaintenanceRoutineForm {
   description?: string;
 }
 
+function getIntervalLabel(interval: number): string {
+  switch (interval) {
+    case 0:
+      return "day";
+    case 7:
+      return "week";
+    case 30:
+      return "month";
+    case 90:
+      return "quarter";
+    case 365:
+      return "year";
+    default:
+      return "day";
+  }
+}
+
 // CreateTaskModal component
 export function CreateTaskModal({
   onClose,
@@ -76,14 +107,42 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
-  const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { haloGradient } = useGradients();
+  const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetMaxHeight = windowHeight * 0.85;
+  /** Grabber + title row + gradient padding; avoids flex-collapsed BlurView (hairline sheet bug). */
+  const sheetChromeOverhead =
+    DesignSystem.spacing.sm +
+    4 +
+    DesignSystem.spacing.md * 2 +
+    56 +
+    DesignSystem.spacing.lg * 2 +
+    DesignSystem.spacing.md;
+  const scrollViewportMaxHeight = Math.max(
+    280,
+    sheetMaxHeight - sheetChromeOverhead
+  );
+  const descriptionFieldRef = useRef<RNTextInput | null>(null);
+  const durationFieldRef = useRef<RNTextInput | null>(null);
+  const formScrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
 
-  // Animation values
-  const scale = useSharedValue(0.7);
+  const scrollTitleFieldIntoView = useCallback(() => {
+    /** Title sits at the top of the sheet ScrollView; after the keyboard opens,
+     * iOS can clip it unless we scroll to offset 0 and let inset adjustment land. */
+    setTimeout(() => {
+      formScrollRef.current?.scrollTo({ y: 0, animated: true });
+    }, 50);
+  }, []);
+  const sheetTabletMaxWidth = isTablet
+    ? getResponsiveValue(500, 640, 720)
+    : undefined;
+
+  // Animation values (bottom sheet — aligned with ProfileMenu)
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(20);
+  const translateY = useSharedValue(windowHeight);
   const contentOpacity = useSharedValue(0);
 
   const [form, setForm] = useState<MaintenanceRoutineForm>({
@@ -127,22 +186,38 @@ export function CreateTaskModal({
     Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
 
-  // AI typing animation
-  const [summaryText, setSummaryText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const summaryRef = useRef<View>(null);
-
-  // Entrance animation
-  useEffect(() => {
-    opacity.value = withTiming(1, { duration: 200 });
-    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-    translateY.value = withTiming(0, { duration: 200 });
-    contentOpacity.value = withTiming(1, { duration: 200 });
+  const [dismissChromeToken, setDismissChromeToken] = useState(0);
+  const dismissFormChrome = useCallback(() => {
+    Keyboard.dismiss();
+    setDismissChromeToken((t) => t + 1);
   }, []);
 
-  const containerAnimatedStyle = useAnimatedStyle(() => ({
+  const motionFast = DesignSystem.motion.duration.fast;
+  const motionEasing = DesignSystem.motion.easing.standard;
+
+  // Entrance animation (bottom sheet — aligned with ProfileMenu)
+  useEffect(() => {
+    opacity.value = withTiming(1, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
+    contentOpacity.value = withDelay(
+      DesignSystem.motion.stagger,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: motionEasing,
+      })
+    );
+  }, []);
+
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
   }));
 
   const contentAnimatedStyle = useAnimatedStyle(() => ({
@@ -154,7 +229,15 @@ export function CreateTaskModal({
     return input.replace(/^\s*([a-zA-Z])/, (m, p1) => p1.toUpperCase());
   };
 
-  const validateForm = (): boolean => {
+  /** Matches interval math in handleSubmit */
+  const getEffectiveIntervalDays = (): number => {
+    if (selectedInterval === 0) {
+      return intervalValue;
+    }
+    return selectedInterval * intervalValue;
+  };
+
+  const validateForm = (): { ok: boolean; firstError?: string } => {
     const newErrors: Partial<{ [K in keyof MaintenanceRoutineForm]: string }> =
       {};
 
@@ -173,30 +256,34 @@ export function CreateTaskModal({
       newErrors.estimated_duration_minutes = "Duration must be greater than 0";
     }
 
-    if (!form.interval_days || form.interval_days <= 0) {
+    const effectiveDays = getEffectiveIntervalDays();
+    if (!effectiveDays || effectiveDays <= 0) {
       newErrors.interval_days = "Interval must be greater than 0";
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const firstError = Object.values(newErrors).find(
+      (v): v is string => Boolean(v)
+    );
+    return {
+      ok: Object.keys(newErrors).length === 0,
+      firstError,
+    };
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    const { ok, firstError } = validateForm();
+    if (!ok) {
       triggerMedium();
+      Alert.alert(
+        "Check your task",
+        firstError ?? "Please fix the highlighted fields and try again."
+      );
       return;
     }
 
     try {
-      // Calculate the actual interval_days based on selected interval and multiplier
-      let actualIntervalDays: number;
-      if (selectedInterval === 0) {
-        // Custom interval - use the intervalValue directly as days
-        actualIntervalDays = intervalValue;
-      } else {
-        // For predefined intervals, multiply the base interval by the multiplier
-        actualIntervalDays = selectedInterval * intervalValue;
-      }
+      const actualIntervalDays = getEffectiveIntervalDays();
 
       // Ensure we persist start_date at local noon (stable day boundary)
       const startAtNoon = new Date(form.startDate);
@@ -237,58 +324,6 @@ export function CreateTaskModal({
     }
   };
 
-  // Generate summary text
-  const generateSummaryText = () => {
-    const fullText = `"${
-      form.title
-    }" will be scheduled every ${intervalValue} ${getIntervalLabel(
-      selectedInterval
-    )}${
-      intervalValue > 1 ? "s" : ""
-    } starting ${form.startDate.toLocaleDateString()}.`;
-    return fullText;
-  };
-
-  // Typing animation effect
-  useEffect(() => {
-    if (isTyping && summaryText.length < generateSummaryText().length) {
-      const timeout = setTimeout(() => {
-        setSummaryText(
-          generateSummaryText().substring(0, summaryText.length + 1)
-        );
-      }, 30); // Typing speed - adjust for desired effect
-      return () => clearTimeout(timeout);
-    } else if (summaryText.length === generateSummaryText().length) {
-      setIsTyping(false);
-    }
-  }, [
-    summaryText,
-    isTyping,
-    form.title,
-    intervalValue,
-    selectedInterval,
-    form.startDate,
-  ]);
-
-  // Trigger typing when form changes
-  useEffect(() => {
-    const fullText = generateSummaryText();
-    // Trigger animation whenever the summary text changes
-    if (fullText !== summaryText) {
-      setSummaryText("");
-      setIsTyping(true);
-    }
-  }, [form.title, intervalValue, selectedInterval, form.startDate, form.category, form.priority, form.estimated_duration_minutes]);
-
-  // Start typing animation when modal opens
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSummaryText("");
-      setIsTyping(true);
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, []);
-
   const updateForm = (
     field: keyof MaintenanceRoutineForm,
     value: MaintenanceRoutineForm[keyof MaintenanceRoutineForm]
@@ -301,43 +336,38 @@ export function CreateTaskModal({
   };
 
   const isFormValid =
-    form.title && form.category && form.estimated_duration_minutes > 0;
+    Boolean(form.title.trim()) &&
+    Boolean(form.category) &&
+    form.estimated_duration_minutes > 0 &&
+    getEffectiveIntervalDays() > 0;
 
-  const getIntervalLabel = (interval: number) => {
-    switch (interval) {
-      case 0:
-        return "day";
-      case 7:
-        return "week";
-      case 30:
-        return "month";
-      case 90:
-        return "quarter";
-      case 365:
-        return "year";
-      default:
-        return "day";
-    }
-  };
+  const summaryPreviewText = useMemo(() => {
+    return `"${form.title}" will be scheduled every ${intervalValue} ${getIntervalLabel(selectedInterval)}${intervalValue > 1 ? "s" : ""} starting ${form.startDate.toLocaleDateString()}.`;
+  }, [form.title, intervalValue, selectedInterval, form.startDate]);
 
-  const glassGradient = isDark
-    ? ([
-        "rgba(46, 196, 182, 0.15)",
-        "rgba(58, 134, 255, 0.25)",
-        "rgba(15, 23, 42, 0.85)",
-      ] as const)
-    : ([
-        "rgba(46, 196, 182, 0.12)",
-        "rgba(147, 197, 253, 0.18)",
-        "rgba(255, 255, 255, 0.85)",
-      ] as const);
+  const scrollBottomPadding =
+    insets.bottom + DesignSystem.spacing.xxxl + DesignSystem.spacing.md;
 
   const handleClose = () => {
-    // Exit animation
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.95, { duration: 150 });
-    translateY.value = withTiming(20, { duration: 150 });
-    setTimeout(onClose, 150);
+    Keyboard.dismiss();
+    contentOpacity.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    opacity.value = withTiming(0, {
+      duration: motionFast,
+      easing: motionEasing,
+    });
+    translateY.value = withTiming(
+      windowHeight,
+      {
+        duration: motionFast,
+        easing: motionEasing,
+      },
+      (finished) => {
+        if (finished) runOnJS(onClose)();
+      }
+    );
   };
 
   return (
@@ -346,6 +376,7 @@ export function CreateTaskModal({
       transparent
       animationType="none"
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
       {Platform.OS === "ios" && (
         <InputAccessoryView nativeID={ESTIMATED_DURATION_INPUT_ACCESSORY_ID}>
@@ -362,7 +393,7 @@ export function CreateTaskModal({
             }}
           >
             <TouchableOpacity
-              onPress={() => Keyboard.dismiss()}
+              onPress={dismissFormChrome}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Text
@@ -378,102 +409,121 @@ export function CreateTaskModal({
           </View>
         </InputAccessoryView>
       )}
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.overlay}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-        >
-          <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.overlay}>
-              <Animated.View
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS === "android"}
+        style={styles.keyboardRoot}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
+      >
+        <Animated.View style={[styles.sheetOverlay, backdropAnimatedStyle]}>
+          <Pressable
+            style={styles.backdropPressable}
+            onPress={handleClose}
+            accessibilityRole="button"
+            accessibilityLabel={isEdit ? "Close edit task" : "Close add task"}
+          />
+          <Animated.View
+            pointerEvents="box-none"
+            style={[
+              styles.sheetContainer,
+              sheetTabletMaxWidth != null && {
+                maxWidth: sheetTabletMaxWidth,
+                alignSelf: "center",
+              },
+              { maxHeight: sheetMaxHeight },
+              sheetAnimatedStyle,
+            ]}
+          >
+            <GlassCard
+              material="thick"
+              radius={DesignSystem.borders.radius.glass}
+              containerStyle={styles.sheetGlassOuter}
+              style={styles.sheetGlassInner}
+            >
+              <LinearGradient
+                colors={[...haloGradient]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
                 style={[
-                  styles.container,
-                  containerAnimatedStyle,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(15, 23, 42, 0.95)"
-                      : "rgba(255, 255, 255, 0.95)",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(46, 196, 182, 0.3)"
-                      : "rgba(46, 196, 182, 0.2)",
-                  },
+                  styles.gradientBackground,
+                  { maxHeight: sheetMaxHeight },
                   isTablet && {
-                    maxWidth: getResponsiveValue(420, 600, 700),
+                    padding: getResponsiveValue(
+                      DesignSystem.spacing.xl,
+                      DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                      DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+                    ),
                   },
                 ]}
               >
-                <LinearGradient
-                  colors={glassGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[
-                    styles.gradientBackground,
-                    isTablet && {
-                      padding: getResponsiveValue(
-                        DesignSystem.spacing.xl,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.md,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.lg,
-                      ),
-                    },
-                  ]}
-                >
-                  {/* Close Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.closeButton,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(46, 196, 182, 0.15)"
-                          : "rgba(46, 196, 182, 0.12)",
-                        borderRadius: 20,
-                        borderWidth: 1,
-                        borderColor: isDark
-                          ? "rgba(46, 196, 182, 0.3)"
-                          : "rgba(46, 196, 182, 0.25)",
-                      },
-                    ]}
-                    onPress={handleClose}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
-                      color={
-                        isDark
-                          ? "rgba(255, 255, 255, 0.9)"
-                          : "rgba(15, 23, 42, 0.85)"
+                <SafeAreaView edges={["bottom"]} style={styles.sheetSafeArea}>
+                  <SheetGrabber />
+                  <View style={styles.sheetTitleRow}>
+                    <View style={styles.sheetTitleSideSpacer} />
+                    <Pressable
+                      style={styles.sheetTitlePressable}
+                      onPress={dismissFormChrome}
+                    >
+                      <Text
+                        style={[
+                          styles.modalTitle,
+                          { color: colors.text },
+                          isTablet && {
+                            fontSize:
+                              (styles.modalTitle.fontSize ||
+                                DesignSystem.typography.h2.fontSize) *
+                              getFontMultiplier(),
+                            lineHeight:
+                              (styles.modalTitle.fontSize ||
+                                DesignSystem.typography.h2.fontSize) *
+                              getFontMultiplier() *
+                              1.2,
+                          },
+                        ]}
+                      >
+                        {isEdit ? "Edit Task" : "Let's add your task"}
+                      </Text>
+                    </Pressable>
+                    <TouchableOpacity
+                      style={[
+                        styles.sheetCloseButton,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(35, 37, 38, 0.55)"
+                            : "rgba(255, 255, 255, 0.45)",
+                          borderWidth: DesignSystem.borders.hairline,
+                          borderColor: colors.glassStroke,
+                        },
+                      ]}
+                      onPress={handleClose}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close"
+                    >
+                      <Ionicons
+                        name="close"
+                        size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
+                        color={colors.text}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Animated.View style={[contentAnimatedStyle, styles.scrollSection]}>
+                    <ScrollView
+                      ref={formScrollRef}
+                      style={{ maxHeight: scrollViewportMaxHeight }}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{
+                        paddingBottom: scrollBottomPadding,
+                      }}
+                      keyboardShouldPersistTaps="handled"
+                      keyboardDismissMode={
+                        Platform.OS === "ios" ? "interactive" : "on-drag"
                       }
-                    />
-                  </TouchableOpacity>
-
-                  {/* Title */}
-                  <Text
-                    style={[
-                      styles.modalTitle,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.95)"
-                          : "rgba(15, 23, 42, 0.9)",
-                      },
-                      isTablet && {
-                        fontSize: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()),
-                        lineHeight: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()) * 1.2,
-                      },
-                    ]}
-                  >
-                    {isEdit ? "Edit Task" : "Let's add your task"}
-                  </Text>
-
-                  {/* Content */}
-                  <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{
-                      paddingBottom: DesignSystem.spacing.xxxl,
-                    }}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                  >
+                      automaticallyAdjustKeyboardInsets={
+                        Platform.OS === "ios"
+                      }
+                      onScrollBeginDrag={dismissFormChrome}
+                    >
                     <FormField
                       label="Task Title"
                       value={form.title}
@@ -482,11 +532,17 @@ export function CreateTaskModal({
                       error={errors.title}
                       autoCapitalize="words"
                       required
+                      returnKeyType="next"
+                      onSubmitEditing={() =>
+                        descriptionFieldRef.current?.focus()
+                      }
+                      onFocusExtra={scrollTitleFieldIntoView}
                     />
 
                     <CategorySelector
                       categories={categories}
                       selectedCategory={form.category}
+                      dismissChromeToken={dismissChromeToken}
                       onSelectCategory={(categoryId) => {
                         updateForm("category", categoryId);
                       }}
@@ -496,12 +552,14 @@ export function CreateTaskModal({
                     <PrioritySelector
                       priorities={priorities}
                       selectedPriority={form.priority}
+                      dismissChromeToken={dismissChromeToken}
                       onSelectPriority={(priorityId) =>
                         updateForm("priority", priorityId)
                       }
                     />
 
                     <FormField
+                      ref={descriptionFieldRef}
                       label="Instructions (Optional)"
                       value={form.description || ""}
                       onChangeText={(text) =>
@@ -511,9 +569,11 @@ export function CreateTaskModal({
                       multiline
                       numberOfLines={3}
                       autoCapitalize="sentences"
+                      blurOnSubmit={false}
                     />
 
                     <FormField
+                      ref={durationFieldRef}
                       label="Estimated Duration (minutes)"
                       value={form.estimated_duration_minutes.toString()}
                       onChangeText={(text) => {
@@ -532,11 +592,14 @@ export function CreateTaskModal({
                       }
                       error={errors.estimated_duration_minutes?.toString()}
                       required
+                      returnKeyType="done"
+                      onSubmitEditing={dismissFormChrome}
                     />
 
                     <IntervalSelector
                       selectedInterval={selectedInterval}
                       intervalValue={intervalValue}
+                      dismissChromeToken={dismissChromeToken}
                       onSelectInterval={(interval: number) =>
                         setSelectedInterval(interval)
                       }
@@ -546,41 +609,38 @@ export function CreateTaskModal({
 
                     <StartDateSelector
                       startDate={form.startDate}
+                      dismissChromeToken={dismissChromeToken}
                       onStartDateChange={(date) =>
                         updateForm("startDate", date)
                       }
                     />
 
                     {/* Summary Section */}
-                    <View
-                      ref={summaryRef}
-                      style={[
-                        styles.summaryContainer,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(46, 196, 182, 0.1)"
-                            : "rgba(147, 197, 253, 0.12)",
-                          borderColor: isDark
-                            ? "rgba(46, 196, 182, 0.2)"
-                            : "rgba(59, 130, 246, 0.2)",
-                        },
-                        isTablet && {
-                          padding: getResponsiveValue(
-                            DesignSystem.spacing.md,
-                            DesignSystem.spacing.lg,
-                            DesignSystem.spacing.xl,
-                          ),
-                        },
-                      ]}
-                    >
+                    <Pressable onPress={dismissFormChrome}>
+                      <View
+                        style={[
+                          styles.summaryContainer,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(35, 37, 38, 0.4)"
+                              : "rgba(255, 255, 255, 0.4)",
+                            borderColor: isDark
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "rgba(255, 255, 255, 0.6)",
+                          },
+                          isTablet && {
+                            padding: getResponsiveValue(
+                              DesignSystem.spacing.md,
+                              DesignSystem.spacing.lg,
+                              DesignSystem.spacing.xl,
+                            ),
+                          },
+                        ]}
+                      >
                       <Text
                         style={[
                           styles.summaryTitle,
-                          {
-                            color: isDark
-                              ? "rgba(255, 255, 255, 0.95)"
-                              : "rgba(15, 23, 42, 0.9)",
-                          },
+                          { color: colors.text },
                           isTablet && {
                             fontSize: ((styles.summaryTitle.fontSize || DesignSystem.typography.h4.fontSize) * getFontMultiplier()),
                             lineHeight: ((styles.summaryTitle.fontSize || DesignSystem.typography.h4.fontSize) * getFontMultiplier()) * 1.2,
@@ -592,32 +652,17 @@ export function CreateTaskModal({
                       <Text
                         style={[
                           styles.summaryText,
-                          {
-                            color: isDark
-                              ? "rgba(255, 255, 255, 0.8)"
-                              : "rgba(59, 130, 246, 0.85)",
-                          },
+                          { color: colors.textSecondary },
                           isTablet && {
                             fontSize: ((styles.summaryText.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),
                             lineHeight: ((styles.summaryText.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()) * 1.4,
                           },
                         ]}
                       >
-                        {summaryText}
-                        {isTyping && (
-                          <Text
-                            style={{
-                              color: isDark
-                                ? "rgba(46, 196, 182, 1)"
-                                : "rgba(59, 130, 246, 1)",
-                            }}
-                          >
-                            {" "}
-                            ▊
-                          </Text>
-                        )}
+                        {summaryPreviewText}
                       </Text>
                     </View>
+                    </Pressable>
 
                     {/* Submit Button */}
                     <View
@@ -635,55 +680,86 @@ export function CreateTaskModal({
                         title={isEdit ? "Save Changes" : "Add Task"}
                       />
                     </View>
-                  </ScrollView>
-                </LinearGradient>
-              </Animated.View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+                    </ScrollView>
+                  </Animated.View>
+                </SafeAreaView>
+              </LinearGradient>
+            </GlassCard>
+          </Animated.View>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
+  keyboardRoot: {
+    flex: 1,
+    minHeight: 0,
   },
-  container: {
-    width: "92%",
-    maxWidth: 420,
-    maxHeight: "85%",
-    borderRadius: DesignSystem.borders.radius.xlarge,
+  sheetOverlay: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  backdropPressable: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sheetContainer: {
+    width: "100%",
+    flexShrink: 1,
+  },
+  sheetGlassOuter: {
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+  sheetGlassInner: {
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     overflow: "hidden",
   },
   gradientBackground: {
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xs,
     paddingBottom: DesignSystem.spacing.lg,
   },
-  closeButton: {
-    position: "absolute",
-    top: DesignSystem.spacing.md,
-    right: DesignSystem.spacing.md,
-    padding: DesignSystem.spacing.xs,
-    zIndex: 10,
+  sheetSafeArea: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+  sheetTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  sheetTitleSideSpacer: {
+    width: 40,
+  },
+  sheetTitlePressable: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sheetCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalTitle: {
     ...DesignSystem.typography.h2,
     fontWeight: "700",
     letterSpacing: -0.3,
-    marginBottom: DesignSystem.spacing.lg,
-    marginTop: DesignSystem.spacing.md,
     textAlign: "center",
+  },
+  scrollSection: {
+    minHeight: 0,
   },
   content: {
     // Remove flex constraints to allow proper scrolling

@@ -1,6 +1,5 @@
 import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../../theme/designSystem";
-import { colors } from "src/theme/colors";
 
 export const timelineStyles = StyleSheet.create({
   container: {
@@ -13,11 +12,9 @@ export const timelineStyles = StyleSheet.create({
   },
   title: {
     ...DesignSystem.typography.h2,
-    color: colors.light.text,
   },
   subtitle: {
     ...DesignSystem.typography.body,
-    color: colors.light.textSecondary,
     marginTop: DesignSystem.spacing.xs,
   },
   scrollView: {
@@ -42,20 +39,14 @@ export const timelineStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: DesignSystem.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    ...DesignSystem.shadows.softKey,
   },
   dateNumber: {
     ...DesignSystem.typography.h4,
-    color: colors.light.surface,
     fontWeight: "700",
   },
   dateMonth: {
     ...DesignSystem.typography.caption,
-    color: colors.light.surface,
     fontWeight: "600",
   },
   dateInfo: {
@@ -63,11 +54,9 @@ export const timelineStyles = StyleSheet.create({
   },
   dateText: {
     ...DesignSystem.typography.bodySemiBold,
-    color: colors.light.text,
   },
   taskCount: {
     ...DesignSystem.typography.small,
-    color: colors.light.textSecondary,
     marginTop: 2,
   },
   taskItem: {
@@ -87,33 +76,25 @@ export const timelineStyles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.light.primary,
     borderWidth: 2,
-    borderColor: colors.light.surface,
     ...DesignSystem.shadows.small,
   },
   timelineConnector: {
     width: 2,
     height: 40,
-    backgroundColor: colors.light.border,
     marginTop: DesignSystem.spacing.xs,
   },
   taskContent: {
     flex: 1,
-    borderRadius: DesignSystem.borders.radius.medium,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     padding: DesignSystem.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    ...DesignSystem.shadows.softKey,
   },
   taskHeader: {
     marginBottom: DesignSystem.spacing.sm,
   },
   taskTitle: {
     ...DesignSystem.typography.bodySemiBold,
-    color: colors.light.text,
     marginBottom: DesignSystem.spacing.xs,
   },
   taskMeta: {
@@ -123,7 +104,6 @@ export const timelineStyles = StyleSheet.create({
   priorityBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.light.background,
     paddingHorizontal: DesignSystem.spacing.sm,
     paddingVertical: 4,
     borderRadius: DesignSystem.borders.radius.small,
@@ -136,20 +116,17 @@ export const timelineStyles = StyleSheet.create({
   },
   priorityText: {
     ...DesignSystem.typography.caption,
-    color: colors.light.textSecondary,
     textTransform: "capitalize",
   },
   durationBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.light.background,
     paddingHorizontal: DesignSystem.spacing.sm,
     paddingVertical: 4,
     borderRadius: DesignSystem.borders.radius.small,
   },
   durationText: {
     ...DesignSystem.typography.caption,
-    color: colors.light.textSecondary,
     marginLeft: DesignSystem.spacing.xs,
   },
   taskFooter: {
@@ -159,7 +136,6 @@ export const timelineStyles = StyleSheet.create({
   },
   taskTime: {
     ...DesignSystem.typography.small,
-    color: colors.light.textSecondary,
   },
   completeButton: {
     width: 48,
@@ -167,11 +143,7 @@ export const timelineStyles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    ...DesignSystem.shadows.softAmbient,
   },
   emptyContainer: {
     height: 180,

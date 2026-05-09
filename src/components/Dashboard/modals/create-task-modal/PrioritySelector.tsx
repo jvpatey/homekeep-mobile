@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { Priority } from "../../../../types/maintenance";
+import { formControlFill } from "./formChrome";
 import { styles as sharedStyles } from "./styles";
 
 // PriorityOption interface
@@ -18,6 +19,8 @@ interface PrioritySelectorProps {
   priorities: PriorityOption[];
   selectedPriority: Priority;
   onSelectPriority: (priorityId: Priority) => void;
+  /** Increment from parent to close dropdown (backdrop / tap-outside). */
+  dismissChromeToken?: number;
 }
 
 // PrioritySelector component for the CreateTaskModal
@@ -25,11 +28,16 @@ export function PrioritySelector({
   priorities,
   selectedPriority,
   onSelectPriority,
+  dismissChromeToken = 0,
 }: PrioritySelectorProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [dismissChromeToken]);
 
   const selectedPriorityData = priorities.find(
     (p) => p.id === selectedPriority
@@ -51,8 +59,8 @@ export function PrioritySelector({
         style={[
           priorityStyles.dropdownButton,
           {
-            backgroundColor: colors.glass,
-            borderColor: "rgba(0, 0, 0, 0.1)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: colors.glassStroke,
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}

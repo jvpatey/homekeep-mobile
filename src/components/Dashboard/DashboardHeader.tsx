@@ -1,16 +1,14 @@
 import React, { useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import MaskedView from "@react-native-masked-view/masked-view";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useGradients, useDevice } from "../../hooks";
+import { useDevice } from "../../hooks";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -44,13 +42,12 @@ export function DashboardHeader({
   onShowStreakPopup,
 }: DashboardHeaderProps) {
   const { colors, isDark } = useTheme();
-  const { selectedGradient } = useUserPreferences();
-  const { heroGradient, heroGradientLocations, radialGlow, ambientGradient } = useGradients();
-  const { isTablet, getFontMultiplier, getResponsiveValue, width, height, getGradientFadeColors, getGradientFadeLocations, getGradientFadeHeight } = useDevice();
+  const { isTablet, getResponsiveValue, width, height } = useDevice();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   
-  const fontMultiplier = getFontMultiplier();
+  /** Matches ProfileMenu header avatar (hit target + tablet scaling). */
+  const headerAvatarSize = isTablet ? getResponsiveValue(44, 52, 56) : 44;
   // Larger multipliers for hero text (greeting, userName, motivationalMessage)
   const heroFontMultiplier = isTablet
     ? Math.max(width, height) > 1300
@@ -63,64 +60,6 @@ export function DashboardHeader({
       ? 1.65  // iPad Pro 13": 1.65x
       : 1.5   // Standard iPad: 1.5x
     : 1;
-
-  // Helper function to calculate luminance of a hex color
-  const getLuminance = (hex: string): number => {
-    const rgb = parseInt(hex.replace("#", ""), 16);
-    const r = ((rgb >> 16) & 0xff) / 255;
-    const g = ((rgb >> 8) & 0xff) / 255;
-    const b = (rgb & 0xff) / 255;
-    return 0.299 * r + 0.587 * g + 0.114 * b;
-  };
-
-  // Adjust gradient colors for better contrast based on theme
-  const adjustGradientForContrast = (
-    gradientColors: [string, string]
-  ): [string, string] => {
-    const [color1, color2] = gradientColors;
-    const lum1 = getLuminance(color1);
-    const lum2 = getLuminance(color2);
-    const avgLuminance = (lum1 + lum2) / 2;
-
-    // In light mode, ensure all gradients are dark enough to be visible
-    // Darken any gradient that's too light (luminance > 0.55)
-    if (!isDark && avgLuminance > 0.55) {
-      // Moderate darkening for light colors in light mode
-      const darken = (hex: string, amount: number) => {
-        const num = parseInt(hex.replace("#", ""), 16);
-        const r = Math.max(0, ((num >> 16) & 0xff) - amount);
-        const g = Math.max(0, ((num >> 8) & 0xff) - amount);
-        const b = Math.max(0, (num & 0xff) - amount);
-        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
-      };
-      // Less aggressive darkening - lighter amounts
-      const darkenAmount =
-        avgLuminance > 0.85
-          ? 70
-          : avgLuminance > 0.75
-          ? 55
-          : avgLuminance > 0.65
-          ? 40
-          : 30;
-      return [darken(color1, darkenAmount), darken(color2, darkenAmount)] as [
-        string,
-        string,
-      ];
-    } else if (isDark && avgLuminance < 0.25) {
-      // Subtle lightening for very dark colors only
-      const lighten = (hex: string, amount: number) => {
-        const num = parseInt(hex.replace("#", ""), 16);
-        const r = Math.min(255, ((num >> 16) & 0xff) + amount);
-        const g = Math.min(255, ((num >> 8) & 0xff) + amount);
-        const b = Math.min(255, (num & 0xff) + amount);
-        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
-      };
-      return [lighten(color1, 40), lighten(color2, 40)] as [string, string];
-    }
-    return gradientColors;
-  };
-
-  const textGradientColors = adjustGradientForContrast(selectedGradient.colors);
 
   // Spring animations for greeting, username, and profile icon
   const greetOpacity = useSharedValue(0);
@@ -147,17 +86,54 @@ export function DashboardHeader({
     statsTranslateY.value = 15;
     statsScale.value = 0.95;
 
-    // animate with springs and slight stagger
-    greetOpacity.value = withDelay(150, withSpring(1, { damping: 15, stiffness: 150 }));
-    greetTranslateY.value = withDelay(150, withSpring(0, { damping: 15, stiffness: 150 }));
-    nameOpacity.value = withDelay(250, withSpring(1, { damping: 15, stiffness: 150 }));
-    nameTranslateY.value = withDelay(250, withSpring(0, { damping: 15, stiffness: 150 }));
-    profileOpacity.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
-    profileScale.value = withDelay(100, withSpring(1, { damping: 15, stiffness: 150 }));
-    profileTranslateY.value = withDelay(100, withSpring(0, { damping: 15, stiffness: 150 }));
-    statsOpacity.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
-    statsTranslateY.value = withDelay(350, withSpring(0, { damping: 15, stiffness: 150 }));
-    statsScale.value = withDelay(350, withSpring(1, { damping: 15, stiffness: 150 }));
+    const d = DesignSystem.motion.duration.base;
+    const fast = DesignSystem.motion.duration.fast;
+    const s = DesignSystem.motion.stagger;
+
+    // Subtle, faster “settle” (less bouncy)
+    greetOpacity.value = withDelay(
+      s,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    greetTranslateY.value = withDelay(
+      s,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+
+    nameOpacity.value = withDelay(
+      s * 2,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    nameTranslateY.value = withDelay(
+      s * 2,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+
+    profileOpacity.value = withDelay(
+      s,
+      withTiming(1, {
+        duration: fast,
+        easing: DesignSystem.motion.easing.standard,
+      })
+    );
+    profileScale.value = withDelay(s, withSpring(1, DesignSystem.motion.spring.smooth));
+    profileTranslateY.value = withDelay(
+      s,
+      withTiming(0, {
+        duration: fast,
+        easing: DesignSystem.motion.easing.standard,
+      })
+    );
+
+    statsOpacity.value = withDelay(
+      s * 3,
+      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    statsTranslateY.value = withDelay(
+      s * 3,
+      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+    );
+    statsScale.value = withDelay(s * 3, withSpring(1, DesignSystem.motion.spring.smooth));
   }, []);
 
   useEffect(() => {
@@ -196,127 +172,10 @@ export function DashboardHeader({
     ],
   }));
 
-  // Use fade colors but adjust for iPad to preserve text readability
-  const fadeColors = isTablet && isDark
-    ? (() => {
-        const screenMax = Math.max(width, height);
-        if (screenMax > 1300) {
-          // Reduce opacity for dark mode on large iPad
-          return [
-            "transparent",
-            "transparent",
-            "rgba(24, 26, 27, 0.08)",
-            "rgba(24, 26, 27, 0.25)",
-            "rgba(24, 26, 27, 0.5)",
-            colors.background,
-          ] as const;
-        } else if (screenMax > 1100) {
-          return [
-            "transparent",
-            "transparent",
-            "rgba(24, 26, 27, 0.25)",
-            colors.background,
-          ] as const;
-        }
-        return ["transparent", "transparent", colors.background] as const;
-      })()
-    : getGradientFadeColors(isDark, colors.background);
-  
-  // Push fade opacity further down so text at top stays readable - start fade later for phones
-  const fadeLocations = isTablet
-    ? (() => {
-        const screenMax = Math.max(width, height);
-        if (isDark) {
-          // Dark mode: start fade later
-          if (screenMax > 1300) {
-            return [0, 0.6, 0.75, 0.85, 0.95, 1] as const;
-          } else if (screenMax > 1100) {
-            return [0, 0.65, 0.8, 1] as const;
-          }
-          return [0, 0.7, 1] as const;
-        } else {
-          // Light mode: start fade later
-          if (screenMax > 1300) {
-            return [0, 0.6, 0.75, 0.85, 0.95, 1] as const;
-          } else if (screenMax > 1100) {
-            return [0, 0.65, 0.8, 1] as const;
-          }
-          return [0, 0.7, 0.9, 1] as const;
-        }
-      })()
-    : isDark
-    ? getGradientFadeLocations(isDark)
-    : ([0, 0.7, 0.85, 0.95, 1] as const); // For phones in light mode, start fade much later
-  const gradientFadeHeight = getGradientFadeHeight();
-  const screenMax = Math.max(width, height);
-
   return (
     <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.sm, backgroundColor: colors.background }]}>
       <View style={[headerStyles.headerGradient, { backgroundColor: colors.background }]}>
-        {/* Bottom fade mask - inside the hero container */}
-        <LinearGradient
-          colors={fadeColors}
-          locations={fadeLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[
-            headerStyles.bottomFade,
-            {
-              height: gradientFadeHeight,
-            },
-            isTablet && {
-              height: screenMax > 1300 
-                ? gradientFadeHeight * 1.6  // iPad Pro 13"
-                : gradientFadeHeight * 1.3, // Standard iPads
-            },
-          ]}
-          pointerEvents="none"
-        />
-        
-        {/* Layered gradient background for depth */}
-        <LinearGradient
-          colors={heroGradient}
-          locations={heroGradientLocations}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={headerStyles.gradientBase}
-        />
-        
-        {/* Radial glow effect centered on content - simulated with multiple linear gradients */}
-        <LinearGradient
-          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
-          locations={[0, 0.3, 0.6, 1]}
-          start={{ x: 0.5, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={headerStyles.gradientGlow}
-        />
-        
-        {/* Ambient light layer - fade to transparent on iPads to prevent dark bar */}
-        <LinearGradient
-          colors={
-            isTablet
-              ? isDark
-                ? [
-                    "rgba(46, 196, 182, 0.10)",
-                    "rgba(58, 134, 255, 0.06)",
-                    "rgba(46, 196, 182, 0.03)",
-                    "transparent",
-                  ]
-                : [
-                    "rgba(46, 196, 182, 0.12)",
-                    "rgba(58, 134, 255, 0.08)",
-                    "rgba(46, 196, 182, 0.025)",
-                    "transparent",
-                  ]
-              : ambientGradient
-          }
-          locations={[0, 0.4, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={headerStyles.gradientAmbient}
-        />
-
-        {/* Content layer */}
+        {/* Content layer — solid surface (gradients reserved for welcome / auth) */}
         <View style={[
           headerStyles.contentLayer,
           isTablet && {
@@ -327,10 +186,22 @@ export function DashboardHeader({
             ),
           },
         ]}>
-          {/* Profile Button - Top Right */}
+          {/* Logo (left) + profile (right) — logo size matches header avatar */}
           <Animated.View
-            style={[headerStyles.profileButtonContainer, profileAnimatedStyle]}
+            style={[headerStyles.headerTopBar, profileAnimatedStyle]}
           >
+            <Image
+              source={require("../../../assets/images/homekeep-logo.png")}
+              style={{
+                width: headerAvatarSize,
+                height: headerAvatarSize,
+              }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="HomeKeep"
+            />
             <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
           </Animated.View>
 
@@ -340,9 +211,7 @@ export function DashboardHeader({
               style={[
                 headerStyles.greeting,
                 {
-                  color: isDark
-                    ? colors.text
-                    : "rgba(15, 23, 42, 0.9)",
+                  color: isDark ? colors.text : "rgba(15, 23, 42, 0.9)",
                 },
                 greetAnimatedStyle,
                 isTablet && {
@@ -354,94 +223,27 @@ export function DashboardHeader({
               {greeting}
             </Animated.Text>
             <Animated.View style={nameAnimatedStyle}>
-              {/* Light mode: Add a subtle white outline behind for contrast */}
-              {!isDark && (
-                <MaskedView
-                  style={{ position: "absolute" }}
-                  maskElement={
-                    <Text
-                      style={[
-                        headerStyles.userName,
-                        {
-                          color: colors.text,
-                          textShadowColor: "rgba(255, 255, 255, 0.6)",
-                          textShadowOffset: { width: 0, height: 0 },
-                          textShadowRadius: 2,
-                        },
-                        isTablet && {
-                          fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
-                          lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
-                        },
-                      ]}
-                    >
-                      {userName}
-                    </Text>
-                  }
-                >
-                  <LinearGradient
-                    colors={["rgba(255, 255, 255, 0.4)", "rgba(255, 255, 255, 0.4)"]}
-                    locations={[0, 1]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <Text style={[headerStyles.userName, { opacity: 0 }]}>
-                      {userName}
-                    </Text>
-                  </LinearGradient>
-                </MaskedView>
-              )}
-              {/* Main gradient text layer */}
-              <MaskedView
-                maskElement={
-                  <Text
-                    style={[
-                      headerStyles.userName,
-                      { color: colors.text },
-                      {
-                        // Text shadow for depth
-                        textShadowColor: isDark
-                          ? "rgba(0, 0, 0, 0.5)"
-                          : "rgba(0, 0, 0, 0.3)",
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: isDark ? 8 : 4,
-                      },
-                      isTablet && {
-                        fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
-                        lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
-                      },
-                    ]}
-                  >
-                    {userName}
-                  </Text>
-                }
+              <Text
+                style={[
+                  headerStyles.userName,
+                  { color: colors.accent },
+                  isTablet && {
+                    fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
+                    lineHeight:
+                      (headerStyles.userName.fontSize * heroFontMultiplier) *
+                      1.2,
+                  },
+                ]}
               >
-                <LinearGradient
-                  colors={textGradientColors}
-                  locations={[0, 1]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={[
-                    headerStyles.userName,
-                    { opacity: 0 },
-                    isTablet && {
-                      fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
-                      lineHeight: (headerStyles.userName.fontSize * heroFontMultiplier) * 1.2,
-                    },
-                  ]}>
-                    {userName}
-                  </Text>
-                </LinearGradient>
-              </MaskedView>
+                {userName}
+              </Text>
             </Animated.View>
 
             <Text
               style={[
                 headerStyles.motivationalMessage,
                 {
-                  color: isDark
-                    ? colors.textSecondary
-                    : "rgba(15, 23, 42, 0.65)",
+                  color: isDark ? colors.textSecondary : "rgba(15, 23, 42, 0.65)",
                 },
                 isTablet && {
                   fontSize: (headerStyles.motivationalMessage.fontSize || 16) * heroFontMultiplier,

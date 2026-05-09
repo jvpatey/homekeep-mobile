@@ -1,85 +1,93 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { AuthStackParamList } from "../../../navigation/types";
-import { useButtonAnimation, useGradients, useHaptics } from "../../../hooks";
+import {
+  useButtonAnimation,
+  useGradients,
+  useHaptics,
+  useScalePress,
+} from "../../../hooks";
 import { styles } from "./styles";
-import { DesignSystem } from "../../../theme/designSystem";
 
 type AuthNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
-// ActionButtons component for the ActionButtons on the home screen
+/**
+ * ActionButtons — 2026 redesign.
+ *
+ * The primary CTA was a 3-stop teal/blue/orange rainbow. iOS 26 design
+ * favors a solid brand color with a single subtle specular highlight on
+ * the top edge to suggest a glass gleam. Press affordance is a scale
+ * spring (useScalePress) instead of activeOpacity.
+ */
 export function ActionButtons() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const navigation = useNavigation<AuthNavigationProp>();
-  const animatedStyle = useButtonAnimation();
-  const { primaryGradient, accentGradient, isDark } = useGradients();
+  const { entering } = useButtonAnimation();
+  const { ctaHighlight } = useGradients();
   const { triggerMedium, triggerLight } = useHaptics();
+  const {
+    animatedStyle: ctaAnimatedStyle,
+    onPressIn,
+    onPressOut,
+  } = useScalePress();
 
-  // handleGetStarted function to handle the get started button press
   const handleGetStarted = () => {
     triggerMedium();
-    // Navigate to smart auth flow (will auto-detect signup vs login)
     navigation.navigate("SignUp");
   };
 
-  // handleEmailAuth function to handle the email auth link
   const handleEmailAuth = () => {
     triggerLight();
     navigation.navigate("Login");
   };
 
   return (
-    <Animated.View style={[styles.buttonContainer, animatedStyle]}>
+    <Animated.View style={styles.buttonContainer} entering={entering}>
       {/* Primary Get Started Button */}
-      <TouchableOpacity onPress={handleGetStarted} activeOpacity={0.8}>
-        <LinearGradient
-          colors={[
-            isDark ? "rgba(32, 180, 134, 0.70)" : "rgba(46, 196, 182, 0.75)",
-            isDark ? "rgba(58, 134, 255, 0.65)" : "rgba(58, 134, 255, 0.70)",
-            isDark ? "rgba(255, 159, 28, 0.60)" : "rgba(255, 159, 28, 0.65)",
-          ]}
-          locations={[0, 0.5, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+      <Pressable
+        onPress={handleGetStarted}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+      >
+        <Animated.View
           style={[
             styles.primaryButton,
             {
-              shadowColor: isDark
-                ? "rgba(32, 180, 134, 0.25)"
-                : "rgba(46, 196, 182, 0.30)",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.2,
-              shadowRadius: 16,
-              elevation: 5,
-              borderWidth: 1,
+              backgroundColor: colors.primary,
+              shadowColor: colors.primary,
               borderColor: isDark
-                ? "rgba(255, 255, 255, 0.15)"
-                : "rgba(255, 255, 255, 0.2)",
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(255, 255, 255, 0.22)",
             },
+            ctaAnimatedStyle,
           ]}
         >
-          <Text style={[styles.primaryButtonText, { color: "white" }]}>
-            Get Started
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          {/* Single specular highlight on the top edge — the only gradient
+              left on this screen. */}
+          <LinearGradient
+            colors={ctaHighlight}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.primaryButtonHighlight}
+            pointerEvents="none"
+          />
+          <Text style={styles.primaryButtonText}>Get Started</Text>
+        </Animated.View>
+      </Pressable>
 
       {/* Email Auth Link */}
-      <TouchableOpacity
-        onPress={handleEmailAuth}
-        activeOpacity={0.7}
-        style={styles.emailLink}
-      >
-        <Text style={[styles.emailLinkText, { color: colors.textSecondary }]}>
+      <Pressable onPress={handleEmailAuth} style={styles.emailLink}>
+        <Text
+          style={[styles.emailLinkText, { color: colors.textSecondary }]}
+        >
           Continue with Email
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 }

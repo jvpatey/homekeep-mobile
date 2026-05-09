@@ -2,94 +2,78 @@ import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../../theme/designSystem";
 
 export const styles = StyleSheet.create({
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  profileAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileInitial: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-  },
-  menuOverlay: {
+  // Bottom-sheet overlay
+  sheetOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "flex-end",
   },
-  menuContainer: {
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.lg,
-    margin: DesignSystem.spacing.lg,
-    maxWidth: 320,
+  backdropPressable: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sheetContainer: {
     width: "100%",
-    borderWidth: 1,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
   },
+  glassOuter: {
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+  },
+  glassInner: {
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  haloFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sheetSafeArea: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+
+  // User identity row
   profileSection: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  menuAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: DesignSystem.spacing.md,
-  },
-  menuAvatarInitial: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "white",
+    paddingVertical: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.md,
   },
   profileInfo: {
     flex: 1,
+    minWidth: 0,
   },
   profileName: {
+    ...DesignSystem.typography.h4,
     fontSize: 18,
-    fontWeight: "600",
     marginBottom: 2,
   },
   profileEmail: {
+    ...DesignSystem.typography.small,
     fontSize: 14,
-    opacity: 0.7,
+    opacity: 0.85,
   },
+
   menuDivider: {
-    height: 1,
-    marginVertical: DesignSystem.spacing.md,
+    height: StyleSheet.hairlineWidth,
+    marginVertical: DesignSystem.spacing.sm,
+    opacity: 0.6,
+  },
+
+  actions: {
+    gap: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
   },
   menuActionButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.medium,
   },
   menuActionIconContainer: {
@@ -101,9 +85,9 @@ export const styles = StyleSheet.create({
     marginRight: DesignSystem.spacing.md,
   },
   menuActionText: {
+    ...DesignSystem.typography.bodyMedium,
     flex: 1,
     fontSize: 16,
-    fontWeight: "500",
   },
   menuActionRight: {
     flexDirection: "row",
@@ -119,28 +103,9 @@ export const styles = StyleSheet.create({
     marginRight: 8,
   },
   counterText: {
+    ...DesignSystem.typography.captionSemiBold,
     fontSize: 13,
     fontWeight: "600",
     textAlign: "center",
-  },
-  signOutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.medium,
-  },
-  signOutIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: DesignSystem.spacing.md,
-  },
-  signOutText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
   },
 });

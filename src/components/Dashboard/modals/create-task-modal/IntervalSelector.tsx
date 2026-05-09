@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { intervalOptions } from "../../../Dashboard/modals/create-task-modal/data";
+import { formControlFill } from "./formChrome";
 import { styles as sharedStyles } from "./styles";
 
 // IntervalSelectorProps
@@ -14,6 +15,8 @@ interface IntervalSelectorProps {
   onSelectInterval: (interval: number) => void;
   onIntervalValueChange: (value: number) => void;
   error?: string;
+  /** Increment from parent to close dropdown (backdrop / tap-outside). */
+  dismissChromeToken?: number;
 }
 
 // IntervalSelector component
@@ -23,11 +26,16 @@ export function IntervalSelector({
   onSelectInterval,
   onIntervalValueChange,
   error,
+  dismissChromeToken = 0,
 }: IntervalSelectorProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const [isOpen, setIsOpen] = useState(false);
   const fontMultiplier = getFontMultiplier();
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [dismissChromeToken]);
 
   const getIntervalLabel = (interval: number) => {
     switch (interval) {
@@ -81,8 +89,8 @@ export function IntervalSelector({
         style={[
           intervalStyles.dropdownButton,
           {
-            backgroundColor: colors.glass,
-            borderColor: error ? colors.error : "rgba(0, 0, 0, 0.1)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: error ? colors.error : colors.glassStroke,
           },
         ]}
         onPress={() => setIsOpen(!isOpen)}
@@ -182,8 +190,8 @@ export function IntervalSelector({
         style={[
           intervalStyles.stepperContainer,
           {
-            backgroundColor: colors.glass,
-            borderColor: colors.glassBorder,
+            backgroundColor: formControlFill(isDark),
+            borderColor: colors.glassStroke,
           },
         ]}
       >

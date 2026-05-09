@@ -3,21 +3,23 @@ import {
   View,
   Text,
   Alert,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
   TouchableWithoutFeedback,
+  Pressable,
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useGradients } from "../../hooks";
-import { LogoSection } from "../../components/onboarding";
+import { useGradients, useScalePress } from "../../hooks";
+import { GlassCard } from "../../components/ui/glass-card";
+import { AuthTopHeader } from "../../components/auth";
 import { useAuthAnimation, useAuthHaptics } from "./hooks";
 import { useDynamicSpacing, useDevice } from "../../hooks";
 import { authStyles } from "./styles/authStyles";
@@ -27,21 +29,20 @@ import { DesignSystem } from "../../theme/designSystem";
 export function CodeVerificationScreen() {
   const { colors, isDark } = useTheme();
   const { supabase } = useAuth();
-  const { heroGradient, heroGradientLocations, radialGlow, primaryGradient, ambientGradient } = useGradients();
+  const { haloGradient, ctaHighlight } = useGradients();
   const navigation = useNavigation();
   const route = useRoute();
   const formAnimatedStyle = useAuthAnimation();
-  const { dynamicTopSpacing, dynamicBottomSpacing } = useDynamicSpacing();
+  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
-  const { isTablet, getMaxContentWidth, getGradientFadeHeight, getFontMultiplier, getResponsiveValue, getGradientFadeLocations, getGradientFadeColors, getHeroSectionHeight, width, height } = useDevice();
-  
+  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
+    useDevice();
+
   const maxContentWidth = getMaxContentWidth();
-  const gradientFadeHeight = getGradientFadeHeight();
   const fontMultiplier = getFontMultiplier();
-  const fadeLocations = getGradientFadeLocations(isDark) as any;
-  const fadeColors = getGradientFadeColors(isDark, colors.background) as any;
   const heroSectionHeight = getHeroSectionHeight();
-  const screenMax = Math.max(width, height);
+  const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
+    useScalePress();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -168,170 +169,35 @@ export function CodeVerificationScreen() {
     <View
       style={[authStyles.container, { backgroundColor: colors.background }]}
     >
-      {/* Hero Section with Gradient */}
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      {/* Hero Section — match Welcome screen (single halo) */}
       <View style={[
         authStyles.heroSection,
-        { backgroundColor: colors.background },
+        { backgroundColor: colors.background, justifyContent: "center" },
         heroSectionHeight !== undefined && {
           minHeight: heroSectionHeight,
-          justifyContent: "center",
         },
       ]}>
-        {/* Bottom fade mask */}
         <LinearGradient
-          colors={fadeColors}
-          locations={fadeLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[
-            authStyles.bottomFade,
-            {
-              height: gradientFadeHeight,
-            },
-            isTablet && {
-              height: screenMax > 1300 
-                ? gradientFadeHeight * 1.6  // iPad Pro 13"
-                : gradientFadeHeight * 1.3, // Standard iPads
-            },
-          ]}
-          pointerEvents="none"
-        />
-        
-        {/* Layered gradient background */}
-        <LinearGradient
-          colors={heroGradient}
-          locations={heroGradientLocations}
-          start={{ x: 0.5, y: 0 }}
+          colors={haloGradient}
+          start={{ x: 0.5, y: 0.15 }}
           end={{ x: 0.5, y: 1 }}
           style={authStyles.gradientBase}
+          pointerEvents="none"
         />
-        
-        {/* Glow effect */}
-        <LinearGradient
-          colors={[radialGlow.innerColor, radialGlow.midColor, radialGlow.outerColor, radialGlow.fadeColor]}
-          locations={[0, 0.3, 0.6, 1]}
-          start={{ x: 0.5, y: 0.3 }}
-          end={{ x: 1, y: 1 }}
-          style={authStyles.gradientGlow}
-        />
-        
-        {/* Ambient light layer - fade to transparent to prevent dark bar */}
-        <LinearGradient
-          colors={
-            isTablet
-              ? isDark
-                ? [
-                    "rgba(46, 196, 182, 0.10)",
-                    "rgba(58, 134, 255, 0.06)",
-                    "rgba(46, 196, 182, 0.03)",
-                    "transparent",
-                  ]
-                : [
-                    "rgba(46, 196, 182, 0.12)",
-                    "rgba(58, 134, 255, 0.08)",
-                    "rgba(46, 196, 182, 0.025)",
-                    "transparent",
-                  ]
-              : isDark
-              ? ambientGradient
-              : [
-                  "transparent",
-                  "transparent",
-                  "transparent",
-                  "transparent",
-                ]
-          }
-          locations={[0, 0.4, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={authStyles.gradientAmbient}
-        />
-
-        <TouchableOpacity
-          onPress={handleBackPress}
-          style={[
-            {
-              position: "absolute",
-              top: dynamicTopSpacing,
-              left: DesignSystem.spacing.md,
-              zIndex: 20,
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: isDark
-                ? "rgba(35, 37, 38, 0.5)"
-                : "rgba(255, 255, 255, 0.5)",
-              borderRadius: 20,
-              paddingHorizontal: DesignSystem.spacing.lg,
-              paddingVertical: DesignSystem.spacing.sm,
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.15)"
-                : "rgba(255, 255, 255, 0.25)",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              elevation: 2,
-            },
-            isTablet && {
-              borderRadius: getResponsiveValue(20, 24, 28),
-              paddingHorizontal: getResponsiveValue(
-                DesignSystem.spacing.lg,
-                DesignSystem.spacing.xl,
-                DesignSystem.spacing.xl + DesignSystem.spacing.sm,
-              ),
-              paddingVertical: getResponsiveValue(
-                DesignSystem.spacing.sm,
-                DesignSystem.spacing.md,
-                DesignSystem.spacing.md + DesignSystem.spacing.xs,
-              ),
-            },
-          ]}
-        >
-          <Text
-            style={[
-              {
-                color: colors.textSecondary,
-                fontSize: 15,
-                fontWeight: "600",
-                opacity: 0.7,
-              },
-              isTablet && {
-                fontSize: 15 * fontMultiplier,
-              },
-            ]}
-          >
-            ← Back
-          </Text>
-        </TouchableOpacity>
 
         <View style={[
           authStyles.headerContainer,
           authStyles.heroContent,
           maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
-          { zIndex: 15 }, // Ensure text is above fade gradient
+          { zIndex: 1 },
         ]}>
-          <LogoSection showText={false} compact={false} />
-
-          <Text style={[
-            authStyles.largeTitle,
-            { color: colors.text },
-            isTablet && {
-              fontSize: authStyles.largeTitle.fontSize * fontMultiplier,
-              lineHeight: authStyles.largeTitle.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Verify Your Email
-          </Text>
-          <Text style={[
-            authStyles.subtitle,
-            { color: colors.textSecondary },
-            isTablet && {
-              fontSize: authStyles.subtitle.fontSize * fontMultiplier,
-              lineHeight: authStyles.subtitle.lineHeight * fontMultiplier,
-            },
-          ]}>
-            Enter the 6-digit code sent to {email}
-          </Text>
+          <AuthTopHeader
+            title="Verify Your Email"
+            subtitle={`Enter the 6-digit code sent to ${email}`}
+            onBack={handleBackPress}
+          />
         </View>
       </View>
 
@@ -349,88 +215,94 @@ export function CodeVerificationScreen() {
             keyboardShouldPersistTaps="handled"
       >
         {/* Form Section with Liquid Glass */}
-        <Animated.View style={[
-          authStyles.formCard,
-          formAnimatedStyle,
-          { marginBottom: DesignSystem.spacing.lg },
-          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
-        ]}>
-          <LinearGradient
-            colors={isDark ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"] : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: DesignSystem.borders.radius.large,
-              padding: 1,
-            }}
+        <Animated.View style={[formAnimatedStyle]}>
+          <GlassCard
+            material="regular"
+            containerStyle={[
+              authStyles.formCard,
+              { marginBottom: DesignSystem.spacing.lg },
+              isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+            ]}
+            style={authStyles.formContent}
           >
-            <View style={[
-              authStyles.formContent,
-              {
-                backgroundColor: isDark ? "rgba(35, 37, 38, 0.9)" : "rgba(255, 255, 255, 0.9)",
-                borderRadius: DesignSystem.borders.radius.large - 1,
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.6)",
-              }
-            ]}>
-              <TextInput
-                label="Verification Code"
-                value={code}
-                onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
-                style={[
-                  authStyles.input,
-                  isTablet && {
-                    fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
-                  },
-                ]}
-                theme={getInputTheme()}
-                keyboardType="numeric"
-                maxLength={6}
-                placeholder="123456"
-                autoFocus
-                    keyboardAppearance={isDark ? "dark" : "light"}
-              />
-              {error && (
-                <Text style={[authStyles.errorText, { color: colors.error }]}>
-                  {error}
-                </Text>
-              )}
-            </View>
-          </LinearGradient>
+            <TextInput
+              label="Verification Code"
+              value={code}
+              onChangeText={(text) => setCode(text.replace(/[^0-9]/g, ""))}
+              style={[
+                authStyles.input,
+                isTablet && {
+                  fontSize:
+                    (authStyles.input.fontSize ||
+                      DesignSystem.typography.body.fontSize) *
+                    fontMultiplier,
+                },
+              ]}
+              theme={getInputTheme()}
+              keyboardType="numeric"
+              maxLength={6}
+              placeholder="123456"
+              autoFocus
+              keyboardAppearance={isDark ? "dark" : "light"}
+            />
+            {error && (
+              <Text style={[authStyles.errorText, { color: colors.error }]}>
+                {error}
+              </Text>
+            )}
+          </GlassCard>
         </Animated.View>
 
-        {/* Verify Button with Gradient */}
+        {/* Verify Button */}
         <View style={[
           authStyles.buttonContainer,
           isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
         ]}>
-          <TouchableOpacity
+          <Pressable
             onPress={handleVerifyCode}
             disabled={loading || code.length !== 6}
-            activeOpacity={0.8}
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
           >
-            <LinearGradient
-              colors={primaryGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                paddingVertical: DesignSystem.spacing.md,
-                paddingHorizontal: DesignSystem.spacing.lg,
-                borderRadius: DesignSystem.borders.radius.large,
-                alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-                elevation: 6,
-                opacity: code.length !== 6 ? 0.6 : 1,
-              }}
+            <Animated.View
+              style={[
+                authStyles.primaryButton,
+                {
+                  position: "relative",
+                  overflow: "hidden",
+                  backgroundColor: colors.primary,
+                  shadowColor: colors.primary,
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.18,
+                  shadowRadius: 18,
+                  elevation: 5,
+                  borderWidth: 1,
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(255, 255, 255, 0.22)",
+                  opacity: code.length !== 6 ? 0.6 : 1,
+                },
+                ctaAnimatedStyle,
+              ]}
             >
+              <LinearGradient
+                colors={ctaHighlight}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "45%",
+                }}
+                pointerEvents="none"
+              />
               <Text style={[authStyles.buttonLabel, { color: "white" }]}>
                 {loading ? "Verifying..." : "Verify Code"}
               </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </Animated.View>
+          </Pressable>
         </View>
 
         {/* Resend Code */}

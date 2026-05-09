@@ -4,69 +4,83 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../../context/ThemeContext";
 import { useGradients, useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
-import { styles } from "./styles";
+import { authStyles } from "../../../../screens/auth/styles/authStyles";
 
-// SubmitButtonProps interface
 interface SubmitButtonProps {
   onPress: () => void;
   disabled: boolean;
   title: string;
 }
 
-// SubmitButton component for the CreateTaskModal
+/** Primary CTA — matches Login / SignUp solid + specular highlight. */
 export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
   const { colors, isDark } = useTheme();
-  const { primaryGradient } = useGradients();
+  const { ctaHighlight } = useGradients();
   const { isTablet, getFontMultiplier } = useDevice();
   const fontMultiplier = getFontMultiplier();
 
   return (
-    <View style={[styles.modalFooter, { backgroundColor: "transparent" }]}>
+    <View style={{ backgroundColor: "transparent", paddingTop: DesignSystem.spacing.md }}>
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
       >
-        <LinearGradient
-          colors={[
-            isDark ? "rgba(32, 180, 134, 0.70)" : "rgba(46, 196, 182, 0.75)",
-            isDark ? "rgba(58, 134, 255, 0.65)" : "rgba(58, 134, 255, 0.70)",
-            isDark ? "rgba(255, 159, 28, 0.60)" : "rgba(255, 159, 28, 0.65)",
-          ]}
-          locations={[0, 0.5, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={[
-            styles.submitButton,
+            authStyles.primaryButton,
             {
-              shadowColor: isDark
-                ? "rgba(32, 180, 134, 0.25)"
-                : "rgba(46, 196, 182, 0.30)",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 8,
-              elevation: 3,
+              position: "relative",
+              overflow: "hidden",
+              backgroundColor: colors.primary,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.18,
+              shadowRadius: 18,
+              elevation: 5,
+              borderWidth: 1,
               borderColor: isDark
-                ? "rgba(255, 255, 255, 0.15)"
-                : "rgba(255, 255, 255, 0.2)",
-              opacity: disabled ? 0.6 : 1,
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(255, 255, 255, 0.22)",
+              opacity: disabled ? 0.55 : 1,
             },
             isTablet && {
-              paddingVertical: DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.2),
-              minHeight: 44 * (1 + (fontMultiplier - 1) * 0.2),
+              paddingVertical: DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.15),
+              minHeight: DesignSystem.components.buttonLarge * (1 + (fontMultiplier - 1) * 0.12),
             },
           ]}
         >
-          <Text style={[
-            styles.submitButtonText, 
-            { color: "white" },
-            isTablet && {
-              fontSize: ((styles.submitButtonText.fontSize || DesignSystem.typography.button.fontSize) * fontMultiplier),
-            },
-          ]}>
+          <LinearGradient
+            colors={ctaHighlight}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "45%",
+            }}
+            pointerEvents="none"
+          />
+          <Text
+            style={[
+              authStyles.buttonLabel,
+              {
+                color: "white",
+                fontWeight: "600",
+                fontSize: 17,
+              },
+              isTablet && {
+                fontSize: 17 * fontMultiplier,
+              },
+            ]}
+          >
             {title}
           </Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     </View>
   );

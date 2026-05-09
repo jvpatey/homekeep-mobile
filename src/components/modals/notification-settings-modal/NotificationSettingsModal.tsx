@@ -16,13 +16,15 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  interpolate,
+  runOnJS,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
-import { useHaptics, useDevice } from "../../../hooks";
+import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
+import { GlassCard, SheetGrabber } from "../../ui";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
 import { MaintenanceCategory } from "../../../types/maintenance";
 import {
@@ -50,22 +52,39 @@ export function NotificationSettingsModal({
     updateGlobalNotificationSettings,
     permissionStatus,
   } = useNotifications();
+  const { haloGradient } = useGradients();
   const { triggerLight } = useHaptics();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
   const [expandedType, setExpandedType] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(visible);
 
-  const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
+  const translateY = useSharedValue(screenHeight);
 
-  // Animate modal - faster and more responsive
   React.useEffect(() => {
     if (visible) {
-      scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-      opacity.value = withTiming(1, { duration: 200 });
+      setMounted(true);
+      opacity.value = withTiming(1, {
+        duration: DesignSystem.motion.duration.fast,
+        easing: DesignSystem.motion.easing.standard,
+      });
+      translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
     } else {
-      scale.value = withTiming(0, { duration: 150 });
-      opacity.value = withTiming(0, { duration: 150 });
+      opacity.value = withTiming(0, {
+        duration: DesignSystem.motion.duration.fast,
+        easing: DesignSystem.motion.easing.standard,
+      });
+      translateY.value = withTiming(
+        screenHeight,
+        {
+          duration: DesignSystem.motion.duration.fast,
+          easing: DesignSystem.motion.easing.standard,
+        },
+        (finished) => {
+          if (finished) runOnJS(setMounted)(false);
+        }
+      );
     }
   }, [visible]);
 
@@ -73,18 +92,14 @@ export function NotificationSettingsModal({
     opacity: opacity.value,
   }));
 
-  const animatedModalStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(scale.value, [0, 1], [0.9, 1]) }],
+  const animatedSheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
     opacity: opacity.value,
   }));
 
   const handleClose = async () => {
     await triggerLight();
     onClose();
-  };
-
-  const handleBackdropPress = () => {
-    handleClose();
   };
 
   const handleGlobalToggle = async (enabled: boolean) => {
@@ -140,6 +155,9 @@ export function NotificationSettingsModal({
             backgroundColor: isDark
               ? "rgba(255, 255, 255, 0.05)"
               : "rgba(0, 0, 0, 0.02)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.05)",
           },
           isTablet && {
             borderRadius: getResponsiveValue(16, 20, 24),
@@ -151,6 +169,11 @@ export function NotificationSettingsModal({
         <TouchableOpacity
           style={styles.notificationTypeHeader}
           onPress={() => toggleTypeExpansion(type)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isExpanded }}
+          accessibilityLabel={`${config.title}, ${
+            isExpanded ? "expanded" : "collapsed"
+          }`}
         >
           <View style={styles.notificationTypeHeaderLeft}>
             <View
@@ -174,12 +197,16 @@ export function NotificationSettingsModal({
             <View style={styles.notificationTypeInfo}>
               <Text
                 style={[
-                  styles.notificationTypeName, 
+                  styles.notificationTypeName,
                   { color: colors.text },
                   isTablet && {
-                    fontSize: ((styles.notificationTypeName.fontSize || 16) * fontMultiplier),
-                    lineHeight: ((styles.notificationTypeName.fontSize || 16) * fontMultiplier) * 1.2,
-                    marginBottom: getResponsiveValue(2, 4, 6),
+                    fontSize:
+                      (styles.notificationTypeName.fontSize || 16) *
+                      fontMultiplier,
+                    lineHeight:
+                      (styles.notificationTypeName.fontSize || 16) *
+                      fontMultiplier *
+                      1.2,
                   },
                 ]}
               >
@@ -190,8 +217,13 @@ export function NotificationSettingsModal({
                   styles.notificationTypeDescription,
                   { color: colors.textSecondary },
                   isTablet && {
-                    fontSize: ((styles.notificationTypeDescription.fontSize || 13) * fontMultiplier),
-                    lineHeight: ((styles.notificationTypeDescription.fontSize || 13) * fontMultiplier) * 1.4,
+                    fontSize:
+                      (styles.notificationTypeDescription.fontSize || 13) *
+                      fontMultiplier,
+                    lineHeight:
+                      (styles.notificationTypeDescription.fontSize || 13) *
+                      fontMultiplier *
+                      1.4,
                   },
                 ]}
               >
@@ -217,21 +249,24 @@ export function NotificationSettingsModal({
           </View>
         </TouchableOpacity>
 
-        {isExpanded && (
-          <View style={[
-            styles.categoriesContainer,
-            isTablet && {
-              marginTop: getResponsiveValue(16, 20, 24),
-              paddingTop: getResponsiveValue(16, 20, 24),
-            },
-          ]}>
+        {isExpanded ? (
+          <View
+            style={[
+              styles.categoriesContainer,
+              {
+                borderTopColor: isDark
+                  ? "rgba(255, 255, 255, 0.08)"
+                  : "rgba(0, 0, 0, 0.06)",
+              },
+            ]}
+          >
             <Text
               style={[
-                styles.categoriesTitle, 
+                styles.categoriesTitle,
                 { color: colors.textSecondary },
                 isTablet && {
-                  fontSize: ((styles.categoriesTitle.fontSize || 14) * fontMultiplier),
-                  marginBottom: getResponsiveValue(4, 6, 8),
+                  fontSize:
+                    (styles.categoriesTitle.fontSize || 14) * fontMultiplier,
                 },
               ]}
             >
@@ -242,9 +277,13 @@ export function NotificationSettingsModal({
                 styles.categoriesDescription,
                 { color: colors.textSecondary },
                 isTablet && {
-                  fontSize: ((styles.categoriesDescription.fontSize || 13) * fontMultiplier),
-                  lineHeight: ((styles.categoriesDescription.fontSize || 13) * fontMultiplier) * 1.4,
-                  marginBottom: getResponsiveValue(12, 16, 20),
+                  fontSize:
+                    (styles.categoriesDescription.fontSize || 13) *
+                    fontMultiplier,
+                  lineHeight:
+                    (styles.categoriesDescription.fontSize || 13) *
+                    fontMultiplier *
+                    1.4,
                 },
               ]}
             >
@@ -263,12 +302,17 @@ export function NotificationSettingsModal({
               if (!preferences) return null;
 
               return (
-                <View key={category} style={[
-                  styles.categoryRow,
-                  isTablet && {
-                    paddingVertical: getResponsiveValue(12, 16, 20),
-                  },
-                ]}>
+                <View
+                  key={category}
+                  style={[
+                    styles.categoryRow,
+                    {
+                      borderBottomColor: isDark
+                        ? "rgba(255, 255, 255, 0.05)"
+                        : "rgba(0, 0, 0, 0.05)",
+                    },
+                  ]}
+                >
                   <View style={styles.categoryRowLeft}>
                     <LinearGradient
                       colors={categoryData.gradient}
@@ -289,10 +333,12 @@ export function NotificationSettingsModal({
                     </LinearGradient>
                     <Text
                       style={[
-                        styles.categoryRowName, 
+                        styles.categoryRowName,
                         { color: colors.text },
                         isTablet && {
-                          fontSize: ((styles.categoryRowName.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
+                          fontSize:
+                            (styles.categoryRowName.fontSize || 14) *
+                            fontMultiplier,
                         },
                       ]}
                     >
@@ -323,68 +369,79 @@ export function NotificationSettingsModal({
               );
             })}
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
 
   return (
     <Modal
-      visible={visible}
+      visible={mounted}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={handleClose}
       statusBarTranslucent
     >
       <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
         <Pressable
           style={styles.backdropPressable}
-          onPress={handleBackdropPress}
+          onPress={handleClose}
+          accessibilityLabel="Dismiss"
+        />
+        <Animated.View
+          style={[
+            styles.sheetContainer,
+            isTablet && {
+              maxWidth: getResponsiveValue(500, 640, 720),
+              alignSelf: "center",
+              width: "100%",
+            },
+            animatedSheetStyle,
+          ]}
+          pointerEvents="auto"
         >
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.85)"
-                  : "rgba(255, 255, 255, 0.85)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.9)",
-              },
-              isTablet && {
-                maxWidth: getResponsiveValue(420, 600, 700),
-              },
-              animatedModalStyle,
-            ]}
-            onStartShouldSetResponder={() => true}
+          <GlassCard
+            material="thick"
+            radius={DesignSystem.borders.radius.glass}
+            containerStyle={styles.glassOuter}
+            style={styles.glassInner}
           >
-            {/* Header */}
-            <View
-              style={[
-                styles.header,
-                {
-                  borderBottomWidth: 1,
-                  borderBottomColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.08)",
-                },
-                isTablet && {
-                  paddingTop: getResponsiveValue(20, 28, 32),
-                  paddingHorizontal: getResponsiveValue(20, 28, 32),
-                  paddingBottom: getResponsiveValue(16, 20, 24),
-                },
-              ]}
-            >
-              <View style={styles.headerContent}>
-                <Text style={[
-                  styles.headerTitle, 
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize: ((styles.headerTitle.fontSize || 22) * fontMultiplier),
-                    lineHeight: ((styles.headerTitle.fontSize || 22) * fontMultiplier) * 1.2,
+            <LinearGradient
+              colors={[...haloGradient]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.haloFill}
+              pointerEvents="none"
+            />
+
+            <SafeAreaView edges={["bottom"]} style={styles.sheetSafeArea}>
+              <SheetGrabber />
+
+              {/* Header */}
+              <View
+                style={[
+                  styles.header,
+                  {
+                    borderBottomColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.08)",
                   },
-                ]}>
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.headerTitle,
+                    { color: colors.text },
+                    isTablet && {
+                      fontSize:
+                        (styles.headerTitle.fontSize || 20) * fontMultiplier,
+                      lineHeight:
+                        (styles.headerTitle.fontSize || 20) *
+                        fontMultiplier *
+                        1.2,
+                    },
+                  ]}
+                >
                   Notification Settings
                 </Text>
                 <TouchableOpacity
@@ -392,8 +449,10 @@ export function NotificationSettingsModal({
                     styles.closeButton,
                     {
                       backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.05)",
+                        ? "rgba(35, 37, 38, 0.55)"
+                        : "rgba(255, 255, 255, 0.45)",
+                      borderWidth: DesignSystem.borders.hairline,
+                      borderColor: colors.glassStroke,
                     },
                     isTablet && {
                       width: getResponsiveValue(36, 44, 48),
@@ -403,207 +462,245 @@ export function NotificationSettingsModal({
                   ]}
                   onPress={handleClose}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                 >
                   <Ionicons
                     name="close"
                     size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
-                    color={colors.textSecondary}
+                    color={colors.text}
                   />
                 </TouchableOpacity>
               </View>
-            </View>
 
-            {/* Content */}
-            <ScrollView
-              style={[
-                styles.content,
-                isTablet && {
-                  paddingHorizontal: getResponsiveValue(20, 28, 32),
-                },
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Global Settings */}
-              <View
-                style={[
-                  styles.globalSection,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.02)",
-                  },
+              {/* Body */}
+              <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={[
+                  styles.scrollContent,
                   isTablet && {
-                    marginTop: getResponsiveValue(20, 28, 32),
-                    padding: getResponsiveValue(20, 28, 32),
-                    marginBottom: getResponsiveValue(20, 28, 32),
-                    borderRadius: getResponsiveValue(16, 20, 24),
+                    paddingHorizontal: getResponsiveValue(20, 28, 32),
                   },
                 ]}
+                showsVerticalScrollIndicator
               >
-                <View style={styles.globalHeader}>
-                  <View style={styles.globalHeaderLeft}>
-                    <View
-                      style={[
-                        styles.globalIcon,
-                        { backgroundColor: colors.primary + "15" },
-                        isTablet && {
-                          width: getResponsiveValue(48, 56, 64),
-                          height: getResponsiveValue(48, 56, 64),
-                          borderRadius: getResponsiveValue(24, 28, 32),
-                          marginRight: getResponsiveValue(16, 20, 24),
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="notifications"
-                        size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
-                        color={colors.primary}
-                      />
-                    </View>
-                    <View style={styles.globalInfo}>
-                      <Text
-                        style={[
-                          styles.globalTitle, 
-                          { color: colors.text },
-                          isTablet && {
-                            fontSize: ((styles.globalTitle.fontSize || 18) * fontMultiplier),
-                            lineHeight: ((styles.globalTitle.fontSize || 18) * fontMultiplier) * 1.2,
-                            marginBottom: getResponsiveValue(4, 6, 8),
-                          },
-                        ]}
-                      >
-                        All Notifications
-                      </Text>
-                      <Text
-                        style={[
-                          styles.globalDescription,
-                          { color: colors.textSecondary },
-                          isTablet && {
-                            fontSize: ((styles.globalDescription.fontSize || 14) * fontMultiplier),
-                            lineHeight: ((styles.globalDescription.fontSize || 14) * fontMultiplier) * 1.4,
-                          },
-                        ]}
-                      >
-                        Enable or disable all notifications
-                      </Text>
-                    </View>
-                  </View>
-                  <Switch
-                    value={notificationSettings.globalEnabled}
-                    onValueChange={handleGlobalToggle}
-                    trackColor={{
-                      false: colors.border,
-                      true: colors.primary + "40",
-                    }}
-                    thumbColor={
-                      notificationSettings.globalEnabled
-                        ? colors.primary
-                        : colors.textSecondary
-                    }
-                  />
-                </View>
-              </View>
-
-              {/* Permission Status */}
-              {!permissionStatus.granted && (
+                {/* Global Settings */}
                 <View
                   style={[
-                    styles.permissionSection,
+                    styles.globalSection,
                     {
                       backgroundColor: isDark
-                        ? "rgba(255, 107, 107, 0.1)"
-                        : "rgba(255, 107, 107, 0.05)",
+                        ? "rgba(255, 255, 255, 0.05)"
+                        : "rgba(0, 0, 0, 0.02)",
                       borderColor: isDark
-                        ? "rgba(255, 107, 107, 0.2)"
-                        : "rgba(235, 87, 87, 0.2)",
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.05)",
+                    },
+                    isTablet && {
+                      marginTop: getResponsiveValue(20, 28, 32),
+                      padding: getResponsiveValue(20, 28, 32),
+                      marginBottom: getResponsiveValue(20, 28, 32),
+                      borderRadius: getResponsiveValue(16, 20, 24),
                     },
                   ]}
                 >
-                  <View style={styles.permissionContent}>
-                    <Ionicons 
-                      name="warning" 
-                      size={isTablet ? getResponsiveValue(20, 24, 26) : 20} 
-                      color={colors.error} 
+                  <View style={styles.globalHeader}>
+                    <View style={styles.globalHeaderLeft}>
+                      <View
+                        style={[
+                          styles.globalIcon,
+                          { backgroundColor: colors.primary + "15" },
+                          isTablet && {
+                            width: getResponsiveValue(48, 56, 64),
+                            height: getResponsiveValue(48, 56, 64),
+                            borderRadius: getResponsiveValue(24, 28, 32),
+                            marginRight: getResponsiveValue(16, 20, 24),
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="notifications"
+                          size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
+                          color={colors.primary}
+                        />
+                      </View>
+                      <View style={styles.globalInfo}>
+                        <Text
+                          style={[
+                            styles.globalTitle,
+                            { color: colors.text },
+                            isTablet && {
+                              fontSize:
+                                (styles.globalTitle.fontSize || 18) *
+                                fontMultiplier,
+                              lineHeight:
+                                (styles.globalTitle.fontSize || 18) *
+                                fontMultiplier *
+                                1.2,
+                            },
+                          ]}
+                        >
+                          All Notifications
+                        </Text>
+                        <Text
+                          style={[
+                            styles.globalDescription,
+                            { color: colors.textSecondary },
+                            isTablet && {
+                              fontSize:
+                                (styles.globalDescription.fontSize || 14) *
+                                fontMultiplier,
+                              lineHeight:
+                                (styles.globalDescription.fontSize || 14) *
+                                fontMultiplier *
+                                1.4,
+                            },
+                          ]}
+                        >
+                          Enable or disable all notifications
+                        </Text>
+                      </View>
+                    </View>
+                    <Switch
+                      value={notificationSettings.globalEnabled}
+                      onValueChange={handleGlobalToggle}
+                      trackColor={{
+                        false: colors.border,
+                        true: colors.primary + "40",
+                      }}
+                      thumbColor={
+                        notificationSettings.globalEnabled
+                          ? colors.primary
+                          : colors.textSecondary
+                      }
                     />
-                    <Text
-                      style={[
-                        styles.permissionText, 
-                        { color: colors.error },
-                        isTablet && {
-                          fontSize: ((styles.permissionText.fontSize || 14) * fontMultiplier),
-                          lineHeight: ((styles.permissionText.fontSize || 14) * fontMultiplier) * 1.4,
-                          marginLeft: getResponsiveValue(12, 16, 20),
-                        },
-                      ]}
-                    >
-                      {permissionStatus.canAskAgain
-                        ? "Notifications are disabled. Enable them to receive task reminders."
-                        : "Notifications are blocked. Please enable them in device settings."}
-                    </Text>
                   </View>
-                  {permissionStatus.canAskAgain && (
-                    <TouchableOpacity
-                      style={[
-                        styles.permissionButton,
-                        { backgroundColor: colors.error },
-                        isTablet && {
-                          paddingHorizontal: getResponsiveValue(16, 20, 24),
-                          paddingVertical: getResponsiveValue(8, 10, 12),
-                          borderRadius: getResponsiveValue(8, 10, 12),
-                        },
-                      ]}
-                      onPress={requestPermissions}
-                    >
-                      <Text style={[
-                        styles.permissionButtonText,
-                        isTablet && {
-                          fontSize: ((styles.permissionButtonText.fontSize || 14) * fontMultiplier),
-                        },
-                      ]}>Enable</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
-              )}
 
-              {/* Notification Type Settings */}
-              {notificationSettings.globalEnabled && (
-                <>
-                  <Text style={[
-                    styles.sectionTitle, 
-                    { color: colors.text },
-                    isTablet && {
-                      fontSize: ((styles.sectionTitle.fontSize || 18) * fontMultiplier),
-                      lineHeight: ((styles.sectionTitle.fontSize || 18) * fontMultiplier) * 1.2,
-                      marginBottom: getResponsiveValue(8, 12, 16),
-                      marginTop: getResponsiveValue(20, 28, 32),
-                    },
-                  ]}>
-                    Notification Types
-                  </Text>
-                  <Text
+                {/* Permission Status */}
+                {!permissionStatus.granted ? (
+                  <View
                     style={[
-                      styles.sectionDescription,
-                      { color: colors.textSecondary },
-                      isTablet && {
-                        fontSize: ((styles.sectionDescription.fontSize || 14) * fontMultiplier),
-                        lineHeight: ((styles.sectionDescription.fontSize || 14) * fontMultiplier) * 1.4,
-                        marginBottom: getResponsiveValue(20, 28, 32),
+                      styles.permissionSection,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 107, 107, 0.1)"
+                          : "rgba(255, 107, 107, 0.05)",
+                        borderColor: isDark
+                          ? "rgba(255, 107, 107, 0.2)"
+                          : "rgba(235, 87, 87, 0.2)",
                       },
                     ]}
                   >
-                    Configure which types of notifications you want to receive
-                  </Text>
+                    <View style={styles.permissionContent}>
+                      <Ionicons
+                        name="warning"
+                        size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+                        color={colors.error}
+                      />
+                      <Text
+                        style={[
+                          styles.permissionText,
+                          { color: colors.error },
+                          isTablet && {
+                            fontSize:
+                              (styles.permissionText.fontSize || 14) *
+                              fontMultiplier,
+                            lineHeight:
+                              (styles.permissionText.fontSize || 14) *
+                              fontMultiplier *
+                              1.4,
+                            marginLeft: getResponsiveValue(12, 16, 20),
+                          },
+                        ]}
+                      >
+                        {permissionStatus.canAskAgain
+                          ? "Notifications are disabled. Enable them to receive task reminders."
+                          : "Notifications are blocked. Please enable them in device settings."}
+                      </Text>
+                    </View>
+                    {permissionStatus.canAskAgain ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.permissionButton,
+                          { backgroundColor: colors.error },
+                          isTablet && {
+                            paddingHorizontal: getResponsiveValue(16, 20, 24),
+                            paddingVertical: getResponsiveValue(8, 10, 12),
+                            borderRadius: getResponsiveValue(8, 10, 12),
+                          },
+                        ]}
+                        onPress={requestPermissions}
+                      >
+                        <Text
+                          style={[
+                            styles.permissionButtonText,
+                            isTablet && {
+                              fontSize:
+                                (styles.permissionButtonText.fontSize || 14) *
+                                fontMultiplier,
+                            },
+                          ]}
+                        >
+                          Enable
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ) : null}
 
-                  {getNotificationTypes().map((type) =>
-                    renderNotificationTypeSection(type)
-                  )}
-                </>
-              )}
+                {/* Notification Types */}
+                {notificationSettings.globalEnabled ? (
+                  <>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        { color: colors.text },
+                        isTablet && {
+                          fontSize:
+                            (styles.sectionTitle.fontSize || 18) *
+                            fontMultiplier,
+                          lineHeight:
+                            (styles.sectionTitle.fontSize || 18) *
+                            fontMultiplier *
+                            1.2,
+                          marginBottom: getResponsiveValue(8, 12, 16),
+                          marginTop: getResponsiveValue(20, 28, 32),
+                        },
+                      ]}
+                    >
+                      Notification Types
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sectionDescription,
+                        { color: colors.textSecondary },
+                        isTablet && {
+                          fontSize:
+                            (styles.sectionDescription.fontSize || 14) *
+                            fontMultiplier,
+                          lineHeight:
+                            (styles.sectionDescription.fontSize || 14) *
+                            fontMultiplier *
+                            1.4,
+                          marginBottom: getResponsiveValue(20, 28, 32),
+                        },
+                      ]}
+                    >
+                      Configure which types of notifications you want to receive
+                    </Text>
 
-              <View style={styles.bottomSpacer} />
-            </ScrollView>
-          </Animated.View>
-        </Pressable>
+                    {getNotificationTypes().map((type) =>
+                      renderNotificationTypeSection(type)
+                    )}
+                  </>
+                ) : null}
+
+                <View style={styles.bottomSpacer} />
+              </ScrollView>
+            </SafeAreaView>
+          </GlassCard>
+        </Animated.View>
       </Animated.View>
     </Modal>
   );

@@ -8,7 +8,6 @@ import Animated, {
   withTiming,
   withSpring,
   withDelay,
-  interpolate,
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
 import {
@@ -17,7 +16,10 @@ import {
   PRIORITIES,
 } from "../../../types/maintenance";
 import { useTheme } from "../../../context/ThemeContext";
-import { useDevice } from "../../../hooks";
+import { useDevice, useGradients } from "../../../hooks";
+import { GlassCard } from "../../ui/glass-card/GlassCard";
+import { formControlFill } from "../modals/create-task-modal/formChrome";
+import { hexWithAlpha } from "./popupChrome";
 
 interface DueSoonPopupProps {
   tasks: MaintenanceTask[];
@@ -26,7 +28,8 @@ interface DueSoonPopupProps {
 
 // DueSoonPopup component for the Dashboard
 export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { haloGradient } = useGradients();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
 
   // Animation values
@@ -42,57 +45,49 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   // Carousel state
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
 
-  // Glass-like blue gradient with subtle transparency
-  const glassGradient = (isDark
-    ? [
-        "rgba(59, 130, 246, 0.15)",
-        "rgba(29, 78, 216, 0.25)",
-        "rgba(15, 23, 42, 0.85)",
-      ]
-    : [
-        "rgba(59, 130, 246, 0.12)",
-        "rgba(147, 197, 253, 0.18)",
-        "rgba(255, 255, 255, 0.85)",
-      ]) as [string, string, string];
-
   useEffect(() => {
-    // Entrance animation - faster and more responsive
-    opacity.value = withTiming(1, { duration: 200 });
-    scale.value = withSpring(1, { damping: 20, stiffness: 180 });
-    translateY.value = withTiming(0, { duration: 200 });
+    opacity.value = withTiming(1, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withSpring(1, DesignSystem.motion.spring.snappy);
+    translateY.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
     // Header icon animation - reduced delay
     headerIconScale.value = withDelay(
-      50,
-      withSpring(1, {
-        damping: 15,
-        stiffness: 150,
-      })
+      DesignSystem.motion.stagger,
+      withSpring(1, DesignSystem.motion.spring.smooth)
     );
     headerIconRotation.value = withDelay(
-      50,
-      withTiming(360, { duration: 400 })
+      DesignSystem.motion.stagger,
+      withTiming(0, { duration: 0 })
     );
 
     // Content animation - faster
     contentOpacity.value = withDelay(
-      100,
-      withTiming(1, { duration: 200 })
+      DesignSystem.motion.stagger,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      })
     );
 
     // Task card animation - faster
     taskCardScale.value = withDelay(
-      150,
-      withSpring(1, {
-        damping: 18,
-        stiffness: 180,
-      })
+      DesignSystem.motion.stagger * 2,
+      withSpring(1, DesignSystem.motion.spring.smooth)
     );
 
     // Navigation buttons animation - faster
     navButtonOpacity.value = withDelay(
-      200,
-      withTiming(1, { duration: 200 })
+      DesignSystem.motion.stagger * 2,
+      withTiming(1, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.standard,
+      })
     );
   }, []);
 
@@ -121,13 +116,21 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
   }));
 
   const handleClose = () => {
-    // Exit animation - faster
-    opacity.value = withTiming(0, { duration: 150 });
-    scale.value = withTiming(0.95, { duration: 150 });
-    translateY.value = withTiming(20, { duration: 150 });
+    opacity.value = withTiming(0, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    scale.value = withTiming(0.96, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
+    translateY.value = withTiming(20, {
+      duration: DesignSystem.motion.duration.fast,
+      easing: DesignSystem.motion.easing.standard,
+    });
 
     // Close after animation
-    setTimeout(onClose, 150);
+    setTimeout(onClose, DesignSystem.motion.duration.fast);
   };
 
   const goToNextTask = () => {
@@ -174,12 +177,8 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
         style={[
           styles.taskItem,
           {
-            backgroundColor: isDark
-              ? "rgba(59, 130, 246, 0.1)"
-              : "rgba(147, 197, 253, 0.12)",
-            borderColor: isDark
-              ? "rgba(59, 130, 246, 0.2)"
-              : "rgba(59, 130, 246, 0.2)",
+            backgroundColor: formControlFill(isDark),
+            borderColor: colors.glassStroke,
           },
         ]}
       >
@@ -200,9 +199,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
               style={[
                 styles.categoryText,
                 {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.95)"
-                    : categoryInfo.color,
+                  color: colors.text,
                 },
                 isTablet && {
                   fontSize: ((styles.categoryText.fontSize || 12) * getFontMultiplier()),
@@ -216,7 +213,12 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
             </Text>
           </View>
           <View style={styles.urgencyIndicator}>
-            <View style={styles.urgencyDot} />
+            <View
+              style={[
+                styles.urgencyDot,
+                { backgroundColor: colors.error, shadowColor: colors.error },
+              ]}
+            />
           </View>
         </View>
 
@@ -224,11 +226,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
         <Text
           style={[
             styles.taskTitle,
-            {
-              color: isDark
-                ? "rgba(255, 255, 255, 0.95)"
-                : "rgba(15, 23, 42, 0.9)",
-            },
+            { color: colors.text },
             isTablet && {
               fontSize: ((styles.taskTitle.fontSize || 18) * getFontMultiplier()),
               lineHeight: ((styles.taskTitle.fontSize || 18) * getFontMultiplier()) * 1.3,
@@ -246,33 +244,21 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
               style={[
                 styles.iconContainer,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(59, 130, 246, 0.15)"
-                    : "rgba(147, 197, 253, 0.18)",
-                  borderColor: isDark
-                    ? "rgba(59, 130, 246, 0.25)"
-                    : "rgba(59, 130, 246, 0.22)",
+                  backgroundColor: formControlFill(isDark),
+                  borderColor: colors.glassStroke,
                 },
               ]}
             >
               <Ionicons
                 name="calendar-outline"
                 size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
-                color={
-                  isDark
-                    ? "rgba(255, 255, 255, 0.8)"
-                    : "rgba(59, 130, 246, 0.85)"
-                }
+                color={colors.primary}
               />
             </View>
             <Text
               style={[
                 styles.detailText,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.85)"
-                    : "rgba(15, 23, 42, 0.75)",
-                },
+                { color: colors.textSecondary },
                 isTablet && {
                   fontSize: ((styles.detailText.fontSize || 14) * getFontMultiplier()),
                 },
@@ -287,33 +273,21 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
               style={[
                 styles.iconContainer,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(59, 130, 246, 0.15)"
-                    : "rgba(147, 197, 253, 0.18)",
-                  borderColor: isDark
-                    ? "rgba(59, 130, 246, 0.25)"
-                    : "rgba(59, 130, 246, 0.22)",
+                  backgroundColor: formControlFill(isDark),
+                  borderColor: colors.glassStroke,
                 },
               ]}
             >
               <Ionicons
                 name="flag-outline"
                 size={isTablet ? getResponsiveValue(18, 22, 24) : 18}
-                color={
-                  isDark
-                    ? "rgba(255, 255, 255, 0.8)"
-                    : "rgba(59, 130, 246, 0.85)"
-                }
+                color={colors.primary}
               />
             </View>
             <Text
               style={[
                 styles.detailText,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.85)"
-                    : "rgba(15, 23, 42, 0.75)",
-                },
+                { color: colors.textSecondary },
                 isTablet && {
                   fontSize: ((styles.detailText.fontSize || 14) * getFontMultiplier()),
                 },
@@ -329,21 +303,8 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons
-        name="checkmark-circle"
-        size={48}
-        color={isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(59, 130, 246, 0.85)"}
-      />
-      <Text
-        style={[
-          styles.emptyStateTitle,
-          {
-            color: isDark
-              ? "rgba(255, 255, 255, 0.95)"
-              : "rgba(15, 23, 42, 0.9)",
-          },
-        ]}
-      >
+      <Ionicons name="checkmark-circle" size={48} color={colors.primary} />
+      <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
         All Caught Up!
       </Text>
     </View>
@@ -361,59 +322,69 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
           styles.container,
           containerAnimatedStyle,
           {
-            backgroundColor: isDark
-              ? "rgba(15, 23, 42, 0.85)"
-              : "rgba(255, 255, 255, 0.85)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(59, 130, 246, 0.3)"
-              : "rgba(59, 130, 246, 0.2)",
+            borderRadius: DesignSystem.borders.radius.glass,
+            overflow: "hidden",
           },
           isTablet && {
             maxWidth: getResponsiveValue(420, 600, 700),
           },
         ]}
       >
-        <LinearGradient
-          colors={glassGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.gradientBackground,
-            isTablet && {
-              padding: getResponsiveValue(
-                DesignSystem.spacing.lg,
-                DesignSystem.spacing.xl,
-                DesignSystem.spacing.xl + DesignSystem.spacing.md,
-              ),
-            },
-          ]}
+        <GlassCard
+          material="thick"
+          radius={DesignSystem.borders.radius.glass}
+          containerStyle={{ width: "100%" }}
+          style={{ overflow: "hidden" }}
         >
-          {/* Close Button */}
-          <TouchableOpacity
+          <LinearGradient
+            colors={[...haloGradient]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
             style={[
-              styles.closeButton,
-              {
-                backgroundColor: isDark
-                  ? "rgba(59, 130, 246, 0.15)"
-                  : "rgba(59, 130, 246, 0.12)",
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(59, 130, 246, 0.3)"
-                  : "rgba(59, 130, 246, 0.25)",
+              styles.gradientBackground,
+              { position: "relative" },
+              isTablet && {
+                padding: getResponsiveValue(
+                  DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl,
+                  DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                ),
               },
             ]}
-            onPress={handleClose}
           >
-            <Ionicons
-              name="close"
-              size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
-              color={
-                isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
-              }
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                hexWithAlpha(colors.secondary, isDark ? 0.3 : 0.2),
+                hexWithAlpha(colors.secondary, isDark ? 0.17 : 0.11),
+                hexWithAlpha(colors.secondary, isDark ? 0.1 : 0.06),
+              ]}
+              locations={[0, 0.48, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.popupAtmosphere}
             />
-          </TouchableOpacity>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={[
+                styles.closeButton,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(35, 37, 38, 0.55)"
+                    : "rgba(255, 255, 255, 0.45)",
+                  borderRadius: 20,
+                  borderWidth: DesignSystem.borders.hairline,
+                  borderColor: colors.glassStroke,
+                },
+              ]}
+              onPress={handleClose}
+            >
+              <Ionicons
+                name="close"
+                size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
+                color={colors.text}
+              />
+            </TouchableOpacity>
 
           {/* Content */}
           <Animated.View style={[styles.content, contentAnimatedStyle]}>
@@ -423,13 +394,15 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                 style={[
                   styles.headerIconContainer,
                   {
-                    backgroundColor: isDark
-                      ? "rgba(59, 130, 246, 0.2)"
-                      : "rgba(147, 197, 253, 0.25)",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(59, 130, 246, 0.4)"
-                      : "rgba(59, 130, 246, 0.3)",
+                    backgroundColor: hexWithAlpha(
+                      colors.secondary,
+                      isDark ? 0.2 : 0.12
+                    ),
+                    borderWidth: DesignSystem.borders.hairline,
+                    borderColor: hexWithAlpha(
+                      colors.secondary,
+                      isDark ? 0.42 : 0.28
+                    ),
                   },
                   headerIconAnimatedStyle,
                   isTablet && {
@@ -443,18 +416,14 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                   <Ionicons
                     name="time"
                     size={isTablet ? getResponsiveValue(32, 40, 48) : 32}
-                    color={isDark ? "#60A5FA" : "#2563EB"}
+                    color={colors.secondary}
                   />
                 </View>
               </Animated.View>
               <Text
                 style={[
                   styles.headerTitle,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.95)"
-                      : "rgba(15, 23, 42, 0.9)",
-                  },
+                  { color: colors.text },
                   isTablet && {
                     fontSize: ((styles.headerTitle.fontSize || DesignSystem.typography.h1.fontSize) * getFontMultiplier()),
                     lineHeight: ((styles.headerTitle.fontSize || DesignSystem.typography.h1.fontSize) * getFontMultiplier()) * 1.2,
@@ -466,11 +435,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
               <Text
                 style={[
                   styles.headerSubtitle,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.8)"
-                      : "rgba(59, 130, 246, 0.85)",
-                  },
+                  { color: colors.textSecondary },
                   isTablet && {
                     fontSize: ((styles.headerSubtitle.fontSize || DesignSystem.typography.bodySemiBold.fontSize) * getFontMultiplier()),
                     lineHeight: ((styles.headerSubtitle.fontSize || DesignSystem.typography.bodySemiBold.fontSize) * getFontMultiplier()) * 1.3,
@@ -492,24 +457,10 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                     style={[
                       styles.navButton,
                       {
-                        backgroundColor:
-                          currentTaskIndex === 0
-                            ? isDark
-                              ? "rgba(59, 130, 246, 0.08)"
-                              : "rgba(59, 130, 246, 0.06)"
-                            : isDark
-                            ? "rgba(59, 130, 246, 0.18)"
-                            : "rgba(59, 130, 246, 0.15)",
-                        borderColor:
-                          currentTaskIndex === 0
-                            ? isDark
-                              ? "rgba(59, 130, 246, 0.15)"
-                              : "rgba(59, 130, 246, 0.12)"
-                            : isDark
-                            ? "rgba(59, 130, 246, 0.3)"
-                            : "rgba(59, 130, 246, 0.25)",
+                        backgroundColor: formControlFill(isDark),
+                        borderColor: colors.glassStroke,
+                        opacity: currentTaskIndex === 0 ? 0.45 : 1,
                       },
-                      currentTaskIndex === 0 && styles.navButtonDisabled,
                       isTablet && {
                         width: getResponsiveValue(40, 48, 52),
                         height: getResponsiveValue(40, 48, 52),
@@ -524,12 +475,8 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                       color={
                         currentTaskIndex === 0
-                          ? isDark
-                            ? "rgba(255, 255, 255, 0.25)"
-                            : "rgba(15, 23, 42, 0.3)"
-                          : isDark
-                          ? "rgba(255, 255, 255, 0.9)"
-                          : "rgba(59, 130, 246, 0.9)"
+                          ? colors.textSecondary
+                          : colors.text
                       }
                     />
                   </TouchableOpacity>
@@ -538,25 +485,11 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                     style={[
                       styles.navButton,
                       {
-                        backgroundColor:
-                          currentTaskIndex === tasks.length - 1
-                            ? isDark
-                              ? "rgba(59, 130, 246, 0.08)"
-                              : "rgba(59, 130, 246, 0.06)"
-                            : isDark
-                            ? "rgba(59, 130, 246, 0.18)"
-                            : "rgba(59, 130, 246,ันท 0.15)",
-                        borderColor:
-                          currentTaskIndex === tasks.length - 1
-                            ? isDark
-                              ? "rgba(59, 130,位数 246, 0.15)"
-                              : "rgba(59, 130, 246, 0.12)"
-                            : isDark
-                            ? "rgba(59, 130, 246, 0.3)"
-                            : "rgba(59, 130, 246, 0.25)",
+                        backgroundColor: formControlFill(isDark),
+                        borderColor: colors.glassStroke,
+                        opacity:
+                          currentTaskIndex === tasks.length - 1 ? 0.45 : 1,
                       },
-                      currentTaskIndex === tasks.length - 1 &&
-                        styles.navButtonDisabled,
                       isTablet && {
                         width: getResponsiveValue(40, 48, 52),
                         height: getResponsiveValue(40, 48, 52),
@@ -571,12 +504,8 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                       size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
                       color={
                         currentTaskIndex === tasks.length - 1
-                          ? isDark
-                            ? "rgba(255, 255, 255, 0.25)"
-                            : "rgba(15, 23, 42, 0.3)"
-                          : isDark
-                          ? "rgba(255, 255, 255, 0.9)"
-                          : "rgba(59, 130, 246, 0.9)"
+                          ? colors.textSecondary
+                          : colors.text
                       }
                     />
                   </TouchableOpacity>
@@ -594,14 +523,12 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                   <Text
                     style={[
                       styles.paginationText,
-                      {
-                        color: isDark
-                          ? "rgba(255, 255, 255, 0.7)"
-                          : "rgba(59, 130, 246, 0.75)",
+                      { color: colors.textSecondary },
+                      isTablet && {
+                        fontSize:
+                          (styles.paginationText.fontSize || 14) *
+                          getFontMultiplier(),
                       },
-                        isTablet && {
-                          fontSize: ((styles.paginationText.fontSize || 14) * getFontMultiplier()),
-                        },
                     ]}
                   >
                     {currentTaskIndex + 1} of {tasks.length}
@@ -613,6 +540,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
             )}
           </Animated.View>
         </LinearGradient>
+        </GlassCard>
       </Animated.View>
     </View>
   );
@@ -641,12 +569,13 @@ const styles = StyleSheet.create({
     width: "92%",
     maxWidth: 420,
     maxHeight: "85%",
-    borderRadius: DesignSystem.borders.radius.xlarge,
     overflow: "hidden",
-    ...DesignSystem.shadows.large,
   },
   gradientBackground: {
     padding: DesignSystem.spacing.lg,
+  },
+  popupAtmosphere: {
+    ...StyleSheet.absoluteFillObject,
   },
   closeButton: {
     position: "absolute",
@@ -727,14 +656,10 @@ const styles = StyleSheet.create({
   taskItem: {
     borderRadius: DesignSystem.borders.radius.large,
     padding: DesignSystem.spacing.lg,
-    borderWidth: 1,
+    borderWidth: DesignSystem.borders.hairline,
     width: "100%",
     marginBottom: DesignSystem.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    ...DesignSystem.shadows.softKey,
   },
   taskHeader: {
     flexDirection: "row",
@@ -757,18 +682,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#EF4444",
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 4,
-    elevation: 4,
   },
   urgencyDot: {
     width: "100%",
     height: "100%",
     borderRadius: 4,
-    backgroundColor: "#EF4444",
   },
   taskTitle: {
     ...DesignSystem.typography.bodySemiBold,
