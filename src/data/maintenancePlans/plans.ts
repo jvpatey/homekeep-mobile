@@ -2,6 +2,7 @@ import { MaintenancePlanDefinition } from "./types";
 import { getSpringRefreshBaseItems } from "./springRefresh";
 import { getColdWeatherPrepBaseItems } from "./fallWinter";
 import { getYearRoundSafetyBaseItems } from "./yearRoundSafety";
+import { getNewHomeownerStarterBaseItems } from "./newHomeownerStarter";
 
 export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
   {
@@ -36,40 +37,11 @@ export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
     id: "new-homeowner-starter",
     title: "New homeowner starter",
     shortDescription:
-      "Baseline routines to locate shutoffs, protect HVAC, and watch water heater health.",
+      "First-owner chores with short questions so HVAC, ventilator, softener, fridge filter, and septic tasks match your home—then pick what to add.",
+    body: "We only show heat pump, HRV/ERV, water-softener, refrigerator filter, and septic routines when you say you have that setup. Everything else is general; skip duplicates you already track in other plans.",
     tag: "starter",
-    items: [
-      {
-        title: "Locate main water shutoff",
-        description:
-          "Tag or photograph it so anyone home can stop flooding quickly.",
-        category: "GENERAL",
-        priority: "high",
-        estimated_duration_minutes: 15,
-        interval_days: 365,
-        start_offset_days: 0,
-      },
-      {
-        title: "Set HVAC filter replacement cadence",
-        description:
-          "Match interval to pets and dust; typical range 60–90 days.",
-        category: "HVAC",
-        priority: "medium",
-        estimated_duration_minutes: 20,
-        interval_days: 90,
-        start_offset_days: 5,
-      },
-      {
-        title: "Water heater flush / inspection",
-        description:
-          "Drain sediment per manufacturer; inspect pan and relief valve.",
-        category: "PLUMBING",
-        priority: "medium",
-        estimated_duration_minutes: 60,
-        interval_days: 365,
-        start_offset_days: 14,
-      },
-    ],
+    /** Full catalog; UI runs questionnaire filtering before the task picker. */
+    items: getNewHomeownerStarterBaseItems(),
   },
 ];
 

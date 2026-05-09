@@ -27,3 +27,9 @@ export {
   getYearRoundSafetyBaseItems,
   YEAR_ROUND_SAFETY_BASE_TASK_CAP,
 } from "./yearRoundSafety";
+export {
+  type NewHomeownerStarterAnswers,
+  filterNewHomeownerStarterItems,
+  getNewHomeownerStarterBaseItems,
+  NEW_HOMEOWNER_STARTER_BASE_TASK_CAP,
+} from "./newHomeownerStarter";

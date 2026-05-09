@@ -27,15 +27,18 @@ import {
   MaintenancePlanTag,
   filterSpringRefreshItems,
   filterColdWeatherPrepItems,
+  filterNewHomeownerStarterItems,
 } from "../../data/maintenancePlans";
 import type {
   SpringRefreshAnswers,
   ColdWeatherPrepAnswers,
+  NewHomeownerStarterAnswers,
 } from "../../data/maintenancePlans";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
 import { maintenancePlansStyles } from "./styles";
 import { SpringRefreshQuestionnaire } from "./SpringRefreshQuestionnaire";
 import { ColdWeatherPrepQuestionnaire } from "./ColdWeatherPrepQuestionnaire";
+import { NewHomeownerStarterQuestionnaire } from "./NewHomeownerStarterQuestionnaire";
 
 const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   spring: "Spring",
@@ -50,6 +53,7 @@ type FlowPhase = "list" | "questionnaire" | "pickTasks";
 const QUESTIONNAIRE_PLAN_IDS = new Set([
   "spring-refresh",
   "cold-weather-prep",
+  "new-homeowner-starter",
 ]);
 
 function formatIntervalDays(days: number): string {
@@ -59,6 +63,9 @@ function formatIntervalDays(days: number): string {
   if (days === 90) return "Every 3 months";
   if (days === 180) return "Every 6 months";
   if (days === 365) return "Every year";
+  if (days === 730) return "Every 2 years";
+  if (days === 1095) return "Every 3 years";
+  if (days === 1825) return "Every 5 years";
   return `Every ${days} days`;
 }
 
@@ -76,6 +83,8 @@ export function MaintenancePlansScreen() {
     useState<SpringRefreshAnswers | null>(null);
   const [coldWeatherAnswers, setColdWeatherAnswers] =
     useState<ColdWeatherPrepAnswers | null>(null);
+  const [starterAnswers, setStarterAnswers] =
+    useState<NewHomeownerStarterAnswers | null>(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
   const [applying, setApplying] = useState(false);
 
@@ -89,8 +98,12 @@ export function MaintenancePlansScreen() {
       if (!coldWeatherAnswers) return [];
       return filterColdWeatherPrepItems(coldWeatherAnswers);
     }
+    if (detailPlan.id === "new-homeowner-starter") {
+      if (!starterAnswers) return [];
+      return filterNewHomeownerStarterItems(starterAnswers);
+    }
     return detailPlan.items;
-  }, [detailPlan, springAnswers, coldWeatherAnswers]);
+  }, [detailPlan, springAnswers, coldWeatherAnswers, starterAnswers]);
 
   useEffect(() => {
     if (phase !== "pickTasks") return;
@@ -104,6 +117,7 @@ export function MaintenancePlansScreen() {
     detailPlan?.id,
     springAnswers,
     coldWeatherAnswers,
+    starterAnswers,
     resolvedDetailItems.length,
   ]);
 
@@ -118,6 +132,7 @@ export function MaintenancePlansScreen() {
     if (QUESTIONNAIRE_PLAN_IDS.has(plan.id)) {
       setSpringAnswers(null);
       setColdWeatherAnswers(null);
+      setStarterAnswers(null);
       setPhase("questionnaire");
     } else {
       setPhase("pickTasks");
@@ -202,6 +217,7 @@ export function MaintenancePlansScreen() {
       setDetailPlan(null);
       setSpringAnswers(null);
       setColdWeatherAnswers(null);
+      setStarterAnswers(null);
       setPhase("list");
       return;
     }
@@ -478,12 +494,14 @@ export function MaintenancePlansScreen() {
           onComplete={(answers) => {
             setSpringAnswers(answers);
             setColdWeatherAnswers(null);
+            setStarterAnswers(null);
             setPhase("pickTasks");
           }}
           onBack={() => {
             setDetailPlan(null);
             setSpringAnswers(null);
             setColdWeatherAnswers(null);
+            setStarterAnswers(null);
             setPhase("list");
           }}
         />
@@ -496,12 +514,34 @@ export function MaintenancePlansScreen() {
           onComplete={(answers) => {
             setColdWeatherAnswers(answers);
             setSpringAnswers(null);
+            setStarterAnswers(null);
             setPhase("pickTasks");
           }}
           onBack={() => {
             setDetailPlan(null);
             setColdWeatherAnswers(null);
             setSpringAnswers(null);
+            setStarterAnswers(null);
+            setPhase("list");
+          }}
+        />
+      );
+    }
+    if (detailPlan.id === "new-homeowner-starter") {
+      return (
+        <NewHomeownerStarterQuestionnaire
+          initialAnswers={starterAnswers}
+          onComplete={(answers) => {
+            setStarterAnswers(answers);
+            setSpringAnswers(null);
+            setColdWeatherAnswers(null);
+            setPhase("pickTasks");
+          }}
+          onBack={() => {
+            setDetailPlan(null);
+            setStarterAnswers(null);
+            setSpringAnswers(null);
+            setColdWeatherAnswers(null);
             setPhase("list");
           }}
         />
