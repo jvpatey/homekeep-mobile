@@ -51,29 +51,79 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
-    paddingBottom: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
     borderBottomWidth: 1,
   },
 
-  headerTitle: {
-    ...DesignSystem.typography.h3,
-    fontSize: 20,
-    flex: 1,
-    marginRight: DesignSystem.spacing.md,
+  headerForm: {
+    flexDirection: "column",
+    alignItems: "stretch",
   },
 
-  headerActions: {
+  headerList: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+
+  headerCloseRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: DesignSystem.spacing.xs,
+  },
+
+  headerFormToolbar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: DesignSystem.spacing.sm,
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: DesignSystem.spacing.sm,
   },
 
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerToolbarSpacer: {
+    flex: 1,
+  },
+
+  headerTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  headerTitleBlockForm: {
+    flex: 0,
+    alignSelf: "stretch",
+  },
+
+  headerHeroTitle: {
+    ...DesignSystem.typography.h2,
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+    lineHeight: 28,
+  },
+
+  headerHeroSubtitle: {
+    ...DesignSystem.typography.small,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: DesignSystem.spacing.xs,
+    opacity: 0.92,
+  },
+
+  addEquipmentButton: {
+    marginTop: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    borderRadius: DesignSystem.borders.radius.medium,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "stretch",
+  },
+
+  addEquipmentButtonText: {
+    ...DesignSystem.typography.bodySemiBold,
+    fontSize: 16,
   },
 
   closeButton: {
@@ -105,7 +155,11 @@ export const styles = StyleSheet.create({
 
   equipmentMain: {
     flex: 1,
-    marginRight: DesignSystem.spacing.md,
+  },
+
+  equipmentMainTouchable: {
+    flex: 1,
+    minWidth: 0,
   },
 
   equipmentTitle: {
@@ -118,6 +172,20 @@ export const styles = StyleSheet.create({
     ...DesignSystem.typography.small,
     fontSize: 14,
     marginBottom: 2,
+  },
+
+  equipmentRowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+  },
+
+  viewManualButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   deleteButton: {
