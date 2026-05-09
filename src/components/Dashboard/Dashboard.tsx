@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -37,6 +38,10 @@ interface NewDashboardProps {
   refreshing?: boolean;
 }
 
+/** Persisted so returning users skip the header entrance delay. */
+const DASHBOARD_HEADER_ENTRANCE_KEY =
+  "@homekeep/dashboard_header_entrance_seen";
+
 export function NewDashboard({
   tasks,
   completedTasks = [],
@@ -62,25 +67,50 @@ export function NewDashboard({
   const [scheduleTasks, setScheduleTasks] = useState<MaintenanceTask[]>([]);
 
   const headerOpacity = useSharedValue(0);
-  const headerTranslateY = useSharedValue(20);
-
-  const triggerAnimations = useCallback(() => {
-    headerOpacity.value = 0;
-    headerTranslateY.value = 20;
-
-    const d = DesignSystem.motion.duration.base;
-    const stagger = DesignSystem.motion.stagger;
-
-    headerOpacity.value = withDelay(stagger, withTiming(1, { duration: d }));
-    headerTranslateY.value = withDelay(
-      stagger,
-      withTiming(0, { duration: d })
-    );
-  }, [headerOpacity, headerTranslateY]);
+  const headerTranslateY = useSharedValue(14);
 
   useEffect(() => {
-    triggerAnimations();
-  }, [triggerAnimations]);
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const seen = await AsyncStorage.getItem(DASHBOARD_HEADER_ENTRANCE_KEY);
+        if (cancelled) return;
+
+        if (seen === "true") {
+          headerOpacity.value = 1;
+          headerTranslateY.value = 0;
+          return;
+        }
+
+        const duration = DesignSystem.motion.duration.fast;
+        const stagger = Math.round(DesignSystem.motion.stagger * 0.4);
+
+        headerOpacity.value = 0;
+        headerTranslateY.value = 14;
+        headerOpacity.value = withDelay(stagger, withTiming(1, { duration }));
+        headerTranslateY.value = withDelay(
+          stagger,
+          withTiming(0, { duration })
+        );
+
+        const persistAfterMs = stagger + duration + 80;
+        setTimeout(() => {
+          void AsyncStorage.setItem(DASHBOARD_HEADER_ENTRANCE_KEY, "true");
+        }, persistAfterMs);
+      } catch {
+        if (!cancelled) {
+          headerOpacity.value = 1;
+          headerTranslateY.value = 0;
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [headerOpacity, headerTranslateY]);
 
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: headerOpacity.value,
