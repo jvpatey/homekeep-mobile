@@ -30,8 +30,10 @@ export interface FormFieldProps {
   returnKeyType?: React.ComponentProps<typeof TextInput>["returnKeyType"];
   blurOnSubmit?: boolean;
   onSubmitEditing?: (
-    e: NativeSyntheticEvent<TextInputSubmitEditingEventData>
+    e: NativeSyntheticEvent<TextInputSubmitEditingEventData>,
   ) => void;
+  /** Extra handler after focus (e.g. scroll parent ScrollView on iOS keyboard). */
+  onFocusExtra?: () => void;
 }
 
 // FormField component for the CreateTaskModal
@@ -52,90 +54,103 @@ export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
       returnKeyType,
       blurOnSubmit,
       onSubmitEditing,
+      onFocusExtra,
     },
-    ref
+    ref,
   ) {
-  const { colors, isDark } = useTheme();
-  const { getInputTheme } = useAuthInputTheme();
-  const { isTablet, getFontMultiplier } = useDevice();
-  const [isFocused, setIsFocused] = useState(false);
-  const fontMultiplier = getFontMultiplier();
+    const { colors, isDark } = useTheme();
+    const { getInputTheme } = useAuthInputTheme();
+    const { isTablet, getFontMultiplier } = useDevice();
+    const [isFocused, setIsFocused] = useState(false);
+    const fontMultiplier = getFontMultiplier();
 
-  const inputTheme = getInputTheme(!!error);
+    const inputTheme = getInputTheme(!!error);
 
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={[
-        styles.inputLabel, 
-        { color: colors.text },
-        isTablet && {
-          fontSize: ((styles.inputLabel.fontSize || DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier),
-        },
-      ]}>
-        {label}{" "}
-        {required && <Text style={{ color: colors.error, fontWeight: "700" }}>*</Text>}
-      </Text>
-      <View
-        style={[
-          styles.glassInputWrapper,
-          {
-            backgroundColor: formControlFill(isDark),
-            borderColor: error
-              ? colors.error
-              : isFocused
-                ? `${colors.primary}99`
-                : colors.glassStroke,
-          },
-          isFocused && !error && styles.focusGlow,
-        ]}
-      >
-        <TextInput
-          ref={ref}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
+    return (
+      <View style={styles.inputGroup}>
+        <Text
           style={[
-            multiline ? styles.textArea : styles.textInput,
+            styles.inputLabel,
+            { color: colors.text },
             isTablet && {
-              fontSize: ((styles.textInput.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier),
-              paddingVertical: DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.3),
+              fontSize:
+                (styles.inputLabel.fontSize ||
+                  DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier,
             },
           ]}
-          textColor={colors.text}
-          placeholderTextColor={colors.textSecondary}
-          cursorColor={colors.primary}
-          selectionColor={
-            Platform.OS === "ios"
-              ? `${colors.primary}55`
-              : `${colors.primary}99`
-          }
-          mode="flat"
-          error={!!error}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
-          keyboardType={keyboardType}
-          inputAccessoryViewID={inputAccessoryViewID}
-          keyboardAppearance={isDark ? "dark" : "light"}
-          autoCapitalize={autoCapitalize}
-          returnKeyType={returnKeyType}
-          blurOnSubmit={blurOnSubmit}
-          onSubmitEditing={onSubmitEditing}
-          theme={inputTheme}
-          dense={false}
-          underlineColor="transparent"
-          underlineColorAndroid="transparent"
-          activeUnderlineColor="transparent"
-          outlineStyle={{ borderRadius: 0, borderWidth: 0 }}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-        />
+        >
+          {label}{" "}
+          {required && (
+            <Text style={{ color: colors.error, fontWeight: "700" }}>*</Text>
+          )}
+        </Text>
+        <View
+          style={[
+            styles.glassInputWrapper,
+            {
+              backgroundColor: formControlFill(isDark),
+              borderColor: error
+                ? colors.error
+                : isFocused
+                  ? `${colors.primary}99`
+                  : colors.glassStroke,
+            },
+            isFocused && !error && styles.focusGlow,
+          ]}
+        >
+          <TextInput
+            ref={ref}
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            style={[
+              multiline ? styles.textArea : styles.textInput,
+              isTablet && {
+                fontSize:
+                  (styles.textInput.fontSize ||
+                    DesignSystem.typography.body.fontSize) * fontMultiplier,
+                paddingVertical:
+                  DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.3),
+              },
+            ]}
+            textColor={colors.text}
+            placeholderTextColor={colors.textSecondary}
+            cursorColor={colors.primary}
+            selectionColor={
+              Platform.OS === "ios"
+                ? `${colors.primary}55`
+                : `${colors.primary}99`
+            }
+            mode="flat"
+            error={!!error}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            keyboardType={keyboardType}
+            inputAccessoryViewID={inputAccessoryViewID}
+            keyboardAppearance={isDark ? "dark" : "light"}
+            autoCapitalize={autoCapitalize}
+            returnKeyType={returnKeyType}
+            blurOnSubmit={blurOnSubmit}
+            onSubmitEditing={onSubmitEditing}
+            theme={inputTheme}
+            dense={false}
+            underlineColor="transparent"
+            underlineColorAndroid="transparent"
+            activeUnderlineColor="transparent"
+            outlineStyle={{ borderRadius: 0, borderWidth: 0 }}
+            onFocus={() => {
+              setIsFocused(true);
+              onFocusExtra?.();
+            }}
+            onBlur={() => setIsFocused(false)}
+          />
+        </View>
+        {error && (
+          <HelperText type="error" visible={!!error} style={styles.helperText}>
+            {error}
+          </HelperText>
+        )}
       </View>
-      {error && (
-        <HelperText type="error" visible={!!error} style={styles.helperText}>
-          {error}
-        </HelperText>
-      )}
-    </View>
-  );
-  }
+    );
+  },
 );

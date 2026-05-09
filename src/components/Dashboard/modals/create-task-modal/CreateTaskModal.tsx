@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   ScrollView,
   Alert,
@@ -15,7 +21,10 @@ import {
   useWindowDimensions,
   TextInput as RNTextInput,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -23,6 +32,7 @@ import Animated, {
   withSpring,
   withDelay,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useHaptics } from "../../../../hooks/useHaptics";
@@ -31,6 +41,7 @@ import { useTasks } from "../../../../context/TasksContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { GlassCard } from "../../../ui/glass-card/GlassCard";
+import { SheetGrabber } from "../../../ui/sheet-grabber";
 import { FormField } from "./FormField";
 import { CategorySelector } from "./CategorySelector";
 import { PrioritySelector } from "./PrioritySelector";
@@ -70,6 +81,23 @@ interface MaintenanceRoutineForm {
   description?: string;
 }
 
+function getIntervalLabel(interval: number): string {
+  switch (interval) {
+    case 0:
+      return "day";
+    case 7:
+      return "week";
+    case 30:
+      return "month";
+    case 90:
+      return "quarter";
+    case 365:
+      return "year";
+    default:
+      return "day";
+  }
+}
+
 // CreateTaskModal component
 export function CreateTaskModal({
   onClose,
@@ -83,31 +111,38 @@ export function CreateTaskModal({
   const { haloGradient } = useGradients();
   const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight } = useWindowDimensions();
   const sheetMaxHeight = windowHeight * 0.85;
-  /** Title row + gradient padding; avoids flex-collapsed BlurView (hairline sheet bug). */
+  /** Grabber + title row + gradient padding; avoids flex-collapsed BlurView (hairline sheet bug). */
+  const sheetChromeOverhead =
+    DesignSystem.spacing.sm +
+    4 +
+    DesignSystem.spacing.md * 2 +
+    56 +
+    DesignSystem.spacing.lg * 2 +
+    DesignSystem.spacing.md;
   const scrollViewportMaxHeight = Math.max(
-    300,
-    sheetMaxHeight -
-      (DesignSystem.spacing.lg * 2 +
-        DesignSystem.spacing.md +
-        DesignSystem.spacing.lg +
-        72)
+    280,
+    sheetMaxHeight - sheetChromeOverhead
   );
   const descriptionFieldRef = useRef<RNTextInput | null>(null);
   const durationFieldRef = useRef<RNTextInput | null>(null);
-  const maxModalWidth = isTablet
-    ? getResponsiveValue(420, 600, 700)
-    : 420;
-  const modalCardWidth = Math.min(
-    Math.max(windowWidth * 0.92, 280),
-    maxModalWidth
-  );
+  const formScrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
 
-  // Animation values
-  const scale = useSharedValue(0.7);
+  const scrollTitleFieldIntoView = useCallback(() => {
+    /** Title sits at the top of the sheet ScrollView; after the keyboard opens,
+     * iOS can clip it unless we scroll to offset 0 and let inset adjustment land. */
+    setTimeout(() => {
+      formScrollRef.current?.scrollTo({ y: 0, animated: true });
+    }, 50);
+  }, []);
+  const sheetTabletMaxWidth = isTablet
+    ? getResponsiveValue(500, 640, 720)
+    : undefined;
+
+  // Animation values (bottom sheet — aligned with ProfileMenu)
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(50);
+  const translateY = useSharedValue(windowHeight);
   const contentOpacity = useSharedValue(0);
 
   const [form, setForm] = useState<MaintenanceRoutineForm>({
@@ -151,11 +186,6 @@ export function CreateTaskModal({
     Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
 
-  // AI typing animation
-  const [summaryText, setSummaryText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const summaryRef = useRef<View>(null);
-
   const [dismissChromeToken, setDismissChromeToken] = useState(0);
   const dismissFormChrome = useCallback(() => {
     Keyboard.dismiss();
@@ -165,17 +195,13 @@ export function CreateTaskModal({
   const motionFast = DesignSystem.motion.duration.fast;
   const motionEasing = DesignSystem.motion.easing.standard;
 
-  // Entrance animation (aligned with DueSoonPopup / StreakPopup)
+  // Entrance animation (bottom sheet — aligned with ProfileMenu)
   useEffect(() => {
     opacity.value = withTiming(1, {
       duration: motionFast,
       easing: motionEasing,
     });
-    scale.value = withSpring(1, DesignSystem.motion.spring.snappy);
-    translateY.value = withTiming(0, {
-      duration: motionFast,
-      easing: motionEasing,
-    });
+    translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
     contentOpacity.value = withDelay(
       DesignSystem.motion.stagger,
       withTiming(1, {
@@ -185,9 +211,13 @@ export function CreateTaskModal({
     );
   }, []);
 
-  const containerAnimatedStyle = useAnimatedStyle(() => ({
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
   }));
 
   const contentAnimatedStyle = useAnimatedStyle(() => ({
@@ -294,58 +324,6 @@ export function CreateTaskModal({
     }
   };
 
-  // Generate summary text
-  const generateSummaryText = () => {
-    const fullText = `"${
-      form.title
-    }" will be scheduled every ${intervalValue} ${getIntervalLabel(
-      selectedInterval
-    )}${
-      intervalValue > 1 ? "s" : ""
-    } starting ${form.startDate.toLocaleDateString()}.`;
-    return fullText;
-  };
-
-  // Typing animation effect
-  useEffect(() => {
-    if (isTyping && summaryText.length < generateSummaryText().length) {
-      const timeout = setTimeout(() => {
-        setSummaryText(
-          generateSummaryText().substring(0, summaryText.length + 1)
-        );
-      }, 30); // Typing speed - adjust for desired effect
-      return () => clearTimeout(timeout);
-    } else if (summaryText.length === generateSummaryText().length) {
-      setIsTyping(false);
-    }
-  }, [
-    summaryText,
-    isTyping,
-    form.title,
-    intervalValue,
-    selectedInterval,
-    form.startDate,
-  ]);
-
-  // Trigger typing when form changes
-  useEffect(() => {
-    const fullText = generateSummaryText();
-    // Trigger animation whenever the summary text changes
-    if (fullText !== summaryText) {
-      setSummaryText("");
-      setIsTyping(true);
-    }
-  }, [form.title, intervalValue, selectedInterval, form.startDate, form.category, form.priority, form.estimated_duration_minutes]);
-
-  // Start typing animation when modal opens
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSummaryText("");
-      setIsTyping(true);
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, []);
-
   const updateForm = (
     field: keyof MaintenanceRoutineForm,
     value: MaintenanceRoutineForm[keyof MaintenanceRoutineForm]
@@ -363,27 +341,15 @@ export function CreateTaskModal({
     form.estimated_duration_minutes > 0 &&
     getEffectiveIntervalDays() > 0;
 
-  const getIntervalLabel = (interval: number) => {
-    switch (interval) {
-      case 0:
-        return "day";
-      case 7:
-        return "week";
-      case 30:
-        return "month";
-      case 90:
-        return "quarter";
-      case 365:
-        return "year";
-      default:
-        return "day";
-    }
-  };
+  const summaryPreviewText = useMemo(() => {
+    return `"${form.title}" will be scheduled every ${intervalValue} ${getIntervalLabel(selectedInterval)}${intervalValue > 1 ? "s" : ""} starting ${form.startDate.toLocaleDateString()}.`;
+  }, [form.title, intervalValue, selectedInterval, form.startDate]);
 
   const scrollBottomPadding =
     insets.bottom + DesignSystem.spacing.xxxl + DesignSystem.spacing.md;
 
   const handleClose = () => {
+    Keyboard.dismiss();
     contentOpacity.value = withTiming(0, {
       duration: motionFast,
       easing: motionEasing,
@@ -392,15 +358,16 @@ export function CreateTaskModal({
       duration: motionFast,
       easing: motionEasing,
     });
-    scale.value = withTiming(0.96, {
-      duration: motionFast,
-      easing: motionEasing,
-    });
-    translateY.value = withTiming(20, {
-      duration: motionFast,
-      easing: motionEasing,
-    });
-    setTimeout(onClose, motionFast);
+    translateY.value = withTiming(
+      windowHeight,
+      {
+        duration: motionFast,
+        easing: motionEasing,
+      },
+      (finished) => {
+        if (finished) runOnJS(onClose)();
+      }
+    );
   };
 
   return (
@@ -409,6 +376,7 @@ export function CreateTaskModal({
       transparent
       animationType="none"
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
       {Platform.OS === "ios" && (
         <InputAccessoryView nativeID={ESTIMATED_DURATION_INPUT_ACCESSORY_ID}>
@@ -443,87 +411,105 @@ export function CreateTaskModal({
       )}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.overlayRoot}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        enabled={Platform.OS === "android"}
+        style={styles.keyboardRoot}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
-        <View style={styles.overlayRoot}>
+        <Animated.View style={[styles.sheetOverlay, backdropAnimatedStyle]}>
           <Pressable
-            style={styles.backdrop}
-            onPress={dismissFormChrome}
+            style={styles.backdropPressable}
+            onPress={handleClose}
             accessibilityRole="button"
-            accessibilityLabel="Dismiss keyboard and close menus"
+            accessibilityLabel={isEdit ? "Close edit task" : "Close add task"}
           />
-          <View style={styles.overlayForeground} pointerEvents="box-none">
-            <Animated.View
-              pointerEvents="auto"
-              style={[
-                styles.container,
-                { width: modalCardWidth, maxHeight: sheetMaxHeight },
-                containerAnimatedStyle,
-              ]}
+          <Animated.View
+            pointerEvents="box-none"
+            style={[
+              styles.sheetContainer,
+              sheetTabletMaxWidth != null && {
+                maxWidth: sheetTabletMaxWidth,
+                alignSelf: "center",
+              },
+              { maxHeight: sheetMaxHeight },
+              sheetAnimatedStyle,
+            ]}
+          >
+            <GlassCard
+              material="thick"
+              radius={DesignSystem.borders.radius.glass}
+              containerStyle={styles.sheetGlassOuter}
+              style={styles.sheetGlassInner}
             >
-              <GlassCard
-                material="thick"
-                radius={DesignSystem.borders.radius.glass}
-                containerStyle={styles.glassCardOuter}
-                style={styles.glassCardInner}
+              <LinearGradient
+                colors={[...haloGradient]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={[
+                  styles.gradientBackground,
+                  { maxHeight: sheetMaxHeight },
+                  isTablet && {
+                    padding: getResponsiveValue(
+                      DesignSystem.spacing.xl,
+                      DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                      DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+                    ),
+                  },
+                ]}
               >
-                <LinearGradient
-                  colors={[...haloGradient]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={[
-                    styles.gradientBackground,
-                    { maxHeight: sheetMaxHeight },
-                    isTablet && {
-                      padding: getResponsiveValue(
-                        DesignSystem.spacing.xl,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.md,
-                        DesignSystem.spacing.xl + DesignSystem.spacing.lg,
-                      ),
-                    },
-                  ]}
-                >
-                  {/* Close Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.closeButton,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(35, 37, 38, 0.55)"
-                          : "rgba(255, 255, 255, 0.45)",
-                        borderRadius: 20,
-                        borderWidth: DesignSystem.borders.hairline,
-                        borderColor: colors.glassStroke,
-                      },
-                    ]}
-                    onPress={handleClose}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-
-                  <Animated.View style={contentAnimatedStyle}>
-                    <Pressable onPress={dismissFormChrome}>
-                      {/* Title — tap dismisses keyboard / closes dropdowns */}
+                <SafeAreaView edges={["bottom"]} style={styles.sheetSafeArea}>
+                  <SheetGrabber />
+                  <View style={styles.sheetTitleRow}>
+                    <View style={styles.sheetTitleSideSpacer} />
+                    <Pressable
+                      style={styles.sheetTitlePressable}
+                      onPress={dismissFormChrome}
+                    >
                       <Text
                         style={[
                           styles.modalTitle,
                           { color: colors.text },
                           isTablet && {
-                            fontSize: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()),
-                            lineHeight: ((styles.modalTitle.fontSize || DesignSystem.typography.h2.fontSize) * getFontMultiplier()) * 1.2,
+                            fontSize:
+                              (styles.modalTitle.fontSize ||
+                                DesignSystem.typography.h2.fontSize) *
+                              getFontMultiplier(),
+                            lineHeight:
+                              (styles.modalTitle.fontSize ||
+                                DesignSystem.typography.h2.fontSize) *
+                              getFontMultiplier() *
+                              1.2,
                           },
                         ]}
                       >
                         {isEdit ? "Edit Task" : "Let's add your task"}
                       </Text>
                     </Pressable>
+                    <TouchableOpacity
+                      style={[
+                        styles.sheetCloseButton,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(35, 37, 38, 0.55)"
+                            : "rgba(255, 255, 255, 0.45)",
+                          borderWidth: DesignSystem.borders.hairline,
+                          borderColor: colors.glassStroke,
+                        },
+                      ]}
+                      onPress={handleClose}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close"
+                    >
+                      <Ionicons
+                        name="close"
+                        size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
+                        color={colors.text}
+                      />
+                    </TouchableOpacity>
+                  </View>
 
+                  <Animated.View style={[contentAnimatedStyle, styles.scrollSection]}>
                     <ScrollView
+                      ref={formScrollRef}
                       style={{ maxHeight: scrollViewportMaxHeight }}
                       showsVerticalScrollIndicator={false}
                       contentContainerStyle={{
@@ -532,6 +518,9 @@ export function CreateTaskModal({
                       keyboardShouldPersistTaps="handled"
                       keyboardDismissMode={
                         Platform.OS === "ios" ? "interactive" : "on-drag"
+                      }
+                      automaticallyAdjustKeyboardInsets={
+                        Platform.OS === "ios"
                       }
                       onScrollBeginDrag={dismissFormChrome}
                     >
@@ -547,6 +536,7 @@ export function CreateTaskModal({
                       onSubmitEditing={() =>
                         descriptionFieldRef.current?.focus()
                       }
+                      onFocusExtra={scrollTitleFieldIntoView}
                     />
 
                     <CategorySelector
@@ -628,7 +618,6 @@ export function CreateTaskModal({
                     {/* Summary Section */}
                     <Pressable onPress={dismissFormChrome}>
                       <View
-                        ref={summaryRef}
                         style={[
                           styles.summaryContainer,
                           {
@@ -670,13 +659,7 @@ export function CreateTaskModal({
                           },
                         ]}
                       >
-                        {summaryText}
-                        {isTyping && (
-                          <Text style={{ color: colors.primary }}>
-                            {" "}
-                            ▊
-                          </Text>
-                        )}
+                        {summaryPreviewText}
                       </Text>
                     </View>
                     </Pressable>
@@ -699,62 +682,84 @@ export function CreateTaskModal({
                     </View>
                     </ScrollView>
                   </Animated.View>
-                </LinearGradient>
-              </GlassCard>
-            </Animated.View>
-          </View>
-        </View>
+                </SafeAreaView>
+              </LinearGradient>
+            </GlassCard>
+          </Animated.View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlayRoot: {
+  keyboardRoot: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    minHeight: 0,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
+  sheetOverlay: {
+    flex: 1,
+    minHeight: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 0,
+    justifyContent: "flex-end",
   },
-  overlayForeground: {
+  backdropPressable: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1,
   },
-  container: {
-    borderRadius: DesignSystem.borders.radius.glass,
+  sheetContainer: {
+    width: "100%",
+    flexShrink: 1,
+  },
+  sheetGlassOuter: {
+    width: "100%",
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     overflow: "hidden",
   },
-  glassCardOuter: {
-    width: "100%",
-  },
-  glassCardInner: {
+  sheetGlassInner: {
+    borderTopLeftRadius: DesignSystem.borders.radius.glass,
+    borderTopRightRadius: DesignSystem.borders.radius.glass,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     overflow: "hidden",
   },
   gradientBackground: {
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xs,
     paddingBottom: DesignSystem.spacing.lg,
   },
-  closeButton: {
-    position: "absolute",
-    top: DesignSystem.spacing.md,
-    right: DesignSystem.spacing.md,
-    padding: DesignSystem.spacing.xs,
-    zIndex: 10,
+  sheetSafeArea: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+  sheetTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  sheetTitleSideSpacer: {
+    width: 40,
+  },
+  sheetTitlePressable: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sheetCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalTitle: {
     ...DesignSystem.typography.h2,
     fontWeight: "700",
     letterSpacing: -0.3,
-    marginBottom: DesignSystem.spacing.lg,
-    marginTop: DesignSystem.spacing.md,
     textAlign: "center",
+  },
+  scrollSection: {
+    minHeight: 0,
   },
   content: {
     // Remove flex constraints to allow proper scrolling
