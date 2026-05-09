@@ -58,6 +58,57 @@ export class MaintenanceRoutineService {
     }
   }
 
+  /** Insert multiple routines in one request (atomic single-statement insert). */
+  static async createMaintenanceRoutines(
+    routinesData: CreateMaintenanceRoutineData[]
+  ): Promise<MaintenanceRoutinesResponse> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    if (routinesData.length === 0) {
+      return { data: [], error: null };
+    }
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error("User not authenticated");
+      }
+
+      const now = new Date().toISOString();
+      const rows = routinesData.map((routineData) => ({
+        ...routineData,
+        user_id: user.id,
+        created_at: now,
+        updated_at: now,
+      }));
+
+      const { data, error } = await supabase
+        .from("maintenance_routines")
+        .insert(rows)
+        .select();
+
+      if (error) throw error;
+
+      return { data: data ?? [], error: null };
+    } catch (error) {
+      console.error("Error creating maintenance routines:", error);
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          details: String(error),
+        },
+      };
+    }
+  }
+
   // Get all maintenance routines for the current user
   static async getMaintenanceRoutines(
     filters?: Partial<MaintenanceFilters>

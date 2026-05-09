@@ -25,6 +25,7 @@ interface DashboardScheduleListProps {
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
   onAddTask?: () => void;
+  onBrowseMaintenancePlans?: () => void;
   /** Bottom padding so content clears the FAB */
   contentPaddingBottom: number;
 }
@@ -37,6 +38,7 @@ export function DashboardScheduleList({
   onCompleteTask,
   onTaskPress,
   onAddTask,
+  onBrowseMaintenancePlans,
   contentPaddingBottom,
 }: DashboardScheduleListProps) {
   const { colors, isDark } = useTheme();
@@ -309,58 +311,97 @@ export function DashboardScheduleList({
           },
         ]}
       >
-      <View style={scheduleStyles.emptyIconOuter}>
-        <View
+        <View style={scheduleStyles.emptyIconOuter}>
+          <View
+            style={[
+              scheduleStyles.emptyIconInner,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(255, 255, 255, 0.6)",
+              },
+            ]}
+          >
+            <Ionicons
+              name={onAddTask ? "add-circle" : "calendar-outline"}
+              size={32}
+              color={
+                isDark
+                  ? "rgba(255, 255, 255, 0.7)"
+                  : "rgba(15, 23, 42, 0.7)"
+              }
+            />
+          </View>
+        </View>
+        <Text
           style={[
-            scheduleStyles.emptyIconInner,
+            scheduleStyles.emptyTitle,
             {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.05)",
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(255, 255, 255, 0.6)",
+              color: isDark
+                ? "rgba(255, 255, 255, 0.9)"
+                : "rgba(15, 23, 42, 0.85)",
             },
           ]}
         >
-          <Ionicons
-            name={onAddTask ? "add-circle" : "calendar-outline"}
-            size={32}
-            color={
-              isDark
+          Nothing scheduled yet
+        </Text>
+        <Text
+          style={[
+            scheduleStyles.emptySubtitle,
+            {
+              color: isDark
                 ? "rgba(255, 255, 255, 0.7)"
-                : "rgba(15, 23, 42, 0.7)"
-            }
-          />
-        </View>
-      </View>
-      <Text
-        style={[
-          scheduleStyles.emptyTitle,
-          {
-            color: isDark
-              ? "rgba(255, 255, 255, 0.9)"
-              : "rgba(15, 23, 42, 0.85)",
-          },
-        ]}
-      >
-        Nothing scheduled yet
-      </Text>
-      <Text
-        style={[
-          scheduleStyles.emptySubtitle,
-          {
-            color: isDark
-              ? "rgba(255, 255, 255, 0.7)"
-              : "rgba(15, 23, 42, 0.65)",
-          },
-        ]}
-      >
-        {onAddTask
-          ? "Tap to add a task and build your home schedule"
-          : "Your upcoming tasks will appear here"}
-      </Text>
+                : "rgba(15, 23, 42, 0.65)",
+            },
+          ]}
+        >
+          {onAddTask
+            ? "Tap to add a task and build your home schedule"
+            : "Your upcoming tasks will appear here"}
+        </Text>
       </TouchableOpacity>
+
+      {onBrowseMaintenancePlans ? (
+        <TouchableOpacity
+          onPress={onBrowseMaintenancePlans}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Browse maintenance plans"
+          style={[
+            scheduleStyles.emptyPlansLink,
+            isTablet && {
+              marginHorizontal: getResponsiveValue(
+                DesignSystem.spacing.md,
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl
+              ),
+            },
+          ]}
+        >
+          <Text
+            style={[
+              scheduleStyles.emptyPlansLinkText,
+              {
+                color: colors.primary,
+                fontSize:
+                  (scheduleStyles.emptyPlansLinkText.fontSize ||
+                    DesignSystem.typography.bodyMedium.fontSize) *
+                  fontMultiplier,
+              },
+            ]}
+          >
+            Browse maintenance plans
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={18 * fontMultiplier}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
@@ -455,5 +496,17 @@ const scheduleStyles = StyleSheet.create({
   emptySubtitle: {
     ...DesignSystem.typography.body,
     textAlign: "center",
+  },
+  emptyPlansLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: DesignSystem.spacing.xs,
+    marginTop: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.sm,
+  },
+  emptyPlansLinkText: {
+    ...DesignSystem.typography.bodySemiBold,
+    fontSize: DesignSystem.typography.bodySemiBold.fontSize,
   },
 });

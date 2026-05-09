@@ -6,6 +6,12 @@ import {
   UpdateMaintenanceRoutineData,
   MaintenanceFilters,
 } from "../types/maintenance";
+import {
+  buildRoutinePayloads,
+  buildRoutinePayloadsFromItems,
+  getMaintenancePlanById,
+  MaintenancePlanItemTemplate,
+} from "../data/maintenancePlans";
 import { useAuth } from "../context/AuthContext";
 import { TimeRange } from "../context/TasksContext";
 
@@ -31,6 +37,10 @@ interface UseTasksReturn {
   };
   createTask: (
     taskData: CreateMaintenanceRoutineData
+  ) => Promise<{ success: boolean; error?: string }>;
+  applyMaintenancePlan: (
+    planId: string,
+    itemsOverride?: MaintenancePlanItemTemplate[]
   ) => Promise<{ success: boolean; error?: string }>;
   updateTask: (
     taskId: string,
@@ -172,6 +182,59 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         const errorMessage =
           error.message || "Failed to create maintenance routine";
         console.error("Error creating maintenance routine:", error);
+        return { success: false, error: errorMessage };
+      }
+    },
+    [user, loadTasks]
+  );
+
+  const applyMaintenancePlan = useCallback(
+    async (
+      planId: string,
+      itemsOverride?: MaintenancePlanItemTemplate[]
+    ) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      const plan = getMaintenancePlanById(planId);
+      if (!plan) {
+        return { success: false, error: "Maintenance plan not found" };
+      }
+
+      if (planId === "spring-refresh") {
+        if (!itemsOverride?.length) {
+          return {
+            success: false,
+            error:
+              "Choose your Spring refresh checklist first and select at least one task.",
+          };
+        }
+      }
+
+      const payloads =
+        itemsOverride !== undefined
+          ? buildRoutinePayloadsFromItems(itemsOverride)
+          : buildRoutinePayloads(plan);
+
+      if (payloads.length === 0) {
+        return { success: true };
+      }
+
+      try {
+        const { error } =
+          await MaintenanceService.createMaintenanceRoutines(payloads);
+
+        if (error) throw error;
+
+        await loadTasks();
+
+        return { success: true };
+      } catch (err) {
+        const error = err as Error;
+        const errorMessage =
+          error.message || "Failed to apply maintenance plan";
+        console.error("Error applying maintenance plan:", error);
         return { success: false, error: errorMessage };
       }
     },
@@ -456,6 +519,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     lookbackDays,
     stats,
     createTask,
+    applyMaintenancePlan,
     updateTask,
     completeTask,
     uncompleteTask,

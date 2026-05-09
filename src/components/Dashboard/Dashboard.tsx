@@ -36,6 +36,7 @@ interface NewDashboardProps {
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onBrowseMaintenancePlans?: () => void;
 }
 
 /** Persisted so returning users skip the header entrance delay. */
@@ -49,6 +50,7 @@ export function NewDashboard({
   onTaskPress,
   onRefresh,
   refreshing = false,
+  onBrowseMaintenancePlans,
 }: NewDashboardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -222,6 +224,7 @@ export function NewDashboard({
           setEditTaskInitial(null);
           setShowCreateModal(true);
         }}
+        onBrowseMaintenancePlans={onBrowseMaintenancePlans}
         contentPaddingBottom={contentPaddingBottom}
       />
 

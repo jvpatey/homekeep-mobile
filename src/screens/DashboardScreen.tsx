@@ -2,12 +2,17 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../context/ThemeContext";
 import { Dashboard } from "../components/Dashboard";
 import { useTasks } from "../context/TasksContext";
+import { AppStackParamList } from "../navigation/types";
 
 export function DashboardScreen() {
   const { colors, isDark } = useTheme();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { tasks, upcomingTasks, completedTasks, completeTask, refreshTasks } =
     useTasks();
   const [refreshing, setRefreshing] = useState(false);
@@ -48,6 +53,9 @@ export function DashboardScreen() {
           onTaskPress={handleTaskPress}
           onRefresh={handleRefresh}
           refreshing={refreshing}
+          onBrowseMaintenancePlans={() =>
+            navigation.navigate("MaintenancePlans")
+          }
         />
       </SafeAreaView>
     </View>

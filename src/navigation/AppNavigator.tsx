@@ -5,6 +5,7 @@ import { CompletionHistoryScreen } from "../screens/completion-history";
 import { NotificationPreferencesScreen } from "../screens/notification-preferences";
 import { SettingsScreen } from "../screens/settings";
 import { AllTasksScreen } from "../screens/all-tasks";
+import { MaintenancePlansScreen } from "../screens/maintenance-plans";
 import { TasksProvider } from "../context/TasksContext";
 import { AppStackParamList } from "./types";
 
@@ -37,6 +38,10 @@ export function AppNavigator() {
         />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="AllTasks" component={AllTasksScreen} />
+        <Stack.Screen
+          name="MaintenancePlans"
+          component={MaintenancePlansScreen}
+        />
       </Stack.Navigator>
     </TasksProvider>
   );
