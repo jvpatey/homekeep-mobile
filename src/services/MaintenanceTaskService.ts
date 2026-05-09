@@ -270,16 +270,20 @@ export class MaintenanceTaskService {
         `
         )
         .eq("is_completed", true)
-        .order("completed_at", { ascending: false });
+        .order("completed_at", {
+          ascending: false,
+          nullsFirst: false,
+        });
 
       if (lookbackDays !== "all") {
         const now = new Date();
         const from = addDays(now, -lookbackDays);
         const fromIso = from.toISOString();
         // Include legacy rows where is_completed is true but completed_at is null
-        // (plain .gte on completed_at excludes NULL in SQL)
+        // (plain .gte on completed_at excludes NULL in SQL). Still bound them to the
+        // lookback window using due_date so old NULL rows do not bypass lookbackDays.
         query = query.or(
-          `completed_at.gte."${fromIso}",completed_at.is.null`
+          `completed_at.gte."${fromIso}",and(completed_at.is.null,due_date.gte."${fromIso}")`
         );
       }
 
