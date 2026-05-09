@@ -483,6 +483,7 @@ export function EquipmentManualsModal({
           isTablet && {
             padding: getResponsiveValue(16, 20, 24),
             marginBottom: getResponsiveValue(12, 16, 20),
+            minHeight: getResponsiveValue(152, 164, 176),
           },
         ]}
       >

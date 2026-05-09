@@ -146,15 +146,17 @@ export const styles = StyleSheet.create({
 
   equipmentRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     padding: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.medium,
     borderWidth: 1,
+    minHeight: 144,
   },
 
   equipmentMain: {
     flex: 1,
+    justifyContent: "flex-start",
   },
 
   equipmentMainTouchable: {
@@ -177,6 +179,7 @@ export const styles = StyleSheet.create({
   equipmentRowActions: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: DesignSystem.spacing.xs,
   },
 
