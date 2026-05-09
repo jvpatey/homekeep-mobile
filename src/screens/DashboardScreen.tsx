@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../context/ThemeContext";
 import { Dashboard } from "../components/Dashboard";
-import { useTasks } from "../hooks/useTasks";
+import { useTasks } from "../context/TasksContext";
 
 export function DashboardScreen() {
   const { colors, isDark } = useTheme();

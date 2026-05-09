@@ -275,7 +275,12 @@ export class MaintenanceTaskService {
       if (lookbackDays !== "all") {
         const now = new Date();
         const from = addDays(now, -lookbackDays);
-        query = query.gte("completed_at", from.toISOString());
+        const fromIso = from.toISOString();
+        // Include legacy rows where is_completed is true but completed_at is null
+        // (plain .gte on completed_at excludes NULL in SQL)
+        query = query.or(
+          `completed_at.gte."${fromIso}",completed_at.is.null`
+        );
       }
 
       const { data, error } = await query.limit(200);
