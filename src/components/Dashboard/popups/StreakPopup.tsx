@@ -12,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
 import { useTheme } from "../../../context/ThemeContext";
-import { useDevice, useGradients } from "../../../hooks";
+import { useDevice } from "../../../hooks";
 import { GlassCard } from "../../ui/glass-card/GlassCard";
 import { PopupPrimaryButton } from "./PopupPrimaryButton";
 import { hexWithAlpha } from "./popupChrome";
@@ -25,7 +25,6 @@ interface StreakPopupProps {
 // StreakPopup component for the Dashboard
 export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   const { colors, isDark } = useTheme();
-  const { haloGradient } = useGradients();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
 
   // Animation values
@@ -200,7 +199,12 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
           style={{ overflow: "hidden" }}
         >
           <LinearGradient
-            colors={[...haloGradient]}
+            colors={[
+              hexWithAlpha(colors.accent, isDark ? 0.38 : 0.26),
+              hexWithAlpha(colors.accent, isDark ? 0.22 : 0.14),
+              hexWithAlpha(colors.accent, isDark ? 0.11 : 0.065),
+            ]}
+            locations={[0, 0.48, 1]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={[
@@ -215,18 +219,6 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
               },
             ]}
           >
-            <LinearGradient
-              pointerEvents="none"
-              colors={[
-                hexWithAlpha(colors.accent, isDark ? 0.26 : 0.17),
-                hexWithAlpha(colors.accent, isDark ? 0.15 : 0.1),
-                hexWithAlpha(colors.accent, isDark ? 0.09 : 0.055),
-              ]}
-              locations={[0, 0.48, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.popupAtmosphere}
-            />
             <TouchableOpacity
               style={[
                 styles.closeButton,
@@ -384,9 +376,6 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     padding: DesignSystem.spacing.xl,
-  },
-  popupAtmosphere: {
-    ...StyleSheet.absoluteFillObject,
   },
   closeButton: {
     position: "absolute",

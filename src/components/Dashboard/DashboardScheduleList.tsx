@@ -107,13 +107,21 @@ export function DashboardScheduleList({
     }
 
     const date = section.date!;
+    const sectionIndex = sections.findIndex((s) => s.key === section.key);
+    const prevSection =
+      sectionIndex > 0 ? sections[sectionIndex - 1] : undefined;
+    const timelineFollowsDueSoonDivider =
+      prevSection?.headerVariant === "due_soon";
+
     return (
       <View
         style={[
           scheduleStyles.stickyHeaderBase,
           {
             backgroundColor: colors.background,
-            paddingTop: DesignSystem.spacing.md,
+            paddingTop: timelineFollowsDueSoonDivider
+              ? 0
+              : DesignSystem.spacing.md,
           },
         ]}
       >
@@ -217,6 +225,47 @@ export function DashboardScheduleList({
             ) : null}
           </View>
         </View>
+      </View>
+    );
+  };
+
+  const renderSectionFooter = ({
+    section,
+  }: {
+    section: DashboardScheduleSection;
+  }) => {
+    const idx = sections.findIndex((s) => s.key === section.key);
+    const showDueSoonToTimelineDivider =
+      section.headerVariant === "due_soon" &&
+      idx >= 0 &&
+      idx < sections.length - 1;
+
+    if (!showDueSoonToTimelineDivider) return null;
+
+    return (
+      <View
+        style={[
+          scheduleStyles.sectionDividerWrap,
+          { backgroundColor: colors.background },
+          isTablet && {
+            paddingHorizontal: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.lg,
+              DesignSystem.spacing.xl
+            ),
+          },
+        ]}
+      >
+        <View
+          style={[
+            scheduleStyles.sectionDividerLine,
+            {
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.09)"
+                : "rgba(15, 23, 42, 0.08)",
+            },
+          ]}
+        />
       </View>
     );
   };
@@ -342,6 +391,7 @@ export function DashboardScheduleList({
         ) : undefined
       }
       renderSectionHeader={renderSectionHeader}
+      renderSectionFooter={renderSectionFooter}
       renderItem={({ item, index, section }) => (
         <ScheduleTaskRow
           task={item}
@@ -362,6 +412,15 @@ const scheduleStyles = StyleSheet.create({
     flex: 1,
   },
   stickyHeaderBase: {},
+  sectionDividerWrap: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+  sectionDividerLine: {
+    height: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+  },
   emptyOuter: {
     paddingHorizontal: DesignSystem.spacing.md,
     marginTop: DesignSystem.spacing.lg,

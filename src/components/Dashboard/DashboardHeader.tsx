@@ -1,6 +1,5 @@
 import React, { useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,8 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useGradients, useDevice } from "../../hooks";
+import { useDevice } from "../../hooks";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -18,7 +16,6 @@ import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { headerStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
-import { adjustGradientForContrast } from "../../theme/contrast";
 
 interface DashboardHeaderProps {
   userName: string;
@@ -45,13 +42,12 @@ export function DashboardHeader({
   onShowStreakPopup,
 }: DashboardHeaderProps) {
   const { colors, isDark } = useTheme();
-  const { selectedGradient } = useUserPreferences();
-  const { haloGradient } = useGradients();
-  const { isTablet, getFontMultiplier, getResponsiveValue, width, height, getGradientFadeColors, getGradientFadeLocations, getGradientFadeHeight } = useDevice();
+  const { isTablet, getResponsiveValue, width, height } = useDevice();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   
-  const fontMultiplier = getFontMultiplier();
+  /** Matches ProfileMenu header avatar (hit target + tablet scaling). */
+  const headerAvatarSize = isTablet ? getResponsiveValue(44, 52, 56) : 44;
   // Larger multipliers for hero text (greeting, userName, motivationalMessage)
   const heroFontMultiplier = isTablet
     ? Math.max(width, height) > 1300
@@ -64,11 +60,6 @@ export function DashboardHeader({
       ? 1.65  // iPad Pro 13": 1.65x
       : 1.5   // Standard iPad: 1.5x
     : 1;
-
-  const _textGradientColors = adjustGradientForContrast(
-    selectedGradient.colors,
-    isDark
-  );
 
   // Spring animations for greeting, username, and profile icon
   const greetOpacity = useSharedValue(0);
@@ -181,93 +172,10 @@ export function DashboardHeader({
     ],
   }));
 
-  // Use fade colors but adjust for iPad to preserve text readability
-  const fadeColors = isTablet && isDark
-    ? (() => {
-        const screenMax = Math.max(width, height);
-        if (screenMax > 1300) {
-          // Reduce opacity for dark mode on large iPad
-          return [
-            "transparent",
-            "transparent",
-            "rgba(24, 26, 27, 0.08)",
-            "rgba(24, 26, 27, 0.25)",
-            "rgba(24, 26, 27, 0.5)",
-            colors.background,
-          ] as const;
-        } else if (screenMax > 1100) {
-          return [
-            "transparent",
-            "transparent",
-            "rgba(24, 26, 27, 0.25)",
-            colors.background,
-          ] as const;
-        }
-        return ["transparent", "transparent", colors.background] as const;
-      })()
-    : getGradientFadeColors(isDark, colors.background);
-  
-  // Push fade opacity further down so text at top stays readable - start fade later for phones
-  const fadeLocations = isTablet
-    ? (() => {
-        const screenMax = Math.max(width, height);
-        if (isDark) {
-          // Dark mode: start fade later
-          if (screenMax > 1300) {
-            return [0, 0.6, 0.75, 0.85, 0.95, 1] as const;
-          } else if (screenMax > 1100) {
-            return [0, 0.65, 0.8, 1] as const;
-          }
-          return [0, 0.7, 1] as const;
-        } else {
-          // Light mode: start fade later
-          if (screenMax > 1300) {
-            return [0, 0.6, 0.75, 0.85, 0.95, 1] as const;
-          } else if (screenMax > 1100) {
-            return [0, 0.65, 0.8, 1] as const;
-          }
-          return [0, 0.7, 0.9, 1] as const;
-        }
-      })()
-    : isDark
-    ? getGradientFadeLocations(isDark)
-    : ([0, 0.7, 0.85, 0.95, 1] as const); // For phones in light mode, start fade much later
-  const gradientFadeHeight = getGradientFadeHeight();
-  const screenMax = Math.max(width, height);
-
   return (
     <View style={[headerStyles.headerSection, { marginBottom: DesignSystem.spacing.sm, backgroundColor: colors.background }]}>
       <View style={[headerStyles.headerGradient, { backgroundColor: colors.background }]}>
-        {/* Bottom fade mask - inside the hero container */}
-        <LinearGradient
-          colors={fadeColors}
-          locations={fadeLocations}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[
-            headerStyles.bottomFade,
-            {
-              height: gradientFadeHeight,
-            },
-            isTablet && {
-              height: screenMax > 1300 
-                ? gradientFadeHeight * 1.6  // iPad Pro 13"
-                : gradientFadeHeight * 1.3, // Standard iPads
-            },
-          ]}
-          pointerEvents="none"
-        />
-        
-        {/* Hero background — single halo (match Welcome/Auth) */}
-        <LinearGradient
-          colors={haloGradient}
-          start={{ x: 0.5, y: 0.15 }}
-          end={{ x: 0.5, y: 1 }}
-          style={headerStyles.halo}
-          pointerEvents="none"
-        />
-
-        {/* Content layer */}
+        {/* Content layer — solid surface (gradients reserved for welcome / auth) */}
         <View style={[
           headerStyles.contentLayer,
           isTablet && {
@@ -278,10 +186,22 @@ export function DashboardHeader({
             ),
           },
         ]}>
-          {/* Profile Button - Top Right */}
+          {/* Logo (left) + profile (right) — logo size matches header avatar */}
           <Animated.View
-            style={[headerStyles.profileButtonContainer, profileAnimatedStyle]}
+            style={[headerStyles.headerTopBar, profileAnimatedStyle]}
           >
+            <Image
+              source={require("../../../assets/images/homekeep-logo.png")}
+              style={{
+                width: headerAvatarSize,
+                height: headerAvatarSize,
+              }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="HomeKeep"
+            />
             <ProfileMenu onRefresh={onRefresh} navigation={navigation} />
           </Animated.View>
 
@@ -306,7 +226,7 @@ export function DashboardHeader({
               <Text
                 style={[
                   headerStyles.userName,
-                  { color: isDark ? colors.text : "rgba(15, 23, 42, 0.92)" },
+                  { color: colors.accent },
                   isTablet && {
                     fontSize: headerStyles.userName.fontSize * heroFontMultiplier,
                     lineHeight:
