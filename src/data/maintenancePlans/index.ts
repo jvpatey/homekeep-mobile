@@ -6,6 +6,8 @@ export {
   buildRoutinePayloads,
   buildRoutinePayloadsFromItems,
   getPlanSummary,
+  routineIdentityKey,
+  filterNewRoutinePayloads,
 } from "./types";
 export {
   MAINTENANCE_PLANS,

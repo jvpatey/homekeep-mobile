@@ -201,7 +201,7 @@ export function MaintenancePlansScreen() {
       }
       Alert.alert(
         "Add recurring tasks?",
-        `This will add ${n} recurring task${n === 1 ? "" : "s"} to your home. Applying the same plan again may create duplicates.`,
+        `This will add up to ${n} recurring task${n === 1 ? "" : "s"}. Tasks that already match one on your schedule (same title, category, and repeat interval) are skipped — including tasks you added from another guided plan.`,
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -211,9 +211,22 @@ export function MaintenancePlansScreen() {
               try {
                 const result = await applyMaintenancePlan(plan.id, items);
                 if (result.success) {
+                  const added = result.addedCount ?? n;
+                  const skipped = result.skippedCount ?? 0;
+                  let message: string;
+                  if (added === 0 && skipped > 0) {
+                    message =
+                      skipped === 1
+                        ? "That task is already on your schedule."
+                        : `All ${skipped} selected tasks already match recurring tasks on your schedule.`;
+                  } else if (skipped > 0) {
+                    message = `${added} recurring task${added === 1 ? "" : "s"} ${added === 1 ? "was" : "were"} added. ${skipped} skipped — already on your schedule.`;
+                  } else {
+                    message = `${added} recurring task${added === 1 ? "" : "s"} ${added === 1 ? "was" : "were"} added to your schedule.`;
+                  }
                   Alert.alert(
-                    "Plan applied",
-                    `${n} recurring task${n === 1 ? "" : "s"} were added to your schedule.`,
+                    added === 0 && skipped > 0 ? "Nothing new to add" : "Plan applied",
+                    message,
                     [
                       {
                         text: "OK",

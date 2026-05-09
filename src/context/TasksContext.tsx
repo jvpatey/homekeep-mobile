@@ -36,7 +36,12 @@ interface UseTasksReturn {
   applyMaintenancePlan: (
     planId: string,
     itemsOverride?: MaintenancePlanItemTemplate[]
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    skippedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData

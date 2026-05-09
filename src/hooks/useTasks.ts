@@ -9,6 +9,7 @@ import {
 import {
   buildRoutinePayloads,
   buildRoutinePayloadsFromItems,
+  filterNewRoutinePayloads,
   getMaintenancePlanById,
   MaintenancePlanItemTemplate,
 } from "../data/maintenancePlans";
@@ -41,7 +42,12 @@ interface UseTasksReturn {
   applyMaintenancePlan: (
     planId: string,
     itemsOverride?: MaintenancePlanItemTemplate[]
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    skippedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData
@@ -227,18 +233,40 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       }));
 
       if (payloads.length === 0) {
-        return { success: true };
+        return { success: true, addedCount: 0, skippedCount: 0 };
       }
 
       try {
+        const existingResult = await MaintenanceService.getMaintenanceRoutines({
+          is_active: true,
+        });
+        if (existingResult.error) throw existingResult.error;
+
+        const { newPayloads, skippedCount } = filterNewRoutinePayloads(
+          payloads,
+          existingResult.data ?? []
+        );
+
+        if (newPayloads.length === 0) {
+          return {
+            success: true,
+            addedCount: 0,
+            skippedCount,
+          };
+        }
+
         const { error } =
-          await MaintenanceService.createMaintenanceRoutines(payloads);
+          await MaintenanceService.createMaintenanceRoutines(newPayloads);
 
         if (error) throw error;
 
         await loadTasks();
 
-        return { success: true };
+        return {
+          success: true,
+          addedCount: newPayloads.length,
+          skippedCount,
+        };
       } catch (err) {
         const error = err as Error;
         const errorMessage =

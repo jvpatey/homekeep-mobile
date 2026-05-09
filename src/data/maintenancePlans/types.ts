@@ -81,3 +81,46 @@ export function getPlanSummary(plan: MaintenancePlanDefinition): MaintenancePlan
     taskCount: plan.items.length,
   };
 }
+
+/**
+ * Stable identity for deduping plan routines against each other and existing DB rows.
+ * Same title (normalized), category, and interval ⇒ same recurring task for our purposes.
+ */
+export function routineIdentityKey(
+  title: string,
+  category: MaintenanceCategory,
+  interval_days: number
+): string {
+  const normalized = title.trim().replace(/\s+/g, " ").toLowerCase();
+  return `${category}|${interval_days}|${normalized}`;
+}
+
+/** Drops payloads that match an existing routine or duplicate an earlier payload in the same batch. */
+export function filterNewRoutinePayloads(
+  payloads: CreateMaintenanceRoutineData[],
+  existingRoutines: {
+    title: string;
+    category: MaintenanceCategory;
+    interval_days: number;
+  }[]
+): { newPayloads: CreateMaintenanceRoutineData[]; skippedCount: number } {
+  const taken = new Set(
+    existingRoutines.map((r) =>
+      routineIdentityKey(r.title, r.category, r.interval_days)
+    )
+  );
+  const newPayloads: CreateMaintenanceRoutineData[] = [];
+  let skippedCount = 0;
+
+  for (const p of payloads) {
+    const key = routineIdentityKey(p.title, p.category, p.interval_days);
+    if (taken.has(key)) {
+      skippedCount++;
+      continue;
+    }
+    taken.add(key);
+    newPayloads.push(p);
+  }
+
+  return { newPayloads, skippedCount };
+}
