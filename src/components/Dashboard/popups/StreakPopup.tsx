@@ -9,13 +9,13 @@ import Animated, {
   withSpring,
   withSequence,
   withDelay,
-  withRepeat,
-  interpolate,
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
-import { colors } from "../../../theme/colors";
 import { useTheme } from "../../../context/ThemeContext";
-import { useDevice } from "../../../hooks";
+import { useDevice, useGradients } from "../../../hooks";
+import { GlassCard } from "../../ui/glass-card/GlassCard";
+import { PopupPrimaryButton } from "./PopupPrimaryButton";
+import { hexWithAlpha } from "./popupChrome";
 
 interface StreakPopupProps {
   streak: number;
@@ -24,7 +24,8 @@ interface StreakPopupProps {
 
 // StreakPopup component for the Dashboard
 export function StreakPopup({ streak, onClose }: StreakPopupProps) {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { haloGradient } = useGradients();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
 
   // Animation values
@@ -36,19 +37,6 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
   const dotsOpacity = useSharedValue(0);
   const dotsScale = useSharedValue(0.5);
   const continueButtonOpacity = useSharedValue(0);
-
-  // Glass-like orange/red gradient with subtle transparency
-  const glassGradient = (isDark
-    ? [
-        "rgba(255, 107, 53, 0.15)",
-        "rgba(247, 147, 30, 0.25)",
-        "rgba(15, 23, 42, 0.85)",
-      ]
-    : [
-        "rgba(255, 107, 53, 0.12)",
-        "rgba(255, 167, 108, 0.18)",
-        "rgba(255, 255, 255, 0.85)",
-      ]) as [string, string, string];
 
   useEffect(() => {
     opacity.value = withTiming(1, {
@@ -171,9 +159,7 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
           style={[
             styles.streakDot,
             {
-              backgroundColor: isDark
-                ? "rgba(255, 107, 53, 0.6)"
-                : colors.light.accent,
+              backgroundColor: colors.accent,
               width: dotSize,
               height: dotSize,
               borderRadius: dotRadius,
@@ -188,23 +174,18 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
 
   return (
     <View style={styles.overlayContainer}>
-    <TouchableOpacity
-      style={styles.overlay}
-      onPress={handleClose}
-      activeOpacity={1}
+      <TouchableOpacity
+        style={styles.overlay}
+        onPress={handleClose}
+        activeOpacity={1}
       />
       <Animated.View
         style={[
           styles.container,
           containerAnimatedStyle,
           {
-            backgroundColor: isDark
-              ? "rgba(15, 23, 42, 0.85)"
-              : "rgba(255, 255, 255, 0.85)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 107, 53, 0.3)"
-              : "rgba(255, 107, 53, 0.2)",
+            borderRadius: DesignSystem.borders.radius.glass,
+            overflow: "hidden",
           },
           isTablet && {
             maxWidth: getResponsiveValue(350, 500, 600),
@@ -212,178 +193,166 @@ export function StreakPopup({ streak, onClose }: StreakPopupProps) {
         ]}
         pointerEvents="box-none"
       >
-        <LinearGradient
-          colors={glassGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.gradientBackground,
-            isTablet && {
-              padding: getResponsiveValue(
-                DesignSystem.spacing.xl,
-                DesignSystem.spacing.xl + DesignSystem.spacing.md,
-                DesignSystem.spacing.xl + DesignSystem.spacing.lg,
-              ),
-            },
-          ]}
+        <GlassCard
+          material="thick"
+          radius={DesignSystem.borders.radius.glass}
+          containerStyle={{ width: "100%" }}
+          style={{ overflow: "hidden" }}
         >
-          {/* Close Button */}
-          <TouchableOpacity
+          <LinearGradient
+            colors={[...haloGradient]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
             style={[
-              styles.closeButton,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 107, 53, 0.15)"
-                  : "rgba(255, 107, 53, 0.12)",
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(255, 107, 53, 0.3)"
-                  : "rgba(255, 107, 53, 0.25)",
+              styles.gradientBackground,
+              { position: "relative" },
+              isTablet && {
+                padding: getResponsiveValue(
+                  DesignSystem.spacing.xl,
+                  DesignSystem.spacing.xl + DesignSystem.spacing.md,
+                  DesignSystem.spacing.xl + DesignSystem.spacing.lg,
+                ),
               },
             ]}
-            onPress={handleClose}
           >
-            <Ionicons
-              name="close"
-              size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
-              color={
-                isDark ? "rgba(255, 255, 255, 0.9)" : "rgba(15, 23, 42, 0.85)"
-              }
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                hexWithAlpha(colors.accent, isDark ? 0.26 : 0.17),
+                hexWithAlpha(colors.accent, isDark ? 0.15 : 0.1),
+                hexWithAlpha(colors.accent, isDark ? 0.09 : 0.055),
+              ]}
+              locations={[0, 0.48, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.popupAtmosphere}
             />
-          </TouchableOpacity>
-
-          {/* Content */}
-          <View style={styles.content}>
-            {/* Streak Icon */}
-            <Animated.View
+            <TouchableOpacity
               style={[
-                styles.streakIcon,
+                styles.closeButton,
                 {
                   backgroundColor: isDark
-                    ? "rgba(255, 107, 53, 0.2)"
-                    : "rgba(255, 167, 108, 0.25)",
-                  padding: 16,
-                  borderRadius: 40,
-                  borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(255, 107, 53, 0.4)"
-                    : "rgba(255, 107, 53, 0.3)",
-                },
-                isTablet && {
-                  padding: getResponsiveValue(16, 20, 24),
-                  borderRadius: getResponsiveValue(40, 50, 60),
+                    ? "rgba(35, 37, 38, 0.55)"
+                    : "rgba(255, 255, 255, 0.45)",
+                  borderRadius: 20,
+                  borderWidth: DesignSystem.borders.hairline,
+                  borderColor: colors.glassStroke,
                 },
               ]}
+              onPress={handleClose}
             >
-              <Animated.View style={flameAnimatedStyle}>
-                <Ionicons 
-                  name="flame" 
-                  size={isTablet ? getResponsiveValue(48, 60, 72) : 48} 
-                  color="#FF6B35" 
-                />
-              </Animated.View>
-            </Animated.View>
+              <Ionicons
+                name="close"
+                size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
+                color={colors.text}
+              />
+            </TouchableOpacity>
 
-            {/* Streak Number */}
-            <Animated.View style={[styles.streakNumber, streakAnimatedStyle]}>
-              <Text
+            <View style={styles.content}>
+              <Animated.View
                 style={[
-                  styles.streakText,
+                  styles.streakIcon,
                   {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.95)"
-                      : "rgba(255, 107, 53, 0.9)",
+                    backgroundColor: hexWithAlpha(
+                      colors.accent,
+                      isDark ? 0.22 : 0.12
+                    ),
+                    padding: 16,
+                    borderRadius: 40,
+                    borderWidth: DesignSystem.borders.hairline,
+                    borderColor: hexWithAlpha(
+                      colors.accent,
+                      isDark ? 0.45 : 0.3
+                    ),
                   },
                   isTablet && {
-                    fontSize: (styles.streakText.fontSize || 72) * getFontMultiplier(),
+                    padding: getResponsiveValue(16, 20, 24),
+                    borderRadius: getResponsiveValue(40, 50, 60),
                   },
                 ]}
               >
-                {streak}
-              </Text>
-            </Animated.View>
-
-            {/* Streak Label */}
-            <Text
-              style={[
-                styles.streakLabel,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.95)"
-                    : "rgba(255, 107, 53, 0.9)",
-                },
-                isTablet && {
-                  fontSize: ((styles.streakLabel.fontSize || DesignSystem.typography.h3.fontSize) * getFontMultiplier()),
-                  lineHeight: ((styles.streakLabel.fontSize || DesignSystem.typography.h3.fontSize) * getFontMultiplier()) * 1.2,
-                },
-              ]}
-            >
-              {streak === 1 ? "Day Streak" : "Day Streak"}
-            </Text>
-
-            {/* Streak Message */}
-            <Text
-              style={[
-                styles.streakMessage,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.8)"
-                    : "rgba(255, 107, 53, 0.85)",
-                },
-                isTablet && {
-                  fontSize: ((styles.streakMessage.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()),
-                  lineHeight: ((styles.streakMessage.fontSize || DesignSystem.typography.body.fontSize) * getFontMultiplier()) * 1.4,
-                },
-              ]}
-            >
-              {getStreakMessage(streak)}
-            </Text>
-
-            {/* Streak Dots */}
-            {streak > 0 && (
-              <Animated.View style={[styles.streakDots, dotsAnimatedStyle]}>
-                {renderStreakDots()}
+                <Animated.View style={flameAnimatedStyle}>
+                  <Ionicons
+                    name="flame"
+                    size={isTablet ? getResponsiveValue(48, 60, 72) : 48}
+                    color={colors.accent}
+                  />
+                </Animated.View>
               </Animated.View>
-            )}
 
-            {/* Continue Button */}
-            <Animated.View style={continueButtonAnimatedStyle}>
-              <TouchableOpacity
-                style={[
-                  styles.continueButton,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 107, 53, 0.15)"
-                      : "rgba(255, 107, 53, 0.12)",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(255, 107, 53, 0.3)"
-                      : "rgba(255, 107, 53, 0.25)",
-                  },
-                ]}
-                onPress={handleClose}
-                activeOpacity={0.8}
-              >
+              <Animated.View style={[styles.streakNumber, streakAnimatedStyle]}>
                 <Text
                   style={[
-                    styles.continueButtonText,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.95)"
-                        : "rgba(255, 107, 53, 0.9)",
-                    },
+                    styles.streakText,
+                    { color: colors.primary },
                     isTablet && {
-                      fontSize: ((styles.continueButtonText.fontSize || DesignSystem.typography.button.fontSize) * getFontMultiplier()),
+                      fontSize:
+                        (styles.streakText.fontSize || 72) * getFontMultiplier(),
                     },
                   ]}
                 >
-                  Continue
+                  {streak}
                 </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </LinearGradient>
+              </Animated.View>
+
+              <Text
+                style={[
+                  styles.streakLabel,
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize:
+                      (styles.streakLabel.fontSize ||
+                        DesignSystem.typography.h3.fontSize) *
+                      getFontMultiplier(),
+                    lineHeight:
+                      (styles.streakLabel.fontSize ||
+                        DesignSystem.typography.h3.fontSize) *
+                      getFontMultiplier() *
+                      1.2,
+                  },
+                ]}
+              >
+                {streak === 1 ? "Day Streak" : "Day Streak"}
+              </Text>
+
+              <Text
+                style={[
+                  styles.streakMessage,
+                  { color: colors.textSecondary },
+                  isTablet && {
+                    fontSize:
+                      (styles.streakMessage.fontSize ||
+                        DesignSystem.typography.body.fontSize) *
+                      getFontMultiplier(),
+                    lineHeight:
+                      (styles.streakMessage.fontSize ||
+                        DesignSystem.typography.body.fontSize) *
+                      getFontMultiplier() *
+                      1.4,
+                  },
+                ]}
+              >
+                {getStreakMessage(streak)}
+              </Text>
+
+              {streak > 0 && (
+                <Animated.View style={[styles.streakDots, dotsAnimatedStyle]}>
+                  {renderStreakDots()}
+                </Animated.View>
+              )}
+
+              <Animated.View
+                style={[styles.continueButtonWrap, continueButtonAnimatedStyle]}
+              >
+                <PopupPrimaryButton
+                  label="Continue"
+                  onPress={handleClose}
+                  tone="accent"
+                />
+              </Animated.View>
+            </View>
+          </LinearGradient>
+        </GlassCard>
       </Animated.View>
     </View>
   );
@@ -411,12 +380,13 @@ const styles = StyleSheet.create({
   container: {
     width: "85%",
     maxWidth: 350,
-    borderRadius: DesignSystem.borders.radius.xlarge,
     overflow: "hidden",
-    ...DesignSystem.shadows.large,
   },
   gradientBackground: {
     padding: DesignSystem.spacing.xl,
+  },
+  popupAtmosphere: {
+    ...StyleSheet.absoluteFillObject,
   },
   closeButton: {
     position: "absolute",
@@ -462,12 +432,8 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
-  continueButton: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-  },
-  continueButtonText: {
-    ...DesignSystem.typography.button,
+  continueButtonWrap: {
+    width: "100%",
+    marginTop: DesignSystem.spacing.md,
   },
 });

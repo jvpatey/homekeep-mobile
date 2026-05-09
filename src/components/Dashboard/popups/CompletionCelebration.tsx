@@ -16,44 +16,32 @@ import Animated, {
 } from "react-native-reanimated";
 import { DesignSystem } from "../../../theme/designSystem";
 import { useTheme } from "../../../context/ThemeContext";
-import { useDevice } from "../../../hooks";
+import { useDevice, useGradients } from "../../../hooks";
+import { GlassCard } from "../../ui/glass-card/GlassCard";
+import { hexWithAlpha } from "./popupChrome";
 import { Ionicons } from "@expo/vector-icons";
+import { PopupPrimaryButton } from "./PopupPrimaryButton";
 
-// CompletionCelebrationProps
 interface CompletionCelebrationProps {
   isVisible: boolean;
   onClose: () => void;
   streak?: number;
 }
 
-// CompletionCelebration component for the Dashboard
 export function CompletionCelebration({
   isVisible,
   onClose,
   streak = 0,
 }: CompletionCelebrationProps) {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { haloGradient } = useGradients();
   const { isTablet } = useDevice();
-  
-  // Animation values using reanimated
+
   const scale = useSharedValue(0.7);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
   const iconScale = useSharedValue(0.3);
   const contentOpacity = useSharedValue(0);
-
-  // Glass-like purple/blue gradient with subtle transparency
-  const glassGradient = (isDark
-    ? [
-        "rgba(102, 126, 234, 0.15)",
-        "rgba(118, 75, 162, 0.25)",
-        "rgba(15, 23, 42, 0.85)",
-      ]
-    : [
-        "rgba(102, 126, 234, 0.12)",
-        "rgba(147, 165, 250, 0.18)",
-        "rgba(255, 255, 255, 0.85)",
-      ]) as [string, string, string];
 
   const handleClose = () => {
     opacity.value = withTiming(0, {
@@ -69,13 +57,11 @@ export function CompletionCelebration({
       easing: DesignSystem.motion.easing.standard,
     });
 
-    // Close after animation
     setTimeout(onClose, DesignSystem.motion.duration.fast);
   };
 
   useEffect(() => {
     if (isVisible) {
-      // Entrance animation - smoother and slower like other popups
       opacity.value = withTiming(1, {
         duration: DesignSystem.motion.duration.base,
         easing: DesignSystem.motion.easing.standard,
@@ -86,7 +72,6 @@ export function CompletionCelebration({
         easing: DesignSystem.motion.easing.standard,
       });
 
-      // Icon bounce animation - smoother
       iconScale.value = withDelay(
         DesignSystem.motion.stagger,
         withSequence(
@@ -95,7 +80,6 @@ export function CompletionCelebration({
         )
       );
 
-      // Content fade in
       contentOpacity.value = withDelay(
         DesignSystem.motion.stagger * 2,
         withTiming(1, {
@@ -110,7 +94,6 @@ export function CompletionCelebration({
 
       return () => clearTimeout(timer);
     } else {
-      // Reset values when hidden
       scale.value = 0.7;
       opacity.value = 0;
       translateY.value = 50;
@@ -119,7 +102,6 @@ export function CompletionCelebration({
     }
   }, [isVisible]);
 
-  // Animated styles
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
@@ -134,11 +116,11 @@ export function CompletionCelebration({
   }));
 
   const getAchievementMessage = () => {
-    if (streak >= 7) return "🔥 Week Warrior!";
-    if (streak >= 5) return "🚀 On Fire!";
-    if (streak >= 3) return "💪 Streaking!";
-    if (streak >= 2) return "✨ Building Momentum!";
-    return "🎯 Great Start!";
+    if (streak >= 7) return "Week Warrior!";
+    if (streak >= 5) return "On Fire!";
+    if (streak >= 3) return "Streaking!";
+    if (streak >= 2) return "Building Momentum!";
+    return "Great Start!";
   };
 
   const getStreakMessage = () => {
@@ -161,127 +143,148 @@ export function CompletionCelebration({
           styles.container,
           containerAnimatedStyle,
           {
-            backgroundColor: isDark
-              ? "rgba(15, 23, 42, 0.85)"
-              : "rgba(255, 255, 255, 0.85)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(102, 126, 234, 0.3)"
-              : "rgba(102, 126, 234, 0.2)",
+            borderRadius: DesignSystem.borders.radius.glass,
+            overflow: "hidden",
             maxWidth: isTablet ? 450 : 350,
           },
         ]}
       >
-        <LinearGradient
-          colors={glassGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.gradientBackground,
-            { padding: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.xl },
-          ]}
+        <GlassCard
+          material="thick"
+          radius={DesignSystem.borders.radius.glass}
+          containerStyle={{ width: "100%" }}
+          style={{ overflow: "hidden" }}
         >
-          {/* Content */}
-          <Animated.View style={[styles.content, contentAnimatedStyle]}>
-            {/* Achievement Icon with smooth bounce animation */}
-            <Animated.View
-              style={[
-                styles.achievementIcon,
-                iconAnimatedStyle,
-                {
-                  marginBottom: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-                },
+          <LinearGradient
+            colors={[...haloGradient]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={[
+              styles.gradientBackground,
+              { position: "relative" },
+              {
+                padding: isTablet
+                  ? DesignSystem.spacing.xxl
+                  : DesignSystem.spacing.xl,
+              },
+            ]}
+          >
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                hexWithAlpha(colors.warning, isDark ? 0.24 : 0.15),
+                hexWithAlpha(colors.primary, isDark ? 0.16 : 0.1),
+                hexWithAlpha(colors.primary, isDark ? 0.09 : 0.055),
               ]}
-            >
-              <Ionicons
-                name="trophy"
-                size={isTablet ? 64 : 48}
-                color={isDark ? "#60A5FA" : "#667eea"}
-              />
-            </Animated.View>
-
-            {/* Achievement Message */}
-            <Text
-              style={[
-                styles.achievementMessage,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.95)"
-                    : "rgba(15, 23, 42, 0.9)",
-                  fontSize: isTablet ? 32 : 24,
-                  marginBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg,
-                },
-              ]}
-            >
-              {getAchievementMessage()}
-            </Text>
-
-            {/* Streak Section */}
-            <View style={[styles.streakSection, { marginBottom: isTablet ? DesignSystem.spacing.xl : DesignSystem.spacing.lg }]}>
-              <View style={styles.streakHeader}>
-                <Ionicons name="flame" size={isTablet ? 32 : 24} color="#FF6B35" />
-                <Text
+              locations={[0, 0.48, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.popupAtmosphere}
+            />
+            <Animated.View style={[styles.content, contentAnimatedStyle]}>
+              <View
+                style={[
+                  styles.trophyWrap,
+                  {
+                    marginBottom: isTablet
+                      ? DesignSystem.spacing.lg
+                      : DesignSystem.spacing.md,
+                    minHeight: isTablet ? 120 : 96,
+                  },
+                ]}
+              >
+                <View
                   style={[
-                    styles.streakTitle,
+                    styles.trophyHalo,
                     {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.95)"
-                        : "rgba(15, 23, 42, 0.9)",
-                      fontSize: isTablet ? 24 : 18,
+                      width: isTablet ? 112 : 88,
+                      height: isTablet ? 112 : 88,
+                      borderRadius: isTablet ? 56 : 44,
+                      backgroundColor: hexWithAlpha(
+                        colors.primary,
+                        isDark ? 0.2 : 0.1
+                      ),
+                      borderColor: hexWithAlpha(
+                        colors.primary,
+                        isDark ? 0.42 : 0.26
+                      ),
                     },
                   ]}
+                />
+                <Animated.View
+                  style={[styles.achievementIcon, iconAnimatedStyle]}
                 >
-                  Your Streak
+                  <Ionicons
+                    name="trophy"
+                    size={isTablet ? 64 : 48}
+                    color={colors.primary}
+                  />
+                </Animated.View>
+              </View>
+
+              <Text
+                style={[
+                  styles.achievementMessage,
+                  {
+                    color: colors.text,
+                    fontSize: isTablet ? 32 : 24,
+                    marginBottom: isTablet
+                      ? DesignSystem.spacing.xl
+                      : DesignSystem.spacing.lg,
+                  },
+                ]}
+              >
+                {getAchievementMessage()}
+              </Text>
+
+              <View
+                style={[
+                  styles.streakSection,
+                  {
+                    marginBottom: isTablet
+                      ? DesignSystem.spacing.xl
+                      : DesignSystem.spacing.lg,
+                    backgroundColor: hexWithAlpha(
+                      colors.primary,
+                      isDark ? 0.12 : 0.06
+                    ),
+                    borderWidth: DesignSystem.borders.hairline,
+                    borderColor: hexWithAlpha(
+                      colors.primary,
+                      isDark ? 0.28 : 0.16
+                    ),
+                    borderRadius: DesignSystem.borders.radius.large,
+                    padding: DesignSystem.spacing.md,
+                  },
+                ]}
+              >
+                <View style={styles.streakHeader}>
+                  <Ionicons
+                    name="flame"
+                    size={isTablet ? 32 : 24}
+                    color={colors.accent}
+                  />
+                  <Text
+                    style={[
+                      styles.streakTitle,
+                      {
+                        color: colors.text,
+                        fontSize: isTablet ? 24 : 18,
+                      },
+                    ]}
+                  >
+                    Your Streak
+                  </Text>
+                </View>
+                <Text style={[styles.streakMessage, { color: colors.textSecondary }]}>
+                  {getStreakMessage()}
                 </Text>
               </View>
-              <Text
-                style={[
-                  styles.streakMessage,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.8)"
-                      : "rgba(15, 23, 42, 0.75)",
-                  },
-                ]}
-              >
-                {getStreakMessage()}
-              </Text>
-            </View>
 
-            {/* Close Button */}
-            <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(102, 126, 234, 0.15)"
-                    : "rgba(102, 126, 234, 0.12)",
-                  borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(102, 126, 234, 0.3)"
-                    : "rgba(102, 126, 234, 0.25)",
-                  paddingHorizontal: isTablet ? DesignSystem.spacing.xxl : DesignSystem.spacing.xl,
-                  paddingVertical: isTablet ? DesignSystem.spacing.lg : DesignSystem.spacing.md,
-                },
-              ]}
-              onPress={handleClose}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.closeButtonText,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.95)"
-                      : "rgba(102, 126, 234, 0.9)",
-                  },
-                ]}
-              >
-                Continue
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </LinearGradient>
+              <PopupPrimaryButton label="Continue" onPress={handleClose} />
+            </Animated.View>
+          </LinearGradient>
+        </GlassCard>
       </Animated.View>
     </View>
   );
@@ -309,18 +312,29 @@ const styles = StyleSheet.create({
   container: {
     width: "85%",
     maxWidth: 350,
-    borderRadius: DesignSystem.borders.radius.xlarge,
     overflow: "hidden",
-    ...DesignSystem.shadows.large,
   },
   gradientBackground: {
     padding: DesignSystem.spacing.xl,
   },
+  popupAtmosphere: {
+    ...StyleSheet.absoluteFillObject,
+  },
   content: {
     alignItems: "center",
   },
+  trophyWrap: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trophyHalo: {
+    position: "absolute",
+    borderWidth: DesignSystem.borders.hairline,
+  },
   achievementIcon: {
-    marginBottom: DesignSystem.spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
   achievementMessage: {
     ...DesignSystem.typography.h2,
@@ -344,14 +358,5 @@ const styles = StyleSheet.create({
   streakMessage: {
     ...DesignSystem.typography.body,
     textAlign: "center",
-  },
-
-  closeButton: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-  },
-  closeButtonText: {
-    ...DesignSystem.typography.button,
   },
 });
