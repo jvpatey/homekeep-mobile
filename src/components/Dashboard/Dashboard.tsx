@@ -28,6 +28,7 @@ import {
 import { dashboardStyles } from "./styles";
 import { buildDashboardSections } from "./dashboardSections";
 import { DashboardScheduleList } from "./DashboardScheduleList";
+import { DashboardQuickActions } from "./DashboardQuickActions";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
@@ -203,6 +204,15 @@ export function NewDashboard({
         onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
         onShowStreakPopup={() => setShowStreakPopup(true)}
       />
+      {sections.length > 0 ? (
+        <DashboardQuickActions
+          onAddTask={() => {
+            setEditTaskInitial(null);
+            setShowCreateModal(true);
+          }}
+          onBrowseMaintenancePlans={onBrowseMaintenancePlans}
+        />
+      ) : null}
     </Animated.View>
   );
 

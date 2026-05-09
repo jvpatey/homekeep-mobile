@@ -17,7 +17,7 @@ export const headerStyles = StyleSheet.create({
   },
   contentLayer: {
     paddingTop: DesignSystem.spacing.xl + DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
     zIndex: 15,
@@ -34,11 +34,11 @@ export const headerStyles = StyleSheet.create({
   },
   headerContent: {
     alignItems: "center",
-    paddingTop: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.sm,
   },
   greetingContainer: {
     alignItems: "center",
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md,
   },
   greeting: {
     ...DesignSystem.typography.h1,
@@ -53,12 +53,12 @@ export const headerStyles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.5,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.sm,
   },
   motivationalMessage: {
     ...DesignSystem.typography.body,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.sm,
     opacity: 0.9,
   },
   statsContainer: {
