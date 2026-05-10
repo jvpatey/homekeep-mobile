@@ -68,9 +68,24 @@ export function pickTemperatureUnit(
   country?: string | null
 ): TemperatureUnit {
   if (!country) return "celsius";
-  const trimmed = country.trim();
+  const trimmed = country.trim().replace(/\s+/g, " ");
   if (!trimmed) return "celsius";
-  return FAHRENHEIT_COUNTRIES.has(trimmed) ? "fahrenheit" : "celsius";
+
+  // ISO alpha-2 and similar short codes — normalize case for stable lookup.
+  if (trimmed.length === 2) {
+    return FAHRENHEIT_COUNTRIES.has(trimmed.toUpperCase())
+      ? "fahrenheit"
+      : "celsius";
+  }
+
+  const lower = trimmed.toLowerCase();
+  for (const entry of FAHRENHEIT_COUNTRIES) {
+    if (entry.toLowerCase() === lower) {
+      return "fahrenheit";
+    }
+  }
+
+  return "celsius";
 }
 
 interface OpenMeteoCurrent {

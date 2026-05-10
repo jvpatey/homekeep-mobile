@@ -119,11 +119,17 @@ export class MapboxSearchService {
         signal: options.signal,
       });
       if (!response.ok) {
-        const body = await response.text().catch(() => "");
-        console.warn(
-          `[Mapbox] suggest ${response.status} ${response.statusText}`,
-          body
-        );
+        if (__DEV__) {
+          const body = await response.text().catch(() => "");
+          console.warn(
+            `[Mapbox] suggest ${response.status} ${response.statusText}`,
+            body
+          );
+        } else {
+          console.warn(
+            `[Mapbox] suggest HTTP ${response.status} ${response.statusText}`
+          );
+        }
         return [];
       }
       const payload = (await response.json()) as SuggestResponse;
@@ -141,7 +147,11 @@ export class MapboxSearchService {
       }));
     } catch (error) {
       if ((error as { name?: string }).name === "AbortError") return [];
-      console.warn("[Mapbox] suggest failed", error);
+      if (__DEV__) {
+        console.warn("[Mapbox] suggest failed", error);
+      } else {
+        console.warn("[Mapbox] suggest failed");
+      }
       return [];
     }
   }
@@ -163,11 +173,17 @@ export class MapboxSearchService {
         `${RETRIEVE_ENDPOINT}/${encodeURIComponent(mapboxId)}?${params.toString()}`
       );
       if (!response.ok) {
-        const body = await response.text().catch(() => "");
-        console.warn(
-          `[Mapbox] retrieve ${response.status} ${response.statusText}`,
-          body
-        );
+        if (__DEV__) {
+          const body = await response.text().catch(() => "");
+          console.warn(
+            `[Mapbox] retrieve ${response.status} ${response.statusText}`,
+            body
+          );
+        } else {
+          console.warn(
+            `[Mapbox] retrieve HTTP ${response.status} ${response.statusText}`
+          );
+        }
         return null;
       }
       const payload = (await response.json()) as RetrieveResponse;
@@ -196,7 +212,11 @@ export class MapboxSearchService {
         longitude: coords?.[0],
       };
     } catch (error) {
-      console.warn("[Mapbox] retrieve failed", error);
+      if (__DEV__) {
+        console.warn("[Mapbox] retrieve failed", error);
+      } else {
+        console.warn("[Mapbox] retrieve failed");
+      }
       return null;
     }
   }

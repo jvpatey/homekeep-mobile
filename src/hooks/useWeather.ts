@@ -41,7 +41,10 @@ export function useWeather({
         longitude === null ||
         longitude === undefined
       ) {
+        ++reqIdRef.current;
         setWeather(null);
+        setLoading(false);
+        setError(null);
         return;
       }
 

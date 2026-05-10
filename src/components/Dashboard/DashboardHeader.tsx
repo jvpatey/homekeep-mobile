@@ -253,13 +253,25 @@ export function DashboardHeader({
   }));
 
   const collapsibleStyle = useAnimatedStyle(() => {
-    // Until first layout measurement comes back, render at natural height
-    // (undefined) so the content lays out correctly. Once we have a value,
-    // animate against it.
     const measured = contentHeight.value;
+    const progress = collapseProgress.value;
+
+    if (measured > 0) {
+      return {
+        height: progress * measured,
+        opacity: progress,
+      };
+    }
+
+    // Restored collapsed state before onLayout: avoid flashing at full height.
+    // Expanded + unmeasured still uses natural height so we can measure.
+    if (progress <= 0) {
+      return { height: 0, opacity: 0 };
+    }
+
     return {
-      height: measured > 0 ? collapseProgress.value * measured : undefined,
-      opacity: measured > 0 ? collapseProgress.value : 1,
+      height: undefined,
+      opacity: 1,
     };
   });
 

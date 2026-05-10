@@ -23,7 +23,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Country, State } from "country-state-city";
+import {
+  allCountries,
+  sortedCountryRows,
+  flagEmoji,
+  getRegionsForCountry,
+  countryNameForIso,
+} from "../../../utils/countryRegionData";
 import { useTheme } from "../../../context/ThemeContext";
 import { useGradients, useHaptics } from "../../../hooks";
 import { useProfile, AddressInput } from "../../../context/ProfileContext";
@@ -90,13 +96,12 @@ function lookupCountryIso(stored: string | null | undefined): string {
   if (!trimmed) return "";
   if (trimmed.length === 2) {
     const upper = trimmed.toUpperCase();
-    if (Country.getCountryByCode(upper)) return upper;
+    if (allCountries.some((c) => c[1] === upper)) return upper;
   }
-  const all = Country.getAllCountries();
-  const match = all.find(
-    (c) => c.name.toLowerCase() === trimmed.toLowerCase()
+  const match = allCountries.find(
+    (c) => c[0].toLowerCase() === trimmed.toLowerCase()
   );
-  return match?.isoCode ?? "";
+  return match?.[1] ?? "";
 }
 
 function lookupRegionIso(
@@ -106,13 +111,11 @@ function lookupRegionIso(
   if (!countryIso || !stored) return "";
   const trimmed = stored.trim();
   if (!trimmed) return "";
-  const states = State.getStatesOfCountry(countryIso);
-  // Try ISO first
+  const states = getRegionsForCountry(countryIso);
   const byIso = states.find(
     (s) => s.isoCode.toLowerCase() === trimmed.toLowerCase()
   );
   if (byIso) return byIso.isoCode;
-  // Then full name
   const byName = states.find(
     (s) => s.name.toLowerCase() === trimmed.toLowerCase()
   );
@@ -262,6 +265,8 @@ export function HomeAddressOnboardingModal({
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      abortRef.current?.abort();
     };
   }, [form.address_line1, form.country_iso, visible]);
 
@@ -292,17 +297,17 @@ export function HomeAddressOnboardingModal({
   // Country + state options for dropdowns (memoized — large arrays).
   const countryOptions = useMemo<SearchableOption[]>(
     () =>
-      Country.getAllCountries().map((c) => ({
-        value: c.isoCode,
-        label: `${c.flag ?? ""} ${c.name}`.trim(),
-        hint: c.isoCode,
+      sortedCountryRows.map((c) => ({
+        value: c[1],
+        label: `${flagEmoji(c[1])} ${c[0]}`.trim(),
+        hint: c[1],
       })),
     []
   );
 
   const regionOptions = useMemo<SearchableOption[]>(() => {
     if (!form.country_iso) return [];
-    return State.getStatesOfCountry(form.country_iso).map((s) => ({
+    return getRegionsForCountry(form.country_iso).map((s) => ({
       value: s.isoCode,
       label: s.name,
       hint: s.isoCode,
@@ -311,14 +316,14 @@ export function HomeAddressOnboardingModal({
 
   const selectedCountryLabel = useMemo(() => {
     if (!form.country_iso) return "";
-    const c = Country.getCountryByCode(form.country_iso);
-    if (!c) return form.country_iso;
-    return `${c.flag ?? ""} ${c.name}`.trim();
+    const name = countryNameForIso(form.country_iso);
+    if (!name) return form.country_iso;
+    return `${flagEmoji(form.country_iso)} ${name}`.trim();
   }, [form.country_iso]);
 
   const selectedRegionLabel = useMemo(() => {
     if (!form.country_iso || !form.region_iso) return "";
-    const states = State.getStatesOfCountry(form.country_iso);
+    const states = getRegionsForCountry(form.country_iso);
     return states.find((s) => s.isoCode === form.region_iso)?.name ?? "";
   }, [form.country_iso, form.region_iso]);
 
@@ -391,12 +396,12 @@ export function HomeAddressOnboardingModal({
     await triggerLight();
     setSaving(true);
     try {
-      const country = form.country_iso
-        ? Country.getCountryByCode(form.country_iso)
+      const countryName = form.country_iso
+        ? countryNameForIso(form.country_iso)
         : undefined;
       const region =
         form.country_iso && form.region_iso
-          ? State.getStatesOfCountry(form.country_iso).find(
+          ? getRegionsForCountry(form.country_iso).find(
               (s) => s.isoCode === form.region_iso
             )
           : undefined;
@@ -407,7 +412,7 @@ export function HomeAddressOnboardingModal({
         city: form.city,
         region: region?.name ?? "",
         postal_code: form.postal_code,
-        country: country?.name ?? form.country_iso,
+        country: countryName ?? form.country_iso,
       };
       const result = await updateAddress(payload, pickedCoords ?? undefined);
       if (result.success) {
