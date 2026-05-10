@@ -18,11 +18,12 @@ import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { MaintenanceService } from "../../services/maintenanceService";
 import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
+import { HomeAddressOnboardingModal } from "../modals/home-address-onboarding";
+import { useProfile } from "../../context/ProfileContext";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   getGreeting,
   getUserName,
-  getMotivationalMessage,
   calculateConsecutiveStreak,
   getDueSoonTasks,
 } from "./utils";
@@ -56,8 +57,10 @@ export function NewDashboard({
 }: NewDashboardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { addressNeeded } = useProfile();
   const insets = useSafeAreaInsets();
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
   );
@@ -150,6 +153,17 @@ export function NewDashboard({
     loadScheduleTasks();
   }, [loadScheduleTasks, tasks]);
 
+  // First-run address onboarding: surface the sheet once the entrance
+  // animation settles. Profile.address_set_at flips the flag off after the
+  // user saves or skips, so this runs at most once per account.
+  useEffect(() => {
+    if (!addressNeeded) return;
+    const timer = setTimeout(() => {
+      setShowAddressModal(true);
+    }, DesignSystem.motion.duration.base + 200);
+    return () => clearTimeout(timer);
+  }, [addressNeeded]);
+
   const sections = useMemo(
     () => buildDashboardSections(scheduleTasks),
     [scheduleTasks]
@@ -199,7 +213,6 @@ export function NewDashboard({
       <DashboardHeader
         userName={getUserName(user?.user_metadata?.full_name, user?.email)}
         greeting={getGreeting()}
-        motivationalMessage={getMotivationalMessage(upcomingTasks)}
         dueSoonCount={dueSoonTasks.length}
         completedCount={completedTasks.length}
         streak={streak}
@@ -207,6 +220,7 @@ export function NewDashboard({
         onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
         onShowStreakPopup={() => setShowStreakPopup(true)}
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
+        onOpenAddressEditor={() => setShowAddressModal(true)}
       />
       {sections.length > 0 ? (
         <DashboardQuickActions
@@ -312,6 +326,11 @@ export function NewDashboard({
       <EquipmentManualsModal
         visible={showEquipmentManualsModal}
         onClose={() => setShowEquipmentManualsModal(false)}
+      />
+
+      <HomeAddressOnboardingModal
+        visible={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
       />
 
       <NotificationPermissionRequest />
