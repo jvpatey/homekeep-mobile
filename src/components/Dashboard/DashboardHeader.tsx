@@ -117,7 +117,7 @@ export function DashboardHeader({
         contentHeight.value = measured;
       }
     },
-    [contentHeight]
+    [contentHeight],
   );
 
   const triggerHeaderAnimations = useCallback(() => {
@@ -138,20 +138,32 @@ export function DashboardHeader({
 
     greetOpacity.value = withDelay(
       s,
-      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+      withTiming(1, {
+        duration: d,
+        easing: DesignSystem.motion.easing.standard,
+      }),
     );
     greetTranslateY.value = withDelay(
       s,
-      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+      withTiming(0, {
+        duration: d,
+        easing: DesignSystem.motion.easing.standard,
+      }),
     );
 
     nameOpacity.value = withDelay(
       s * 2,
-      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+      withTiming(1, {
+        duration: d,
+        easing: DesignSystem.motion.easing.standard,
+      }),
     );
     nameTranslateY.value = withDelay(
       s * 2,
-      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+      withTiming(0, {
+        duration: d,
+        easing: DesignSystem.motion.easing.standard,
+      }),
     );
 
     profileOpacity.value = withDelay(
@@ -159,26 +171,38 @@ export function DashboardHeader({
       withTiming(1, {
         duration: fast,
         easing: DesignSystem.motion.easing.standard,
-      })
+      }),
     );
-    profileScale.value = withDelay(s, withSpring(1, DesignSystem.motion.spring.smooth));
+    profileScale.value = withDelay(
+      s,
+      withSpring(1, DesignSystem.motion.spring.smooth),
+    );
     profileTranslateY.value = withDelay(
       s,
       withTiming(0, {
         duration: fast,
         easing: DesignSystem.motion.easing.standard,
-      })
+      }),
     );
 
     statsOpacity.value = withDelay(
       s * 3,
-      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+      withTiming(1, {
+        duration: d,
+        easing: DesignSystem.motion.easing.standard,
+      }),
     );
     statsTranslateY.value = withDelay(
       s * 3,
-      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+      withTiming(0, {
+        duration: d,
+        easing: DesignSystem.motion.easing.standard,
+      }),
     );
-    statsScale.value = withDelay(s * 3, withSpring(1, DesignSystem.motion.spring.smooth));
+    statsScale.value = withDelay(
+      s * 3,
+      withSpring(1, DesignSystem.motion.spring.smooth),
+    );
   }, [
     greetOpacity,
     greetTranslateY,
@@ -199,7 +223,7 @@ export function DashboardHeader({
   useFocusEffect(
     useCallback(() => {
       triggerHeaderAnimations();
-    }, [triggerHeaderAnimations])
+    }, [triggerHeaderAnimations]),
   );
 
   const greetAnimatedStyle = useAnimatedStyle(() => ({
@@ -283,7 +307,7 @@ export function DashboardHeader({
               paddingHorizontal: getResponsiveValue(
                 DesignSystem.spacing.md,
                 DesignSystem.spacing.lg,
-                DesignSystem.spacing.xl
+                DesignSystem.spacing.xl,
               ),
             },
           ]}
@@ -362,7 +386,9 @@ export function DashboardHeader({
                       fontSize:
                         headerStyles.userName.fontSize * heroFontMultiplier,
                       lineHeight:
-                        headerStyles.userName.fontSize * heroFontMultiplier * 1.2,
+                        headerStyles.userName.fontSize *
+                        heroFontMultiplier *
+                        1.2,
                     },
                   ]}
                 >
@@ -383,7 +409,9 @@ export function DashboardHeader({
                 hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  collapsed ? "Expand dashboard summary" : "Collapse dashboard summary"
+                  collapsed
+                    ? "Expand dashboard summary"
+                    : "Collapse dashboard summary"
                 }
               >
                 <Text
@@ -462,17 +490,17 @@ export function DashboardHeader({
                       paddingVertical: getResponsiveValue(
                         DesignSystem.spacing.sm,
                         DesignSystem.spacing.md,
-                        DesignSystem.spacing.lg
+                        DesignSystem.spacing.lg,
                       ),
                       paddingHorizontal: getResponsiveValue(
                         DesignSystem.spacing.md,
                         DesignSystem.spacing.lg,
-                        DesignSystem.spacing.xl
+                        DesignSystem.spacing.xl,
                       ),
                       gap: getResponsiveValue(
                         DesignSystem.spacing.sm,
                         DesignSystem.spacing.md,
-                        DesignSystem.spacing.lg
+                        DesignSystem.spacing.lg,
                       ),
                     },
                   ]}
@@ -484,7 +512,7 @@ export function DashboardHeader({
                         paddingHorizontal: getResponsiveValue(
                           0,
                           DesignSystem.spacing.sm,
-                          DesignSystem.spacing.md
+                          DesignSystem.spacing.md,
                         ),
                       },
                     ]}
@@ -547,7 +575,7 @@ export function DashboardHeader({
                         paddingHorizontal: getResponsiveValue(
                           0,
                           DesignSystem.spacing.sm,
-                          DesignSystem.spacing.md
+                          DesignSystem.spacing.md,
                         ),
                       },
                     ]}
@@ -612,7 +640,7 @@ export function DashboardHeader({
                         paddingHorizontal: getResponsiveValue(
                           0,
                           DesignSystem.spacing.sm,
-                          DesignSystem.spacing.md
+                          DesignSystem.spacing.md,
                         ),
                       },
                     ]}

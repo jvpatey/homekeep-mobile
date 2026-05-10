@@ -149,6 +149,8 @@ export function HomeAddressOnboardingModal({
   /** Set true while we apply a Mapbox pick so the next debounce cycle is
    * skipped (otherwise typing the picked value re-fires suggestions). */
   const skipNextSuggestRef = useRef(false);
+  /** Only fetch Mapbox suggestions after the user edits line 1 — avoids firing on sheet open when the field is pre-filled from profile. */
+  const allowAddressSuggestRef = useRef(false);
   const sessionTokenRef = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -189,6 +191,7 @@ export function HomeAddressOnboardingModal({
         setPickedCoords(null);
       }
       sessionTokenRef.current = MapboxSearchService.newSessionToken();
+      allowAddressSuggestRef.current = false;
       setSuggestions([]);
       setShowSuggestions(false);
     }
@@ -223,6 +226,7 @@ export function HomeAddressOnboardingModal({
   // Debounced Mapbox suggest as the user types in the address field.
   useEffect(() => {
     if (!visible || !isMapboxConfigured()) return;
+    if (!allowAddressSuggestRef.current) return;
     if (skipNextSuggestRef.current) {
       skipNextSuggestRef.current = false;
       return;
@@ -456,6 +460,7 @@ export function HomeAddressOnboardingModal({
           // User typed manually — drop coords + reset region if country
           // wasn't touched. (We don't know if address now matches old coords.)
           if (field === "address_line1") {
+            allowAddressSuggestRef.current = true;
             setPickedCoords(null);
           }
           setForm((prev) => ({ ...prev, [field]: text }));
