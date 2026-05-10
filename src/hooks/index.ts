@@ -27,3 +27,6 @@ export * from "../screens/auth/hooks";
 
 // Task management hooks
 export { useTasks } from "./useTasks";
+
+// Weather data hook
+export { useWeather } from "./useWeather";

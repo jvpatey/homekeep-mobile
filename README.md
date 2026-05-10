@@ -201,6 +201,11 @@ Create a `.env` file in the project root:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=your_project_url_here
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+
+# Optional: enables address autocomplete in the home address onboarding sheet.
+# Sign up at https://account.mapbox.com/ — public token starts with `pk.`
+# Free tier covers ~50k Search Box sessions/month.
+EXPO_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token_here
 ```
 
 ## 📊 Database Schema

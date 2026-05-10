@@ -72,9 +72,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: DesignSystem.spacing.sm,
     paddingHorizontal: DesignSystem.spacing.md,
-    /** Pull up toward stats card (header has bottom padding + section margin). */
-    marginTop: -DesignSystem.spacing.xl,
-    paddingTop: DesignSystem.spacing.xs,
+    /** Matches the marginBottom on the tiles row inside the header so
+     * tiles → stats and stats → buttons have identical 8pt gaps. */
+    paddingTop: 0,
     paddingBottom: DesignSystem.spacing.xs,
   },
   btn: {

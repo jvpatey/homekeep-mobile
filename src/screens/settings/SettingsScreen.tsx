@@ -17,6 +17,7 @@ import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { useHaptics } from "../../hooks";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
+import { HomeAddressOnboardingModal } from "../../components/modals/home-address-onboarding";
 import { GlassCard, TintedGlassAvatar } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
@@ -31,6 +32,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
+  const [addressModalVisible, setAddressModalVisible] = useState(false);
 
   const getUserInitial = () => {
     const fullName = user?.user_metadata?.full_name;
@@ -53,6 +55,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const handleNotificationSettings = async () => {
     await triggerLight();
     setNotificationModalVisible(true);
+  };
+
+  const handleHomeAddress = async () => {
+    await triggerLight();
+    setAddressModalVisible(true);
   };
 
   const handleDeleteAllTasks = async () => {
@@ -178,6 +185,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       title: "Notification Settings",
       icon: "notifications-outline",
       onPress: handleNotificationSettings,
+      type: "navigation",
+    },
+    {
+      id: "home-address",
+      title: "Home Address",
+      icon: "home-outline",
+      onPress: handleHomeAddress,
       type: "navigation",
     },
     {
@@ -389,6 +403,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       <NotificationSettingsModal
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
+      />
+
+      {/* Home Address Modal — same modal used for first-run onboarding. */}
+      <HomeAddressOnboardingModal
+        visible={addressModalVisible}
+        onClose={() => setAddressModalVisible(false)}
+        hideSkip
       />
     </SafeAreaView>
   );

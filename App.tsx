@@ -3,6 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import { AuthProvider } from "./src/context/AuthContext";
+import { ProfileProvider } from "./src/context/ProfileContext";
 import { UserPreferencesProvider } from "./src/context/UserPreferencesContext";
 import { NotificationProvider } from "./src/context/NotificationContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
@@ -14,11 +15,13 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <UserPreferencesProvider>
-              <NotificationProvider>
-                <RootNavigator />
-              </NotificationProvider>
-            </UserPreferencesProvider>
+            <ProfileProvider>
+              <UserPreferencesProvider>
+                <NotificationProvider>
+                  <RootNavigator />
+                </NotificationProvider>
+              </UserPreferencesProvider>
+            </ProfileProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
