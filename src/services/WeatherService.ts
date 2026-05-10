@@ -18,13 +18,59 @@ export type WeatherIconName =
   | "thunderstorm-outline"
   | "snow-outline";
 
+export type TemperatureUnit = "fahrenheit" | "celsius";
+export type WindSpeedUnit = "mph" | "kmh";
+
 export interface CurrentWeather {
-  temperatureF: number;
+  temperature: number;
+  temperatureUnit: TemperatureUnit;
   conditionLabel: string;
   iconName: WeatherIconName;
   isDay: boolean;
   windSpeed: number;
+  windSpeedUnit: WindSpeedUnit;
   fetchedAt: number;
+}
+
+/**
+ * Countries that conventionally use Fahrenheit. Stored values can be either
+ * full names (the form we save) or ISO 3166-1 alpha-2 codes — we accept both
+ * so this works regardless of how `profile.country` was populated.
+ */
+const FAHRENHEIT_COUNTRIES = new Set([
+  "US",
+  "USA",
+  "United States",
+  "United States of America",
+  "LR",
+  "Liberia",
+  "KY",
+  "Cayman Islands",
+  "BS",
+  "Bahamas",
+  "BZ",
+  "Belize",
+  "PW",
+  "Palau",
+  "FM",
+  "Micronesia",
+  "Federated States of Micronesia",
+  "MH",
+  "Marshall Islands",
+]);
+
+/**
+ * Decides which temperature unit to display based on the user's home country.
+ * Defaults to celsius for everywhere we don't explicitly recognize as a
+ * fahrenheit-using locale.
+ */
+export function pickTemperatureUnit(
+  country?: string | null
+): TemperatureUnit {
+  if (!country) return "celsius";
+  const trimmed = country.trim();
+  if (!trimmed) return "celsius";
+  return FAHRENHEIT_COUNTRIES.has(trimmed) ? "fahrenheit" : "celsius";
 }
 
 interface OpenMeteoCurrent {
@@ -44,8 +90,8 @@ const CACHE_KEY_PREFIX = "@homekeep/weather_cache:";
 
 const memoryCache = new Map<string, CurrentWeather>();
 
-const cacheKey = (lat: number, lng: number) =>
-  `${CACHE_KEY_PREFIX}${lat.toFixed(1)}_${lng.toFixed(1)}`;
+const cacheKey = (lat: number, lng: number, unit: TemperatureUnit) =>
+  `${CACHE_KEY_PREFIX}${lat.toFixed(1)}_${lng.toFixed(1)}_${unit}`;
 
 const isFresh = (entry: CurrentWeather) =>
   Date.now() - entry.fetchedAt < CACHE_TTL_MS;
@@ -109,9 +155,15 @@ export class WeatherService {
   static async getCurrentWeather(
     latitude: number,
     longitude: number,
-    options: { forceRefresh?: boolean } = {}
+    options: {
+      forceRefresh?: boolean;
+      temperatureUnit?: TemperatureUnit;
+    } = {}
   ): Promise<CurrentWeather | null> {
-    const key = cacheKey(latitude, longitude);
+    const temperatureUnit = options.temperatureUnit ?? "celsius";
+    const windSpeedUnit: WindSpeedUnit =
+      temperatureUnit === "fahrenheit" ? "mph" : "kmh";
+    const key = cacheKey(latitude, longitude, temperatureUnit);
 
     if (!options.forceRefresh) {
       const inMem = memoryCache.get(key);
@@ -135,8 +187,8 @@ export class WeatherService {
       latitude: latitude.toFixed(4),
       longitude: longitude.toFixed(4),
       current: "temperature_2m,weather_code,wind_speed_10m,is_day",
-      temperature_unit: "fahrenheit",
-      wind_speed_unit: "mph",
+      temperature_unit: temperatureUnit,
+      wind_speed_unit: windSpeedUnit,
     });
 
     try {
@@ -155,11 +207,13 @@ export class WeatherService {
       const description = describeWeatherCode(current.weather_code, isDay);
 
       const weather: CurrentWeather = {
-        temperatureF: Math.round(current.temperature_2m),
+        temperature: Math.round(current.temperature_2m),
+        temperatureUnit,
         conditionLabel: description.label,
         iconName: description.icon,
         isDay,
         windSpeed: Math.round(current.wind_speed_10m ?? 0),
+        windSpeedUnit,
         fetchedAt: Date.now(),
       };
 

@@ -120,6 +120,58 @@ export const styles = StyleSheet.create({
     ...DesignSystem.typography.caption,
     marginTop: DesignSystem.spacing.xs,
   },
+  selectButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.md - 2,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: 1,
+    minHeight: 44,
+  },
+  selectButtonText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  suggestionList: {
+    marginTop: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  suggestionRow: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm + 2,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: DesignSystem.spacing.sm,
+  },
+  suggestionText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  suggestionPrimary: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  suggestionSecondary: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  suggestionLoading: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+  },
+  suggestionAttribution: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.xs,
+    fontSize: 10,
+    textAlign: "right",
+  },
   actions: {
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.md,

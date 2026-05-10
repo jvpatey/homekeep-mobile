@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useProfile } from "../../../context/ProfileContext";
 import { useWeather } from "../../../hooks";
+import { pickTemperatureUnit } from "../../../services/WeatherService";
 import { tileStyles } from "./styles";
 
 interface DashboardWeatherTileProps {
@@ -25,10 +26,16 @@ export function DashboardWeatherTile({
 }: DashboardWeatherTileProps) {
   const { colors, isDark } = useTheme();
   const { profile } = useProfile();
+  const temperatureUnit = useMemo(
+    () => pickTemperatureUnit(profile?.country),
+    [profile?.country]
+  );
   const { weather, loading, error, refresh } = useWeather({
     latitude: profile?.latitude ?? null,
     longitude: profile?.longitude ?? null,
+    temperatureUnit,
   });
+  const unitSymbol = temperatureUnit === "fahrenheit" ? "°F" : "°C";
 
   const surface = isDark
     ? "rgba(35, 37, 38, 0.4)"
@@ -118,12 +125,12 @@ export function DashboardWeatherTile({
         <>
           <View style={tileStyles.weatherTempRow}>
             <Text style={[tileStyles.weatherTemp, { color: colors.text }]}>
-              {weather.temperatureF}
+              {weather.temperature}
             </Text>
             <Text
               style={[tileStyles.weatherUnit, { color: colors.textSecondary }]}
             >
-              °F
+              {unitSymbol}
             </Text>
           </View>
           <Text
@@ -154,7 +161,11 @@ export function DashboardWeatherTile({
       accessibilityRole="button"
       accessibilityLabel={
         weather
-          ? `Weather: ${weather.temperatureF} degrees, ${weather.conditionLabel}`
+          ? `Weather: ${weather.temperature} degrees ${
+              weather.temperatureUnit === "fahrenheit"
+                ? "fahrenheit"
+                : "celsius"
+            }, ${weather.conditionLabel}`
           : "Weather"
       }
     >

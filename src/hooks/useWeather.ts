@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WeatherService, CurrentWeather } from "../services/WeatherService";
+import {
+  WeatherService,
+  CurrentWeather,
+  TemperatureUnit,
+} from "../services/WeatherService";
 
 interface UseWeatherInput {
   latitude: number | null | undefined;
   longitude: number | null | undefined;
+  temperatureUnit?: TemperatureUnit;
 }
 
 interface UseWeatherResult {
@@ -15,11 +20,13 @@ interface UseWeatherResult {
 
 /**
  * Subscribes the given coords to the weather service. Re-fetches when the
- * coords change; refresh() forces a network bypass of the cache.
+ * coords or temperature unit change; refresh() forces a network bypass of
+ * the cache.
  */
 export function useWeather({
   latitude,
   longitude,
+  temperatureUnit,
 }: UseWeatherInput): UseWeatherResult {
   const [weather, setWeather] = useState<CurrentWeather | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,7 +52,7 @@ export function useWeather({
       const result = await WeatherService.getCurrentWeather(
         latitude,
         longitude,
-        { forceRefresh }
+        { forceRefresh, temperatureUnit }
       );
 
       if (id !== reqIdRef.current) return;
@@ -56,7 +63,7 @@ export function useWeather({
       }
       setLoading(false);
     },
-    [latitude, longitude]
+    [latitude, longitude, temperatureUnit]
   );
 
   useEffect(() => {

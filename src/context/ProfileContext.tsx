@@ -40,13 +40,23 @@ interface UpdateAddressResult {
   geocoded: boolean;
 }
 
+export interface AddressCoords {
+  latitude: number;
+  longitude: number;
+}
+
 interface ProfileContextValue {
   profile: UserProfile | null;
   loading: boolean;
   /** True when the user has neither saved nor explicitly skipped the address onboarding. */
   addressNeeded: boolean;
   refresh: () => Promise<void>;
-  updateAddress: (address: AddressInput) => Promise<UpdateAddressResult>;
+  /** Persists the address row. Pass `coords` when they come from a richer
+   * source (e.g. Mapbox autocomplete pick) to skip the Open-Meteo fallback. */
+  updateAddress: (
+    address: AddressInput,
+    coords?: AddressCoords
+  ) => Promise<UpdateAddressResult>;
   /** Persists address_set_at without saving any address — used by "Skip for now". */
   skipAddressOnboarding: () => Promise<void>;
 }
@@ -104,18 +114,32 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, [user, loadProfile]);
 
   const updateAddress = useCallback(
-    async (address: AddressInput): Promise<UpdateAddressResult> => {
+    async (
+      address: AddressInput,
+      coords?: AddressCoords
+    ): Promise<UpdateAddressResult> => {
       if (!supabase || !user) {
         return { success: false, error: "Not signed in", geocoded: false };
       }
 
-      const geocode = await GeocodingService.geocodeAddress({
-        line1: address.address_line1,
-        city: address.city,
-        region: address.region,
-        postal_code: address.postal_code,
-        country: address.country,
-      });
+      // Prefer caller-supplied coords (e.g. from Mapbox autocomplete) — only
+      // fall back to the city-precision Open-Meteo geocoder when they're absent.
+      let resolvedCoords: AddressCoords | null = coords ?? null;
+      if (!resolvedCoords) {
+        const geocode = await GeocodingService.geocodeAddress({
+          line1: address.address_line1,
+          city: address.city,
+          region: address.region,
+          postal_code: address.postal_code,
+          country: address.country,
+        });
+        if (geocode) {
+          resolvedCoords = {
+            latitude: geocode.latitude,
+            longitude: geocode.longitude,
+          };
+        }
+      }
 
       const payload = {
         id: user.id,
@@ -125,8 +149,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         region: address.region?.trim() || null,
         postal_code: address.postal_code?.trim() || null,
         country: address.country?.trim() || null,
-        latitude: geocode?.latitude ?? null,
-        longitude: geocode?.longitude ?? null,
+        latitude: resolvedCoords?.latitude ?? null,
+        longitude: resolvedCoords?.longitude ?? null,
         address_set_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -138,14 +162,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        console.error("Failed to update address", error);
+        console.warn("Failed to update address", error);
         return { success: false, error: error.message, geocoded: false };
       }
 
       if (data) {
         setProfile(data as UserProfile);
       }
-      return { success: true, geocoded: !!geocode };
+      return { success: true, geocoded: !!resolvedCoords };
     },
     [user]
   );

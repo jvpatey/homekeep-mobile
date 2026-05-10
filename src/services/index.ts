@@ -13,3 +13,4 @@ export { MaintenanceDataMapper } from "./maintenanceDataMapper";
 // Weather + geocoding services
 export { WeatherService } from "./WeatherService";
 export { GeocodingService } from "./GeocodingService";
+export { MapboxSearchService, isMapboxConfigured } from "./MapboxSearchService";
