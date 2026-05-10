@@ -310,9 +310,16 @@ export function EquipmentManualsModal({
           onPress: async () => {
             setSaving(true);
             try {
-              await EquipmentManualService.deleteStorageObject(
-                editing.manual_storage_path!
-              );
+              const { error: storageErr } =
+                await EquipmentManualService.deleteStorageObject(
+                  editing.manual_storage_path!
+                );
+              if (storageErr) {
+                throw new Error(
+                  storageErr.message ||
+                    "Could not delete the manual file from storage."
+                );
+              }
               const { error } = await EquipmentManualService.updateEquipmentManual(
                 editing.id,
                 {
@@ -382,7 +389,14 @@ export function EquipmentManualsModal({
       if (pendingUri && pendingMime && pendingFileName && equipmentId) {
         const priorPath = editing?.manual_storage_path;
         if (priorPath) {
-          await EquipmentManualService.deleteStorageObject(priorPath);
+          const { error: priorDelErr } =
+            await EquipmentManualService.deleteStorageObject(priorPath);
+          if (priorDelErr) {
+            throw new Error(
+              priorDelErr.message ||
+                "Could not remove the previous manual file from storage."
+            );
+          }
         }
         const { path: storagePath, error: upErr } =
           await EquipmentManualService.uploadManualFromUri(

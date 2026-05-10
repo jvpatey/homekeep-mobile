@@ -331,7 +331,7 @@ export class EquipmentManualService {
         await this.getEquipmentManualById(id);
 
       if (fetchError) throw new Error(fetchError.message);
-      if (!row) throw new Error("Equipment not found");
+      if (!row) throw new Error("Equipment manual not found");
 
       if (row.manual_storage_path) {
         const { error: storageErr } = await this.deleteStorageObject(
