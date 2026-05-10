@@ -9,13 +9,12 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useGradients, useHaptics } from "../../hooks";
+import { useHaptics } from "../../hooks";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { GlassCard, TintedGlassAvatar } from "../../components/ui";
@@ -27,7 +26,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { user, signOut, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
   const { selectedGradient } = useUserPreferences();
-  const { haloGradient } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
   const [customizationModalVisible, setCustomizationModalVisible] =
     useState(false);
@@ -296,15 +294,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Subtle halo background to match the rest of the app */}
-      <LinearGradient
-        colors={[...haloGradient]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.heroHalo}
-        pointerEvents="none"
-      />
-
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -408,11 +397,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  heroHalo: {
-    ...StyleSheet.absoluteFillObject,
-    height: 320,
-    bottom: undefined,
   },
   header: {
     flexDirection: "row",

@@ -17,6 +17,7 @@ import { NotificationPermissionRequest } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { MaintenanceService } from "../../services/maintenanceService";
+import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   getGreeting,
@@ -67,6 +68,8 @@ export function NewDashboard({
   const [showStreakPopup, setShowStreakPopup] = useState(false);
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
+    useState(false);
   const [scheduleTasks, setScheduleTasks] = useState<MaintenanceTask[]>([]);
 
   const headerOpacity = useSharedValue(0);
@@ -203,6 +206,7 @@ export function NewDashboard({
         onRefresh={onRefresh}
         onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
         onShowStreakPopup={() => setShowStreakPopup(true)}
+        onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
       />
       {sections.length > 0 ? (
         <DashboardQuickActions
@@ -304,6 +308,11 @@ export function NewDashboard({
           onClose={() => setShowDueSoonPopup(false)}
         />
       )}
+
+      <EquipmentManualsModal
+        visible={showEquipmentManualsModal}
+        onClose={() => setShowEquipmentManualsModal(false)}
+      />
 
       <NotificationPermissionRequest />
     </View>

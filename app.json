@@ -74,6 +74,13 @@
           "defaultChannel": "default"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow HomeKeep to attach manual photos from your library.",
+          "cameraPermission": "Allow HomeKeep to photograph manuals with the camera."
+        }
+      ],
       "expo-font"
     ],
     "extra": {
