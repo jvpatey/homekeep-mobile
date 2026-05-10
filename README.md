@@ -1,6 +1,6 @@
 # HomeKeep Mobile App
 
-A React Native mobile application built with Expo and TypeScript, featuring Supabase authentication, comprehensive home maintenance task management, and a modern UI designed for tracking and organizing household maintenance activities.
+A React Native mobile application built with Expo and TypeScript, featuring Supabase authentication, comprehensive home maintenance task management, guided seasonal maintenance plans, optional equipment manual storage, home-address capture with optional autocomplete, and current weather on the dashboard—plus a modern UI for tracking and organizing household maintenance activities.
 
 ## 🚀 Features
 
@@ -28,6 +28,21 @@ A React Native mobile application built with Expo and TypeScript, featuring Supa
 - **Priority Filtering** - Filter tasks by priority level
 - **Category Filtering** - Organize tasks by maintenance category
 - **Date Range Filtering** - View tasks within specific time periods
+- **Current Weather** - Local conditions on the dashboard when a home address is saved (Open-Meteo; no extra API key)
+- **Home Address** - Store and edit your address from Settings; used for weather and location context
+- **Equipment Manuals** - Open the manuals library from the dashboard to list PDFs and attach new ones
+
+### 🧭 Guided Maintenance Plans
+
+Seasonal and starter **maintenance plans** walk through short questionnaires (where applicable), let you pick which suggested routines to add, and batch-apply them to your task list:
+
+- **Spring refresh** — Lawn, exterior, and HVAC tasks tailored to your home
+- **Cold-weather prep** — Fall exterior, freeze protection, and heating-specific items
+- **Year-round safety** — Smoke/CO, electrical, dryer vent, HVAC clearance, and related checks (pick what applies)
+- **Pool & spa care** — Water testing, filtration, and seasonal routines based on what you own
+- **New homeowner starter** — First-owner chores filtered by equipment (HRV/ERV, softener, septic, etc.)
+
+Access plans from **Settings → Maintenance plans**.
 
 ### 🎨 Modern UI/UX
 
@@ -46,10 +61,11 @@ A React Native mobile application built with Expo and TypeScript, featuring Supa
 - **Avatar Customization** - Personalized user avatars
 - **Streak Tracking** - Monitor consecutive task completion streaks
 - **Motivational Messages** - Encouraging messages based on progress
+- **Address Autocomplete (optional)** - Mapbox-powered suggestions when entering your home address; geocoding and weather use Open-Meteo and do not require separate keys
 
 ## 🛠 Tech Stack
 
-- **Framework**: React Native with Expo SDK 53
+- **Framework**: React Native with Expo SDK 54
 - **Language**: TypeScript for type safety
 - **Backend**: Supabase (PostgreSQL + Real-time subscriptions)
 - **Authentication**: Supabase Auth with Google OAuth
@@ -61,11 +77,15 @@ A React Native mobile application built with Expo and TypeScript, featuring Supa
 - **Icons**: Expo Vector Icons
 - **Gradients**: Expo Linear Gradient
 - **Haptics**: Expo Haptics
+- **Address search (optional)**: Mapbox Search Box API via public token
+- **Geocoding & weather**: Open-Meteo (no API key)
 
 ## 📁 Project Structure
 
 ```
 src/
+├── data/
+│   └── maintenancePlans/          # Guided plan definitions & questionnaires
 ├── components/                    # Reusable UI components
 │   ├── auth/                     # Authentication components
 │   │   ├── OAuthButtons.tsx      # Google OAuth sign-in
@@ -107,7 +127,9 @@ src/
 │   │   ├── gradient-picker/      # Color picker components
 │   │   └── NotificationPermissionRequest.tsx
 │   └── modals/                   # Global modals
-│       └── avatar-customization-modal/ # Avatar customization
+│       ├── avatar-customization-modal/ # Avatar customization
+│       ├── equipment-manuals-modal/    # PDF equipment manuals (list / add / open)
+│       └── home-address-onboarding/    # Home address form & Mapbox autocomplete
 ├── context/                      # React Context providers
 │   ├── AuthContext.tsx           # Authentication state
 │   ├── TasksContext.tsx          # Task management state
@@ -125,6 +147,9 @@ src/
 │   ├── AuthNavigator.tsx         # Authentication flow
 │   └── RootNavigator.tsx         # Root navigation setup
 ├── screens/                      # Screen components
+│   ├── settings/                 # Settings (profile, address, maintenance plans link)
+│   ├── maintenance-plans/      # Guided maintenance plans & questionnaires
+│   ├── all-tasks/                # Full task list view
 │   ├── auth/                     # Authentication screens
 │   │   ├── LoginScreen.tsx       # Login screen
 │   │   ├── SignUpScreen.tsx      # Sign up screen
@@ -143,6 +168,10 @@ src/
 │   ├── MaintenanceInstanceService.ts # Instance management
 │   ├── MaintenanceTaskService.ts # Task queries
 │   ├── MaintenanceStatsService.ts # Statistics and analytics
+│   ├── EquipmentManualService.ts # Equipment PDF manuals (Supabase storage)
+│   ├── MapboxSearchService.ts    # Optional address autocomplete
+│   ├── GeocodingService.ts       # Open-Meteo geocoding for lat/lng
+│   ├── WeatherService.ts         # Open-Meteo current weather for dashboard
 │   ├── maintenanceDataMapper.ts  # Data transformation
 │   └── index.ts                  # Service exports
 ├── theme/                        # Theme configuration
@@ -150,6 +179,7 @@ src/
 │   └── designSystem.ts           # Design system tokens
 └── types/                        # TypeScript type definitions
     ├── maintenance.ts            # Maintenance-related types
+    ├── equipmentManual.ts        # Equipment manual records
     └── navigation.ts             # Navigation types
 ```
 
@@ -157,7 +187,7 @@ src/
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js 18 or higher
 - npm or yarn
 - Expo CLI (`npm install -g @expo/cli`)
 - iOS Simulator (for iOS development) or Android Studio (for Android development)
@@ -182,6 +212,7 @@ npm install
    - Create a Supabase project at [supabase.com](https://supabase.com)
    - Get your project URL and anon key from the API settings
    - Create a `.env` file with your Supabase credentials
+   - For equipment manuals, create a Supabase Storage bucket named **`equipment-manuals`** (see `EQUIPMENT_MANUALS_BUCKET` in `EquipmentManualService`) with policies that let authenticated users manage their own objects, and create an **`equipment_manuals`** table aligned with the app types (`types/equipmentManual.ts`) and service queries
 
 4. **Start the development server:**
 
@@ -216,6 +247,7 @@ The app uses Supabase with the following main tables:
 - **routine_instances** - Individual task instances
 - **user_preferences** - User settings and preferences
 - **notification_settings** - Notification preferences by category
+- **equipment_manuals** - Metadata for uploaded equipment manual PDFs (files live in Supabase Storage)
 
 ## 🎯 Key Features in Detail
 
@@ -234,6 +266,7 @@ The app uses Supabase with the following main tables:
 - **Timeline View**: Visual representation of task scheduling
 - **Quick Actions**: Floating action button for creating new tasks
 - **Profile Management**: User profile with avatar customization
+- **Weather & library**: Current weather for your saved address; equipment manuals shortcut in the header
 
 ### Notifications
 
@@ -242,6 +275,16 @@ The app uses Supabase with the following main tables:
 - **Daily Digest**: Summary of daily tasks
 - **Weekly Summary**: Weekly maintenance overview
 - **Category-based Settings**: Customize notifications by maintenance category
+
+### Home address, weather, and manuals
+
+- **Home address**: Set or update under **Settings → Home Address**. With `EXPO_PUBLIC_MAPBOX_TOKEN` set, the form can suggest addresses as you type; coordinates for weather come from Open-Meteo geocoding when city/country are available.
+- **Weather**: The dashboard shows current conditions for your saved location (temperature unit follows country conventions when possible).
+- **Equipment manuals**: From the dashboard header, open **Equipment manuals** to upload PDFs to Supabase Storage, rename entries, and open files in the in-app viewer.
+
+### Guided maintenance plans
+
+Open **Settings → Maintenance plans** to browse plans. Plans that include a questionnaire filter the suggested tasks; you then choose which items to add before they are applied as routines in your task list.
 
 ## 📱 Available Scripts
 
