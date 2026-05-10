@@ -66,7 +66,9 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.lg,
+    // Extra breathing room at the bottom so the postal/region row can scroll
+    // above the iOS keyboard (combined with automaticallyAdjustKeyboardInsets).
+    paddingBottom: DesignSystem.spacing.xxl,
   },
   intro: {
     flexDirection: "row",

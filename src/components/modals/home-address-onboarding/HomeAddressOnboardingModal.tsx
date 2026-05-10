@@ -612,6 +612,8 @@ export function HomeAddressOnboardingModal({
                   style={styles.scroll}
                   contentContainerStyle={styles.scrollContent}
                   keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="interactive"
+                  automaticallyAdjustKeyboardInsets
                   showsVerticalScrollIndicator={false}
                 >
                   <View style={styles.intro}>
