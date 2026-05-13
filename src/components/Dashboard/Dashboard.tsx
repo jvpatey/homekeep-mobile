@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
@@ -74,6 +80,7 @@ export function NewDashboard({
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
   const [scheduleTasks, setScheduleTasks] = useState<MaintenanceTask[]>([]);
+  const scheduleFetchGeneration = useRef(0);
 
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(14);
@@ -127,23 +134,32 @@ export function NewDashboard({
   }));
 
   const loadScheduleTasks = useCallback(async () => {
+    const generation = ++scheduleFetchGeneration.current;
     try {
       const { data, error } = await MaintenanceService.getUpcomingTasks("all");
       if (error) throw error;
+      if (generation !== scheduleFetchGeneration.current) return;
       setScheduleTasks((data || []) as MaintenanceTask[]);
     } catch (err) {
       console.error("Error loading schedule tasks:", err);
-      setScheduleTasks([]);
+      if (generation !== scheduleFetchGeneration.current) return;
+      // Keep last successful schedule so a failed refetch does not blank the dashboard
     }
   }, []);
 
   const upcomingTasks = tasks;
 
-  const dueSoonTasks = useMemo(() => {
-    const source =
-      scheduleTasks.length > 0 ? scheduleTasks : upcomingTasks;
-    return getDueSoonTasks(source);
-  }, [scheduleTasks, upcomingTasks]);
+  /** Prefer full-window fetch; fall back to context upcoming list (matches Due soon popup). */
+  const scheduleListSource = useMemo(
+    () =>
+      scheduleTasks.length > 0 ? scheduleTasks : upcomingTasks,
+    [scheduleTasks, upcomingTasks]
+  );
+
+  const dueSoonTasks = useMemo(
+    () => getDueSoonTasks(scheduleListSource),
+    [scheduleListSource]
+  );
 
   useEffect(() => {
     setStreak(calculateConsecutiveStreak(completedTasks));
@@ -165,8 +181,8 @@ export function NewDashboard({
   }, [addressNeeded]);
 
   const sections = useMemo(
-    () => buildDashboardSections(scheduleTasks),
-    [scheduleTasks]
+    () => buildDashboardSections(scheduleListSource),
+    [scheduleListSource]
   );
 
   const handleCompleteTask = async (instanceId: string) => {
@@ -180,7 +196,7 @@ export function NewDashboard({
 
   const handleTaskPress = (instanceId: string) => {
     const task =
-      scheduleTasks.find((t) => t.instance_id === instanceId) ??
+      scheduleListSource.find((t) => t.instance_id === instanceId) ??
       tasks.find((t) => t.instance_id === instanceId);
     if (task) {
       setSelectedTask(task);
