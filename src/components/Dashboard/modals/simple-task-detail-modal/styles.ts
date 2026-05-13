@@ -94,13 +94,23 @@ export const createContentStyles = (
     categoryChip: {
       flexDirection: "row",
       alignItems: "center",
-      gap: DesignSystem.spacing.xs,
-      paddingHorizontal: DesignSystem.spacing.sm,
-      paddingVertical: DesignSystem.spacing.xs,
+      gap: DesignSystem.spacing.sm,
+      paddingHorizontal: DesignSystem.spacing.md,
+      paddingVertical: DesignSystem.spacing.sm,
       borderRadius: DesignSystem.borders.radius.round,
       borderWidth: DesignSystem.borders.hairline,
+      minHeight:
+        (isTablet ? 36 : 28) + DesignSystem.spacing.sm * 2,
     },
     categoryIconWrap: {
+      width: isTablet ? 36 : 28,
+      height: isTablet ? 36 : 28,
+      borderRadius: isTablet ? 18 : 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    /** Same outer size as category icon so priority pill matches chip height. */
+    priorityLeadingWrap: {
       width: isTablet ? 36 : 28,
       height: isTablet ? 36 : 28,
       borderRadius: isTablet ? 18 : 14,
@@ -113,11 +123,13 @@ export const createContentStyles = (
     priorityPill: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: DesignSystem.spacing.sm,
-      paddingVertical: DesignSystem.spacing.xs,
+      paddingHorizontal: DesignSystem.spacing.md,
+      paddingVertical: DesignSystem.spacing.sm,
       borderRadius: DesignSystem.borders.radius.round,
       borderWidth: DesignSystem.borders.hairline,
-      gap: DesignSystem.spacing.xs,
+      gap: DesignSystem.spacing.sm,
+      minHeight:
+        (isTablet ? 36 : 28) + DesignSystem.spacing.sm * 2,
     },
     priorityDot: {
       width: 8,

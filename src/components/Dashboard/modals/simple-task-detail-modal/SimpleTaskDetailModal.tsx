@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Modal,
   Text,
   TouchableOpacity,
-  ScrollView,
-  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -19,9 +18,7 @@ import Animated, {
   withDelay,
   runOnJS,
 } from "react-native-reanimated";
-import {
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../../../types/maintenance";
 import { useTheme } from "../../../../context/ThemeContext";
@@ -54,6 +51,7 @@ export function SimpleTaskDetailModal({
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
   const [isCompleting, setIsCompleting] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const contentStyles = createContentStyles(
     {
@@ -119,8 +117,11 @@ export function SimpleTaskDetailModal({
     if (visible && task) {
       setIsCompleting(false);
       openSheet();
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      });
     }
-  }, [visible, task?.instance_id, openSheet, task]);
+  }, [visible, task?.instance_id, openSheet]);
 
   const handleClose = () => {
     contentOpacity.value = withTiming(0, {
@@ -273,22 +274,31 @@ export function SimpleTaskDetailModal({
       : "rgba(255, 255, 255, 0.55)",
   };
 
-  const scrollChromeOverhead =
-    DesignSystem.spacing.sm +
-    4 +
-    DesignSystem.spacing.md * 2 +
-    56 +
-    DesignSystem.spacing.lg +
-    DesignSystem.spacing.xl +
-    120;
-  const scrollViewportMaxHeight = Math.max(
-    240,
-    sheetMaxHeight - scrollChromeOverhead - 140
-  );
-
   if (!task) return null;
 
   const category = getCategoryInfo(task.category);
+
+  /** Match CreateTaskModal: explicit maxHeight avoids flex-collapsed BlurView; reserve real space for footer row outside the ScrollView. */
+  const grabberChrome =
+    DesignSystem.spacing.sm + 4 + DesignSystem.spacing.md;
+  const titleRowChrome = 56 + DesignSystem.spacing.md;
+  const actionsRowChrome =
+    DesignSystem.spacing.sm +
+    DesignSystem.spacing.md +
+    DesignSystem.components.buttonLarge +
+    DesignSystem.spacing.sm;
+  const gradientVerticalPad =
+    DesignSystem.spacing.xs + DesignSystem.spacing.md;
+  const scrollChromeOverhead =
+    grabberChrome +
+    titleRowChrome +
+    actionsRowChrome +
+    gradientVerticalPad +
+    8;
+  const scrollViewportMaxHeight = Math.max(
+    220,
+    sheetMaxHeight - scrollChromeOverhead
+  );
 
   return (
     <Modal
@@ -393,6 +403,7 @@ export function SimpleTaskDetailModal({
                   style={[contentAnimatedStyle, sheetChromeStyles.scrollSection]}
                 >
                   <ScrollView
+                    ref={scrollRef}
                     style={{ maxHeight: scrollViewportMaxHeight }}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{
@@ -400,9 +411,7 @@ export function SimpleTaskDetailModal({
                     }}
                     bounces={false}
                     keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode={
-                      Platform.OS === "ios" ? "interactive" : "on-drag"
-                    }
+                    keyboardDismissMode="on-drag"
                   >
                     <Text
                       style={[contentStyles.taskTitle, { color: colors.text }]}
@@ -441,15 +450,17 @@ export function SimpleTaskDetailModal({
                       <View
                         style={[contentStyles.priorityPill, mutedSurface]}
                       >
-                        <View
-                          style={[
-                            contentStyles.priorityDot,
-                            {
-                              backgroundColor:
-                                priorityColors[task.priority],
-                            },
-                          ]}
-                        />
+                        <View style={contentStyles.priorityLeadingWrap}>
+                          <View
+                            style={[
+                              contentStyles.priorityDot,
+                              {
+                                backgroundColor:
+                                  priorityColors[task.priority],
+                              },
+                            ]}
+                          />
+                        </View>
                         <Text
                           style={[
                             contentStyles.priorityText,
