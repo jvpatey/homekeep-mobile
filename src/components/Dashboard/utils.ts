@@ -45,14 +45,23 @@ export const formatDueDate = (dateString: string): string => {
   }
 };
 
-// sortTasksByPriorityAndDate - Features sorting of tasks by priority and date
-export const sortTasksByPriorityAndDate = (tasks: MaintenanceTask[]) => {
+const startOfLocalDay = (dateString: string) => {
+  const d = new Date(dateString);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
+/** Due soon / schedule lists: calendar order first, then priority within the same day. */
+export const sortTasksByDateThenPriority = (tasks: MaintenanceTask[]) => {
   const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
   return [...tasks].sort((a, b) => {
-    const priorityDiff =
-      priorityOrder[b.priority as keyof typeof priorityOrder] -
-      priorityOrder[a.priority as keyof typeof priorityOrder];
-    if (priorityDiff !== 0) return priorityDiff;
+    const dayDiff = startOfLocalDay(a.due_date) - startOfLocalDay(b.due_date);
+    if (dayDiff !== 0) return dayDiff;
+
+    const pa = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 0;
+    const pb = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 0;
+    if (pb !== pa) return pb - pa;
+
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
   });
 };

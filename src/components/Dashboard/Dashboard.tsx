@@ -32,6 +32,7 @@ import {
   getUserName,
   calculateConsecutiveStreak,
   getDueSoonTasks,
+  sortTasksByDateThenPriority,
 } from "./utils";
 import { dashboardStyles } from "./styles";
 import { buildDashboardSections } from "./dashboardSections";
@@ -157,7 +158,8 @@ export function NewDashboard({
   );
 
   const dueSoonTasks = useMemo(
-    () => getDueSoonTasks(scheduleListSource),
+    () =>
+      sortTasksByDateThenPriority(getDueSoonTasks(scheduleListSource)),
     [scheduleListSource]
   );
 
