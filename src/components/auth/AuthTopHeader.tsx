@@ -26,7 +26,10 @@ export function AuthTopHeader({
 
   // Parent hero containers already include their own top padding (e.g. `authStyles.heroSection`).
   // Only add the *extra* inset beyond that baseline to avoid a large gap on notched iPhones.
-  const heroBaselineTopPadding = DesignSystem.spacing.sm;
+  // iPad uses a lower baseline so the hero stays compact; phones keep the original md baseline.
+  const heroBaselineTopPadding = isTablet
+    ? DesignSystem.spacing.sm
+    : DesignSystem.spacing.md;
   const safeTopPadding = Math.max(0, dynamicTopSpacing - heroBaselineTopPadding);
 
   const {
@@ -47,7 +50,9 @@ export function AuthTopHeader({
     DesignSystem.spacing.sm,
   );
   const backChipMinWidth = getResponsiveValue(44, 48, 52);
-  const brandLogoSize = getResponsiveValue(30, 36, 40);
+  const brandLogoSize = isTablet
+    ? getResponsiveValue(30, 36, 40)
+    : 34;
 
   return (
     <Animated.View style={animatedStyle}>
@@ -123,14 +128,24 @@ export function AuthTopHeader({
                 resizeMode="contain"
               />
               <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontWeight: "700",
-                  letterSpacing: -0.6,
-                  fontSize: (isTablet ? 18 : 16) * fontMultiplier,
-                  lineHeight: (isTablet ? 20 : 18) * fontMultiplier,
-                  opacity: 0.9,
-                }}
+                style={
+                  isTablet
+                    ? {
+                        color: colors.textSecondary,
+                        fontWeight: "700",
+                        letterSpacing: -0.6,
+                        fontSize: 18 * fontMultiplier,
+                        lineHeight: 20 * fontMultiplier,
+                        opacity: 0.9,
+                      }
+                    : {
+                        color: colors.text,
+                        fontWeight: "800",
+                        letterSpacing: -0.6,
+                        fontSize: 18,
+                        lineHeight: 20,
+                      }
+                }
               >
                 Home
                 <Text style={{ color: colors.accent }}>Keep</Text>
@@ -145,11 +160,13 @@ export function AuthTopHeader({
 
       <View
         style={{
-          marginTop: getResponsiveValue(
-            DesignSystem.spacing.md,
-            DesignSystem.spacing.sm,
-            DesignSystem.spacing.xs,
-          ),
+          marginTop: isTablet
+            ? getResponsiveValue(
+                DesignSystem.spacing.md,
+                DesignSystem.spacing.sm,
+                DesignSystem.spacing.xs,
+              )
+            : DesignSystem.spacing.lg,
           alignItems: "center",
         }}
       >
@@ -158,7 +175,9 @@ export function AuthTopHeader({
             ...DesignSystem.typography.h1,
             color: colors.text,
             textAlign: "center",
-            marginBottom: DesignSystem.spacing.sm,
+            marginBottom: isTablet
+              ? DesignSystem.spacing.sm
+              : DesignSystem.spacing.md,
             fontSize: DesignSystem.typography.h1.fontSize * fontMultiplier,
             lineHeight: DesignSystem.typography.h1.lineHeight * fontMultiplier,
           }}

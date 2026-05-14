@@ -13,7 +13,6 @@ export const authStyles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
-    minHeight: 280,
   },
   bottomFade: {
     position: "absolute",
