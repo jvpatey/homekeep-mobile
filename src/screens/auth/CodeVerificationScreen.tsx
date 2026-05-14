@@ -35,12 +35,32 @@ export function CodeVerificationScreen() {
   const formAnimatedStyle = useAuthAnimation();
   const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError, triggerLight } = useAuthHaptics();
-  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
-    useDevice();
+  const {
+    isTablet,
+    getMaxContentWidth,
+    getFontMultiplier,
+    getResponsiveValue,
+    getAuthHeroMinHeight,
+  } = useDevice();
+
+  const tabletHeroPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
+  const tabletFormPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
 
   const maxContentWidth = getMaxContentWidth();
   const fontMultiplier = getFontMultiplier();
-  const heroSectionHeight = getHeroSectionHeight();
+  const authHeroMinHeight = getAuthHeroMinHeight();
   const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
     useScalePress();
   const [code, setCode] = useState("");
@@ -174,9 +194,19 @@ export function CodeVerificationScreen() {
       {/* Hero Section — match Welcome screen (single halo) */}
       <View style={[
         authStyles.heroSection,
-        { backgroundColor: colors.background, justifyContent: "center" },
-        heroSectionHeight !== undefined && {
-          minHeight: heroSectionHeight,
+        { backgroundColor: colors.background, justifyContent: "flex-start" },
+        authHeroMinHeight !== undefined && {
+          minHeight: authHeroMinHeight,
+        },
+        tabletHeroPadding !== undefined && {
+          paddingHorizontal: tabletHeroPadding,
+        },
+        isTablet && {
+          paddingBottom: getResponsiveValue(
+            DesignSystem.spacing.md,
+            DesignSystem.spacing.sm,
+            DesignSystem.spacing.sm,
+          ),
         },
       ]}>
         <LinearGradient
@@ -190,7 +220,11 @@ export function CodeVerificationScreen() {
         <View style={[
           authStyles.headerContainer,
           authStyles.heroContent,
-          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          maxContentWidth !== undefined && {
+            maxWidth: maxContentWidth,
+            alignSelf: "center",
+            width: "100%",
+          },
           { zIndex: 1 },
         ]}>
           <AuthTopHeader
@@ -207,9 +241,20 @@ export function CodeVerificationScreen() {
           authStyles.scrollContent,
           {
             paddingBottom: dynamicBottomSpacing,
-            paddingTop: DesignSystem.spacing.xl,
+            paddingTop: getResponsiveValue(
+              DesignSystem.spacing.xl,
+              DesignSystem.spacing.sm,
+              DesignSystem.spacing.xs,
+            ),
           },
-          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          isTablet && {
+            paddingHorizontal: getResponsiveValue(16, 24, 28),
+          },
+          maxContentWidth !== undefined && {
+            maxWidth: maxContentWidth,
+            alignSelf: "center",
+            width: "100%",
+          },
         ]}
         showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -221,9 +266,12 @@ export function CodeVerificationScreen() {
             containerStyle={[
               authStyles.formCard,
               { marginBottom: DesignSystem.spacing.lg },
-              isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+              isTablet && { marginHorizontal: getResponsiveValue(12, 22, 28) },
             ]}
-            style={authStyles.formContent}
+            style={[
+              authStyles.formContent,
+              tabletFormPadding !== undefined && { padding: tabletFormPadding },
+            ]}
           >
             <TextInput
               label="Verification Code"
@@ -256,7 +304,7 @@ export function CodeVerificationScreen() {
         {/* Verify Button */}
         <View style={[
           authStyles.buttonContainer,
-          isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+          isTablet && { marginHorizontal: getResponsiveValue(12, 22, 28) },
         ]}>
           <Pressable
             onPress={handleVerifyCode}
@@ -308,7 +356,7 @@ export function CodeVerificationScreen() {
         {/* Resend Code */}
         <View style={[
           authStyles.linkContainer,
-          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+          isTablet && { paddingHorizontal: getResponsiveValue(12, 22, 28) },
         ]}>
           <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
             Didn't receive the code?{" "}
@@ -324,7 +372,7 @@ export function CodeVerificationScreen() {
         {/* Sign In Link */}
         <View style={[
           authStyles.linkContainer,
-          isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) },
+          isTablet && { paddingHorizontal: getResponsiveValue(12, 22, 28) },
         ]}>
           <Text style={[authStyles.linkText, { color: colors.textSecondary }]}>
             Already verified?{" "}

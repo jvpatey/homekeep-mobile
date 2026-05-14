@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { useDevice } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 
 interface DashboardQuickActionsProps {
@@ -21,6 +22,14 @@ export function DashboardQuickActions({
   onBrowseMaintenancePlans,
 }: DashboardQuickActionsProps) {
   const { colors, isDark } = useTheme();
+  const { isTablet, getResponsiveValue } = useDevice();
+  const rowPadH = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : DesignSystem.spacing.md;
 
   const surface: StyleProp<ViewStyle> = {
     backgroundColor: isDark
@@ -32,7 +41,28 @@ export function DashboardQuickActions({
   };
 
   return (
-    <View style={styles.row}>
+    <View
+      style={[
+        styles.row,
+        {
+          paddingHorizontal: rowPadH,
+          paddingBottom: isTablet
+            ? getResponsiveValue(
+                DesignSystem.spacing.sm,
+                DesignSystem.spacing.md,
+                DesignSystem.spacing.md,
+              )
+            : DesignSystem.spacing.sm,
+        },
+        isTablet && {
+          gap: getResponsiveValue(
+            DesignSystem.spacing.sm,
+            DesignSystem.spacing.md,
+            DesignSystem.spacing.md,
+          ),
+        },
+      ]}
+    >
       <TouchableOpacity
         style={[styles.btn, surface]}
         onPress={onAddTask}
@@ -71,14 +101,12 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-    /** Matches the marginBottom on the tiles row inside the header so
-     * tiles → stats and stats → buttons have identical 8pt gaps. */
+    /** paddingHorizontal and paddingBottom set in component for tablet. */
     paddingTop: 0,
-    paddingBottom: DesignSystem.spacing.xs,
   },
   btn: {
     flex: 1,
+    flexBasis: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

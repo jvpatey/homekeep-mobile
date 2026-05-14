@@ -47,7 +47,8 @@ export function AvatarCustomizationModal({
     useUserPreferences();
   const { haloGradient } = useGradients();
   const { triggerLight } = useHaptics();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
+    useDevice();
   const fontMultiplier = getFontMultiplier();
 
   const [previewGradient, setPreviewGradient] =
@@ -133,11 +134,7 @@ export function AvatarCustomizationModal({
         <Animated.View
           style={[
             styles.sheetContainer,
-            isTablet && {
-              maxWidth: getResponsiveValue(500, 640, 720),
-              alignSelf: "center",
-              width: "100%",
-            },
+            getTabletSheetContainerStyle(),
             animatedSheetStyle,
           ]}
           pointerEvents="auto"

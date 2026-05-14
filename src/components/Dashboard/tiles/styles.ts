@@ -11,6 +11,8 @@ export const tileStyles = StyleSheet.create({
   },
   tile: {
     flex: 1,
+    /** Equal 50/50 columns on iPad; without this, longer text can skew widths. */
+    flexBasis: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm,
@@ -26,6 +28,7 @@ export const tileStyles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   textCol: {
     flex: 1,

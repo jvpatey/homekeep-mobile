@@ -39,12 +39,32 @@ export function LoginScreen() {
   // Shared hooks
   const { dynamicBottomSpacing } = useDynamicSpacing();
   const { haloGradient, ctaHighlight } = useGradients();
-  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
-    useDevice();
+  const {
+    isTablet,
+    getMaxContentWidth,
+    getFontMultiplier,
+    getResponsiveValue,
+    getAuthHeroMinHeight,
+  } = useDevice();
+
+  const tabletHeroPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
+  const tabletFormPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
 
   const maxContentWidth = getMaxContentWidth();
   const fontMultiplier = getFontMultiplier();
-  const heroSectionHeight = getHeroSectionHeight();
+  const authHeroMinHeight = getAuthHeroMinHeight();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
   const { getInputTheme } = useAuthInputTheme();
@@ -130,9 +150,19 @@ export function LoginScreen() {
           <View
             style={[
               authStyles.heroSection,
-              { backgroundColor: colors.background, justifyContent: "center" },
-              heroSectionHeight !== undefined && {
-                minHeight: heroSectionHeight,
+              { backgroundColor: colors.background, justifyContent: "flex-start" },
+              authHeroMinHeight !== undefined && {
+                minHeight: authHeroMinHeight,
+              },
+              tabletHeroPadding !== undefined && {
+                paddingHorizontal: tabletHeroPadding,
+              },
+              isTablet && {
+                paddingBottom: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.sm,
+                  DesignSystem.spacing.sm,
+                ),
               },
             ]}
           >
@@ -148,7 +178,7 @@ export function LoginScreen() {
               style={[
                 authStyles.headerContainer,
                 authStyles.heroContent,
-                maxContentWidth && {
+                maxContentWidth !== undefined && {
                   maxWidth: maxContentWidth,
                   alignSelf: "center",
                   width: "100%",
@@ -172,8 +202,20 @@ export function LoginScreen() {
           authStyles.scrollContent,
           {
             paddingBottom: dynamicBottomSpacing,
+            paddingTop: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.xs,
+              DesignSystem.spacing.xs,
+            ),
           },
-          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          isTablet && {
+            paddingHorizontal: getResponsiveValue(16, 24, 28),
+          },
+          maxContentWidth !== undefined && {
+            maxWidth: maxContentWidth,
+            alignSelf: "center",
+            width: "100%",
+          },
         ]}
         showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -184,9 +226,12 @@ export function LoginScreen() {
             material="regular"
             containerStyle={[
               authStyles.formCard,
-              isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+              isTablet && { marginHorizontal: getResponsiveValue(12, 22, 28) },
             ]}
-            style={authStyles.formContent}
+            style={[
+              authStyles.formContent,
+              tabletFormPadding !== undefined && { padding: tabletFormPadding },
+            ]}
           >
             <TextInput
               label="Email"
@@ -276,7 +321,7 @@ export function LoginScreen() {
             authStyles.buttonContainer,
             buttonAnimatedStyle,
             isTablet && { 
-              marginHorizontal: getResponsiveValue(16, 32, 40),
+              marginHorizontal: getResponsiveValue(12, 22, 28),
               marginTop: getResponsiveValue(
                 DesignSystem.spacing.lg,
                 DesignSystem.spacing.xl,
@@ -327,7 +372,11 @@ export function LoginScreen() {
               <Text
                 style={[
                   authStyles.buttonLabel,
-                  { color: "white", fontWeight: "600", fontSize: 17 },
+                  {
+                    color: "white",
+                    fontWeight: "600",
+                    fontSize: 17 * (isTablet ? fontMultiplier : 1),
+                  },
                 ]}
               >
                 {loading ? "Signing In..." : "Sign In"}
@@ -337,7 +386,7 @@ export function LoginScreen() {
         </Animated.View>
 
         {/* OAuth Section */}
-        <View style={isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) }}>
+        <View style={isTablet && { paddingHorizontal: getResponsiveValue(12, 22, 28) }}>
         <OAuthButtons animatedStyle={buttonAnimatedStyle} />
         </View>
 
@@ -345,7 +394,7 @@ export function LoginScreen() {
         <View style={[
           authStyles.linkContainer,
           isTablet && { 
-            paddingHorizontal: getResponsiveValue(16, 32, 40),
+            paddingHorizontal: getResponsiveValue(12, 22, 28),
             marginTop: getResponsiveValue(
               DesignSystem.spacing.xl,
               DesignSystem.spacing.xl + DesignSystem.spacing.md,

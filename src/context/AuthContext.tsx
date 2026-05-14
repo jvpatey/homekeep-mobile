@@ -291,16 +291,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
           .from("profiles")
           .update({ push_token: null, updated_at: new Date().toISOString() })
           .eq("id", user.id)
-          .then(({ error }) => {
-            if (error) {
-              console.warn("Failed to clear push token on sign-out", error);
-            } else {
-              console.log("Push token cleared successfully");
+          .then(
+            ({ error }) => {
+              if (error) {
+                console.warn("Failed to clear push token on sign-out", error);
+              } else {
+                console.log("Push token cleared successfully");
+              }
+            },
+            (err: unknown) => {
+              console.warn("Failed to clear push token on sign-out", err);
             }
-          })
-          .catch((err) => {
-            console.warn("Failed to clear push token on sign-out", err);
-          });
+          );
         const maxWaitMs = 3000;
         await Promise.race([
           clearPush,

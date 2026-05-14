@@ -10,7 +10,7 @@ export const authStyles = StyleSheet.create({
   heroSection: {
     position: "relative",
     overflow: "hidden",
-    paddingTop: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.lg,
     paddingHorizontal: DesignSystem.spacing.md,
     minHeight: 280,
@@ -68,8 +68,8 @@ export const authStyles = StyleSheet.create({
   // Header styles
   headerContainer: {
     alignItems: "center",
-    paddingTop: DesignSystem.spacing.sm,
-    paddingBottom: DesignSystem.spacing.md,
+    paddingTop: 0,
+    paddingBottom: DesignSystem.spacing.sm,
   },
   title: {
     ...DesignSystem.typography.h1,

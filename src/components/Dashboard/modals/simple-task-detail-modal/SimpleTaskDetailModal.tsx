@@ -48,7 +48,8 @@ export function SimpleTaskDetailModal({
   const { colors, isDark } = useTheme();
   const { haloGradient, ctaHighlight } = useGradients();
   const { height: windowHeight } = useWindowDimensions();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
+    useDevice();
   const fontMultiplier = getFontMultiplier();
   const [isCompleting, setIsCompleting] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -67,9 +68,6 @@ export function SimpleTaskDetailModal({
   const translateY = useSharedValue(windowHeight);
   const contentOpacity = useSharedValue(0);
 
-  const sheetTabletMaxWidth = isTablet
-    ? getResponsiveValue(500, 640, 720)
-    : undefined;
   const sheetMaxHeight = windowHeight * 0.9;
 
   const motionFast = DesignSystem.motion.duration.fast;
@@ -322,10 +320,7 @@ export function SimpleTaskDetailModal({
           pointerEvents="box-none"
           style={[
             sheetChromeStyles.sheetContainer,
-            sheetTabletMaxWidth != null && {
-              maxWidth: sheetTabletMaxWidth,
-              alignSelf: "center",
-            },
+            getTabletSheetContainerStyle(),
             { maxHeight: sheetMaxHeight },
             sheetAnimatedStyle,
           ]}
@@ -343,13 +338,6 @@ export function SimpleTaskDetailModal({
               style={[
                 sheetChromeStyles.gradientBackground,
                 { maxHeight: sheetMaxHeight },
-                isTablet && {
-                  paddingHorizontal: getResponsiveValue(
-                    DesignSystem.spacing.lg,
-                    DesignSystem.spacing.xl,
-                    DesignSystem.spacing.xl + DesignSystem.spacing.md
-                  ),
-                },
               ]}
             >
               <SafeAreaView

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Dimensions, Platform } from "react-native";
+import { Platform, useWindowDimensions } from "react-native";
 import * as Device from "expo-device";
 
 /**
  * Hook to detect device type and provide responsive sizing for iPad optimization
  */
 export function useDevice() {
-  const { width, height } = Dimensions.get("window");
+  const { width, height } = useWindowDimensions();
   const [isTablet, setIsTablet] = useState(false);
   const [isIPad, setIsIPad] = useState(false);
 
@@ -51,16 +51,14 @@ export function useDevice() {
     return 1;
   };
 
-  // Get max content width for iPad (centered layout)
+  // Max width for centered auth (and similar) layouts on tablets — use most of the window
   const getMaxContentWidth = () => {
-    if (isTablet) {
-      // Constrain content width for better readability
-      if (Math.max(width, height) > 1300) {
-        return 700; // iPad Pro 12.9"
-      }
-      return 600; // Standard iPad
-    }
-    return undefined; // No constraint on phone
+    if (!isTablet) return undefined;
+    const screenLong = Math.max(width, height);
+    const gutter = width >= 720 ? 56 : 40;
+    const cap = screenLong > 1300 ? 920 : screenLong > 1100 ? 860 : 800;
+    const candidate = width - gutter * 2;
+    return Math.round(Math.min(Math.max(candidate, 560), cap));
   };
 
   // Get responsive gradient fade height
@@ -157,6 +155,37 @@ export function useDevice() {
     return screenMax * 0.30; // Smaller iPads
   };
 
+  /**
+   * Compact hero for sign-in / sign-up flows. Tall `getHeroSectionHeight` values
+   * are for marketing (Home); auth only needs a short halo so the form sits closer.
+   */
+  const getAuthHeroMinHeight = () => {
+    if (!isTablet) return undefined;
+    const shortSide = Math.min(width, height);
+    const longSide = Math.max(width, height);
+    const cap = longSide > 1300 ? 350 : longSide > 1100 ? 330 : 310;
+    const target = Math.round(shortSide * 0.23);
+    const floor = 252;
+    return Math.min(Math.max(target, floor), cap);
+  };
+
+  /**
+   * Bottom sheets on iPad: span the window with modest side inset (replaces
+   * narrow centered max-width sheets).
+   */
+  const getTabletSheetContainerStyle = () => {
+    if (!isTablet) {
+      return {};
+    }
+    const inset = getResponsiveValue(16, 24, 28);
+    return {
+      width: "100%" as const,
+      maxWidth: "100%" as const,
+      alignSelf: "stretch" as const,
+      paddingHorizontal: inset,
+    };
+  };
+
   return {
     isTablet,
     isIPad,
@@ -169,6 +198,8 @@ export function useDevice() {
     getGradientFadeLocations,
     getGradientFadeColors,
     getHeroSectionHeight,
+    getAuthHeroMinHeight,
+    getTabletSheetContainerStyle,
   };
 }
 

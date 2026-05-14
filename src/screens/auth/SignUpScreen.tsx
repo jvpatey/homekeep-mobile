@@ -39,12 +39,32 @@ export function SignUpScreen() {
   // Shared hooks
   const { dynamicBottomSpacing } = useDynamicSpacing();
   const { haloGradient, ctaHighlight } = useGradients();
-  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
-    useDevice();
+  const {
+    isTablet,
+    getMaxContentWidth,
+    getFontMultiplier,
+    getResponsiveValue,
+    getAuthHeroMinHeight,
+  } = useDevice();
+
+  const tabletHeroPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
+  const tabletFormPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
 
   const maxContentWidth = getMaxContentWidth();
   const fontMultiplier = getFontMultiplier();
-  const heroSectionHeight = getHeroSectionHeight();
+  const authHeroMinHeight = getAuthHeroMinHeight();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
   const { getInputTheme } = useAuthInputTheme();
@@ -160,9 +180,19 @@ export function SignUpScreen() {
           <View
             style={[
               authStyles.heroSection,
-              { backgroundColor: colors.background, justifyContent: "center" },
-              heroSectionHeight !== undefined && {
-                minHeight: heroSectionHeight,
+              { backgroundColor: colors.background, justifyContent: "flex-start" },
+              authHeroMinHeight !== undefined && {
+                minHeight: authHeroMinHeight,
+              },
+              tabletHeroPadding !== undefined && {
+                paddingHorizontal: tabletHeroPadding,
+              },
+              isTablet && {
+                paddingBottom: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.sm,
+                  DesignSystem.spacing.sm,
+                ),
               },
             ]}
           >
@@ -178,7 +208,7 @@ export function SignUpScreen() {
               style={[
                 authStyles.headerContainer,
                 authStyles.heroContent,
-                maxContentWidth && {
+                maxContentWidth !== undefined && {
                   maxWidth: maxContentWidth,
                   alignSelf: "center",
                   width: "100%",
@@ -198,7 +228,10 @@ export function SignUpScreen() {
                 <ProgressBar
                   progress={getFormProgress()}
                   color={colors.primary}
-                  style={authStyles.progressBar}
+                  style={[
+                    authStyles.progressBar,
+                    isTablet && { height: 6, borderRadius: 3 },
+                  ]}
                 />
               </View>
             </Animated.View>
@@ -211,8 +244,20 @@ export function SignUpScreen() {
           authStyles.scrollContent,
           {
             paddingBottom: dynamicBottomSpacing,
+            paddingTop: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.xs,
+              DesignSystem.spacing.xs,
+            ),
           },
-          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          isTablet && {
+            paddingHorizontal: getResponsiveValue(16, 24, 28),
+          },
+          maxContentWidth !== undefined && {
+            maxWidth: maxContentWidth,
+            alignSelf: "center",
+            width: "100%",
+          },
         ]}
         showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -223,9 +268,12 @@ export function SignUpScreen() {
             material="regular"
             containerStyle={[
               authStyles.formCard,
-              isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+              isTablet && { marginHorizontal: getResponsiveValue(12, 22, 28) },
             ]}
-            style={authStyles.formContent}
+            style={[
+              authStyles.formContent,
+              tabletFormPadding !== undefined && { padding: tabletFormPadding },
+            ]}
           >
             <TextInput
               label="Full Name"
@@ -234,13 +282,16 @@ export function SignUpScreen() {
               style={[
                 authStyles.input,
                 isTablet && {
-                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                  fontSize:
+                    (authStyles.input.fontSize ||
+                      DesignSystem.typography.body.fontSize) *
+                    fontMultiplier,
                 },
               ]}
               theme={getInputTheme()}
               autoCapitalize="words"
               autoComplete="name"
-                  keyboardAppearance={isDark ? "dark" : "light"}
+              keyboardAppearance={isDark ? "dark" : "light"}
             />
             {errors.fullName && (
               <HelperText type="error" visible={!!errors.fullName}>
@@ -255,14 +306,17 @@ export function SignUpScreen() {
               style={[
                 authStyles.input,
                 isTablet && {
-                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                  fontSize:
+                    (authStyles.input.fontSize ||
+                      DesignSystem.typography.body.fontSize) *
+                    fontMultiplier,
                 },
               ]}
               theme={getInputTheme()}
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
-                  keyboardAppearance={isDark ? "dark" : "light"}
+              keyboardAppearance={isDark ? "dark" : "light"}
             />
             {errors.email && (
               <HelperText type="error" visible={!!errors.email}>
@@ -277,13 +331,16 @@ export function SignUpScreen() {
               style={[
                 authStyles.input,
                 isTablet && {
-                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                  fontSize:
+                    (authStyles.input.fontSize ||
+                      DesignSystem.typography.body.fontSize) *
+                    fontMultiplier,
                 },
               ]}
               theme={getInputTheme()}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
-                  keyboardAppearance={isDark ? "dark" : "light"}
+              keyboardAppearance={isDark ? "dark" : "light"}
               right={
                 <TextInput.Icon
                   icon={showPassword ? "eye-off" : "eye"}
@@ -300,17 +357,22 @@ export function SignUpScreen() {
             <TextInput
               label="Confirm Password"
               value={confirmPassword}
-              onChangeText={(text) => setFieldValue("confirmPassword", text)}
+              onChangeText={(text) =>
+                setFieldValue("confirmPassword", text)
+              }
               style={[
                 authStyles.input,
                 isTablet && {
-                  fontSize: (authStyles.input.fontSize || DesignSystem.typography.body.fontSize) * fontMultiplier,
+                  fontSize:
+                    (authStyles.input.fontSize ||
+                      DesignSystem.typography.body.fontSize) *
+                    fontMultiplier,
                 },
               ]}
               theme={getInputTheme()}
               secureTextEntry={!showConfirmPassword}
               autoComplete="new-password"
-                  keyboardAppearance={isDark ? "dark" : "light"}
+              keyboardAppearance={isDark ? "dark" : "light"}
               right={
                 <TextInput.Icon
                   icon={showConfirmPassword ? "eye-off" : "eye"}
@@ -331,7 +393,14 @@ export function SignUpScreen() {
           style={[
             authStyles.buttonContainer,
             buttonAnimatedStyle,
-            isTablet && { marginHorizontal: getResponsiveValue(16, 32, 40) },
+            isTablet && {
+              marginHorizontal: getResponsiveValue(12, 22, 28),
+              marginTop: getResponsiveValue(
+                DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
+                DesignSystem.spacing.xl + DesignSystem.spacing.md,
+              ),
+            },
           ]}
         >
           <Pressable
@@ -376,7 +445,11 @@ export function SignUpScreen() {
               <Text
                 style={[
                   authStyles.buttonLabel,
-                  { color: "white", fontWeight: "600", fontSize: 17 },
+                  {
+                    color: "white",
+                    fontWeight: "600",
+                    fontSize: 17 * (isTablet ? fontMultiplier : 1),
+                  },
                 ]}
               >
                 {loading ? "Creating Account..." : "Create Account"}
@@ -386,7 +459,7 @@ export function SignUpScreen() {
         </Animated.View>
 
         {/* OAuth Section */}
-        <View style={isTablet && { paddingHorizontal: getResponsiveValue(16, 32, 40) }}>
+        <View style={isTablet && { paddingHorizontal: getResponsiveValue(12, 22, 28) }}>
         <OAuthButtons animatedStyle={buttonAnimatedStyle} />
         </View>
       </ScrollView>

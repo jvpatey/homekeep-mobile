@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useGradients, useHaptics } from "../../hooks";
+import { useHaptics, useDevice } from "../../hooks";
 import { styles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -30,8 +30,9 @@ export function OAuthButtons({
 }: OAuthButtonsProps) {
   const { colors } = useTheme();
   const { signInWithApple } = useAuth();
-  const { isDark } = useGradients();
   const { triggerMedium, triggerError, triggerSuccess } = useHaptics();
+  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const fontMultiplier = getFontMultiplier();
   const [appleLoading, setAppleLoading] = useState(false);
 
   // Handles Apple OAuth sign-in process with haptic feedback and error handling
@@ -69,7 +70,28 @@ export function OAuthButtons({
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       {/* "or" text without divider lines */}
-      <Text style={[styles.orText, { color: colors.textSecondary }]}>or</Text>
+      <Text
+        style={[
+          styles.orText,
+          { color: colors.textSecondary },
+          isTablet && {
+            marginHorizontal: 0,
+            marginTop: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.lg,
+              DesignSystem.spacing.lg,
+            ),
+            marginBottom: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.lg,
+              DesignSystem.spacing.lg,
+            ),
+            fontSize: DesignSystem.typography.body.fontSize * fontMultiplier,
+          },
+        ]}
+      >
+        or
+      </Text>
 
       {/* Apple Sign In Button */}
       <TouchableOpacity
@@ -77,7 +99,7 @@ export function OAuthButtons({
         disabled={disabled || appleLoading}
         activeOpacity={0.8}
         style={{
-          marginHorizontal: DesignSystem.spacing.md,
+          marginHorizontal: isTablet ? 0 : DesignSystem.spacing.md,
         }}
       >
         <View
@@ -90,21 +112,39 @@ export function OAuthButtons({
               shadowOpacity: 0.1,
               shadowRadius: 12,
               elevation: 3,
+              minHeight: isTablet
+                ? getResponsiveValue(52, 56, 60)
+                : styles.appleButton.minHeight,
+              paddingVertical: isTablet
+                ? getResponsiveValue(
+                    DesignSystem.spacing.md,
+                    DesignSystem.spacing.md + 2,
+                    DesignSystem.spacing.lg,
+                  )
+                : DesignSystem.spacing.md,
             },
           ]}
         >
           <View style={styles.buttonContent}>
             <View style={styles.googleIconContainer}>
               {appleLoading ? (
-                <ActivityIndicator size={16} color={colors.text} />
+                <ActivityIndicator size="small" color={colors.text} />
               ) : (
-                <Ionicons name="logo-apple" size={18} color={colors.text} />
+                <Ionicons
+                  name="logo-apple"
+                  size={isTablet ? 22 * fontMultiplier : 18}
+                  color={colors.text}
+                />
               )}
             </View>
             <Text
               style={[
                 styles.buttonLabel,
-                { color: colors.text, fontWeight: "600", fontSize: 16 },
+                {
+                  color: colors.text,
+                  fontWeight: "600",
+                  fontSize: (isTablet ? 18 : 16) * fontMultiplier,
+                },
               ]}
             >
               {appleLoading ? "Signing in..." : "Continue with Apple"}

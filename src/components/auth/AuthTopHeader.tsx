@@ -26,7 +26,7 @@ export function AuthTopHeader({
 
   // Parent hero containers already include their own top padding (e.g. `authStyles.heroSection`).
   // Only add the *extra* inset beyond that baseline to avoid a large gap on notched iPhones.
-  const heroBaselineTopPadding = DesignSystem.spacing.md;
+  const heroBaselineTopPadding = DesignSystem.spacing.sm;
   const safeTopPadding = Math.max(0, dynamicTopSpacing - heroBaselineTopPadding);
 
   const {
@@ -143,13 +143,22 @@ export function AuthTopHeader({
         </View>
       </View>
 
-      <View style={{ marginTop: DesignSystem.spacing.lg, alignItems: "center" }}>
+      <View
+        style={{
+          marginTop: getResponsiveValue(
+            DesignSystem.spacing.md,
+            DesignSystem.spacing.sm,
+            DesignSystem.spacing.xs,
+          ),
+          alignItems: "center",
+        }}
+      >
         <Text
           style={{
             ...DesignSystem.typography.h1,
             color: colors.text,
             textAlign: "center",
-            marginBottom: DesignSystem.spacing.md,
+            marginBottom: DesignSystem.spacing.sm,
             fontSize: DesignSystem.typography.h1.fontSize * fontMultiplier,
             lineHeight: DesignSystem.typography.h1.lineHeight * fontMultiplier,
           }}

@@ -31,7 +31,7 @@ import {
   countryNameForIso,
 } from "../../../utils/countryRegionData";
 import { useTheme } from "../../../context/ThemeContext";
-import { useGradients, useHaptics } from "../../../hooks";
+import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { useProfile, AddressInput } from "../../../context/ProfileContext";
 import { DesignSystem } from "../../../theme/designSystem";
 import {
@@ -132,6 +132,7 @@ export function HomeAddressOnboardingModal({
   const { colors, isDark } = useTheme();
   const { haloGradient } = useGradients();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
+  const { getTabletSheetContainerStyle } = useDevice();
   const { profile, updateAddress, skipAddressOnboarding } = useProfile();
 
   const [mounted, setMounted] = useState(visible);
@@ -557,7 +558,11 @@ export function HomeAddressOnboardingModal({
           accessibilityLabel="Dismiss"
         />
         <Animated.View
-          style={[styles.sheetContainer, animatedSheetStyle]}
+          style={[
+            styles.sheetContainer,
+            getTabletSheetContainerStyle(),
+            animatedSheetStyle,
+          ]}
           pointerEvents="auto"
         >
           <GlassCard
