@@ -283,20 +283,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     try {
       console.log("Starting sign out process, current user:", user?.id);
-      // Best-effort: clear push token so logged-out device stops receiving pushes
+      // Best-effort: clear push token so logged-out device stops receiving pushes.
+      // Do not block auth.signOut on this: the first request after cold start can
+      // hang on flaky networks, which made sign-out appear to do nothing.
       if (user?.id) {
-        try {
-        await supabase
+        const clearPush = supabase
           .from("profiles")
           .update({ push_token: null, updated_at: new Date().toISOString() })
-          .eq("id", user.id);
-          console.log("Push token cleared successfully");
-        } catch (err) {
-          // Non-fatal: proceed with sign-out even if token clearing fails
-          console.warn("Failed to clear push token on sign-out", err);
-        }
+          .eq("id", user.id)
+          .then(
+            ({ error }) => {
+              if (error) {
+                console.warn("Failed to clear push token on sign-out", error);
+              } else {
+                console.log("Push token cleared successfully");
+              }
+            },
+            (err: unknown) => {
+              console.warn("Failed to clear push token on sign-out", err);
+            }
+          );
+        const maxWaitMs = 3000;
+        await Promise.race([
+          clearPush,
+          new Promise<void>((resolve) => setTimeout(resolve, maxWaitMs)),
+        ]);
       }
-      
+
       // Sign out from Supabase auth
       const { error } = await supabase.auth.signOut();
       if (error) {

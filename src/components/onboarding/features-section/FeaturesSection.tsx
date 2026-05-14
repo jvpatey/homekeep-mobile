@@ -182,7 +182,7 @@ export function FeaturesSection() {
     <View
       style={[
         styles.cardContainer,
-        maxContentWidth && {
+        maxContentWidth !== undefined && {
           maxWidth: maxContentWidth,
           alignSelf: "center",
           width: "100%",

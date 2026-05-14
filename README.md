@@ -24,7 +24,7 @@ A React Native mobile application built with Expo and TypeScript, featuring Supa
 
 - **Hero Carousel** - Featured tasks with swipe navigation
 - **Timeline View** - Visual task scheduling and organization
-- **Task Statistics** - Track completion rates, streaks, and maintenance history
+- **Task Statistics** - Track completion rates, overdue counts, and maintenance history
 - **Priority Filtering** - Filter tasks by priority level
 - **Category Filtering** - Organize tasks by maintenance category
 - **Date Range Filtering** - View tasks within specific time periods
@@ -59,7 +59,7 @@ Access plans from **Settings → Maintenance plans**.
 - **Notification Preferences** - Customizable notification settings by category
 - **Completion History** - Detailed history of completed maintenance tasks
 - **Avatar Customization** - Personalized user avatars
-- **Streak Tracking** - Monitor consecutive task completion streaks
+- **Overdue from dashboard** - Header shows overdue count; tap to open a list and jump into task details
 - **Motivational Messages** - Encouraging messages based on progress
 - **Address Autocomplete (optional)** - Mapbox-powered suggestions when entering your home address; geocoding and weather use Open-Meteo and do not require separate keys
 
@@ -102,10 +102,10 @@ src/
 │   │   ├── profile/              # User profile components
 │   │   │   ├── ProfileButton.tsx # Profile button
 │   │   │   └── ProfileMenu.tsx   # Profile menu modal
-│   │   ├── popups/               # Notification popups
+│   │   ├── popups/               # Dashboard overlays
 │   │   │   ├── CompletionCelebration.tsx
 │   │   │   ├── DueSoonPopup.tsx
-│   │   │   └── StreakPopup.tsx
+│   │   │   └── OverduePopup.tsx
 │   │   └── modals/               # Modal components
 │   │       ├── create-task-modal/ # Task creation modal
 │   │       │   ├── CreateTaskModal.tsx
@@ -262,7 +262,7 @@ The app uses Supabase with the following main tables:
 ### Dashboard Features
 
 - **Hero Carousel**: Swipeable carousel of upcoming tasks with pagination
-- **Statistics**: Active routines, total instances, completion rates, overdue tasks
+- **Statistics**: Header stats for due soon, completed (recent window), and overdue count with an overdue list popup; elsewhere, active routines, total instances, completion rates, and overdue aggregates where used
 - **Timeline View**: Visual representation of task scheduling
 - **Quick Actions**: Floating action button for creating new tasks
 - **Profile Management**: User profile with avatar customization

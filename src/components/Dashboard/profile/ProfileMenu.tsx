@@ -52,7 +52,12 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
-  const { isTablet, getResponsiveValue, getFontMultiplier } = useDevice();
+  const {
+    isTablet,
+    getResponsiveValue,
+    getFontMultiplier,
+    getTabletSheetContainerStyle,
+  } = useDevice();
   const fontMultiplier = getFontMultiplier();
 
   const [menuVisible, setMenuVisible] = useState(false);
@@ -176,10 +181,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
           <Animated.View
             style={[
               styles.sheetContainer,
-              isTablet && {
-                maxWidth: getResponsiveValue(500, 640, 720),
-                alignSelf: "center",
-              },
+              getTabletSheetContainerStyle(),
               sheetStyle,
             ]}
           >

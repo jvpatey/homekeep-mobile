@@ -40,12 +40,27 @@ export function EmailEntryScreen() {
     getMaxContentWidth,
     getFontMultiplier,
     getResponsiveValue,
-    getHeroSectionHeight,
+    getAuthHeroMinHeight,
   } = useDevice();
+
+  const tabletHeroPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
+  const tabletFormPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
 
   const maxContentWidth = getMaxContentWidth();
   const fontMultiplier = getFontMultiplier();
-  const heroSectionHeight = getHeroSectionHeight();
+  const authHeroMinHeight = getAuthHeroMinHeight();
   const { getInputTheme } = useAuthInputTheme();
   const formAnimatedStyle = useAuthAnimation();
   const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
@@ -91,9 +106,19 @@ export function EmailEntryScreen() {
           <View
             style={[
               authStyles.heroSection,
-              { backgroundColor: colors.background, justifyContent: "center" },
-              heroSectionHeight !== undefined && {
-                minHeight: heroSectionHeight,
+              { backgroundColor: colors.background, justifyContent: "flex-start" },
+              authHeroMinHeight !== undefined && {
+                minHeight: authHeroMinHeight,
+              },
+              tabletHeroPadding !== undefined && {
+                paddingHorizontal: tabletHeroPadding,
+              },
+              isTablet && {
+                paddingBottom: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.sm,
+                  DesignSystem.spacing.sm,
+                ),
               },
             ]}
           >
@@ -110,7 +135,7 @@ export function EmailEntryScreen() {
               style={[
                 authStyles.headerContainer,
                 authStyles.heroContent,
-                maxContentWidth && {
+                maxContentWidth !== undefined && {
                   maxWidth: maxContentWidth,
                   alignSelf: "center",
                   width: "100%",
@@ -132,9 +157,16 @@ export function EmailEntryScreen() {
               authStyles.scrollContent,
               {
                 paddingBottom: dynamicBottomSpacing,
-                paddingTop: DesignSystem.spacing.xl,
+                paddingTop: getResponsiveValue(
+                  DesignSystem.spacing.xl,
+                  DesignSystem.spacing.sm,
+                  DesignSystem.spacing.xs,
+                ),
               },
-              maxContentWidth && {
+              isTablet && {
+                paddingHorizontal: getResponsiveValue(16, 24, 28),
+              },
+              maxContentWidth !== undefined && {
                 maxWidth: maxContentWidth,
                 alignSelf: "center",
                 width: "100%",
@@ -150,10 +182,15 @@ export function EmailEntryScreen() {
                   authStyles.formCard,
                   { marginBottom: DesignSystem.spacing.lg },
                   isTablet && {
-                    marginHorizontal: getResponsiveValue(16, 32, 40),
+                    marginHorizontal: getResponsiveValue(12, 22, 28),
                   },
                 ]}
-                style={authStyles.formContent}
+                style={[
+                  authStyles.formContent,
+                  tabletFormPadding !== undefined && {
+                    padding: tabletFormPadding,
+                  },
+                ]}
               >
                 <TextInput
                   label="Email Address"
@@ -187,7 +224,7 @@ export function EmailEntryScreen() {
               style={[
                 authStyles.buttonContainer,
                 isTablet && {
-                  marginHorizontal: getResponsiveValue(16, 32, 40),
+                  marginHorizontal: getResponsiveValue(12, 22, 28),
                 },
               ]}
             >

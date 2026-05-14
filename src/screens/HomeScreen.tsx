@@ -54,7 +54,7 @@ export function HomeScreen() {
         <View
           style={[
             styles.heroContent,
-            maxContentWidth && {
+            maxContentWidth !== undefined && {
               maxWidth: maxContentWidth,
               alignSelf: "center",
               width: "100%",

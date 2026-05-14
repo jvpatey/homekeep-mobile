@@ -62,7 +62,8 @@ export function EquipmentManualsModal({
   const { isConfigured } = useAuth();
   const { haloGradient } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
+    useDevice();
   const fontMultiplier = getFontMultiplier();
 
   const [mounted, setMounted] = useState(visible);
@@ -810,11 +811,7 @@ export function EquipmentManualsModal({
         <Animated.View
           style={[
             styles.sheetContainer,
-            isTablet && {
-              maxWidth: getResponsiveValue(500, 640, 720),
-              alignSelf: "center",
-              width: "100%",
-            },
+            getTabletSheetContainerStyle(),
             animatedSheetStyle,
           ]}
           pointerEvents="auto"

@@ -13,7 +13,7 @@ export function DashboardScreen() {
   const { colors, isDark } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const { tasks, upcomingTasks, completedTasks, completeTask, refreshTasks } =
+  const { upcomingTasks, overdueTasks, completedTasks, completeTask, refreshTasks } =
     useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -48,6 +48,7 @@ export function DashboardScreen() {
       >
         <Dashboard
           tasks={upcomingTasks}
+          overdueTasks={overdueTasks}
           completedTasks={completedTasks}
           onCompleteTask={handleCompleteTask}
           onTaskPress={handleTaskPress}

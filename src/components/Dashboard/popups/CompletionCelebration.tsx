@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -25,13 +25,11 @@ import { PopupPrimaryButton } from "./PopupPrimaryButton";
 interface CompletionCelebrationProps {
   isVisible: boolean;
   onClose: () => void;
-  streak?: number;
 }
 
 export function CompletionCelebration({
   isVisible,
   onClose,
-  streak = 0,
 }: CompletionCelebrationProps) {
   const { colors, isDark } = useTheme();
   const { haloGradient } = useGradients();
@@ -115,19 +113,15 @@ export function CompletionCelebration({
     opacity: contentOpacity.value,
   }));
 
-  const getAchievementMessage = () => {
-    if (streak >= 7) return "Week Warrior!";
-    if (streak >= 5) return "On Fire!";
-    if (streak >= 3) return "Streaking!";
-    if (streak >= 2) return "Building Momentum!";
-    return "Great Start!";
-  };
-
-  const getStreakMessage = () => {
-    if (streak === 0) return "Complete a task to start your streak!";
-    if (streak === 1) return "1 day streak - keep it going!";
-    return `${streak} day${streak !== 1 ? "s" : ""} in a row!`;
-  };
+  const achievementMessage = useMemo(() => {
+    const pool = [
+      "Nice work!",
+      "Task completed!",
+      "One less thing on your plate!",
+      "Keeping the home in shape!",
+    ];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
@@ -229,57 +223,13 @@ export function CompletionCelebration({
                     color: colors.text,
                     fontSize: isTablet ? 32 : 24,
                     marginBottom: isTablet
-                      ? DesignSystem.spacing.xl
-                      : DesignSystem.spacing.lg,
+                      ? DesignSystem.spacing.lg
+                      : DesignSystem.spacing.md,
                   },
                 ]}
               >
-                {getAchievementMessage()}
+                {achievementMessage}
               </Text>
-
-              <View
-                style={[
-                  styles.streakSection,
-                  {
-                    marginBottom: isTablet
-                      ? DesignSystem.spacing.xl
-                      : DesignSystem.spacing.lg,
-                    backgroundColor: hexWithAlpha(
-                      colors.primary,
-                      isDark ? 0.12 : 0.06
-                    ),
-                    borderWidth: DesignSystem.borders.hairline,
-                    borderColor: hexWithAlpha(
-                      colors.primary,
-                      isDark ? 0.28 : 0.16
-                    ),
-                    borderRadius: DesignSystem.borders.radius.large,
-                    padding: DesignSystem.spacing.md,
-                  },
-                ]}
-              >
-                <View style={styles.streakHeader}>
-                  <Ionicons
-                    name="flame"
-                    size={isTablet ? 32 : 24}
-                    color={colors.accent}
-                  />
-                  <Text
-                    style={[
-                      styles.streakTitle,
-                      {
-                        color: colors.text,
-                        fontSize: isTablet ? 24 : 18,
-                      },
-                    ]}
-                  >
-                    Your Streak
-                  </Text>
-                </View>
-                <Text style={[styles.streakMessage, { color: colors.textSecondary }]}>
-                  {getStreakMessage()}
-                </Text>
-              </View>
 
               <PopupPrimaryButton label="Continue" onPress={handleClose} />
             </Animated.View>
@@ -338,25 +288,6 @@ const styles = StyleSheet.create({
   },
   achievementMessage: {
     ...DesignSystem.typography.h2,
-    textAlign: "center",
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  streakSection: {
-    width: "100%",
-    alignItems: "center",
-  },
-  streakHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  streakTitle: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 18,
-  },
-  streakMessage: {
-    ...DesignSystem.typography.body,
     textAlign: "center",
   },
 });

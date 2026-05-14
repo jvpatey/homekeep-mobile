@@ -21,7 +21,7 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
-import { useGradients, useHaptics } from "../../../hooks";
+import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { GlassCard } from "../glass-card";
 import { SheetGrabber } from "../sheet-grabber";
@@ -63,6 +63,7 @@ export function SearchableSelectModal({
   const { colors, isDark } = useTheme();
   const { haloGradient } = useGradients();
   const { triggerLight } = useHaptics();
+  const { getTabletSheetContainerStyle } = useDevice();
 
   const [mounted, setMounted] = useState(visible);
   const [query, setQuery] = useState("");
@@ -141,7 +142,14 @@ export function SearchableSelectModal({
           onPress={handleClose}
           accessibilityLabel="Dismiss"
         />
-        <Animated.View style={[styles.sheetContainer, sheetStyle]} pointerEvents="auto">
+        <Animated.View
+          style={[
+            styles.sheetContainer,
+            getTabletSheetContainerStyle(),
+            sheetStyle,
+          ]}
+          pointerEvents="auto"
+        >
           <GlassCard
             material="thick"
             radius={DesignSystem.borders.radius.glass}

@@ -110,7 +110,8 @@ export function CreateTaskModal({
   const { colors, isDark } = useTheme();
   const { haloGradient } = useGradients();
   const insets = useSafeAreaInsets();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
+    useDevice();
   const { height: windowHeight } = useWindowDimensions();
   const sheetMaxHeight = windowHeight * 0.85;
   /** Grabber + title row + gradient padding; avoids flex-collapsed BlurView (hairline sheet bug). */
@@ -136,9 +137,6 @@ export function CreateTaskModal({
       formScrollRef.current?.scrollTo({ y: 0, animated: true });
     }, 50);
   }, []);
-  const sheetTabletMaxWidth = isTablet
-    ? getResponsiveValue(500, 640, 720)
-    : undefined;
 
   // Animation values (bottom sheet — aligned with ProfileMenu)
   const opacity = useSharedValue(0);
@@ -426,10 +424,7 @@ export function CreateTaskModal({
             pointerEvents="box-none"
             style={[
               styles.sheetContainer,
-              sheetTabletMaxWidth != null && {
-                maxWidth: sheetTabletMaxWidth,
-                alignSelf: "center",
-              },
+              getTabletSheetContainerStyle(),
               { maxHeight: sheetMaxHeight },
               sheetAnimatedStyle,
             ]}

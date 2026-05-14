@@ -42,7 +42,8 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
   const { deleteTask } = useTasks();
   const { haloGradient } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
+    useDevice();
   const fontMultiplier = getFontMultiplier();
   const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
   const [, setLoading] = useState(false);
@@ -377,11 +378,7 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
         <Animated.View
           style={[
             styles.sheetContainer,
-            isTablet && {
-              maxWidth: getResponsiveValue(500, 640, 720),
-              alignSelf: "center",
-              width: "100%",
-            },
+            getTabletSheetContainerStyle(),
             animatedSheetStyle,
           ]}
           pointerEvents="auto"

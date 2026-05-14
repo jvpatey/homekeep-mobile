@@ -14,7 +14,7 @@
 const SUGGEST_ENDPOINT = "https://api.mapbox.com/search/searchbox/v1/suggest";
 const RETRIEVE_ENDPOINT = "https://api.mapbox.com/search/searchbox/v1/retrieve";
 
-const TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? "";
+const TOKEN = (process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? "").trim();
 
 export const isMapboxConfigured = (): boolean => TOKEN.length > 0;
 

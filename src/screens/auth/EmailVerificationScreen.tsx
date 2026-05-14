@@ -34,12 +34,23 @@ export function EmailVerificationScreen() {
   // Shared hooks
   const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError } = useAuthHaptics();
-  const { isTablet, getMaxContentWidth, getFontMultiplier, getResponsiveValue, getHeroSectionHeight } =
-    useDevice();
+  const {
+    isTablet,
+    getMaxContentWidth,
+    getResponsiveValue,
+    getAuthHeroMinHeight,
+  } = useDevice();
+
+  const tabletHeroPadding = isTablet
+    ? getResponsiveValue(
+        DesignSystem.spacing.md,
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+      )
+    : undefined;
 
   const maxContentWidth = getMaxContentWidth();
-  const fontMultiplier = getFontMultiplier();
-  const heroSectionHeight = getHeroSectionHeight();
+  const authHeroMinHeight = getAuthHeroMinHeight();
   const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
     useScalePress();
 
@@ -344,9 +355,19 @@ export function EmailVerificationScreen() {
       <View
         style={[
           authStyles.heroSection,
-          { backgroundColor: colors.background, justifyContent: "center" },
-          heroSectionHeight !== undefined && {
-            minHeight: heroSectionHeight,
+          { backgroundColor: colors.background, justifyContent: "flex-start" },
+          authHeroMinHeight !== undefined && {
+            minHeight: authHeroMinHeight,
+          },
+          tabletHeroPadding !== undefined && {
+            paddingHorizontal: tabletHeroPadding,
+          },
+          isTablet && {
+            paddingBottom: getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.sm,
+              DesignSystem.spacing.sm,
+            ),
           },
         ]}
       >
@@ -362,7 +383,11 @@ export function EmailVerificationScreen() {
         <View style={[
           authStyles.headerContainer,
           authStyles.heroContent,
-          maxContentWidth && { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" },
+          maxContentWidth !== undefined && {
+            maxWidth: maxContentWidth,
+            alignSelf: "center",
+            width: "100%",
+          },
           { zIndex: 1 },
         ]}>
           <AuthTopHeader
@@ -373,15 +398,25 @@ export function EmailVerificationScreen() {
       </View>
 
       <View style={{ 
-        paddingTop: DesignSystem.spacing.lg, 
+        paddingTop: getResponsiveValue(
+          DesignSystem.spacing.lg,
+          DesignSystem.spacing.sm,
+          DesignSystem.spacing.xs,
+        ),
         flex: 1,
-        paddingHorizontal: DesignSystem.spacing.md,
+        paddingHorizontal: isTablet
+          ? getResponsiveValue(
+              DesignSystem.spacing.md,
+              DesignSystem.spacing.lg,
+              DesignSystem.spacing.xl,
+            )
+          : DesignSystem.spacing.md,
         alignItems: "center",
         width: "100%",
       }}>
         <View style={[
           { width: "100%" },
-          maxContentWidth && { maxWidth: maxContentWidth },
+          maxContentWidth !== undefined && { maxWidth: maxContentWidth },
           { paddingBottom: dynamicBottomSpacing },
         ]}>
         {/* Content */}

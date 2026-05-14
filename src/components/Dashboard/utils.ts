@@ -45,14 +45,23 @@ export const formatDueDate = (dateString: string): string => {
   }
 };
 
-// sortTasksByPriorityAndDate - Features sorting of tasks by priority and date
-export const sortTasksByPriorityAndDate = (tasks: MaintenanceTask[]) => {
+const startOfLocalDay = (dateString: string) => {
+  const d = new Date(dateString);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
+/** Due soon / schedule lists: calendar order first, then priority within the same day. */
+export const sortTasksByDateThenPriority = (tasks: MaintenanceTask[]) => {
   const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
   return [...tasks].sort((a, b) => {
-    const priorityDiff =
-      priorityOrder[b.priority as keyof typeof priorityOrder] -
-      priorityOrder[a.priority as keyof typeof priorityOrder];
-    if (priorityDiff !== 0) return priorityDiff;
+    const dayDiff = startOfLocalDay(a.due_date) - startOfLocalDay(b.due_date);
+    if (dayDiff !== 0) return dayDiff;
+
+    const pa = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 0;
+    const pb = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 0;
+    if (pb !== pa) return pb - pa;
+
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
   });
 };
@@ -128,68 +137,6 @@ export const getMotivationalMessage = (upcomingTasks: MaintenanceTask[]) => {
       }.`;
     }
   }
-};
-
-export const calculateConsecutiveStreak = (
-  completedTasks: MaintenanceTask[]
-) => {
-  if (completedTasks.length === 0) return 0;
-
-  // Sort completed tasks by completion date (newest first)
-  const sortedCompletions = completedTasks
-    .filter((task) => task.completed_at)
-    .sort(
-      (a, b) =>
-        new Date(b.completed_at!).getTime() -
-        new Date(a.completed_at!).getTime()
-    );
-
-  if (sortedCompletions.length === 0) return 0;
-
-  // Group completions by date to see unique days
-  const completionDays = new Set();
-  sortedCompletions.forEach((task) => {
-    const date = new Date(task.completed_at!);
-    date.setHours(0, 0, 0, 0);
-    completionDays.add(date.toDateString());
-  });
-
-  let streak = 0;
-  let currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0); // Start of today
-
-  // Check if we have a completion today
-  const todayCompletion = sortedCompletions.find((task) => {
-    const completionDate = new Date(task.completed_at!);
-    completionDate.setHours(0, 0, 0, 0);
-    return completionDate.getTime() === currentDate.getTime();
-  });
-
-  if (todayCompletion) {
-    streak = 1;
-
-    // Count consecutive days backwards from yesterday
-    for (let i = 1; i <= 365; i++) {
-      // Max 1 year streak
-      const checkDate = new Date();
-      checkDate.setHours(0, 0, 0, 0);
-      checkDate.setDate(checkDate.getDate() - i); // Go back i days from today
-
-      const hasCompletion = sortedCompletions.some((task) => {
-        const completionDate = new Date(task.completed_at!);
-        completionDate.setHours(0, 0, 0, 0);
-        return completionDate.getTime() === checkDate.getTime();
-      });
-
-      if (hasCompletion) {
-        streak++;
-      } else {
-        break; // Streak broken
-      }
-    }
-  }
-
-  return streak;
 };
 
 export const getDueSoonTasks = (tasks: MaintenanceTask[]) => {

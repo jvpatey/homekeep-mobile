@@ -1,9 +1,6 @@
 import { MaintenanceTask } from "../../types/maintenance";
 import { groupTasksByDate, formatDate } from "./timeline-view/utils";
-import {
-  getDueSoonTasks,
-  sortTasksByPriorityAndDate,
-} from "./utils";
+import { getDueSoonTasks, sortTasksByDateThenPriority } from "./utils";
 
 /** One row per routine: earliest upcoming instance only (matches former timeline load). */
 export function dedupeEarliestPerRoutine(
@@ -52,7 +49,7 @@ export function buildDashboardSections(
   scheduleTasks: MaintenanceTask[]
 ): DashboardScheduleSection[] {
   const sorted = dedupeEarliestPerRoutine(scheduleTasks);
-  const dueSoon = sortTasksByPriorityAndDate(getDueSoonTasks(sorted));
+  const dueSoon = sortTasksByDateThenPriority(getDueSoonTasks(sorted));
   const dueSoonIds = new Set(dueSoon.map((t) => t.instance_id));
 
   const rest = sorted.filter((t) => !dueSoonIds.has(t.instance_id));

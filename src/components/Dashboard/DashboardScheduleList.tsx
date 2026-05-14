@@ -59,7 +59,13 @@ export function DashboardScheduleList({
             {
               backgroundColor: colors.background,
               paddingHorizontal: DesignSystem.spacing.md,
-              paddingTop: DesignSystem.spacing.md,
+              paddingTop: isTablet
+                ? getResponsiveValue(
+                    DesignSystem.spacing.md,
+                    DesignSystem.spacing.sm,
+                    DesignSystem.spacing.sm,
+                  )
+                : DesignSystem.spacing.md,
               paddingBottom: DesignSystem.spacing.sm,
             },
             isTablet && {

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
@@ -12,7 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
 import { useAuth } from "../../context/AuthContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
-import { StreakPopup, DueSoonPopup, CompletionCelebration } from "./popups";
+import { DueSoonPopup, OverduePopup, CompletionCelebration } from "./popups";
 import { NotificationPermissionRequest } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
@@ -24,8 +30,8 @@ import { DesignSystem } from "../../theme/designSystem";
 import {
   getGreeting,
   getUserName,
-  calculateConsecutiveStreak,
   getDueSoonTasks,
+  sortTasksByDateThenPriority,
 } from "./utils";
 import { dashboardStyles } from "./styles";
 import { buildDashboardSections } from "./dashboardSections";
@@ -34,6 +40,7 @@ import { DashboardQuickActions } from "./DashboardQuickActions";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
+  overdueTasks?: MaintenanceTask[];
   completedTasks?: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
@@ -48,6 +55,7 @@ const DASHBOARD_HEADER_ENTRANCE_KEY =
 
 export function NewDashboard({
   tasks,
+  overdueTasks = [],
   completedTasks = [],
   onCompleteTask,
   onTaskPress,
@@ -68,12 +76,12 @@ export function NewDashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTaskInitial, setEditTaskInitial] =
     useState<MaintenanceTask | null>(null);
-  const [showStreakPopup, setShowStreakPopup] = useState(false);
+  const [showOverduePopup, setShowOverduePopup] = useState(false);
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
-  const [streak, setStreak] = useState(0);
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
   const [scheduleTasks, setScheduleTasks] = useState<MaintenanceTask[]>([]);
+  const scheduleFetchGeneration = useRef(0);
 
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(14);
@@ -127,27 +135,38 @@ export function NewDashboard({
   }));
 
   const loadScheduleTasks = useCallback(async () => {
+    const generation = ++scheduleFetchGeneration.current;
     try {
       const { data, error } = await MaintenanceService.getUpcomingTasks("all");
       if (error) throw error;
+      if (generation !== scheduleFetchGeneration.current) return;
       setScheduleTasks((data || []) as MaintenanceTask[]);
     } catch (err) {
       console.error("Error loading schedule tasks:", err);
-      setScheduleTasks([]);
+      if (generation !== scheduleFetchGeneration.current) return;
+      // Keep last successful schedule so a failed refetch does not blank the dashboard
     }
   }, []);
 
   const upcomingTasks = tasks;
 
-  const dueSoonTasks = useMemo(() => {
-    const source =
-      scheduleTasks.length > 0 ? scheduleTasks : upcomingTasks;
-    return getDueSoonTasks(source);
-  }, [scheduleTasks, upcomingTasks]);
+  /** Prefer full-window fetch; fall back to context upcoming list (matches Due soon popup). */
+  const scheduleListSource = useMemo(
+    () =>
+      scheduleTasks.length > 0 ? scheduleTasks : upcomingTasks,
+    [scheduleTasks, upcomingTasks]
+  );
 
-  useEffect(() => {
-    setStreak(calculateConsecutiveStreak(completedTasks));
-  }, [completedTasks]);
+  const dueSoonTasks = useMemo(
+    () =>
+      sortTasksByDateThenPriority(getDueSoonTasks(scheduleListSource)),
+    [scheduleListSource]
+  );
+
+  const overdueSorted = useMemo(
+    () => sortTasksByDateThenPriority(overdueTasks),
+    [overdueTasks]
+  );
 
   useEffect(() => {
     loadScheduleTasks();
@@ -165,8 +184,8 @@ export function NewDashboard({
   }, [addressNeeded]);
 
   const sections = useMemo(
-    () => buildDashboardSections(scheduleTasks),
-    [scheduleTasks]
+    () => buildDashboardSections(scheduleListSource),
+    [scheduleListSource]
   );
 
   const handleCompleteTask = async (instanceId: string) => {
@@ -180,7 +199,20 @@ export function NewDashboard({
 
   const handleTaskPress = (instanceId: string) => {
     const task =
-      scheduleTasks.find((t) => t.instance_id === instanceId) ??
+      scheduleListSource.find((t) => t.instance_id === instanceId) ??
+      tasks.find((t) => t.instance_id === instanceId) ??
+      overdueTasks.find((t) => t.instance_id === instanceId);
+    if (task) {
+      setSelectedTask(task);
+      setShowTaskDetail(true);
+    }
+  };
+
+  const handleOverduePopupTaskPress = (instanceId: string) => {
+    setShowOverduePopup(false);
+    const task =
+      overdueTasks.find((t) => t.instance_id === instanceId) ??
+      scheduleListSource.find((t) => t.instance_id === instanceId) ??
       tasks.find((t) => t.instance_id === instanceId);
     if (task) {
       setSelectedTask(task);
@@ -215,10 +247,10 @@ export function NewDashboard({
         greeting={getGreeting()}
         dueSoonCount={dueSoonTasks.length}
         completedCount={completedTasks.length}
-        streak={streak}
+        overdueCount={overdueTasks.length}
         onRefresh={onRefresh}
         onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
-        onShowStreakPopup={() => setShowStreakPopup(true)}
+        onShowOverduePopup={() => setShowOverduePopup(true)}
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowAddressModal(true)}
       />
@@ -306,13 +338,13 @@ export function NewDashboard({
       <CompletionCelebration
         isVisible={showCelebration}
         onClose={handleCloseCelebration}
-        streak={streak}
       />
 
-      {showStreakPopup && (
-        <StreakPopup
-          streak={streak}
-          onClose={() => setShowStreakPopup(false)}
+      {showOverduePopup && (
+        <OverduePopup
+          tasks={overdueSorted}
+          onClose={() => setShowOverduePopup(false)}
+          onTaskPress={handleOverduePopupTaskPress}
         />
       )}
 

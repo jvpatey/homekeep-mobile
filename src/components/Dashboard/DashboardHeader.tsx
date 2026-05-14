@@ -32,10 +32,10 @@ interface DashboardHeaderProps {
   greeting: string;
   dueSoonCount: number;
   completedCount: number;
-  streak: number;
+  overdueCount: number;
   onRefresh?: () => void;
   onShowDueSoonPopup: () => void;
-  onShowStreakPopup: () => void;
+  onShowOverduePopup: () => void;
   onOpenEquipmentManuals?: () => void;
   onOpenAddressEditor: () => void;
 }
@@ -47,10 +47,10 @@ export function DashboardHeader({
   greeting,
   dueSoonCount,
   completedCount,
-  streak,
+  overdueCount,
   onRefresh,
   onShowDueSoonPopup,
-  onShowStreakPopup,
+  onShowOverduePopup,
   onOpenEquipmentManuals,
   onOpenAddressEditor,
 }: DashboardHeaderProps) {
@@ -72,6 +72,13 @@ export function DashboardHeader({
       ? 1.65
       : 1.5
     : 1;
+
+  /** Same vertical rhythm between stats card, tile row, and quick actions (iPad was uneven / tight). */
+  const summaryStackGapV = getResponsiveValue(
+    DesignSystem.spacing.sm,
+    DesignSystem.spacing.md,
+    DesignSystem.spacing.lg,
+  );
 
   // Spring animations for greeting, username, and profile icon
   const greetOpacity = useSharedValue(0);
@@ -325,7 +332,22 @@ export function DashboardHeader({
           ]}
         >
           <Animated.View
-            style={[headerStyles.headerTopBar, profileAnimatedStyle]}
+            style={[
+              headerStyles.headerTopBar,
+              profileAnimatedStyle,
+              isTablet && {
+                left: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl,
+                ),
+                right: getResponsiveValue(
+                  DesignSystem.spacing.md,
+                  DesignSystem.spacing.lg,
+                  DesignSystem.spacing.xl,
+                ),
+              },
+            ]}
           >
             <Image
               source={require("../../../assets/images/homekeep-logo.png")}
@@ -371,7 +393,18 @@ export function DashboardHeader({
           </Animated.View>
 
           <View style={headerStyles.headerContent}>
-            <View style={headerStyles.greetingContainer}>
+            <View
+              style={[
+                headerStyles.greetingContainer,
+                isTablet && {
+                  marginBottom: getResponsiveValue(
+                    DesignSystem.spacing.md,
+                    DesignSystem.spacing.sm,
+                    DesignSystem.spacing.sm,
+                  ),
+                },
+              ]}
+            >
               <Animated.Text
                 style={[
                   headerStyles.greeting,
@@ -471,11 +504,16 @@ export function DashboardHeader({
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: DesignSystem.spacing.sm,
-                    /** Top (not bottom) because the parent uses
-                     * flexDirection: column-reverse — this row sits below
-                     * the stats card visually. */
-                    marginTop: DesignSystem.spacing.sm,
+                    alignItems: "stretch",
+                    gap: isTablet
+                      ? getResponsiveValue(
+                          DesignSystem.spacing.sm,
+                          DesignSystem.spacing.md,
+                          DesignSystem.spacing.md,
+                        )
+                      : DesignSystem.spacing.sm,
+                    marginTop: summaryStackGapV,
+                    marginBottom: summaryStackGapV,
                     width: "100%",
                   }}
                 >
@@ -656,13 +694,18 @@ export function DashboardHeader({
                         ),
                       },
                     ]}
-                    onPress={onShowStreakPopup}
+                    onPress={onShowOverduePopup}
                     activeOpacity={0.7}
                   >
                     <Text
                       style={[
                         headerStyles.statNumber,
-                        { color: colors.accent },
+                        {
+                          color:
+                            overdueCount > 0
+                              ? colors.error
+                              : colors.success,
+                        },
                         isTablet && {
                           fontSize:
                             headerStyles.statNumber.fontSize *
@@ -674,7 +717,7 @@ export function DashboardHeader({
                         },
                       ]}
                     >
-                      {streak}
+                      {overdueCount}
                     </Text>
                     <Text
                       style={[
@@ -695,7 +738,7 @@ export function DashboardHeader({
                         },
                       ]}
                     >
-                      Day Streak
+                      Overdue
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
