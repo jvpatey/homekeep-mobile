@@ -32,10 +32,10 @@ interface DashboardHeaderProps {
   greeting: string;
   dueSoonCount: number;
   completedCount: number;
-  streak: number;
+  overdueCount: number;
   onRefresh?: () => void;
   onShowDueSoonPopup: () => void;
-  onShowStreakPopup: () => void;
+  onShowOverduePopup: () => void;
   onOpenEquipmentManuals?: () => void;
   onOpenAddressEditor: () => void;
 }
@@ -47,10 +47,10 @@ export function DashboardHeader({
   greeting,
   dueSoonCount,
   completedCount,
-  streak,
+  overdueCount,
   onRefresh,
   onShowDueSoonPopup,
-  onShowStreakPopup,
+  onShowOverduePopup,
   onOpenEquipmentManuals,
   onOpenAddressEditor,
 }: DashboardHeaderProps) {
@@ -656,13 +656,18 @@ export function DashboardHeader({
                         ),
                       },
                     ]}
-                    onPress={onShowStreakPopup}
+                    onPress={onShowOverduePopup}
                     activeOpacity={0.7}
                   >
                     <Text
                       style={[
                         headerStyles.statNumber,
-                        { color: colors.accent },
+                        {
+                          color:
+                            overdueCount > 0
+                              ? colors.error
+                              : colors.success,
+                        },
                         isTablet && {
                           fontSize:
                             headerStyles.statNumber.fontSize *
@@ -674,7 +679,7 @@ export function DashboardHeader({
                         },
                       ]}
                     >
-                      {streak}
+                      {overdueCount}
                     </Text>
                     <Text
                       style={[
@@ -695,7 +700,7 @@ export function DashboardHeader({
                         },
                       ]}
                     >
-                      Day Streak
+                      Overdue
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>

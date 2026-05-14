@@ -18,7 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
 import { useAuth } from "../../context/AuthContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
-import { StreakPopup, DueSoonPopup, CompletionCelebration } from "./popups";
+import { DueSoonPopup, OverduePopup, CompletionCelebration } from "./popups";
 import { NotificationPermissionRequest } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
@@ -30,7 +30,6 @@ import { DesignSystem } from "../../theme/designSystem";
 import {
   getGreeting,
   getUserName,
-  calculateConsecutiveStreak,
   getDueSoonTasks,
   sortTasksByDateThenPriority,
 } from "./utils";
@@ -41,6 +40,7 @@ import { DashboardQuickActions } from "./DashboardQuickActions";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
+  overdueTasks?: MaintenanceTask[];
   completedTasks?: MaintenanceTask[];
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
@@ -55,6 +55,7 @@ const DASHBOARD_HEADER_ENTRANCE_KEY =
 
 export function NewDashboard({
   tasks,
+  overdueTasks = [],
   completedTasks = [],
   onCompleteTask,
   onTaskPress,
@@ -75,9 +76,8 @@ export function NewDashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTaskInitial, setEditTaskInitial] =
     useState<MaintenanceTask | null>(null);
-  const [showStreakPopup, setShowStreakPopup] = useState(false);
+  const [showOverduePopup, setShowOverduePopup] = useState(false);
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
-  const [streak, setStreak] = useState(0);
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
   const [scheduleTasks, setScheduleTasks] = useState<MaintenanceTask[]>([]);
@@ -163,9 +163,10 @@ export function NewDashboard({
     [scheduleListSource]
   );
 
-  useEffect(() => {
-    setStreak(calculateConsecutiveStreak(completedTasks));
-  }, [completedTasks]);
+  const overdueSorted = useMemo(
+    () => sortTasksByDateThenPriority(overdueTasks),
+    [overdueTasks]
+  );
 
   useEffect(() => {
     loadScheduleTasks();
@@ -198,6 +199,19 @@ export function NewDashboard({
 
   const handleTaskPress = (instanceId: string) => {
     const task =
+      scheduleListSource.find((t) => t.instance_id === instanceId) ??
+      tasks.find((t) => t.instance_id === instanceId) ??
+      overdueTasks.find((t) => t.instance_id === instanceId);
+    if (task) {
+      setSelectedTask(task);
+      setShowTaskDetail(true);
+    }
+  };
+
+  const handleOverduePopupTaskPress = (instanceId: string) => {
+    setShowOverduePopup(false);
+    const task =
+      overdueTasks.find((t) => t.instance_id === instanceId) ??
       scheduleListSource.find((t) => t.instance_id === instanceId) ??
       tasks.find((t) => t.instance_id === instanceId);
     if (task) {
@@ -233,10 +247,10 @@ export function NewDashboard({
         greeting={getGreeting()}
         dueSoonCount={dueSoonTasks.length}
         completedCount={completedTasks.length}
-        streak={streak}
+        overdueCount={overdueTasks.length}
         onRefresh={onRefresh}
         onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
-        onShowStreakPopup={() => setShowStreakPopup(true)}
+        onShowOverduePopup={() => setShowOverduePopup(true)}
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowAddressModal(true)}
       />
@@ -324,13 +338,13 @@ export function NewDashboard({
       <CompletionCelebration
         isVisible={showCelebration}
         onClose={handleCloseCelebration}
-        streak={streak}
       />
 
-      {showStreakPopup && (
-        <StreakPopup
-          streak={streak}
-          onClose={() => setShowStreakPopup(false)}
+      {showOverduePopup && (
+        <OverduePopup
+          tasks={overdueSorted}
+          onClose={() => setShowOverduePopup(false)}
+          onTaskPress={handleOverduePopupTaskPress}
         />
       )}
 
