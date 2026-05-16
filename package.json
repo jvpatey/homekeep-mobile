@@ -9,7 +9,6 @@
     "web": "expo start --web",
     "build:ios": "expo build:ios",
     "submit:ios": "expo submit --platform ios",
-    "supabase": "supabase",
     "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications"
   },
   "dependencies": {
