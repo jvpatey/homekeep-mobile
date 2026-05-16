@@ -248,7 +248,7 @@ The app uses Supabase with the following main tables:
 - **routine_instances** - Individual task instances
 - **user_preferences** - User settings and preferences
 - **notification_preferences** - Notification preferences by category
-- **equipment_manuals** - Metadata for uploaded equipment manual PDFs (files live in Supabase Storage)
+- **equipment_manuals** - Equipment metadata plus optional manual and purchase receipt files (`manual_*` and `receipt_*` storage paths; files live in the `equipment-manuals` Supabase Storage bucket)
 
 ## 🎯 Key Features in Detail
 

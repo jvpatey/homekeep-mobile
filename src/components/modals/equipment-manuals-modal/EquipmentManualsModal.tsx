@@ -83,6 +83,16 @@ export function EquipmentManualsModal({
   const [pendingMime, setPendingMime] = useState<string | null>(null);
   const [pendingFileName, setPendingFileName] = useState<string | null>(null);
 
+  const [pendingReceiptUri, setPendingReceiptUri] = useState<string | null>(
+    null
+  );
+  const [pendingReceiptMime, setPendingReceiptMime] = useState<string | null>(
+    null
+  );
+  const [pendingReceiptFileName, setPendingReceiptFileName] = useState<
+    string | null
+  >(null);
+
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(screenHeight);
 
@@ -152,6 +162,9 @@ export function EquipmentManualsModal({
     setPendingUri(null);
     setPendingMime(null);
     setPendingFileName(null);
+    setPendingReceiptUri(null);
+    setPendingReceiptMime(null);
+    setPendingReceiptFileName(null);
   };
 
   const animatedBackdropStyle = useAnimatedStyle(() => ({
@@ -186,10 +199,32 @@ export function EquipmentManualsModal({
     setPendingUri(null);
     setPendingMime(null);
     setPendingFileName(null);
+    setPendingReceiptUri(null);
+    setPendingReceiptMime(null);
+    setPendingReceiptFileName(null);
     setScreenMode("form");
   };
 
-  const pickDocument = async () => {
+  type AttachmentTarget = "manual" | "receipt";
+
+  const setPendingAttachment = (
+    target: AttachmentTarget,
+    uri: string,
+    mime: string,
+    fileName: string
+  ) => {
+    if (target === "manual") {
+      setPendingUri(uri);
+      setPendingMime(mime);
+      setPendingFileName(fileName);
+      return;
+    }
+    setPendingReceiptUri(uri);
+    setPendingReceiptMime(mime);
+    setPendingReceiptFileName(fileName);
+  };
+
+  const pickDocument = async (target: AttachmentTarget = "manual") => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
@@ -197,16 +232,19 @@ export function EquipmentManualsModal({
       });
       if (result.canceled) return;
       const asset = result.assets[0];
-      setPendingUri(asset.uri);
-      setPendingMime(asset.mimeType ?? "application/octet-stream");
-      setPendingFileName(asset.name ?? "manual");
+      setPendingAttachment(
+        target,
+        asset.uri,
+        asset.mimeType ?? "application/octet-stream",
+        asset.name ?? (target === "receipt" ? "receipt" : "manual")
+      );
     } catch (e) {
       console.error(e);
       Alert.alert("Picker error", "Could not open the file picker.");
     }
   };
 
-  const pickImageLibrary = async () => {
+  const pickImageLibrary = async (target: AttachmentTarget = "manual") => {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
@@ -222,16 +260,20 @@ export function EquipmentManualsModal({
       });
       if (result.canceled) return;
       const asset = result.assets[0];
-      setPendingUri(asset.uri);
-      setPendingMime(asset.mimeType ?? "image/jpeg");
-      setPendingFileName(asset.fileName ?? `manual-${Date.now()}.jpg`);
+      const prefix = target === "receipt" ? "receipt" : "manual";
+      setPendingAttachment(
+        target,
+        asset.uri,
+        asset.mimeType ?? "image/jpeg",
+        asset.fileName ?? `${prefix}-${Date.now()}.jpg`
+      );
     } catch (e) {
       console.error(e);
       Alert.alert("Photos", "Could not open your photo library.");
     }
   };
 
-  const pickCamera = async () => {
+  const pickCamera = async (target: AttachmentTarget = "manual") => {
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
@@ -244,20 +286,29 @@ export function EquipmentManualsModal({
       const result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
       if (result.canceled) return;
       const asset = result.assets[0];
-      setPendingUri(asset.uri);
-      setPendingMime(asset.mimeType ?? "image/jpeg");
-      setPendingFileName(asset.fileName ?? `manual-${Date.now()}.jpg`);
+      const prefix = target === "receipt" ? "receipt" : "manual";
+      setPendingAttachment(
+        target,
+        asset.uri,
+        asset.mimeType ?? "image/jpeg",
+        asset.fileName ?? `${prefix}-${Date.now()}.jpg`
+      );
     } catch (e) {
       console.error(e);
       Alert.alert("Camera", "Could not open the camera.");
     }
   };
 
-  const promptAttach = () => {
-    Alert.alert("Attach manual", "PDF or photo", [
-      { text: "Choose file", onPress: pickDocument },
-      { text: "Photo library", onPress: pickImageLibrary },
-      { text: "Take photo", onPress: pickCamera },
+  const promptAttach = (target: AttachmentTarget) => {
+    const title =
+      target === "receipt" ? "Attach receipt" : "Attach manual";
+    Alert.alert(title, "PDF or photo", [
+      { text: "Choose file", onPress: () => void pickDocument(target) },
+      {
+        text: "Photo library",
+        onPress: () => void pickImageLibrary(target),
+      },
+      { text: "Take photo", onPress: () => void pickCamera(target) },
       { text: "Cancel", style: "cancel" },
     ]);
   };
@@ -285,16 +336,27 @@ export function EquipmentManualsModal({
     setShowPurchasePicker(false);
   };
 
-  const handleViewManual = async (row: EquipmentManual) => {
-    if (!row.manual_storage_path) return;
+  const openStorageFile = async (
+    storagePath: string | null | undefined,
+    failureTitle: string
+  ) => {
+    if (!storagePath) return;
     await triggerLight();
     const { data: url, error } =
-      await EquipmentManualService.getManualSignedUrl(row.manual_storage_path);
+      await EquipmentManualService.getManualSignedUrl(storagePath);
     if (error || !url) {
-      Alert.alert("Could not open manual", error?.message ?? "Try again.");
+      Alert.alert(failureTitle, error?.message ?? "Try again.");
       return;
     }
     await WebBrowser.openBrowserAsync(url);
+  };
+
+  const handleViewManual = async (row: EquipmentManual) => {
+    await openStorageFile(row.manual_storage_path, "Could not open manual");
+  };
+
+  const handleViewReceipt = async (row: EquipmentManual) => {
+    await openStorageFile(row.receipt_storage_path, "Could not open receipt");
   };
 
   const handleRemoveStoredManual = async () => {
@@ -335,6 +397,62 @@ export function EquipmentManualsModal({
                       ...prev,
                       manual_storage_path: null,
                       manual_mime_type: null,
+                    }
+                  : null
+              );
+              await loadItems();
+            } catch (e) {
+              Alert.alert(
+                "Remove failed",
+                e instanceof Error ? e.message : "Try again."
+              );
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveStoredReceipt = async () => {
+    if (!editing?.receipt_storage_path) return;
+    await triggerMedium();
+    Alert.alert(
+      "Remove receipt",
+      "Delete the saved receipt file from HomeKeep?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setSaving(true);
+            try {
+              const { error: storageErr } =
+                await EquipmentManualService.deleteStorageObject(
+                  editing.receipt_storage_path!
+                );
+              if (storageErr) {
+                throw new Error(
+                  storageErr.message ||
+                    "Could not delete the receipt file from storage."
+                );
+              }
+              const { error } = await EquipmentManualService.updateEquipmentManual(
+                editing.id,
+                {
+                  receipt_storage_path: null,
+                  receipt_mime_type: null,
+                }
+              );
+              if (error) throw new Error(error.message);
+              setEditing((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      receipt_storage_path: null,
+                      receipt_mime_type: null,
                     }
                   : null
               );
@@ -417,6 +535,41 @@ export function EquipmentManualsModal({
         if (linkErr) throw new Error(linkErr.message);
       }
 
+      if (
+        pendingReceiptUri &&
+        pendingReceiptMime &&
+        pendingReceiptFileName &&
+        equipmentId
+      ) {
+        const priorReceiptPath = editing?.receipt_storage_path;
+        if (priorReceiptPath) {
+          const { error: priorDelErr } =
+            await EquipmentManualService.deleteStorageObject(priorReceiptPath);
+          if (priorDelErr) {
+            throw new Error(
+              priorDelErr.message ||
+                "Could not remove the previous receipt file from storage."
+            );
+          }
+        }
+        const { path: receiptPath, error: receiptUpErr } =
+          await EquipmentManualService.uploadReceiptFromUri(
+            equipmentId,
+            pendingReceiptUri,
+            pendingReceiptMime,
+            pendingReceiptFileName
+          );
+        if (receiptUpErr || !receiptPath) {
+          throw new Error(receiptUpErr?.message ?? "Receipt upload failed.");
+        }
+        const { error: receiptLinkErr } =
+          await EquipmentManualService.updateEquipmentManual(equipmentId, {
+            receipt_storage_path: receiptPath,
+            receipt_mime_type: pendingReceiptMime,
+          });
+        if (receiptLinkErr) throw new Error(receiptLinkErr.message);
+      }
+
       await loadItems();
       await triggerLight();
       setScreenMode("list");
@@ -437,7 +590,7 @@ export function EquipmentManualsModal({
     await triggerMedium();
     Alert.alert(
       "Delete equipment",
-      `Remove “${item.name}” and any saved manual?`,
+      `Remove “${item.name}” and any saved manual or receipt?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -568,10 +721,50 @@ export function EquipmentManualsModal({
             >
               {item.manual_storage_path ? "Manual attached" : "No manual yet"}
             </Text>
+            <Text
+              style={[
+                styles.equipmentMeta,
+                {
+                  color: item.receipt_storage_path
+                    ? colors.primary
+                    : colors.textSecondary,
+                },
+                isTablet && {
+                  fontSize:
+                    (styles.equipmentMeta.fontSize || 14) * fontMultiplier,
+                },
+              ]}
+            >
+              {item.receipt_storage_path
+                ? "Receipt attached"
+                : "No receipt yet"}
+            </Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.equipmentRowActions}>
+          {item.receipt_storage_path ? (
+            <TouchableOpacity
+              style={[
+                styles.viewManualButton,
+                {
+                  backgroundColor: colors.primary + "18",
+                  width: actionSize,
+                  height: actionSize,
+                  borderRadius: actionRadius,
+                },
+              ]}
+              onPress={() => handleViewReceipt(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`View receipt for ${item.name}`}
+            >
+              <Ionicons
+                name="receipt-outline"
+                size={iconHit}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          ) : null}
           {item.manual_storage_path ? (
             <TouchableOpacity
               style={[
@@ -756,7 +949,7 @@ export function EquipmentManualsModal({
                   backgroundColor: colors.primary + "12",
                 },
               ]}
-              onPress={promptAttach}
+              onPress={() => promptAttach("manual")}
             >
               <Text style={{ color: colors.primary, fontWeight: "600" }}>
                 {pendingUri || editing?.manual_storage_path
@@ -778,6 +971,74 @@ export function EquipmentManualsModal({
               <TouchableOpacity
                 style={[styles.textButton, { borderColor: colors.error + "40" }]}
                 onPress={handleRemoveStoredManual}
+              >
+                <Text style={{ color: colors.error, fontWeight: "600" }}>
+                  Remove file
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+
+        <Text
+          style={[
+            styles.sectionLabel,
+            { color: colors.textSecondary },
+            isTablet && { fontSize: 13 * fontMultiplier },
+          ]}
+        >
+          Purchase receipt (optional)
+        </Text>
+        <View
+          style={[
+            styles.attachCard,
+            {
+              backgroundColor: formControlFill(isDark),
+              borderColor: colors.glassStroke,
+            },
+          ]}
+        >
+          <Text style={{ color: colors.text, fontWeight: "600" }}>
+            {pendingReceiptFileName
+              ? `Ready to upload: ${pendingReceiptFileName}`
+              : editing?.receipt_storage_path
+                ? "Receipt saved"
+                : "No file selected"}
+          </Text>
+          <Text style={[styles.attachHint, { color: colors.textSecondary }]}>
+            Store your receipt as a PDF or photo for warranty and returns.
+          </Text>
+          <View style={styles.rowButtons}>
+            <TouchableOpacity
+              style={[
+                styles.textButton,
+                {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primary + "12",
+                },
+              ]}
+              onPress={() => promptAttach("receipt")}
+            >
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                {pendingReceiptUri || editing?.receipt_storage_path
+                  ? "Replace"
+                  : "Attach"}
+              </Text>
+            </TouchableOpacity>
+            {editing?.receipt_storage_path ? (
+              <TouchableOpacity
+                style={[styles.textButton, { borderColor: colors.glassStroke }]}
+                onPress={() => handleViewReceipt(editing)}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                  View
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            {editing?.receipt_storage_path ? (
+              <TouchableOpacity
+                style={[styles.textButton, { borderColor: colors.error + "40" }]}
+                onPress={handleRemoveStoredReceipt}
               >
                 <Text style={{ color: colors.error, fontWeight: "600" }}>
                   Remove file

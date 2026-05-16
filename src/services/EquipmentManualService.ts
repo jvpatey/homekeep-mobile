@@ -39,6 +39,49 @@ export class EquipmentManualService {
     return `${userId}/${equipmentId}/${safe}`;
   }
 
+  static buildReceiptObjectPath(
+    userId: string,
+    equipmentId: string,
+    fileName: string
+  ): string {
+    const safe = sanitizeFileName(fileName);
+    return `${userId}/${equipmentId}/receipts/${safe}`;
+  }
+
+  private static async uploadFromUri(
+    objectPath: string,
+    localUri: string,
+    mimeType: string
+  ): Promise<{ path: string | null; error: { message: string } | null }> {
+    if (!supabase) {
+      return { path: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const buffer = await readUriAsArrayBuffer(localUri);
+
+      const { error: uploadError } = await supabase.storage
+        .from(EQUIPMENT_MANUALS_BUCKET)
+        .upload(objectPath, buffer, {
+          contentType: mimeType || "application/octet-stream",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      return { path: objectPath, error: null };
+    } catch (error) {
+      console.error("Error uploading equipment file:", error);
+      return {
+        path: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown upload error",
+        },
+      };
+    }
+  }
+
   static async listEquipmentManuals(): Promise<EquipmentManualsResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -162,6 +205,12 @@ export class EquipmentManualService {
       if (payload.manual_mime_type !== undefined) {
         updates.manual_mime_type = payload.manual_mime_type;
       }
+      if (payload.receipt_storage_path !== undefined) {
+        updates.receipt_storage_path = payload.receipt_storage_path;
+      }
+      if (payload.receipt_mime_type !== undefined) {
+        updates.receipt_mime_type = payload.receipt_mime_type;
+      }
 
       const { data, error } = await supabase
         .from("equipment_manuals")
@@ -225,20 +274,48 @@ export class EquipmentManualService {
         suggestedFileName
       );
 
-      const buffer = await readUriAsArrayBuffer(localUri);
-
-      const { error: uploadError } = await supabase.storage
-        .from(EQUIPMENT_MANUALS_BUCKET)
-        .upload(objectPath, buffer, {
-          contentType: mimeType || "application/octet-stream",
-          upsert: true,
-        });
-
-      if (uploadError) throw uploadError;
-
-      return { path: objectPath, error: null };
+      return this.uploadFromUri(objectPath, localUri, mimeType);
     } catch (error) {
       console.error("Error uploading manual:", error);
+      return {
+        path: null,
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown upload error",
+        },
+      };
+    }
+  }
+
+  static async uploadReceiptFromUri(
+    equipmentId: string,
+    localUri: string,
+    mimeType: string,
+    suggestedFileName: string
+  ): Promise<{ path: string | null; error: { message: string } | null }> {
+    if (!supabase) {
+      return { path: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error("User not authenticated");
+      }
+
+      const objectPath = this.buildReceiptObjectPath(
+        user.id,
+        equipmentId,
+        suggestedFileName
+      );
+
+      return this.uploadFromUri(objectPath, localUri, mimeType);
+    } catch (error) {
+      console.error("Error uploading receipt:", error);
       return {
         path: null,
         error: {
@@ -339,6 +416,15 @@ export class EquipmentManualService {
         );
         if (storageErr) {
           console.warn("Storage delete warning:", storageErr);
+        }
+      }
+
+      if (row.receipt_storage_path) {
+        const { error: storageErr } = await this.deleteStorageObject(
+          row.receipt_storage_path
+        );
+        if (storageErr) {
+          console.warn("Receipt storage delete warning:", storageErr);
         }
       }
 
