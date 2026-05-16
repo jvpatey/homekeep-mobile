@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Linking,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,6 +34,7 @@ export function NotificationPreferencesScreen({
     updateNotificationPreferences,
     updateGlobalNotificationSettings,
     permissionStatus,
+    syncPushToken,
   } = useNotifications();
   const { triggerLight } = useHaptics();
   const [expandedType, setExpandedType] = useState<string | null>(null);
@@ -63,24 +65,19 @@ export function NotificationPreferencesScreen({
     setExpandedType(expandedType === type ? null : type);
   };
 
-  // requestPermissions for the requestPermissions on the home screen
-  const requestPermissions = async () => {
-    if (!permissionStatus.granted && permissionStatus.canAskAgain) {
-      Alert.alert(
-        "Enable Notifications",
-        "To receive task reminders, please enable notifications in your device settings.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Settings", onPress: () => navigation.navigate("Settings") },
-        ]
-      );
-    } else if (!permissionStatus.granted) {
-      Alert.alert(
-        "Notifications Disabled",
-        "Notifications are disabled. Please enable them in your device settings to receive task reminders.",
-        [{ text: "OK" }]
-      );
+  const handleEnablePermissions = async () => {
+    await triggerLight();
+    if (permissionStatus.canAskAgain) {
+      const registered = await syncPushToken();
+      if (!registered) {
+        Alert.alert(
+          "Notifications Not Enabled",
+          "Allow notifications when prompted to receive task reminders."
+        );
+      }
+      return;
     }
+    await Linking.openSettings();
   };
 
   // renderNotificationTypeSection for the renderNotificationTypeSection on the home screen
@@ -358,7 +355,7 @@ export function NotificationPreferencesScreen({
                   notificationPreferencesStyles.permissionButton,
                   { backgroundColor: colors.error },
                 ]}
-                onPress={requestPermissions}
+                onPress={handleEnablePermissions}
               >
                 <Text
                   style={notificationPreferencesStyles.permissionButtonText}

@@ -9,6 +9,7 @@ import {
   Pressable,
   Dimensions,
   Alert,
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -51,6 +52,8 @@ export function NotificationSettingsModal({
     updateNotificationPreferences,
     updateGlobalNotificationSettings,
     permissionStatus,
+    syncPushToken,
+    pushTokenError,
   } = useNotifications();
   const { haloGradient } = useGradients();
   const { triggerLight } = useHaptics();
@@ -124,20 +127,19 @@ export function NotificationSettingsModal({
     setExpandedType(expandedType === type ? null : type);
   };
 
-  const requestPermissions = async () => {
-    if (!permissionStatus.granted && permissionStatus.canAskAgain) {
-      Alert.alert(
-        "Enable Notifications",
-        "To receive task reminders, please enable notifications in your device settings.",
-        [{ text: "Cancel", style: "cancel" }, { text: "OK" }]
-      );
-    } else if (!permissionStatus.granted) {
-      Alert.alert(
-        "Notifications Disabled",
-        "Notifications are disabled. Please enable them in your device settings to receive task reminders.",
-        [{ text: "OK" }]
-      );
+  const handleEnablePermissions = async () => {
+    await triggerLight();
+    if (permissionStatus.canAskAgain) {
+      const registered = await syncPushToken();
+      if (!registered) {
+        Alert.alert(
+          "Notifications Not Enabled",
+          "Allow notifications when prompted to receive task reminders."
+        );
+      }
+      return;
     }
+    await Linking.openSettings();
   };
 
   const renderNotificationTypeSection = (type: string) => {
@@ -627,7 +629,7 @@ export function NotificationSettingsModal({
                             borderRadius: getResponsiveValue(8, 10, 12),
                           },
                         ]}
-                        onPress={requestPermissions}
+                        onPress={handleEnablePermissions}
                       >
                         <Text
                           style={[
@@ -642,7 +644,32 @@ export function NotificationSettingsModal({
                           Enable
                         </Text>
                       </TouchableOpacity>
-                    ) : null}
+                    ) : (
+                      <TouchableOpacity
+                        style={[
+                          styles.permissionButton,
+                          { backgroundColor: colors.error },
+                        ]}
+                        onPress={() => Linking.openSettings()}
+                      >
+                        <Text style={styles.permissionButtonText}>
+                          Open Settings
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : null}
+
+                {permissionStatus.granted && pushTokenError ? (
+                  <View style={styles.permissionSection}>
+                    <Text
+                      style={[
+                        styles.permissionText,
+                        { color: colors.error, marginTop: 8 },
+                      ]}
+                    >
+                      Token save error: {pushTokenError}
+                    </Text>
                   </View>
                 ) : null}
 

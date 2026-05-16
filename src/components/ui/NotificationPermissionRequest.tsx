@@ -28,7 +28,7 @@ const { height: screenHeight } = Dimensions.get("window");
 // NotificationPermissionRequest component for the NotificationPermissionRequest on the home screen
 export function NotificationPermissionRequest() {
   const { colors, isDark } = useTheme();
-  const { permissionStatus, requestPermissions } = useNotifications();
+  const { permissionStatus, syncPushToken } = useNotifications();
   const { triggerMedium, triggerLight } = useHaptics();
   const { glassBorder } = useGradients();
   const [showModal, setShowModal] = useState(false);
@@ -61,9 +61,9 @@ export function NotificationPermissionRequest() {
   // handleRequestPermissions is a function that requests notification permissions from the user
   const handleRequestPermissions = async () => {
     await triggerMedium();
-    const result = await requestPermissions();
+    const registered = await syncPushToken();
 
-    if (result.granted) {
+    if (registered) {
       setShowModal(false);
       Alert.alert(
         "Notifications Enabled!",

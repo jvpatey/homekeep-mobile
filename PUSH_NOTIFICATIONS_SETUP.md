@@ -1,107 +1,140 @@
 # Push Notifications Setup Guide
 
-## Overview
+## Architecture
 
-This guide explains how to set up and test push notifications for your HomeKeep mobile app.
+- **Mobile app** — registers Expo push token → `profiles.push_token`; seeds `notification_preferences` on login.
+- **`send-push-notification`** — manual/test HTTP endpoint; sends one push to a user.
+- **`notification-worker`** — hourly job; sends at **per-user local times** with deduplication via `notification_deliveries`.
+- **`process-scheduled-notifications`** — deprecated wrapper (bypasses hour check); use `notification-worker` instead.
+
+### Local delivery schedule (user timezone)
+
+| Local time | Notification type |
+|------------|-------------------|
+| 8:00 | Daily digest |
+| 9:00 | Overdue reminders (once per task per day) |
+| 9:00 Monday | Weekly summary |
+| 18:00 | Due tomorrow |
+
+Timezone comes from `user_settings.timezone` (synced on sign-in).
 
 ## Prerequisites
 
-- Expo Go app installed on your device
-- Supabase project with edge functions enabled
-- Physical device (push notifications don't work in simulators)
+- Physical device for push (not simulator)
+- EAS **APNs key** for TestFlight/production ([Expo credentials](https://expo.dev/accounts/jeffreyvpatey/projects/homekeep-mobile/credentials))
+- `notification_deliveries` table in Supabase (see migration)
 
-## Setup Steps
+## Deploy edge functions
 
-### 1. Database Updates
+From the project root, use the **local** CLI (global `supabase` is optional):
 
-Run the SQL script in `database-updates.sql` in your Supabase SQL editor to create the necessary tables and fields.
+```bash
+npx supabase login
+npx supabase link --project-ref YOUR_PROJECT_REF
 
-### 2. Edge Functions
+npx supabase functions deploy send-push-notification
+npx supabase functions deploy notification-worker
+npx supabase functions deploy process-scheduled-notifications
+```
 
-Make sure your Supabase edge functions are deployed:
+Or deploy all three:
 
-- `send-push-notification` - Sends individual push notifications
-- `process-scheduled-notifications` - Processes scheduled notifications
+```bash
+npm run functions:deploy
+```
 
-### 3. Environment Variables
+**If `brew install supabase` fails** (e.g. outdated Xcode Command Line Tools), use `npx supabase` or `npm run supabase -- <args>` instead.
 
-Ensure your app has the correct environment variables:
+**Dashboard deploy error (`Module not found ../_shared/...`):** `send-push-notification` is self-contained. Do not paste imports to `_shared` in the Dashboard. For `notification-worker`, deploy from this git repo with the CLI commands above.
+
+## Schedule the hourly worker (Supabase)
+
+**Dashboard (recommended):**
+
+1. **Edge Functions** → `notification-worker`
+2. **Schedules** → Add cron: `0 * * * *` (every hour at :00 UTC)
+
+The worker checks each user's **local hour** and only runs matching notification types.
+
+**Optional:** Set `CRON_SECRET` in function secrets and pass `x-cron-secret` on manual HTTP calls. Not required for Supabase's built-in scheduler.
+
+GitHub Actions cron (`.github/workflows/notifications.yml`) has been removed; use Supabase schedule only.
+
+## Environment variables
+
+**Mobile (EAS production):**
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-## Testing Push Notifications
+**Edge functions** (auto-injected by Supabase): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`.
 
-### Method 1: In-App Test Button
+## Testing
 
-1. Open the app and navigate to Profile Menu → Notification Settings
-2. If notifications are enabled, you'll see a "Send Test Notification" button
-3. Tap the button to send a test notification
-4. You should receive a push notification on your device
-
-### Method 2: Direct Edge Function Call
-
-You can test by calling your edge function directly:
+### 1. `send-push-notification` (primary device check)
 
 ```bash
-curl -X POST "https://your-project.supabase.co/functions/v1/send-push-notification" \
+curl -X POST "https://YOUR_PROJECT.supabase.co/functions/v1/send-push-notification" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_anon_key" \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
   -d '{
-    "userId": "your_user_id",
-    "title": "Test Notification",
-    "body": "This is a test notification!",
+    "userId": "YOUR_USER_UUID",
+    "title": "Server Test",
+    "body": "From send-push-notification",
     "data": {"type": "test"}
   }'
 ```
 
-### Method 3: Expo Push Tool
+### 2. `notification-worker` (forced type, single user)
 
-1. Go to [Expo Push Tool](https://expo.dev/notifications)
-2. Enter your Expo push token (check console logs)
-3. Send a test notification
+```bash
+curl -X POST \
+  "https://YOUR_PROJECT.supabase.co/functions/v1/notification-worker?user_id=YOUR_USER_UUID&force_type=due_soon" \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Run twice the same day — second run should send **0** additional pushes for the same task (dedupe).
+
+### 3. SQL verification
+
+```sql
+SELECT push_token FROM profiles WHERE id = 'YOUR_USER_UUID';
+
+SELECT count(*) FROM notification_preferences WHERE user_id = 'YOUR_USER_UUID';
+
+SELECT * FROM notification_deliveries
+WHERE user_id = 'YOUR_USER_UUID'
+ORDER BY sent_at DESC LIMIT 10;
+```
+
+## Test matrix
+
+| Step | Expected |
+|------|----------|
+| Fresh user login | ~8 `notification_preferences` rows, `push_token` set |
+| `send-push-notification` curl | 200 + `push_notifications` row; device shows alert if backgrounded |
+| `notification-worker?force_type=daily` | Digest if tasks exist; dedupe on repeat |
+| Local hour 18 (or `force_type=due_soon`) | Due-tomorrow task reminders |
 
 ## Troubleshooting
 
-### Common Issues
+| Issue | Fix |
+|-------|-----|
+| `InvalidCredentials` (Expo) | Add APNs key in EAS; rebuild TestFlight |
+| `User not found or no push token` | Open app, enable notifications, sign in |
+| Scheduled sends never fire | Confirm `notification-worker` schedule in Supabase dashboard |
+| No due-soon/overdue | Check `notification_preferences` rows and task due dates |
+| Duplicate pushes | Check `notification_deliveries` unique constraint exists |
 
-1. **"No push token available"**
+## Dedupe keys
 
-   - Make sure you're testing on a physical device
-   - Check that notification permissions are granted
-   - Verify the app.json configuration
-
-2. **Notifications not showing**
-
-   - Check device notification settings
-   - Ensure the app is not in the foreground (notifications are handled differently)
-   - Verify your edge function is working
-
-3. **Database errors**
-   - Run the database-updates.sql script
-   - Check that RLS policies are correct
-   - Verify table structure matches the schema
-
-### Debug Steps
-
-1. Check console logs for push token generation
-2. Verify the push token is saved to the database
-3. Test edge function response
-4. Check notification permission status
-
-## How It Works
-
-1. **App Startup**: The app requests notification permissions and generates an Expo push token
-2. **Token Storage**: The push token is saved to the user's profile in the database
-3. **Preferences**: Users can configure notification settings per category
-4. **Scheduled Processing**: Your edge function processes scheduled notifications based on user preferences
-5. **Delivery**: Notifications are sent via Expo's push service to the user's device
-
-## Next Steps
-
-- Implement notification history
-- Add quiet hours functionality
-- Customize notification sounds and icons
-- Add notification actions (e.g., mark as read, complete task)
+| Type | Key pattern |
+|------|-------------|
+| due_soon | `due_soon:{instance_id}:{local_date}` |
+| overdue | `overdue:{instance_id}:{local_date}` |
+| daily_digest | `daily_digest:{user_id}:{local_date}` |
+| weekly_summary | `weekly_summary:{user_id}:{week_start}` |

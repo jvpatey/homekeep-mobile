@@ -1,0 +1,19 @@
+# Supabase local/dev config. Schedules are applied on deploy when supported;
+# confirm in Dashboard → Edge Functions → notification-worker → Schedules.
+#
+# Deploy from repo root (required for functions that use _shared/):
+#   supabase functions deploy notification-worker
+#   supabase functions deploy process-scheduled-notifications
+#
+# send-push-notification is self-contained and can be deployed via Dashboard.
+
+[functions.notification-worker]
+import_map = "./functions/deno.json"
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.process-scheduled-notifications]
+verify_jwt = false
+import_map = "./functions/deno.json"
