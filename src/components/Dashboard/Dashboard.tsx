@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
@@ -22,8 +16,8 @@ import { DueSoonPopup, OverduePopup, CompletionCelebration } from "./popups";
 import { NotificationPermissionRequest } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
-import { MaintenanceService } from "../../services/maintenanceService";
 import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
+import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeAddressOnboardingModal } from "../modals/home-address-onboarding";
 import { useProfile } from "../../context/ProfileContext";
 import { DesignSystem } from "../../theme/designSystem";
@@ -47,6 +41,8 @@ interface NewDashboardProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   onBrowseMaintenancePlans?: () => void;
+  tasksError?: string | null;
+  onRetryTasks?: () => void;
 }
 
 /** Persisted so returning users skip the header entrance delay. */
@@ -62,6 +58,8 @@ export function NewDashboard({
   onRefresh,
   refreshing = false,
   onBrowseMaintenancePlans,
+  tasksError = null,
+  onRetryTasks,
 }: NewDashboardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -80,8 +78,6 @@ export function NewDashboard({
   const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
-  const [scheduleTasks, setScheduleTasks] = useState<MaintenanceTask[]>([]);
-  const scheduleFetchGeneration = useRef(0);
 
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(14);
@@ -134,43 +130,15 @@ export function NewDashboard({
     transform: [{ translateY: headerTranslateY.value }],
   }));
 
-  const loadScheduleTasks = useCallback(async () => {
-    const generation = ++scheduleFetchGeneration.current;
-    try {
-      const { data, error } = await MaintenanceService.getUpcomingTasks("all");
-      if (error) throw error;
-      if (generation !== scheduleFetchGeneration.current) return;
-      setScheduleTasks((data || []) as MaintenanceTask[]);
-    } catch (err) {
-      console.error("Error loading schedule tasks:", err);
-      if (generation !== scheduleFetchGeneration.current) return;
-      // Keep last successful schedule so a failed refetch does not blank the dashboard
-    }
-  }, []);
-
-  const upcomingTasks = tasks;
-
-  /** Prefer full-window fetch; fall back to context upcoming list (matches Due soon popup). */
-  const scheduleListSource = useMemo(
-    () =>
-      scheduleTasks.length > 0 ? scheduleTasks : upcomingTasks,
-    [scheduleTasks, upcomingTasks]
-  );
-
   const dueSoonTasks = useMemo(
-    () =>
-      sortTasksByDateThenPriority(getDueSoonTasks(scheduleListSource)),
-    [scheduleListSource]
+    () => sortTasksByDateThenPriority(getDueSoonTasks(tasks)),
+    [tasks]
   );
 
   const overdueSorted = useMemo(
     () => sortTasksByDateThenPriority(overdueTasks),
     [overdueTasks]
   );
-
-  useEffect(() => {
-    loadScheduleTasks();
-  }, [loadScheduleTasks, tasks]);
 
   // First-run address onboarding: surface the sheet once the entrance
   // animation settles. Profile.address_set_at flips the flag off after the
@@ -183,10 +151,7 @@ export function NewDashboard({
     return () => clearTimeout(timer);
   }, [addressNeeded]);
 
-  const sections = useMemo(
-    () => buildDashboardSections(scheduleListSource),
-    [scheduleListSource]
-  );
+  const sections = useMemo(() => buildDashboardSections(tasks), [tasks]);
 
   const handleCompleteTask = async (instanceId: string) => {
     try {
@@ -199,7 +164,6 @@ export function NewDashboard({
 
   const handleTaskPress = (instanceId: string) => {
     const task =
-      scheduleListSource.find((t) => t.instance_id === instanceId) ??
       tasks.find((t) => t.instance_id === instanceId) ??
       overdueTasks.find((t) => t.instance_id === instanceId);
     if (task) {
@@ -212,7 +176,6 @@ export function NewDashboard({
     setShowOverduePopup(false);
     const task =
       overdueTasks.find((t) => t.instance_id === instanceId) ??
-      scheduleListSource.find((t) => t.instance_id === instanceId) ??
       tasks.find((t) => t.instance_id === instanceId);
     if (task) {
       setSelectedTask(task);
@@ -254,6 +217,12 @@ export function NewDashboard({
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowAddressModal(true)}
       />
+      {tasksError && onRetryTasks ? (
+        <TasksLoadErrorBanner
+          message={tasksError}
+          onRetry={onRetryTasks}
+        />
+      ) : null}
       {sections.length > 0 ? (
         <DashboardQuickActions
           onAddTask={() => {

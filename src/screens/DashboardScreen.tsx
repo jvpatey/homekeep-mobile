@@ -13,15 +13,19 @@ export function DashboardScreen() {
   const { colors, isDark } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const { upcomingTasks, overdueTasks, completedTasks, completeTask, refreshTasks } =
-    useTasks();
+  const {
+    upcomingTasks,
+    overdueTasks,
+    completedTasks,
+    completeTask,
+    refreshTasks,
+    error: tasksError,
+  } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
   // handleCompleteTask for the handleCompleteTask on the home screen
   const handleCompleteTask = async (instanceId: string) => {
     await completeTask(instanceId);
-    // Refresh tasks after completion to update UI
-    await refreshTasks();
   };
 
   // handleTaskPress for the handleTaskPress on the home screen
@@ -54,6 +58,8 @@ export function DashboardScreen() {
           onTaskPress={handleTaskPress}
           onRefresh={handleRefresh}
           refreshing={refreshing}
+          tasksError={tasksError}
+          onRetryTasks={refreshTasks}
           onBrowseMaintenancePlans={() =>
             navigation.navigate("MaintenancePlans")
           }

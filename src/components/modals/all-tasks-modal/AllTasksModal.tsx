@@ -39,7 +39,7 @@ interface AllTasksModalProps {
 
 export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
   const { colors, isDark } = useTheme();
-  const { deleteTask } = useTasks();
+  const { deleteTask, refreshTasks } = useTasks();
   const { haloGradient } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
   const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
@@ -136,6 +136,7 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
                 setRoutines((prev) =>
                   prev.filter((routine) => routine.id !== routineId)
                 );
+                await refreshTasks();
               } else {
                 Alert.alert(
                   "Delete Failed",

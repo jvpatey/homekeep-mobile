@@ -74,10 +74,10 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
 
               if (result.success) {
                 await triggerLight();
-                // Remove from local state
                 setRoutines((prev) =>
                   prev.filter((routine) => routine.id !== routineId)
                 );
+                await refreshTasks();
               } else {
                 Alert.alert(
                   "Delete Failed",
