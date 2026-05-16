@@ -209,4 +209,13 @@ export const createContentStyles = (
       ...DesignSystem.typography.bodySemiBold,
       color: "#FFFFFF",
     },
+    skipOccurrenceButton: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: DesignSystem.spacing.sm,
+      marginTop: DesignSystem.spacing.xs,
+    },
+    skipOccurrenceButtonText: {
+      ...DesignSystem.typography.body,
+    },
   });

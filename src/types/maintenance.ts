@@ -105,6 +105,24 @@ export interface UpdateRoutineInstanceData {
   due_date?: string;
 }
 
+export interface CreateRoutineInstanceData {
+  routine_id: string;
+  due_date: string;
+  is_completed?: boolean;
+  is_overdue?: boolean;
+}
+
+export interface SkipRoutineInstanceParams {
+  instanceId: string;
+  routineId: string;
+  dueDate: string;
+  intervalDays: number;
+}
+
+export interface SkipRoutineInstanceResponse extends RoutineInstanceResponse {
+  nextDueDate?: string;
+}
+
 // Filters for querying maintenance tasks
 export interface MaintenanceFilters {
   category?: MaintenanceCategory;

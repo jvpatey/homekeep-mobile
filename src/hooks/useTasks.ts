@@ -58,6 +58,9 @@ interface UseTasksReturn {
   uncompleteTask: (
     instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  skipTaskOccurrence: (
+    task: MaintenanceTask
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (
     instanceIds: string[]
@@ -387,6 +390,47 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     [user, loadTasks]
   );
 
+  const skipTaskOccurrence = useCallback(
+    async (task: MaintenanceTask) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      if (task.is_completed) {
+        return { success: false, error: "Cannot skip a completed task" };
+      }
+
+      if (task.interval_days <= 0) {
+        return {
+          success: false,
+          error: "This task does not repeat on a schedule",
+        };
+      }
+
+      try {
+        const result = await MaintenanceService.skipRoutineInstance({
+          instanceId: task.instance_id,
+          routineId: task.id,
+          dueDate: task.due_date,
+          intervalDays: task.interval_days,
+        });
+
+        if (result.error) throw result.error;
+
+        await loadTasks();
+
+        return { success: true };
+      } catch (err) {
+        const error = err as Error;
+        const errorMessage =
+          error.message || "Failed to skip maintenance task occurrence";
+        console.error("Error skipping maintenance task occurrence:", error);
+        return { success: false, error: errorMessage };
+      }
+    },
+    [user, loadTasks]
+  );
+
   // deleteTask - delete a maintenance routine
   const deleteTask = useCallback(
     async (taskId: string) => {
@@ -542,6 +586,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     updateTask,
     completeTask,
     uncompleteTask,
+    skipTaskOccurrence,
     deleteTask,
     bulkCompleteTasks,
     deleteAllTasks,

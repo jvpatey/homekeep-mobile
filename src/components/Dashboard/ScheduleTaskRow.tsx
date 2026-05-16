@@ -1,6 +1,7 @@
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import React, { useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Swipeable } from "react-native-gesture-handler";
 import { useTheme } from "../../context/ThemeContext";
 import { useDevice } from "../../hooks";
 import { MaintenanceTask } from "../../types/maintenance";
@@ -18,6 +19,10 @@ interface ScheduleTaskRowProps {
   variant?: "default" | "dueSoon";
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
+  onSkipOccurrence?: (
+    task: MaintenanceTask,
+    closeSwipe: () => void
+  ) => void | Promise<void>;
 }
 
 /** Timeline-style row reused by the unified dashboard schedule list. */
@@ -27,11 +32,13 @@ export function ScheduleTaskRow({
   variant = "default",
   onCompleteTask,
   onTaskPress,
+  onSkipOccurrence,
 }: ScheduleTaskRowProps) {
   const { colors, isDark } = useTheme();
   const isDueSoon = variant === "dueSoon";
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
+  const swipeableRef = useRef<Swipeable>(null);
 
   const planTheme = getPlanTheme(task.source_plan_id ?? undefined);
 
@@ -43,10 +50,36 @@ export function ScheduleTaskRow({
     : "rgba(255, 255, 255, 0.6)";
 
   const timelineDotFill = colors.primary;
-
   const timelineDotRing = colors.surface;
 
-  return (
+  const canSkip =
+    !!onSkipOccurrence && !task.is_completed && task.interval_days > 0;
+
+  const closeSwipe = () => {
+    swipeableRef.current?.close();
+  };
+
+  const handleSkipPress = () => {
+    closeSwipe();
+    void onSkipOccurrence?.(task, closeSwipe);
+  };
+
+  const renderRightActions = () => (
+    <View style={rowStyles.rightActionsContainer}>
+      <TouchableOpacity
+        style={[rowStyles.skipAction, { backgroundColor: colors.error }]}
+        onPress={handleSkipPress}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Skip this occurrence"
+      >
+        <Ionicons name="play-skip-forward" size={22} color="#fff" />
+        <Text style={rowStyles.skipActionText}>Skip</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const rowContent = (
     <TouchableOpacity
       style={[
         timelineStyles.taskItem,
@@ -319,4 +352,49 @@ export function ScheduleTaskRow({
       </View>
     </TouchableOpacity>
   );
+
+  if (!canSkip) {
+    return rowContent;
+  }
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      overshootRight={false}
+      friction={2}
+      rightThreshold={SKIP_ACTION_WIDTH / 2}
+    >
+      <View
+        style={[rowStyles.swipeForeground, { backgroundColor: colors.background }]}
+      >
+        {rowContent}
+      </View>
+    </Swipeable>
+  );
 }
+
+const SKIP_ACTION_WIDTH = 88;
+
+const rowStyles = StyleSheet.create({
+  swipeForeground: {
+    width: "100%",
+  },
+  rightActionsContainer: {
+    width: SKIP_ACTION_WIDTH + DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  skipAction: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: DesignSystem.spacing.xs,
+    marginRight: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    gap: DesignSystem.spacing.xs,
+  },
+  skipActionText: {
+    ...DesignSystem.typography.smallSemiBold,
+    color: "#FFFFFF",
+  },
+});

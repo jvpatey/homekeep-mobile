@@ -52,6 +52,9 @@ interface UseTasksReturn {
   uncompleteTask: (
     instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  skipTaskOccurrence: (
+    task: MaintenanceTask
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (
     instanceIds: string[]

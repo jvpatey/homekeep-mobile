@@ -28,6 +28,10 @@ interface DashboardScheduleListProps {
   refreshing?: boolean;
   onCompleteTask: (instanceId: string) => void;
   onTaskPress?: (instanceId: string) => void;
+  onSkipOccurrence?: (
+    task: MaintenanceTask,
+    closeSwipe: () => void
+  ) => void | Promise<void>;
   onAddTask?: () => void;
   onBrowseMaintenancePlans?: () => void;
   /** Bottom padding so content clears the FAB */
@@ -41,6 +45,7 @@ export function DashboardScheduleList({
   refreshing = false,
   onCompleteTask,
   onTaskPress,
+  onSkipOccurrence,
   onAddTask,
   onBrowseMaintenancePlans,
   contentPaddingBottom,
@@ -466,6 +471,7 @@ export function DashboardScheduleList({
           }
           onCompleteTask={onCompleteTask}
           onTaskPress={onTaskPress}
+          onSkipOccurrence={onSkipOccurrence}
         />
       )}
     />

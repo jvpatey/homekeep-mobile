@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View } from "react-native";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Alert, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   useSharedValue,
@@ -31,6 +31,8 @@ import { dashboardStyles } from "./styles";
 import { buildDashboardSections } from "./dashboardSections";
 import { DashboardScheduleList } from "./DashboardScheduleList";
 import { DashboardQuickActions } from "./DashboardQuickActions";
+import { confirmSkipTaskOccurrence } from "../../utils/skipTaskOccurrence";
+import { useHaptics } from "../../hooks";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
@@ -41,6 +43,9 @@ interface NewDashboardProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   onBrowseMaintenancePlans?: () => void;
+  onSkipTaskOccurrence?: (
+    task: MaintenanceTask
+  ) => Promise<{ success: boolean; error?: string }>;
   tasksError?: string | null;
   onRetryTasks?: () => void;
 }
@@ -58,11 +63,13 @@ export function NewDashboard({
   onRefresh,
   refreshing = false,
   onBrowseMaintenancePlans,
+  onSkipTaskOccurrence,
   tasksError = null,
   onRetryTasks,
 }: NewDashboardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { triggerMedium, triggerLight } = useHaptics();
   const { addressNeeded } = useProfile();
   const insets = useSafeAreaInsets();
   const [showCelebration, setShowCelebration] = useState(false);
@@ -162,6 +169,53 @@ export function NewDashboard({
     }
   };
 
+  const handleSkipOccurrence = useCallback(
+    async (
+      task: MaintenanceTask,
+      closeSwipe?: () => void
+    ): Promise<boolean> => {
+      if (!onSkipTaskOccurrence) {
+        closeSwipe?.();
+        return false;
+      }
+
+      const confirmed = await confirmSkipTaskOccurrence(task);
+      if (!confirmed) {
+        closeSwipe?.();
+        return false;
+      }
+
+      await triggerMedium();
+      const result = await onSkipTaskOccurrence(task);
+      closeSwipe?.();
+
+      if (result.success) {
+        await triggerLight();
+        if (
+          selectedTask?.instance_id === task.instance_id &&
+          showTaskDetail
+        ) {
+          setShowTaskDetail(false);
+          setSelectedTask(null);
+        }
+        return true;
+      }
+
+      Alert.alert(
+        "Skip Failed",
+        result.error || "Failed to skip this occurrence. Please try again."
+      );
+      return false;
+    },
+    [
+      onSkipTaskOccurrence,
+      triggerMedium,
+      triggerLight,
+      selectedTask,
+      showTaskDetail,
+    ]
+  );
+
   const handleTaskPress = (instanceId: string) => {
     const task =
       tasks.find((t) => t.instance_id === instanceId) ??
@@ -249,6 +303,13 @@ export function NewDashboard({
         refreshing={refreshing}
         onCompleteTask={handleCompleteTask}
         onTaskPress={handleTaskPress}
+        onSkipOccurrence={
+          onSkipTaskOccurrence
+            ? (task, closeSwipe) => {
+                void handleSkipOccurrence(task, closeSwipe);
+              }
+            : undefined
+        }
         onAddTask={() => {
           setEditTaskInitial(null);
           setShowCreateModal(true);
@@ -275,6 +336,11 @@ export function NewDashboard({
           setEditTaskInitial(task);
           setShowCreateModal(true);
         }}
+        onSkipOccurrence={
+          onSkipTaskOccurrence
+            ? (task) => handleSkipOccurrence(task)
+            : undefined
+        }
         onModified={onRefresh}
       />
 
