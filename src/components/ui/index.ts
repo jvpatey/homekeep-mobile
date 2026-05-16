@@ -5,6 +5,7 @@ export { GlassCard } from "./glass-card";
 export { NotificationPermissionRequest } from "./NotificationPermissionRequest";
 export { TintedGlassAvatar } from "./tinted-glass-avatar";
 export { SheetGrabber } from "./sheet-grabber";
+export { HomeKeepBrand } from "./HomeKeepBrand";
 export {
   SearchableSelectModal,
   type SearchableOption,

@@ -606,7 +606,18 @@ export function CompletionHistoryScreen() {
             {subtitleText}
           </Text>
         </View>
-        <View style={completionHistoryStyles.headerRightSpacer} />
+        <TouchableOpacity
+          style={completionHistoryStyles.headerAction}
+          onPress={() => navigation.navigate("HomeSummaryPreview")}
+          accessibilityRole="button"
+          accessibilityLabel="Export home maintenance summary"
+        >
+          <Ionicons
+            name="document-text-outline"
+            size={24}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {tasksError ? (
