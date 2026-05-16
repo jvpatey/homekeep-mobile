@@ -8,7 +8,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:ios": "expo build:ios",
-    "submit:ios": "expo submit --platform ios"
+    "submit:ios": "expo submit --platform ios",
+    "supabase": "supabase",
+    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -53,6 +55,7 @@
     "@babel/core": "^7.20.0",
     "@types/react": "^19.1.10",
     "babel-preset-expo": "~54.0.10",
+    "supabase": "^2.98.2",
     "typescript": "~5.9.2"
   },
   "private": true,

@@ -213,6 +213,7 @@ npm install
    - Get your project URL and anon key from the API settings
    - Create a `.env` file with your Supabase credentials
    - For equipment manuals, create a Supabase Storage bucket named **`equipment-manuals`** (see `EQUIPMENT_MANUALS_BUCKET` in `EquipmentManualService`) with policies that let authenticated users manage their own objects, and create an **`equipment_manuals`** table aligned with the app types (`types/equipmentManual.ts`) and service queries
+   - For **push reminders**, deploy Edge Functions and schedule the worker as described in [`PUSH_NOTIFICATIONS_SETUP.md`](PUSH_NOTIFICATIONS_SETUP.md) (repo includes [`supabase/config.toml`](supabase/config.toml) for CLI defaults).
 
 4. **Start the development server:**
 
@@ -246,7 +247,7 @@ The app uses Supabase with the following main tables:
 - **maintenance_routines** - Recurring maintenance tasks
 - **routine_instances** - Individual task instances
 - **user_preferences** - User settings and preferences
-- **notification_settings** - Notification preferences by category
+- **notification_preferences** - Notification preferences by category
 - **equipment_manuals** - Metadata for uploaded equipment manual PDFs (files live in Supabase Storage)
 
 ## 🎯 Key Features in Detail
@@ -269,6 +270,8 @@ The app uses Supabase with the following main tables:
 - **Weather & library**: Current weather for your saved address; equipment manuals shortcut in the header
 
 ### Notifications
+
+In-app preferences control **due soon**, **overdue**, **daily digest**, and **weekly summary**. Scheduled delivery uses Supabase **Edge Functions** (`notification-worker` on a cron) plus Expo push—see **[`PUSH_NOTIFICATIONS_SETUP.md`](PUSH_NOTIFICATIONS_SETUP.md)** for deploy, cron, and testing (`curl`).
 
 - **Due Soon Reminders**: Notifications for tasks due soon
 - **Overdue Alerts**: Reminders for overdue tasks
@@ -294,6 +297,7 @@ Open **Settings → Maintenance plans** to browse plans. Plans that include a qu
 - `npm run web` - Run in web browser
 - `npm run build:ios` - Build iOS app for production
 - `npm run submit:ios` - Submit iOS app to App Store
+- `npm run functions:deploy` - Deploy Supabase Edge Functions used for push (`send-push-notification`, `notification-worker`, `process-scheduled-notifications`; requires `npx supabase link`)
 
 ## 🧪 Development
 

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { useAuth } from "./AuthContext";
 import {
   NotificationPreferences,
@@ -14,6 +14,10 @@ import {
   HOME_MAINTENANCE_CATEGORIES,
   MaintenanceCategory,
 } from "../types/maintenance";
+import {
+  buildDefaultNotificationPreferences,
+  MAINTENANCE_CATEGORY_COUNT,
+} from "../utils/notificationDefaults";
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -29,7 +33,6 @@ Notifications.setNotificationHandler({
 
 // NotificationContextType is a type for the notification context
 interface NotificationContextType {
-  expoPushToken: ExpoPushToken | null;
   notification: Notifications.Notification | null;
   permissionStatus: NotificationPermissionStatus;
   notificationSettings: NotificationSettings;
@@ -41,6 +44,9 @@ interface NotificationContextType {
   updateGlobalNotificationSettings: (enabled: boolean) => Promise<void>;
   registerForPushNotifications: () => Promise<ExpoPushToken | null>;
   savePushToken: (token: string) => Promise<void>;
+  /** Request permission, obtain Expo push token, and persist it to Supabase. */
+  syncPushToken: () => Promise<boolean>;
+  pushTokenError: string | null;
 }
 
 // NotificationContext context for the notification context
@@ -67,9 +73,7 @@ interface NotificationProviderProps {
 // NotificationProvider provider for the notification context
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const { user, supabase } = useAuth();
-  const [expoPushToken, setExpoPushToken] = useState<ExpoPushToken | null>(
-    null
-  );
+  const [, setExpoPushToken] = useState<ExpoPushToken | null>(null);
   const [notification, setNotification] =
     useState<Notifications.Notification | null>(null);
   const [permissionStatus, setPermissionStatus] =
@@ -83,6 +87,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       globalEnabled: true,
       categories: {} as Record<MaintenanceCategory, NotificationPreferences>,
     });
+  const [pushTokenError, setPushTokenError] = useState<string | null>(null);
 
   // initializeDefaultPreferences function for the initializeDefaultPreferences on the home screen
   const initializeDefaultPreferences = (): Record<
@@ -189,12 +194,57 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         });
 
         setExpoPushToken(token);
+        setPushTokenError(null);
         return token;
       } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown registration error";
         console.error("Error registering for push notifications:", error);
+        setPushTokenError(message);
         return null;
       }
     };
+
+  const seedNotificationPreferences = async () => {
+    if (!user || !supabase) return;
+
+    try {
+      const { count, error: countError } = await supabase
+        .from("notification_preferences")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      if (countError) {
+        console.error("Error counting notification preferences:", countError);
+        return;
+      }
+
+      if ((count ?? 0) >= MAINTENANCE_CATEGORY_COUNT) {
+        return;
+      }
+
+      const rows = buildDefaultNotificationPreferences(user.id);
+      const { error } = await supabase
+        .from("notification_preferences")
+        .upsert(rows, { onConflict: "user_id,category" });
+
+      if (error) {
+        console.error("Error seeding notification preferences:", error);
+      }
+    } catch (error) {
+      console.error("Error seeding notification preferences:", error);
+    }
+  };
+
+  const syncPushToken = async (): Promise<boolean> => {
+    const token = await registerForPushNotifications();
+    if (!token) {
+      return false;
+    }
+    await savePushToken(token.data);
+    await seedNotificationPreferences();
+    return true;
+  };
 
   // savePushToken function for the savePushToken on the home screen
   const savePushToken = async (token: string) => {
@@ -203,17 +253,25 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
 
     try {
-      const { error } = await supabase.from("profiles").upsert({
-        id: user.id,
-        push_token: token,
-        updated_at: new Date().toISOString(),
-      });
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          push_token: token,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
 
       if (error) {
         console.error("Error saving push token to database:", error);
+        setPushTokenError(error.message);
+      } else {
+        setPushTokenError(null);
       }
     } catch (error) {
       console.error("Error saving push token:", error);
+      setPushTokenError(
+        error instanceof Error ? error.message : "Failed to save push token"
+      );
     }
   };
 
@@ -327,30 +385,37 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   // Initialize when user changes
   useEffect(() => {
-    if (user) {
-      // Initialize default preferences
+    if (!user) return;
+
+    const init = async () => {
       setNotificationSettings((prev) => ({
         ...prev,
         categories: initializeDefaultPreferences(),
       }));
 
-      // Load existing preferences
-      loadNotificationPreferences();
+      await seedNotificationPreferences();
+      await loadNotificationPreferences();
+      await checkPermissionStatus();
+      await syncPushToken();
+    };
 
-      // Check permission status
-      checkPermissionStatus();
+    void init();
+  }, [user]);
 
-      // Register for push notifications
-      registerForPushNotifications().then((token) => {
-        if (token) {
-          savePushToken(token.data);
-        }
-      });
-    }
+  // Re-sync when returning from iOS Settings (e.g. user enabled notifications)
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void checkPermissionStatus().then(() => syncPushToken());
+      }
+    });
+
+    return () => subscription.remove();
   }, [user]);
 
   const value: NotificationContextType = {
-    expoPushToken,
     notification,
     permissionStatus,
     notificationSettings,
@@ -359,6 +424,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     updateGlobalNotificationSettings,
     registerForPushNotifications,
     savePushToken,
+    syncPushToken,
+    pushTokenError,
   };
 
   return (
