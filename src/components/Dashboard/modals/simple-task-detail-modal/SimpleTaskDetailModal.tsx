@@ -27,6 +27,7 @@ import { DesignSystem } from "../../../../theme/designSystem";
 import { GlassCard } from "../../../ui/glass-card/GlassCard";
 import { SheetGrabber } from "../../../ui/sheet-grabber";
 import { sheetChromeStyles, createContentStyles } from "./styles";
+import { formatTaskSectionHeading } from "../../../../utils/formatTaskDates";
 
 interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
@@ -34,6 +35,7 @@ interface SimpleTaskDetailModalProps {
   onClose: () => void;
   onComplete: (instanceId: string) => void;
   onEdit?: (task: MaintenanceTask) => void;
+  onSkipOccurrence?: (task: MaintenanceTask) => Promise<boolean>;
   /** Reserved for callers that refresh after external edits */
   onModified?: () => void;
 }
@@ -44,6 +46,7 @@ export function SimpleTaskDetailModal({
   onClose,
   onComplete,
   onEdit,
+  onSkipOccurrence,
 }: SimpleTaskDetailModalProps) {
   const { colors, isDark } = useTheme();
   const { haloGradient, ctaHighlight } = useGradients();
@@ -52,6 +55,7 @@ export function SimpleTaskDetailModal({
     useDevice();
   const fontMultiplier = getFontMultiplier();
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const contentStyles = createContentStyles(
@@ -210,24 +214,6 @@ export function SimpleTaskDetailModal({
     urgent: colors.error,
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    }
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const formatTime = (minutes?: number) => {
     if (!minutes) return "No time estimate";
@@ -252,7 +238,7 @@ export function SimpleTaskDetailModal({
   };
 
   const handleComplete = async () => {
-    if (!task || isCompleting) return;
+    if (!task || isCompleting || isSkipping) return;
     setIsCompleting(true);
     try {
       await onComplete(task.instance_id);
@@ -262,6 +248,26 @@ export function SimpleTaskDetailModal({
       setIsCompleting(false);
     }
   };
+
+  const handleSkipOccurrence = async () => {
+    if (!task || !onSkipOccurrence || isCompleting || isSkipping) return;
+    setIsSkipping(true);
+    try {
+      const skipped = await onSkipOccurrence(task);
+      if (skipped) {
+        handleClose();
+      }
+    } catch (error) {
+      console.error("Error skipping task occurrence:", error);
+    } finally {
+      setIsSkipping(false);
+    }
+  };
+
+  const showSkipOccurrence =
+    !!onSkipOccurrence &&
+    !task?.is_completed &&
+    (task?.interval_days ?? 0) > 0;
 
   const mutedSurface = {
     backgroundColor: isDark
@@ -562,7 +568,7 @@ export function SimpleTaskDetailModal({
                             { color: colors.text },
                           ]}
                         >
-                          {formatDate(task.due_date)}
+                          {formatTaskSectionHeading(new Date(task.due_date))}
                         </Text>
                       </View>
                     </View>
@@ -653,11 +659,11 @@ export function SimpleTaskDetailModal({
                         {
                           position: "relative",
                           backgroundColor: colors.primary,
-                          opacity: isCompleting ? 0.65 : 1,
+                          opacity: isCompleting || isSkipping ? 0.65 : 1,
                         },
                       ]}
                       onPress={() => void handleComplete()}
-                      disabled={isCompleting}
+                      disabled={isCompleting || isSkipping}
                       activeOpacity={0.85}
                       accessibilityRole="button"
                       accessibilityLabel="Mark task complete"
@@ -679,6 +685,29 @@ export function SimpleTaskDetailModal({
                       </Text>
                     </TouchableOpacity>
                   </View>
+
+                  {showSkipOccurrence ? (
+                    <TouchableOpacity
+                      style={contentStyles.skipOccurrenceButton}
+                      onPress={() => void handleSkipOccurrence()}
+                      disabled={isCompleting || isSkipping}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Skip this occurrence"
+                    >
+                      <Text
+                        style={[
+                          contentStyles.skipOccurrenceButtonText,
+                          {
+                            color: colors.error,
+                            opacity: isSkipping ? 0.65 : 1,
+                          },
+                        ]}
+                      >
+                        {isSkipping ? "Skipping…" : "Skip this occurrence"}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </Animated.View>
               </SafeAreaView>
             </LinearGradient>

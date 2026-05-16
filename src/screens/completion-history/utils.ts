@@ -1,3 +1,9 @@
+import {
+  format,
+  isSameYear,
+  isValid,
+  parseISO,
+} from "date-fns";
 import { MaintenanceTask } from "../../types/maintenance";
 
 export interface GroupedRoutine {
@@ -97,24 +103,30 @@ export const groupTasksByRoutine = (
   return Object.values(groups);
 };
 
+function toLocalDate(dateString: string): Date {
+  const parsed = parseISO(dateString);
+  if (isValid(parsed)) return parsed;
+  return new Date(dateString);
+}
+
+function historyDatePattern(date: Date, referenceDate: Date): string {
+  if (isSameYear(date, referenceDate)) {
+    return "EEE, MMM d";
+  }
+  return "EEE, MMM d, yyyy";
+}
+
 // formatDate function to format the date
 export const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const date = toLocalDate(dateString);
+  if (!isValid(date)) return "—";
+  return format(date, historyDatePattern(date, new Date()));
 };
 
 // formatDateTime function to format the date with time (for completed tasks)
 export const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = toLocalDate(dateString);
+  if (!isValid(date)) return "—";
+  const base = historyDatePattern(date, new Date());
+  return format(date, `${base} · h:mm a`);
 };

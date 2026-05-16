@@ -20,7 +20,8 @@ export const headerStyles = StyleSheet.create({
   },
   contentLayer: {
     paddingTop: DesignSystem.spacing.xl + DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.sm,
+    /** Gap before quick actions comes from DashboardQuickActions paddingTop. */
+    paddingBottom: 0,
     paddingHorizontal: DesignSystem.spacing.md,
     position: "relative",
     zIndex: 15,

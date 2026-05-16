@@ -8,6 +8,8 @@ export interface EquipmentManual {
   purchase_date: string | null;
   manual_storage_path: string | null;
   manual_mime_type: string | null;
+  receipt_storage_path: string | null;
+  receipt_mime_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +26,8 @@ export interface UpdateEquipmentManualData {
   purchase_date?: string | null;
   manual_storage_path?: string | null;
   manual_mime_type?: string | null;
+  receipt_storage_path?: string | null;
+  receipt_mime_type?: string | null;
 }
 
 export interface EquipmentManualResponse extends ServiceResponse<EquipmentManual> {}

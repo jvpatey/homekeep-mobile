@@ -12,6 +12,9 @@ import {
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
 import { addDays, startOfDay } from "date-fns";
 
+/** Max rows per task list query; pagination is out of scope for now. */
+export const TASK_LIST_LIMIT = 200;
+
 export class MaintenanceTaskService {
   // Get next open instance for a routine (earliest due, not completed)
   static async getNextOpenInstanceForRoutine(
@@ -101,7 +104,7 @@ export class MaintenanceTaskService {
         query = query.eq("routine.is_active", filters.is_active);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(TASK_LIST_LIMIT);
 
       if (error) throw error;
 
@@ -162,7 +165,7 @@ export class MaintenanceTaskService {
         query = query.lte("due_date", endDate.toISOString());
       }
 
-      const { data, error } = await query.limit(200);
+      const { data, error } = await query.limit(TASK_LIST_LIMIT);
 
       if (error) throw error;
 
@@ -223,7 +226,7 @@ export class MaintenanceTaskService {
         query = query.gte("due_date", from.toISOString());
       }
 
-      const { data, error } = await query.limit(200);
+      const { data, error } = await query.limit(TASK_LIST_LIMIT);
 
       if (error) throw error;
 
@@ -291,7 +294,7 @@ export class MaintenanceTaskService {
         );
       }
 
-      const { data, error } = await query.limit(200);
+      const { data, error } = await query.limit(TASK_LIST_LIMIT);
 
       if (error) throw error;
 

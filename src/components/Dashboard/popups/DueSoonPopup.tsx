@@ -20,6 +20,7 @@ import { useDevice, useGradients } from "../../../hooks";
 import { GlassCard } from "../../ui/glass-card/GlassCard";
 import { formControlFill } from "../modals/create-task-modal/formChrome";
 import { hexWithAlpha } from "./popupChrome";
+import { formatTaskDueDate } from "../../../utils/formatTaskDates";
 
 interface DueSoonPopupProps {
   tasks: MaintenanceTask[];
@@ -145,23 +146,6 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
     }
   };
 
-  const formatDueDate = (dueDate: string) => {
-    const date = new Date(dueDate);
-    const now = new Date();
-    const diffTime = date.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Tomorrow";
-    if (diffDays < 0) return "Overdue";
-
-    // Show actual date for all other cases
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const renderTaskItem = ({
     item,
     isDark,
@@ -264,7 +248,7 @@ export function DueSoonPopup({ tasks, onClose }: DueSoonPopupProps) {
                 },
               ]}
             >
-              Due {formatDueDate(item.due_date)}
+              Due {formatTaskDueDate(item.due_date)}
             </Text>
           </View>
 

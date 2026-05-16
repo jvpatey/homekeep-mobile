@@ -18,6 +18,7 @@ import { hexWithAlpha } from "../popups/popupChrome";
 import {
   getPlanTheme,
 } from "../../../data/maintenancePlans/planThemes";
+import { formatTaskDueDate } from "../../../utils/formatTaskDates";
 
 // TaskCardProps interface for the TaskCard component
 interface TaskCardProps {
@@ -96,25 +97,6 @@ export function TaskCard({
         return colors.success;
       default:
         return colors.textSecondary;
-    }
-  };
-
-  // formatDueDate function to format the due date
-  const formatDueDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
     }
   };
 
@@ -330,7 +312,7 @@ export function TaskCard({
                   }
                 />
                 {(() => {
-                  const formattedDate = formatDueDate(due_date);
+                  const formattedDate = formatTaskDueDate(due_date);
                   const isDueToday = formattedDate === "Today";
 
                   return (

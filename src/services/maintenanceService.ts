@@ -4,8 +4,11 @@ import {
   RoutineInstance,
   MaintenanceTask,
   CreateMaintenanceRoutineData,
+  CreateRoutineInstanceData,
   UpdateMaintenanceRoutineData,
   UpdateRoutineInstanceData,
+  SkipRoutineInstanceParams,
+  SkipRoutineInstanceResponse,
   MaintenanceFilters,
   MaintenanceStats,
   MaintenanceCategory,
@@ -94,6 +97,22 @@ export class MaintenanceService {
     instanceIds: string[]
   ): Promise<RoutineInstancesResponse> {
     return MaintenanceInstanceService.bulkCompleteInstances(instanceIds);
+  }
+
+  static async deleteInstance(instanceId: string): Promise<DeleteResponse> {
+    return MaintenanceInstanceService.deleteInstance(instanceId);
+  }
+
+  static async createInstance(
+    payload: CreateRoutineInstanceData
+  ): Promise<RoutineInstanceResponse> {
+    return MaintenanceInstanceService.createInstance(payload);
+  }
+
+  static async skipRoutineInstance(
+    params: SkipRoutineInstanceParams
+  ): Promise<SkipRoutineInstanceResponse> {
+    return MaintenanceInstanceService.skipRoutineInstance(params);
   }
 
   // ===== TASK OPERATIONS =====

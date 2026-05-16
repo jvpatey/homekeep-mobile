@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import {
   createClient,
   Session,
@@ -8,8 +15,13 @@ import {
 import "react-native-url-polyfill/auto";
 import * as AppleAuthentication from "expo-apple-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppState } from "react-native";
+import { Alert, AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
+import {
+  isInvalidSessionError,
+  SESSION_EXPIRED_MESSAGE,
+  SESSION_EXPIRED_TITLE,
+} from "../utils/authSessionErrors";
 
 // Supabase configuration with environment variables and fallbacks
 const supabaseUrl =
@@ -77,6 +89,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const voluntarySignOutRef = useRef(false);
+  const sessionRecoveryRef = useRef({ inProgress: false, alertShown: false });
+  const hadAuthenticatedSessionRef = useRef(false);
+
+  const clearLocalAuthState = useCallback(async () => {
+    setSession(null);
+    setUser(null);
+    if (!supabase) return;
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Local clear is best-effort when tokens are already invalid
+    }
+  }, []);
+
+  const showSessionExpiredAlert = useCallback(() => {
+    if (sessionRecoveryRef.current.alertShown) return;
+    sessionRecoveryRef.current.alertShown = true;
+    Alert.alert(SESSION_EXPIRED_TITLE, SESSION_EXPIRED_MESSAGE, [
+      { text: "OK" },
+    ]);
+  }, []);
+
+  const handleSessionExpired = useCallback(
+    async (error?: unknown) => {
+      if (!supabase || sessionRecoveryRef.current.inProgress) return;
+
+      if (error && !isInvalidSessionError(error)) return;
+
+      sessionRecoveryRef.current.inProgress = true;
+      hadAuthenticatedSessionRef.current = false;
+
+      try {
+        await clearLocalAuthState();
+        showSessionExpiredAlert();
+        if (__DEV__ && error) {
+          console.warn("Session expired:", error);
+        }
+      } finally {
+        sessionRecoveryRef.current.inProgress = false;
+        setLoading(false);
+      }
+    },
+    [clearLocalAuthState, showSessionExpiredAlert]
+  );
+
   // Best-effort: persist the device timezone to user_settings on sign-in
   const upsertUserTimezone = async (currentUser: User | null) => {
     try {
@@ -107,11 +165,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     // Get initial session on app startup
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error && isInvalidSessionError(error)) {
+        await handleSessionExpired(error);
+        return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
+        hadAuthenticatedSessionRef.current = true;
+        sessionRecoveryRef.current.alertShown = false;
         await upsertUserTimezone(session.user);
       }
     });
@@ -119,18 +184,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for authentication state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id || "no user");
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      if (__DEV__) {
+        console.log(
+          "Auth state changed:",
+          event,
+          nextSession?.user?.id || "no user"
+        );
+      }
+
+      if (nextSession?.user) {
+        hadAuthenticatedSessionRef.current = true;
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          sessionRecoveryRef.current.alertShown = false;
+        }
+        setSession(nextSession);
+        setUser(nextSession.user);
+        setLoading(false);
+        await upsertUserTimezone(nextSession.user);
+        return;
+      }
+
+      const signedOutUnexpectedly =
+        !nextSession &&
+        hadAuthenticatedSessionRef.current &&
+        !voluntarySignOutRef.current &&
+        event === "SIGNED_OUT";
+
+      setSession(null);
+      setUser(null);
       setLoading(false);
-      if (session?.user) {
-        await upsertUserTimezone(session.user);
+
+      if (signedOutUnexpectedly) {
+        hadAuthenticatedSessionRef.current = false;
+        showSessionExpiredAlert();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [handleSessionExpired, showSessionExpiredAlert]);
 
   // Handle app state changes for optimal session management
   useEffect(() => {
@@ -159,28 +251,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       supabase.auth.stopAutoRefresh();
     };
   }, [supabase]);
-
-  // Proactive session refresh to extend session life
-  useEffect(() => {
-    if (!supabase || !session) return;
-
-    // Refresh session every 15 minutes to keep it alive
-    const refreshInterval = setInterval(async () => {
-      try {
-        const {
-          data: { session: refreshedSession },
-          error,
-        } = await supabase.auth.refreshSession();
-        if (refreshedSession && !error) {
-          setSession(refreshedSession);
-        }
-      } catch (error) {
-        // Silent fail - session refresh errors are handled by Supabase
-      }
-    }, 15 * 60 * 1000); // 15 minutes
-
-    return () => clearInterval(refreshInterval);
-  }, [supabase, session]);
 
   // signIn function for the signIn on the home screen
   const signIn = async (email: string, password: string) => {
@@ -281,6 +351,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.warn("Cannot sign out: Supabase not configured");
       return;
     }
+    voluntarySignOutRef.current = true;
+    hadAuthenticatedSessionRef.current = false;
     try {
       console.log("Starting sign out process, current user:", user?.id);
       // Best-effort: clear push token so logged-out device stops receiving pushes.
@@ -314,11 +386,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { error } = await supabase.auth.signOut();
       if (error) {
         // If session is already missing, manually clear state to update UI
-        if (error.message && error.message.includes("session missing")) {
-          console.log("Session already missing, manually clearing state");
-          setSession(null);
-          setUser(null);
-          console.log("State cleared, user should be null now");
+        if (isInvalidSessionError(error)) {
+          await clearLocalAuthState();
           return;
         }
         console.error("Supabase sign out error:", error);
@@ -326,9 +395,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       console.log("Sign out successful");
     } catch (err) {
+      if (isInvalidSessionError(err)) {
+        await clearLocalAuthState();
+        return;
+      }
       console.error("Error during sign out:", err);
-      // Re-throw to let caller handle the error
       throw err;
+    } finally {
+      voluntarySignOutRef.current = false;
     }
   };
 
@@ -346,13 +420,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Sign out the user after successful deletion
         const { error } = await supabase.auth.signOut();
         if (error) {
-          // If session is already missing, that's fine - account is deleted
-          if (error.message && error.message.includes("session missing")) {
-            console.log("Session already missing after account deletion");
-          } else {
+          if (!isInvalidSessionError(error)) {
             console.error("Error signing out after account deletion:", error);
           }
-          // Still return success since account was deleted
+          await clearLocalAuthState();
         } else {
           console.log("Sign out successful after account deletion");
         }

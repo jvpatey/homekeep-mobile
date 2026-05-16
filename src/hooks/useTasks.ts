@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { MaintenanceService } from "../services/maintenanceService";
 import {
   MaintenanceTask,
@@ -58,6 +58,9 @@ interface UseTasksReturn {
   uncompleteTask: (
     instanceId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  skipTaskOccurrence: (
+    task: MaintenanceTask
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (
     instanceIds: string[]
@@ -78,7 +81,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
   const [completedTasks, setCompletedTasks] = useState<MaintenanceTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>(30);
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
@@ -90,17 +93,37 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     totalInstances: 0,
   });
   const [lookbackDays, setLookbackDays] = useState<number | "all">(14);
+  const loadGeneration = useRef(0);
+
+  const defaultStats = {
+    total: 0,
+    completed: 0,
+    overdue: 0,
+    dueToday: 0,
+    thisWeek: 0,
+    completionRate: 0,
+    activeRoutines: 0,
+    totalInstances: 0,
+  };
 
   // loadTasks - load maintenance tasks from the database
   const loadTasks = useCallback(async () => {
     if (!user) return;
 
+    const gen = ++loadGeneration.current;
+
     setLoading(true);
     setError(null);
 
     try {
-      // First, update overdue status in the database
-      await MaintenanceService.updateOverdueStatus();
+      const overdueStatusResult =
+        await MaintenanceService.updateOverdueStatus();
+      if (overdueStatusResult.error) {
+        console.warn(
+          "useTasks: updateOverdueStatus failed, continuing load:",
+          overdueStatusResult.error.message
+        );
+      }
 
       const [
         tasksResult,
@@ -116,15 +139,13 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         MaintenanceService.getMaintenanceStats(),
       ]);
 
+      if (gen !== loadGeneration.current) return;
+
       if (tasksResult.error) throw tasksResult.error;
       if (upcomingResult.error) throw upcomingResult.error;
       if (completedResult.error) throw completedResult.error;
       if (overdueResult.error) throw overdueResult.error;
       if (statsResult.error) throw statsResult.error;
-
-      const upcomingCount = upcomingResult.data?.length || 0;
-      const overdueCount = overdueResult.data?.length || 0;
-      const completedCount = completedResult.data?.length || 0;
 
       // Filter overdue tasks using our corrected date-based logic
       const allOverdueTasks = overdueResult.data || [];
@@ -145,24 +166,16 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       setUpcomingTasks(upcomingResult.data || []);
       setOverdueTasks(correctedOverdueTasks);
       setCompletedTasks([...(completedResult.data || [])]);
-      setStats(
-        statsResult.data || {
-          total: 0,
-          completed: 0,
-          overdue: 0,
-          dueToday: 0,
-          thisWeek: 0,
-          completionRate: 0,
-          activeRoutines: 0,
-          totalInstances: 0,
-        }
-      );
+      setStats(statsResult.data || defaultStats);
     } catch (err) {
-      const error = err as Error;
-      setError(error.message || "Failed to load maintenance tasks");
-      console.error("❌ useTasks: Error loading maintenance tasks:", error);
+      if (gen !== loadGeneration.current) return;
+      const loadError = err as Error;
+      setError(loadError.message || "Failed to load maintenance tasks");
+      console.error("❌ useTasks: Error loading maintenance tasks:", loadError);
     } finally {
-      setLoading(false);
+      if (gen === loadGeneration.current) {
+        setLoading(false);
+      }
     }
   }, [user, filters, timeRange, lookbackDays]);
 
@@ -311,22 +324,6 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         // Refresh full task lists to reflect due date/interval changes
         await loadTasks();
 
-        // Handle completion status changes
-        if (updates.is_active !== undefined) {
-          // If routine is deactivated, remove from upcoming and overdue lists
-          if (!updates.is_active) {
-            setUpcomingTasks((prev) =>
-              prev.filter((task) => task.id !== taskId)
-            );
-            setOverdueTasks((prev) =>
-              prev.filter((task) => task.id !== taskId)
-            );
-          }
-        }
-
-        // Refresh stats
-        await refreshStats();
-
         return { success: true };
       } catch (err) {
         const error = err as Error;
@@ -336,7 +333,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, tasks]
+    [user, loadTasks]
   );
 
   // completeTask - mark a routine instance as completed
@@ -393,6 +390,47 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     [user, loadTasks]
   );
 
+  const skipTaskOccurrence = useCallback(
+    async (task: MaintenanceTask) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      if (task.is_completed) {
+        return { success: false, error: "Cannot skip a completed task" };
+      }
+
+      if (task.interval_days <= 0) {
+        return {
+          success: false,
+          error: "This task does not repeat on a schedule",
+        };
+      }
+
+      try {
+        const result = await MaintenanceService.skipRoutineInstance({
+          instanceId: task.instance_id,
+          routineId: task.id,
+          dueDate: task.due_date,
+          intervalDays: task.interval_days,
+        });
+
+        if (result.error) throw result.error;
+
+        await loadTasks();
+
+        return { success: true };
+      } catch (err) {
+        const error = err as Error;
+        const errorMessage =
+          error.message || "Failed to skip maintenance task occurrence";
+        console.error("Error skipping maintenance task occurrence:", error);
+        return { success: false, error: errorMessage };
+      }
+    },
+    [user, loadTasks]
+  );
+
   // deleteTask - delete a maintenance routine
   const deleteTask = useCallback(
     async (taskId: string) => {
@@ -407,14 +445,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         if (result.error) throw result.error;
 
-        // Remove from local state
-        setTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setUpcomingTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setOverdueTasks((prev) => prev.filter((task) => task.id !== taskId));
-        setCompletedTasks((prev) => prev.filter((task) => task.id !== taskId));
-
-        // Refresh stats
-        await refreshStats();
+        await loadTasks();
 
         return { success: true };
       } catch (err) {
@@ -425,7 +456,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user]
+    [user, loadTasks]
   );
 
   // bulkCompleteTasks - mark multiple routine instances as completed
@@ -555,6 +586,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     updateTask,
     completeTask,
     uncompleteTask,
+    skipTaskOccurrence,
     deleteTask,
     bulkCompleteTasks,
     deleteAllTasks,

@@ -15,6 +15,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
+import { TasksLoadErrorBanner } from "../../components/Dashboard/TasksLoadErrorBanner";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
 import { colors as palette } from "../../theme/colors";
@@ -30,8 +31,13 @@ type ThemePalette = typeof palette.light;
 
 export function CompletionHistoryScreen() {
   const { colors, isDark } = useTheme();
-  const { completedTasks, overdueTasks, completeTask, refreshTasks } =
-    useTasks();
+  const {
+    completedTasks,
+    overdueTasks,
+    completeTask,
+    refreshTasks,
+    error: tasksError,
+  } = useTasks();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
@@ -88,7 +94,6 @@ export function CompletionHistoryScreen() {
       const result = await completeTask(instanceId);
 
       if (result.success) {
-        await refreshTasks();
         Alert.alert(
           "Task Completed!",
           `"${taskTitle}" has been marked as completed.`,
@@ -603,6 +608,13 @@ export function CompletionHistoryScreen() {
         </View>
         <View style={completionHistoryStyles.headerRightSpacer} />
       </View>
+
+      {tasksError ? (
+        <TasksLoadErrorBanner
+          message={tasksError}
+          onRetry={refreshTasks}
+        />
+      ) : null}
 
       <View style={{ flex: 1 }}>
         <FlatList
