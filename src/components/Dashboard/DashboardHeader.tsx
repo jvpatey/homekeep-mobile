@@ -26,6 +26,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { headerStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
 import { DashboardHomeTile, DashboardWeatherTile } from "./tiles";
+import { getDashboardSummaryStackGap } from "./dashboardLayout";
 
 interface DashboardHeaderProps {
   userName: string;
@@ -73,12 +74,7 @@ export function DashboardHeader({
       : 1.5
     : 1;
 
-  /** Same vertical rhythm between stats card, tile row, and quick actions (iPad was uneven / tight). */
-  const summaryStackGapV = getResponsiveValue(
-    DesignSystem.spacing.sm,
-    DesignSystem.spacing.md,
-    DesignSystem.spacing.lg,
-  );
+  const summaryStackGapV = getDashboardSummaryStackGap(getResponsiveValue);
 
   // Spring animations for greeting, username, and profile icon
   const greetOpacity = useSharedValue(0);
@@ -485,44 +481,17 @@ export function DashboardHeader({
               ]}
               pointerEvents={collapsed ? "none" : "auto"}
             >
-              {/* Stats card + address/weather tiles. Hidden from a11y when
-                  collapsed. onLayout captures the natural height so
-                  collapseProgress can interpolate against it.
-                  flexDirection: column-reverse renders the stats card above
-                  the tiles row visually while keeping the source order
-                  intact (avoids moving a large JSX block). The tiles row's
-                  marginTop is the gap between the (visually upper) stats
-                  card and the (visually lower) tiles. */}
               <View
                 onLayout={handleContentLayout}
-                style={{ width: "100%", flexDirection: "column-reverse" }}
+                style={{
+                  width: "100%",
+                  gap: summaryStackGapV,
+                }}
                 accessibilityElementsHidden={collapsed}
                 importantForAccessibility={
                   collapsed ? "no-hide-descendants" : "auto"
                 }
               >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "stretch",
-                    gap: isTablet
-                      ? getResponsiveValue(
-                          DesignSystem.spacing.sm,
-                          DesignSystem.spacing.md,
-                          DesignSystem.spacing.md,
-                        )
-                      : DesignSystem.spacing.sm,
-                    marginTop: summaryStackGapV,
-                    marginBottom: summaryStackGapV,
-                    width: "100%",
-                  }}
-                >
-                  <DashboardHomeTile onPress={onOpenAddressEditor} />
-                  <DashboardWeatherTile
-                    onMissingAddressPress={onOpenAddressEditor}
-                  />
-                </View>
-
                 <Animated.View
                   style={[
                     headerStyles.statsContainer,
@@ -742,6 +711,26 @@ export function DashboardHeader({
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "stretch",
+                    gap: isTablet
+                      ? getResponsiveValue(
+                          DesignSystem.spacing.sm,
+                          DesignSystem.spacing.md,
+                          DesignSystem.spacing.md,
+                        )
+                      : DesignSystem.spacing.sm,
+                    width: "100%",
+                  }}
+                >
+                  <DashboardHomeTile onPress={onOpenAddressEditor} />
+                  <DashboardWeatherTile
+                    onMissingAddressPress={onOpenAddressEditor}
+                  />
+                </View>
               </View>
             </Animated.View>
           </View>

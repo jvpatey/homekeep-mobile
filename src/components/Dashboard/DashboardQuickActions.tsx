@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useDevice } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
+import { getDashboardSummaryStackGap } from "./dashboardLayout";
 
 interface DashboardQuickActionsProps {
   onAddTask: () => void;
@@ -30,6 +31,7 @@ export function DashboardQuickActions({
         DesignSystem.spacing.xl,
       )
     : DesignSystem.spacing.md;
+  const summaryStackGapV = getDashboardSummaryStackGap(getResponsiveValue);
 
   const surface: StyleProp<ViewStyle> = {
     backgroundColor: isDark
@@ -46,13 +48,8 @@ export function DashboardQuickActions({
         styles.row,
         {
           paddingHorizontal: rowPadH,
-          paddingBottom: isTablet
-            ? getResponsiveValue(
-                DesignSystem.spacing.sm,
-                DesignSystem.spacing.md,
-                DesignSystem.spacing.md,
-              )
-            : DesignSystem.spacing.sm,
+          paddingTop: summaryStackGapV,
+          paddingBottom: summaryStackGapV,
         },
         isTablet && {
           gap: getResponsiveValue(
@@ -101,8 +98,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: DesignSystem.spacing.sm,
-    /** paddingHorizontal and paddingBottom set in component for tablet. */
-    paddingTop: 0,
   },
   btn: {
     flex: 1,
