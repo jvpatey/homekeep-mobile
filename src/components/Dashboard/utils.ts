@@ -1,5 +1,6 @@
 import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
+import { formatTaskDueDate as formatTaskDueDateShared } from "../../utils/formatTaskDates";
 
 // useCategoryColors - Features use of the theme colors
 export const useCategoryColors = () => {
@@ -26,24 +27,9 @@ export const useCategoryColors = () => {
   return { getCategoryColor };
 };
 
-// formatDueDate - Features formatting of due date for task items
-export const formatDueDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return "Today";
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return "Tomorrow";
-  } else {
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  }
-};
+// formatDueDate - compact due label (includes year when not current calendar year)
+export const formatDueDate = (dateString: string): string =>
+  formatTaskDueDateShared(dateString);
 
 const startOfLocalDay = (dateString: string) => {
   const d = new Date(dateString);

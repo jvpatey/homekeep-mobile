@@ -16,6 +16,10 @@ import { MaintenanceTask } from "../../types/maintenance";
 import { DashboardScheduleSection } from "./dashboardSections";
 import { ScheduleTaskRow } from "./ScheduleTaskRow";
 import { timelineStyles } from "./timeline-view/styles";
+import {
+  formatTaskSectionMonth,
+  formatTaskSectionYear,
+} from "../../utils/formatTaskDates";
 
 interface DashboardScheduleListProps {
   sections: DashboardScheduleSection[];
@@ -115,6 +119,7 @@ export function DashboardScheduleList({
     }
 
     const date = section.date!;
+    const sectionYear = formatTaskSectionYear(date);
     const sectionIndex = sections.findIndex((s) => s.key === section.key);
     const prevSection =
       sectionIndex > 0 ? sections[sectionIndex - 1] : undefined;
@@ -148,6 +153,7 @@ export function DashboardScheduleList({
           <View
             style={[
               timelineStyles.dateIndicator,
+              sectionYear ? timelineStyles.dateIndicatorWithYear : null,
               {
                 backgroundColor: isDark
                   ? "rgba(35, 37, 38, 0.4)"
@@ -158,9 +164,11 @@ export function DashboardScheduleList({
                 borderWidth: 1,
               },
               isTablet && {
-                width: getResponsiveValue(50, 60, 70),
-                height: getResponsiveValue(50, 60, 70),
-                borderRadius: getResponsiveValue(25, 30, 35),
+                width: getResponsiveValue(56, 64, 72),
+                height: sectionYear
+                  ? getResponsiveValue(62, 70, 78)
+                  : getResponsiveValue(56, 64, 72),
+                borderRadius: getResponsiveValue(14, 16, 18),
               },
             ]}
           >
@@ -169,8 +177,8 @@ export function DashboardScheduleList({
                 timelineStyles.dateNumber,
                 { color: colors.primary },
                 isTablet && {
-                  fontSize:
-                    timelineStyles.dateNumber.fontSize * fontMultiplier,
+                  fontSize: 18 * fontMultiplier,
+                  lineHeight: 20 * fontMultiplier,
                 },
               ]}
             >
@@ -181,14 +189,24 @@ export function DashboardScheduleList({
                 timelineStyles.dateMonth,
                 { color: colors.primary },
                 isTablet && {
-                  fontSize:
-                    (timelineStyles.dateMonth.fontSize || 12) *
-                    fontMultiplier,
+                  fontSize: 11 * fontMultiplier,
+                  lineHeight: 13 * fontMultiplier,
                 },
               ]}
             >
-              {date.toLocaleDateString("en-US", { month: "short" })}
+              {formatTaskSectionMonth(date)}
             </Text>
+            {sectionYear ? (
+              <Text
+                style={[
+                  timelineStyles.dateBadgeYear,
+                  { color: colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {sectionYear}
+              </Text>
+            ) : null}
           </View>
           <View style={timelineStyles.dateInfo}>
             <Text

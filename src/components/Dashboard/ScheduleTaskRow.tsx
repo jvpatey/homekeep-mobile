@@ -9,6 +9,7 @@ import { timelineStyles } from "./timeline-view/styles";
 import { getPriorityColor } from "./timeline-view/utils";
 import { hexWithAlpha } from "./popups/popupChrome";
 import { getPlanTheme } from "../../data/maintenancePlans/planThemes";
+import { formatTaskDueLabel } from "../../utils/formatTaskDates";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
@@ -247,25 +248,9 @@ export function ScheduleTaskRow({
           {(() => {
             const dueDate = new Date(task.due_date);
             const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
+            const displayText = formatTaskDueLabel(task.due_date);
             const isDueToday =
               dueDate.toDateString() === today.toDateString();
-            const isDueTomorrow =
-              dueDate.toDateString() === tomorrow.toDateString();
-
-            let displayText: string;
-            if (isDueToday) {
-              displayText = "Due today";
-            } else if (isDueTomorrow) {
-              displayText = "Due tomorrow";
-            } else {
-              displayText = `Due ${dueDate.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}`;
-            }
 
             return (
               <Text

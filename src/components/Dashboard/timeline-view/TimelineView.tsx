@@ -12,6 +12,10 @@ import { MaintenanceTask } from "../../../types/maintenance";
 import { Ionicons } from "@expo/vector-icons";
 import { timelineStyles } from "./styles";
 import { groupTasksByDate, formatDate } from "./utils";
+import {
+  formatTaskSectionMonth,
+  formatTaskSectionYear,
+} from "../../../utils/formatTaskDates";
 import { ScheduleTaskRow } from "../ScheduleTaskRow";
 
 // TimelineViewProps interface for the TimelineView component
@@ -194,7 +198,9 @@ export function TimelineView({
           onContentSizeChange?.(height);
         }}
       >
-        {groupedTasks.map(({ date, tasks }, groupIndex) => (
+        {groupedTasks.map(({ date, tasks }, groupIndex) => {
+          const sectionYear = formatTaskSectionYear(date);
+          return (
           <View key={groupIndex} style={[
             timelineStyles.dateGroup,
             groupIndex === groupedTasks.length - 1 && isTablet && {
@@ -219,6 +225,7 @@ export function TimelineView({
               <View
                 style={[
                   timelineStyles.dateIndicator,
+                  sectionYear ? timelineStyles.dateIndicatorWithYear : null,
                   {
                     backgroundColor: isDark
                       ? "rgba(35, 37, 38, 0.4)"
@@ -229,9 +236,11 @@ export function TimelineView({
                     borderWidth: 1,
                   },
                   isTablet && {
-                    width: getResponsiveValue(50, 60, 70),
-                    height: getResponsiveValue(50, 60, 70),
-                    borderRadius: getResponsiveValue(25, 30, 35),
+                    width: getResponsiveValue(56, 64, 72),
+                    height: sectionYear
+                      ? getResponsiveValue(62, 70, 78)
+                      : getResponsiveValue(56, 64, 72),
+                    borderRadius: getResponsiveValue(14, 16, 18),
                   },
                 ]}
               >
@@ -240,7 +249,8 @@ export function TimelineView({
                     timelineStyles.dateNumber,
                     { color: colors.primary },
                     isTablet && {
-                      fontSize: timelineStyles.dateNumber.fontSize * fontMultiplier,
+                      fontSize: 18 * fontMultiplier,
+                      lineHeight: 20 * fontMultiplier,
                     },
                   ]}
                 >
@@ -251,12 +261,24 @@ export function TimelineView({
                     timelineStyles.dateMonth,
                     { color: colors.primary },
                     isTablet && {
-                      fontSize: (timelineStyles.dateMonth.fontSize || 12) * fontMultiplier,
+                      fontSize: 11 * fontMultiplier,
+                      lineHeight: 13 * fontMultiplier,
                     },
                   ]}
                 >
-                  {date.toLocaleDateString("en-US", { month: "short" })}
+                  {formatTaskSectionMonth(date)}
                 </Text>
+                {sectionYear ? (
+                  <Text
+                    style={[
+                      timelineStyles.dateBadgeYear,
+                      { color: colors.textSecondary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {sectionYear}
+                  </Text>
+                ) : null}
               </View>
               <View style={timelineStyles.dateInfo}>
                 <Text style={[
@@ -293,7 +315,8 @@ export function TimelineView({
               />
             ))}
           </View>
-        ))}
+        );
+        })}
       </ScrollView>
     </Animated.View>
   );

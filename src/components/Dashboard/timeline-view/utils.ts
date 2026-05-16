@@ -1,5 +1,6 @@
 import { MaintenanceTask } from "../../../types/maintenance";
 import { ThemeColors } from "../../../types/navigation";
+import { formatTaskSectionHeading } from "../../../utils/formatTaskDates";
 
 // groupTasksByDate function to group the tasks by date
 export const groupTasksByDate = (tasks: MaintenanceTask[]) => {
@@ -31,24 +32,8 @@ export const groupTasksByDate = (tasks: MaintenanceTask[]) => {
     }));
 };
 
-// formatDate function to format the date
-export const formatDate = (date: Date) => {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return "Today";
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return "Tomorrow";
-  } else {
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  }
-};
+// formatDate function to format the date (section headings)
+export const formatDate = (date: Date) => formatTaskSectionHeading(date);
 
 // formatTime function to format the time
 export const formatTime = (dateString: string) => {

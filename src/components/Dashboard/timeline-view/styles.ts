@@ -32,22 +32,37 @@ export const timelineStyles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.md,
   },
+  /** Rounded-square date badge (day + month; taller variant adds year) */
   dateIndicator: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
     justifyContent: "center",
     alignItems: "center",
     marginRight: DesignSystem.spacing.md,
     ...DesignSystem.shadows.softKey,
   },
+  dateIndicatorWithYear: {
+    height: 58,
+  },
   dateNumber: {
-    ...DesignSystem.typography.h4,
+    fontSize: 18,
+    lineHeight: 20,
     fontWeight: "700",
   },
   dateMonth: {
-    ...DesignSystem.typography.caption,
+    fontSize: 11,
+    lineHeight: 13,
     fontWeight: "600",
+  },
+  dateBadgeYear: {
+    fontSize: 9,
+    lineHeight: 11,
+    marginTop: 1,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   dateInfo: {
     flex: 1,

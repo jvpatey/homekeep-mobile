@@ -27,6 +27,7 @@ import { DesignSystem } from "../../../../theme/designSystem";
 import { GlassCard } from "../../../ui/glass-card/GlassCard";
 import { SheetGrabber } from "../../../ui/sheet-grabber";
 import { sheetChromeStyles, createContentStyles } from "./styles";
+import { formatTaskSectionHeading } from "../../../../utils/formatTaskDates";
 
 interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
@@ -210,24 +211,6 @@ export function SimpleTaskDetailModal({
     urgent: colors.error,
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    }
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const formatTime = (minutes?: number) => {
     if (!minutes) return "No time estimate";
@@ -562,7 +545,7 @@ export function SimpleTaskDetailModal({
                             { color: colors.text },
                           ]}
                         >
-                          {formatDate(task.due_date)}
+                          {formatTaskSectionHeading(new Date(task.due_date))}
                         </Text>
                       </View>
                     </View>
