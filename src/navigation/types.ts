@@ -23,6 +23,7 @@ export type AppStackParamList = {
   Settings: undefined; // Settings screen
   AllTasks: undefined; // All tasks screen
   MaintenancePlans: undefined; // Bundled maintenance plan templates
+  HomeSummaryPreview: undefined; // Home maintenance summary preview + PDF export
 };
 
 /**

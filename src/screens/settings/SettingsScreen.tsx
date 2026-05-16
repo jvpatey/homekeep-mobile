@@ -62,6 +62,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     setAddressModalVisible(true);
   };
 
+  const handleHomeSummary = async () => {
+    await triggerLight();
+    navigation.navigate("HomeSummaryPreview");
+  };
+
   const handleDeleteAllTasks = async () => {
     await triggerMedium();
     Alert.alert(
@@ -195,8 +200,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       type: "navigation",
     },
     {
+      id: "home-summary",
+      title: "Home Maintenance Summary",
+      icon: "document-text-outline",
+      onPress: handleHomeSummary,
+      type: "navigation",
+    },
+    {
       id: "maintenance-plans",
-      title: "Maintenance plans",
+      title: "Maintenance Plans",
       icon: "layers-outline",
       onPress: () => {
         void triggerLight();

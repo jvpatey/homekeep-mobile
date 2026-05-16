@@ -15,6 +15,9 @@ import { addDays, startOfDay } from "date-fns";
 /** Max rows per task list query; pagination is out of scope for now. */
 export const TASK_LIST_LIMIT = 200;
 
+/** Higher cap for home summary PDF export (all-time history). */
+export const TASK_EXPORT_LIMIT = 2000;
+
 export class MaintenanceTaskService {
   // Get next open instance for a routine (earliest due, not completed)
   static async getNextOpenInstanceForRoutine(
@@ -247,7 +250,8 @@ export class MaintenanceTaskService {
 
   // Get completed maintenance tasks
   static async getCompletedTasks(
-    lookbackDays: number | "all" = 14
+    lookbackDays: number | "all" = 14,
+    options?: { forExport?: boolean }
   ): Promise<MaintenanceTasksResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -294,7 +298,8 @@ export class MaintenanceTaskService {
         );
       }
 
-      const { data, error } = await query.limit(TASK_LIST_LIMIT);
+      const limit = options?.forExport ? TASK_EXPORT_LIMIT : TASK_LIST_LIMIT;
+      const { data, error } = await query.limit(limit);
 
       if (error) throw error;
 

@@ -42,6 +42,11 @@ export const completionHistoryStyles = StyleSheet.create({
     width: 40,
     zIndex: 1,
   },
+  headerAction: {
+    padding: DesignSystem.spacing.sm,
+    marginRight: -DesignSystem.spacing.sm,
+    zIndex: 1,
+  },
   routinesList: {
     flexGrow: 1,
     padding: DesignSystem.spacing.md,
