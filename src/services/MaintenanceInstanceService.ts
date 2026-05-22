@@ -1,5 +1,5 @@
 import { addDays, parseISO, isValid } from "date-fns";
-import { supabase } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   CreateRoutineInstanceData,
   RoutineInstance,
@@ -251,11 +251,6 @@ export class MaintenanceInstanceService {
     const nextDue = computeNextOccurrenceDueDate(dueDate, intervalDays);
     const nextDueIso = nextDue.toISOString();
 
-    const deleteResult = await this.deleteInstance(instanceId);
-    if (deleteResult.error) {
-      return { data: null, error: deleteResult.error };
-    }
-
     const createResult = await this.createInstance({
       routine_id: routineId,
       due_date: nextDueIso,
@@ -264,11 +259,15 @@ export class MaintenanceInstanceService {
     });
 
     if (createResult.error) {
-      console.error(
-        "Skip: deleted instance but failed to create next occurrence:",
-        createResult.error
-      );
       return { data: null, error: createResult.error };
+    }
+
+    const deleteResult = await this.deleteInstance(instanceId);
+    if (deleteResult.error) {
+      console.error(
+        "Skip: created next occurrence but failed to delete old:",
+        deleteResult.error
+      );
     }
 
     return {

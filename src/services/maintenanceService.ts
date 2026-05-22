@@ -1,4 +1,4 @@
-import { supabase } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   MaintenanceRoutine,
   RoutineInstance,

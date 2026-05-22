@@ -1,5 +1,5 @@
 import { File as ExpoFile } from "expo-file-system";
-import { supabase } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   EquipmentManual,
   CreateEquipmentManualData,
