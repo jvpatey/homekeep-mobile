@@ -1,4 +1,4 @@
-import { supabase } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   MaintenanceTask,
   MaintenanceFilters,
@@ -220,7 +220,7 @@ export class MaintenanceTaskService {
         `
         )
         .eq("is_completed", false)
-        .eq("is_overdue", true)
+        .lt("due_date", start.toISOString())
         .eq("routine.is_active", true)
         .order("due_date", { ascending: true });
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
+import { ensureAuthSession } from "../utils/ensureAuthSession";
 import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
@@ -74,7 +76,7 @@ interface UseTasksReturn {
 
 // useTasks - custom hook for managing maintenance tasks
 export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
-  const { user } = useAuth();
+  const { user, sessionReady } = useAuth();
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<MaintenanceTask[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<MaintenanceTask[]>([]);
@@ -92,8 +94,9 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     activeRoutines: 0,
     totalInstances: 0,
   });
-  const [lookbackDays, setLookbackDays] = useState<number | "all">(14);
+  const [lookbackDays, setLookbackDays] = useState<number | "all">("all");
   const loadGeneration = useRef(0);
+  const lastForegroundLoadRef = useRef(0);
 
   const defaultStats = {
     total: 0,
@@ -107,77 +110,102 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
   };
 
   // loadTasks - load maintenance tasks from the database
-  const loadTasks = useCallback(async () => {
-    if (!user) return;
+  const loadTasks = useCallback(
+    async (options?: { isRetry?: boolean }) => {
+      if (!user || !sessionReady) return;
 
-    const gen = ++loadGeneration.current;
+      const gen = ++loadGeneration.current;
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      const overdueStatusResult =
-        await MaintenanceService.updateOverdueStatus();
-      if (overdueStatusResult.error) {
-        console.warn(
-          "useTasks: updateOverdueStatus failed, continuing load:",
-          overdueStatusResult.error.message
-        );
+      try {
+        const sessionValid = await ensureAuthSession();
+        if (gen !== loadGeneration.current) return;
+        if (!sessionValid) {
+          setError("Session expired. Please sign in again.");
+          return;
+        }
+
+        const overdueStatusResult =
+          await MaintenanceService.updateOverdueStatus();
+        if (overdueStatusResult.error) {
+          console.warn(
+            "useTasks: updateOverdueStatus failed, continuing load:",
+            overdueStatusResult.error.message
+          );
+        }
+
+        const [
+          tasksResult,
+          upcomingResult,
+          overdueResult,
+          completedResult,
+          statsResult,
+        ] = await Promise.all([
+          MaintenanceService.getMaintenanceTasks(filters),
+          MaintenanceService.getUpcomingTasks(timeRange),
+          MaintenanceService.getOverdueTasks(lookbackDays),
+          MaintenanceService.getCompletedTasks(lookbackDays),
+          MaintenanceService.getMaintenanceStats(),
+        ]);
+
+        if (gen !== loadGeneration.current) return;
+
+        if (tasksResult.error) throw tasksResult.error;
+        if (upcomingResult.error) throw upcomingResult.error;
+        if (completedResult.error) throw completedResult.error;
+        if (overdueResult.error) throw overdueResult.error;
+        if (statsResult.error) throw statsResult.error;
+
+        const allOverdueTasks = overdueResult.data || [];
+        const correctedOverdueTasks = allOverdueTasks.filter((task) => {
+          const dueDate = new Date(task.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const diffDays = Math.floor(
+            (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          return diffDays < 0;
+        });
+
+        const upcoming = upcomingResult.data ?? [];
+        const statsData = statsResult.data ?? defaultStats;
+        const visibleCount = upcoming.length + correctedOverdueTasks.length;
+        const looksLikeStaleEmpty =
+          visibleCount === 0 && statsData.activeRoutines > 0;
+
+        if (looksLikeStaleEmpty && !options?.isRetry) {
+          await new Promise((r) => setTimeout(r, 500));
+          if (gen !== loadGeneration.current) return;
+          return loadTasks({ isRetry: true });
+        }
+
+        if (looksLikeStaleEmpty && options?.isRetry) {
+          setError("Couldn't load tasks. Pull down to refresh or try again.");
+          return;
+        }
+
+        setTasks(tasksResult.data || []);
+        setUpcomingTasks(upcoming);
+        setOverdueTasks(correctedOverdueTasks);
+        setCompletedTasks([...(completedResult.data || [])]);
+        setStats(statsData);
+      } catch (err) {
+        if (gen !== loadGeneration.current) return;
+        const loadError = err as Error;
+        setError(loadError.message || "Failed to load maintenance tasks");
+        console.error("❌ useTasks: Error loading maintenance tasks:", loadError);
+      } finally {
+        if (gen === loadGeneration.current) {
+          setLoading(false);
+        }
       }
-
-      const [
-        tasksResult,
-        upcomingResult,
-        overdueResult,
-        completedResult,
-        statsResult,
-      ] = await Promise.all([
-        MaintenanceService.getMaintenanceTasks(filters),
-        MaintenanceService.getUpcomingTasks(timeRange),
-        MaintenanceService.getOverdueTasks(lookbackDays),
-        MaintenanceService.getCompletedTasks(lookbackDays),
-        MaintenanceService.getMaintenanceStats(),
-      ]);
-
-      if (gen !== loadGeneration.current) return;
-
-      if (tasksResult.error) throw tasksResult.error;
-      if (upcomingResult.error) throw upcomingResult.error;
-      if (completedResult.error) throw completedResult.error;
-      if (overdueResult.error) throw overdueResult.error;
-      if (statsResult.error) throw statsResult.error;
-
-      // Filter overdue tasks using our corrected date-based logic
-      const allOverdueTasks = overdueResult.data || [];
-      const correctedOverdueTasks = allOverdueTasks.filter((task) => {
-        const dueDate = new Date(task.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const diffDays = Math.floor(
-          (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        // Only include tasks due BEFORE today (not including today)
-        return diffDays < 0;
-      });
-
-      setTasks(tasksResult.data || []);
-      setUpcomingTasks(upcomingResult.data || []);
-      setOverdueTasks(correctedOverdueTasks);
-      setCompletedTasks([...(completedResult.data || [])]);
-      setStats(statsResult.data || defaultStats);
-    } catch (err) {
-      if (gen !== loadGeneration.current) return;
-      const loadError = err as Error;
-      setError(loadError.message || "Failed to load maintenance tasks");
-      console.error("❌ useTasks: Error loading maintenance tasks:", loadError);
-    } finally {
-      if (gen === loadGeneration.current) {
-        setLoading(false);
-      }
-    }
-  }, [user, filters, timeRange, lookbackDays]);
+    },
+    [user, sessionReady, filters, timeRange, lookbackDays]
+  );
 
   // createTask - create a new maintenance routine
   const createTask = useCallback(
@@ -549,11 +577,26 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     }
   }, [user, refreshStats]);
 
-  // Load tasks on mount and when user changes
+  // Reload when app returns to foreground (debounced)
   useEffect(() => {
-    if (user) {
-      loadTasks();
-    } else {
+    if (!user || !sessionReady) return;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") return;
+      const now = Date.now();
+      if (now - lastForegroundLoadRef.current < 2000) return;
+      lastForegroundLoadRef.current = now;
+      void loadTasks();
+    });
+
+    return () => subscription.remove();
+  }, [user?.id, sessionReady, loadTasks]);
+
+  // Load tasks when auth bootstrap completes
+  useEffect(() => {
+    if (user && sessionReady) {
+      void loadTasks();
+    } else if (!user) {
       setTasks([]);
       setUpcomingTasks([]);
       setOverdueTasks([]);
@@ -569,7 +612,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         totalInstances: 0,
       });
     }
-  }, [user, loadTasks]);
+  }, [user, sessionReady, loadTasks]);
 
   return {
     tasks,

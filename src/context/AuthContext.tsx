@@ -6,49 +6,25 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import {
-  createClient,
-  Session,
-  User,
-  SupabaseClient,
-} from "@supabase/supabase-js";
-import "react-native-url-polyfill/auto";
+import { Session, User, SupabaseClient } from "@supabase/supabase-js";
 import * as AppleAuthentication from "expo-apple-authentication";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
+import { supabase, hasValidCredentials } from "../lib/supabase";
+import { ensureAuthSession } from "../utils/ensureAuthSession";
 import {
   isInvalidSessionError,
   SESSION_EXPIRED_MESSAGE,
   SESSION_EXPIRED_TITLE,
 } from "../utils/authSessionErrors";
 
-// Supabase configuration with environment variables and fallbacks
-const supabaseUrl =
-  process.env.EXPO_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key";
-
-// Only create client if we have valid credentials
-const hasValidCredentials =
-  supabaseUrl !== "https://placeholder.supabase.co" &&
-  supabaseAnonKey !== "placeholder-key";
-
-export const supabase = hasValidCredentials
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
-      },
-    })
-  : null;
+export { supabase } from "../lib/supabase";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  sessionReady: boolean;
   isConfigured: boolean;
   supabase: SupabaseClient | null;
   signIn: (
@@ -88,6 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
 
   const voluntarySignOutRef = useRef(false);
   const sessionRecoveryRef = useRef({ inProgress: false, alertShown: false });
@@ -96,6 +73,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const clearLocalAuthState = useCallback(async () => {
     setSession(null);
     setUser(null);
+    setSessionReady(true);
     if (!supabase) return;
     try {
       await supabase.auth.signOut({ scope: "local" });
@@ -130,12 +108,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } finally {
         sessionRecoveryRef.current.inProgress = false;
         setLoading(false);
+        setSessionReady(true);
       }
     },
     [clearLocalAuthState, showSessionExpiredAlert]
   );
 
-  // Best-effort: persist the device timezone to user_settings on sign-in
   const upsertUserTimezone = async (currentUser: User | null) => {
     try {
       if (!supabase || !currentUser) return;
@@ -158,30 +136,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-
-    // Get initial session on app startup
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error && isInvalidSessionError(error)) {
-        await handleSessionExpired(error);
+  const applyAuthenticatedSession = useCallback(
+    async (nextSession: Session) => {
+      const sessionValid = await ensureAuthSession();
+      if (!sessionValid) {
+        await handleSessionExpired();
         return;
       }
 
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(nextSession);
+      setUser(nextSession.user);
+      hadAuthenticatedSessionRef.current = true;
+      sessionRecoveryRef.current.alertShown = false;
+      setSessionReady(true);
       setLoading(false);
-      if (session?.user) {
-        hadAuthenticatedSessionRef.current = true;
-        sessionRecoveryRef.current.alertShown = false;
-        await upsertUserTimezone(session.user);
-      }
-    });
+      await upsertUserTimezone(nextSession.user);
+    },
+    [handleSessionExpired]
+  );
 
-    // Listen for authentication state changes
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      setSessionReady(true);
+      return;
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
@@ -193,48 +173,64 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
       }
 
-      if (nextSession?.user) {
-        hadAuthenticatedSessionRef.current = true;
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          sessionRecoveryRef.current.alertShown = false;
+      if (event === "INITIAL_SESSION") {
+        if (nextSession?.user) {
+          await applyAuthenticatedSession(nextSession);
+        } else {
+          setSession(null);
+          setUser(null);
+          setSessionReady(true);
+          setLoading(false);
         }
-        setSession(nextSession);
-        setUser(nextSession.user);
-        setLoading(false);
-        await upsertUserTimezone(nextSession.user);
         return;
       }
 
-      const signedOutUnexpectedly =
-        !nextSession &&
-        hadAuthenticatedSessionRef.current &&
-        !voluntarySignOutRef.current &&
-        event === "SIGNED_OUT";
+      if (nextSession?.user) {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          sessionRecoveryRef.current.alertShown = false;
+        }
+        await applyAuthenticatedSession(nextSession);
+        return;
+      }
 
-      setSession(null);
-      setUser(null);
-      setLoading(false);
+      if (event === "SIGNED_OUT") {
+        const signedOutUnexpectedly =
+          hadAuthenticatedSessionRef.current &&
+          !voluntarySignOutRef.current;
 
-      if (signedOutUnexpectedly) {
-        hadAuthenticatedSessionRef.current = false;
-        showSessionExpiredAlert();
+        setSession(null);
+        setUser(null);
+        setSessionReady(true);
+        setLoading(false);
+
+        if (signedOutUnexpectedly) {
+          hadAuthenticatedSessionRef.current = false;
+          showSessionExpiredAlert();
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [handleSessionExpired, showSessionExpiredAlert]);
+  }, [applyAuthenticatedSession, showSessionExpiredAlert]);
 
   // Handle app state changes for optimal session management
   useEffect(() => {
-    if (!supabase) return;
+    const client = supabase;
+    if (!client) return;
 
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === "active") {
-        // Start auto-refresh when app becomes active
-        supabase.auth.startAutoRefresh();
+        client.auth.startAutoRefresh();
+        void client.auth.getSession().then(({ data: { session } }) => {
+          if (
+            session &&
+            (session.expires_at ?? 0) * 1000 < Date.now() + 60_000
+          ) {
+            void client.auth.refreshSession();
+          }
+        });
       } else {
-        // Stop auto-refresh when app goes to background
-        supabase.auth.stopAutoRefresh();
+        client.auth.stopAutoRefresh();
       }
     };
 
@@ -243,14 +239,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       handleAppStateChange
     );
 
-    // Start auto-refresh initially
-    supabase.auth.startAutoRefresh();
+    client.auth.startAutoRefresh();
 
     return () => {
       subscription?.remove();
-      supabase.auth.stopAutoRefresh();
+      client.auth.stopAutoRefresh();
     };
-  }, [supabase]);
+  }, []);
 
   // signIn function for the signIn on the home screen
   const signIn = async (email: string, password: string) => {
@@ -449,6 +444,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     session,
     loading,
+    sessionReady,
     isConfigured: hasValidCredentials,
     supabase,
     signIn,

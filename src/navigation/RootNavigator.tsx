@@ -51,11 +51,10 @@ const linking = {
  * Routes users to either authenticated (App) or unauthenticated (Auth) flows based on their login status.
  */
 export function RootNavigator() {
-  const { loading, user } = useAuth();
+  const { loading, user, sessionReady } = useAuth();
   const { colors } = useTheme();
 
-  // Show loading screen while checking authentication status
-  if (loading) {
+  if (loading || (user && !sessionReady)) {
     return (
       <View
         style={{
