@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Alert, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
@@ -12,8 +12,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { MaintenanceTask } from "../../types/maintenance";
 import { useAuth } from "../../context/AuthContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
-import { DueSoonPopup, OverduePopup, CompletionCelebration } from "./popups";
-import { NotificationPermissionRequest } from "../ui";
+import { CompletionCelebration } from "./popups";
+import { NotificationPermissionRequest, HearthCanvas } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
@@ -21,18 +21,17 @@ import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeAddressOnboardingModal } from "../modals/home-address-onboarding";
 import { useProfile } from "../../context/ProfileContext";
 import { DesignSystem } from "../../theme/designSystem";
+import { getGreeting, getUserName } from "./utils";
 import {
-  getGreeting,
-  getUserName,
-  getDueSoonTasks,
-  sortTasksByDateThenPriority,
-} from "./utils";
-import { dashboardStyles } from "./styles";
-import { buildDashboardSections } from "./dashboardSections";
-import { DashboardScheduleList } from "./DashboardScheduleList";
-import { DashboardQuickActions } from "./DashboardQuickActions";
+  buildDashboardSections,
+  countDueToday,
+} from "./dashboardSections";
+import {
+  DashboardScheduleList,
+  DashboardScheduleListRef,
+} from "./DashboardScheduleList";
 import { confirmSkipTaskOccurrence } from "../../utils/skipTaskOccurrence";
-import { useHaptics } from "../../hooks";
+import { useHaptics, useReducedMotion } from "../../hooks";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
@@ -50,14 +49,12 @@ interface NewDashboardProps {
   onRetryTasks?: () => void;
 }
 
-/** Persisted so returning users skip the header entrance delay. */
 const DASHBOARD_HEADER_ENTRANCE_KEY =
   "@homekeep/dashboard_header_entrance_seen";
 
 export function NewDashboard({
   tasks,
   overdueTasks = [],
-  completedTasks = [],
   onCompleteTask,
   onTaskPress,
   onRefresh,
@@ -70,8 +67,11 @@ export function NewDashboard({
   const { user } = useAuth();
   const { colors } = useTheme();
   const { triggerMedium, triggerLight } = useHaptics();
+  const reducedMotion = useReducedMotion();
   const { addressNeeded } = useProfile();
   const insets = useSafeAreaInsets();
+  const listRef = useRef<DashboardScheduleListRef>(null);
+
   const [showCelebration, setShowCelebration] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
@@ -81,8 +81,6 @@ export function NewDashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTaskInitial, setEditTaskInitial] =
     useState<MaintenanceTask | null>(null);
-  const [showOverduePopup, setShowOverduePopup] = useState(false);
-  const [showDueSoonPopup, setShowDueSoonPopup] = useState(false);
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
 
@@ -97,7 +95,7 @@ export function NewDashboard({
         const seen = await AsyncStorage.getItem(DASHBOARD_HEADER_ENTRANCE_KEY);
         if (cancelled) return;
 
-        if (seen === "true") {
+        if (seen === "true" || reducedMotion) {
           headerOpacity.value = 1;
           headerTranslateY.value = 0;
           return;
@@ -106,18 +104,15 @@ export function NewDashboard({
         const duration = DesignSystem.motion.duration.fast;
         const stagger = Math.round(DesignSystem.motion.stagger * 0.4);
 
-        headerOpacity.value = 0;
-        headerTranslateY.value = 14;
         headerOpacity.value = withDelay(stagger, withTiming(1, { duration }));
         headerTranslateY.value = withDelay(
           stagger,
           withTiming(0, { duration })
         );
 
-        const persistAfterMs = stagger + duration + 80;
         setTimeout(() => {
           void AsyncStorage.setItem(DASHBOARD_HEADER_ENTRANCE_KEY, "true");
-        }, persistAfterMs);
+        }, stagger + duration + 80);
       } catch {
         if (!cancelled) {
           headerOpacity.value = 1;
@@ -130,26 +125,13 @@ export function NewDashboard({
     return () => {
       cancelled = true;
     };
-  }, [headerOpacity, headerTranslateY]);
+  }, [headerOpacity, headerTranslateY, reducedMotion]);
 
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: headerOpacity.value,
     transform: [{ translateY: headerTranslateY.value }],
   }));
 
-  const dueSoonTasks = useMemo(
-    () => sortTasksByDateThenPriority(getDueSoonTasks(tasks)),
-    [tasks]
-  );
-
-  const overdueSorted = useMemo(
-    () => sortTasksByDateThenPriority(overdueTasks),
-    [overdueTasks]
-  );
-
-  // First-run address onboarding: surface the sheet once the entrance
-  // animation settles. Profile.address_set_at flips the flag off after the
-  // user saves or skips, so this runs at most once per account.
   useEffect(() => {
     if (!addressNeeded) return;
     const timer = setTimeout(() => {
@@ -158,7 +140,15 @@ export function NewDashboard({
     return () => clearTimeout(timer);
   }, [addressNeeded]);
 
-  const sections = useMemo(() => buildDashboardSections(tasks), [tasks]);
+  const sections = useMemo(
+    () => buildDashboardSections(tasks, overdueTasks),
+    [tasks, overdueTasks]
+  );
+
+  const dueTodayCount = useMemo(
+    () => countDueToday([...tasks, ...overdueTasks]),
+    [tasks, overdueTasks]
+  );
 
   const handleCompleteTask = async (instanceId: string) => {
     try {
@@ -224,31 +214,27 @@ export function NewDashboard({
       setSelectedTask(task);
       setShowTaskDetail(true);
     }
-  };
-
-  const handleOverduePopupTaskPress = (instanceId: string) => {
-    setShowOverduePopup(false);
-    const task =
-      overdueTasks.find((t) => t.instance_id === instanceId) ??
-      tasks.find((t) => t.instance_id === instanceId);
-    if (task) {
-      setSelectedTask(task);
-      setShowTaskDetail(true);
-    }
+    onTaskPress?.(instanceId);
   };
 
   const handleCloseCelebration = () => {
     setShowCelebration(false);
-    if (onRefresh) {
-      onRefresh();
-    }
+    onRefresh?.();
   };
 
   const handleTaskCreated = () => {
     setShowCreateModal(false);
-    if (onRefresh) {
-      onRefresh();
-    }
+    setEditTaskInitial(null);
+    onRefresh?.();
+  };
+
+  const openCreateModal = () => {
+    setEditTaskInitial(null);
+    setShowCreateModal(true);
+  };
+
+  const handleScrollToSection = (key: string) => {
+    listRef.current?.scrollToSection(key);
   };
 
   const contentPaddingBottom =
@@ -258,45 +244,27 @@ export function NewDashboard({
     56;
 
   const listHeader = (
-    <Animated.View style={headerAnimatedStyle}>
+    <>
       <DashboardHeader
         userName={getUserName(user?.user_metadata?.full_name, user?.email)}
         greeting={getGreeting()}
-        dueSoonCount={dueSoonTasks.length}
-        completedCount={completedTasks.length}
         overdueCount={overdueTasks.length}
-        onRefresh={onRefresh}
-        onShowDueSoonPopup={() => setShowDueSoonPopup(true)}
-        onShowOverduePopup={() => setShowOverduePopup(true)}
+        dueTodayCount={dueTodayCount}
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowAddressModal(true)}
+        onScrollToSection={handleScrollToSection}
+        animatedStyle={headerAnimatedStyle}
       />
       {tasksError && onRetryTasks ? (
-        <TasksLoadErrorBanner
-          message={tasksError}
-          onRetry={onRetryTasks}
-        />
+        <TasksLoadErrorBanner message={tasksError} onRetry={onRetryTasks} />
       ) : null}
-      {sections.length > 0 ? (
-        <DashboardQuickActions
-          onAddTask={() => {
-            setEditTaskInitial(null);
-            setShowCreateModal(true);
-          }}
-          onBrowseMaintenancePlans={onBrowseMaintenancePlans}
-        />
-      ) : null}
-    </Animated.View>
+    </>
   );
 
   return (
-    <View
-      style={[
-        dashboardStyles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
+    <HearthCanvas>
       <DashboardScheduleList
+        ref={listRef}
         sections={sections}
         ListHeaderComponent={listHeader}
         onRefresh={onRefresh}
@@ -310,21 +278,12 @@ export function NewDashboard({
               }
             : undefined
         }
-        onAddTask={() => {
-          setEditTaskInitial(null);
-          setShowCreateModal(true);
-        }}
+        onAddTask={openCreateModal}
         onBrowseMaintenancePlans={onBrowseMaintenancePlans}
         contentPaddingBottom={contentPaddingBottom}
       />
 
-      <FloatingActionButton
-        onPress={() => {
-          setEditTaskInitial(null);
-          setShowCreateModal(true);
-        }}
-        hasTasks={tasks.length > 0}
-      />
+      <FloatingActionButton onPress={openCreateModal} />
 
       <SimpleTaskDetailModal
         task={selectedTask}
@@ -375,21 +334,6 @@ export function NewDashboard({
         onClose={handleCloseCelebration}
       />
 
-      {showOverduePopup && (
-        <OverduePopup
-          tasks={overdueSorted}
-          onClose={() => setShowOverduePopup(false)}
-          onTaskPress={handleOverduePopupTaskPress}
-        />
-      )}
-
-      {showDueSoonPopup && (
-        <DueSoonPopup
-          tasks={dueSoonTasks}
-          onClose={() => setShowDueSoonPopup(false)}
-        />
-      )}
-
       <EquipmentManualsModal
         visible={showEquipmentManualsModal}
         onClose={() => setShowEquipmentManualsModal(false)}
@@ -401,6 +345,6 @@ export function NewDashboard({
       />
 
       <NotificationPermissionRequest />
-    </View>
+    </HearthCanvas>
   );
 }

@@ -7,39 +7,39 @@ export const categories: Array<{
   icon: string;
   color: string;
 }> = [
-  { id: "HVAC", name: "HVAC", icon: "snow-outline", color: "#FF6B6B" },
-  { id: "PLUMBING", name: "Plumbing", icon: "water-outline", color: "#4ECDC4" },
+  { id: "HVAC", name: "HVAC", icon: "snow-outline", color: "#C45C26" },
+  { id: "PLUMBING", name: "Plumbing", icon: "water-outline", color: "#2F5D50" },
   {
     id: "ELECTRICAL",
     name: "Electrical",
     icon: "flash-outline",
-    color: "#FFE66D",
+    color: "#C49A3C",
   },
   {
     id: "APPLIANCES",
     name: "Appliances",
     icon: "hardware-chip-outline",
-    color: "#A8E6CF",
+    color: "#8B6914",
   },
-  { id: "EXTERIOR", name: "Exterior", icon: "home-outline", color: "#FF9A8B" },
-  { id: "INTERIOR", name: "Interior", icon: "bed-outline", color: "#B8E0D2" },
+  { id: "EXTERIOR", name: "Exterior", icon: "home-outline", color: "#6B645C" },
+  { id: "INTERIOR", name: "Interior", icon: "bed-outline", color: "#A67C52" },
   {
     id: "LANDSCAPING",
     name: "Landscaping",
     icon: "leaf-outline",
-    color: "#95E1D3",
+    color: "#2F5D50",
   },
   {
     id: "SAFETY",
     name: "Safety",
     icon: "shield-checkmark-outline",
-    color: "#F38181",
+    color: "#C0392B",
   },
   {
     id: "GENERAL",
     name: "General",
     icon: "construct-outline",
-    color: "#C7CEEA",
+    color: "#6B645C",
   },
 ];
 
@@ -49,9 +49,9 @@ export const priorities: Array<{
   name: string;
   color: string;
 }> = [
-  { id: "low", name: "Low", color: "#95A5A6" },
-  { id: "medium", name: "Medium", color: "#3498DB" },
-  { id: "high", name: "High", color: "#E74C3C" },
+  { id: "low", name: "Low", color: "#2F5D50" },
+  { id: "medium", name: "Medium", color: "#C49A3C" },
+  { id: "high", name: "High", color: "#C45C26" },
   { id: "urgent", name: "Urgent", color: "#C0392B" },
 ];
 

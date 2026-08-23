@@ -10,6 +10,10 @@ export { HouseMark } from "./HouseMark";
 export { Button, TextLink } from "./Button";
 export { TextField } from "./TextField";
 export { OtpInput } from "./OtpInput";
+export { HearthSheet } from "./HearthSheet";
+export { HearthCanvas } from "./HearthCanvas";
+export { HearthSurfaceCard } from "./HearthSurfaceCard";
+export { PriorityMark, getPriorityColor } from "./PriorityMark";
 export {
   SearchableSelectModal,
   type SearchableOption,

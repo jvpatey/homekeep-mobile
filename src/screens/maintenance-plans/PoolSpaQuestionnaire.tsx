@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
-import { GlassCard } from "../../components/ui";
+import { HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PoolSpaAnswers } from "../../data/maintenancePlans";
@@ -145,9 +145,7 @@ export function PoolSpaQuestionnaire({
           cell cleaning only when they apply.
         </Text>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -164,11 +162,9 @@ export function PoolSpaQuestionnaire({
             onPress={() => setHasPool(false)}
             accessibilityLabel="No swimming pool"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -185,12 +181,10 @@ export function PoolSpaQuestionnaire({
             onPress={() => setHasSpa(false)}
             accessibilityLabel="No hot tub or spa"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
         {hasPool === true ? (
-          <GlassCard
-            material="regular"
-            radius={DesignSystem.borders.radius.glass}
+          <HearthSurfaceCard
             containerStyle={styles.cardGap}
             style={styles.cardInner}
           >
@@ -213,7 +207,7 @@ export function PoolSpaQuestionnaire({
               onPress={() => setPoolUsesSaltChlorination(false)}
               accessibilityLabel="No salt chlorination"
             />
-          </GlassCard>
+          </HearthSurfaceCard>
         ) : null}
 
         {hasPool === false && hasSpa === false ? (

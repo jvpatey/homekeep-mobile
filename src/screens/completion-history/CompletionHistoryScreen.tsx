@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { TasksLoadErrorBanner } from "../../components/Dashboard/TasksLoadErrorBanner";
+import { Button } from "../../components/ui/Button";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
 import { colors as palette } from "../../theme/colors";
@@ -415,54 +416,20 @@ export function CompletionHistoryScreen() {
                       </View>
                     </View>
 
-                    <TouchableOpacity
-                      style={[
-                        completionHistoryStyles.completeButton,
-                        {
-                          backgroundColor: isCompleting
-                            ? colors.surface
-                            : colors.primary + "10",
-                          borderColor: colors.primary,
-                          borderWidth: 2,
-                          opacity: isCompleting ? 0.6 : 1,
-                        },
-                      ]}
-                      onPress={() =>
-                        onCompleteOverdueTask(
-                          instance.instance_id,
-                          instance.title
-                        )
-                      }
-                      disabled={isCompleting}
-                      activeOpacity={0.8}
-                    >
-                      {isCompleting ? (
-                        <Ionicons
-                          name="hourglass"
-                          size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                          color={colors.primary}
-                        />
-                      ) : (
-                        <Ionicons
-                          name="checkmark"
-                          size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                          color={colors.primary}
-                        />
-                      )}
-                      <Text
-                        style={[
-                          completionHistoryStyles.completeButtonText,
-                          { color: colors.primary },
-                          isTablet && {
-                            fontSize:
-                              (completionHistoryStyles.completeButtonText
-                                .fontSize || 12) * fontMultiplier,
-                          },
-                        ]}
-                      >
-                        {isCompleting ? "Completing..." : "Complete Now"}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={completionHistoryStyles.completeButton}>
+                      <Button
+                        label={isCompleting ? "Completing…" : "Complete now"}
+                        onPress={() =>
+                          onCompleteOverdueTask(
+                            instance.instance_id,
+                            instance.title
+                          )
+                        }
+                        loading={isCompleting}
+                        disabled={isCompleting}
+                        accessibilityLabel={`Complete overdue task ${instance.title}`}
+                      />
+                    </View>
                   </View>
                 );
               })}

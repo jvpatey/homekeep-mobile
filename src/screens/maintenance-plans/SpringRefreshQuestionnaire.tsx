@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
-import { GlassCard } from "../../components/ui";
+import { HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SpringRefreshAnswers } from "../../data/maintenancePlans";
@@ -134,9 +134,7 @@ export function SpringRefreshQuestionnaire({
           {`Tell us a bit about your home so we only add maintenance you're responsible for — lawn care, exterior access, and how you heat.`}
         </Text>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -153,11 +151,9 @@ export function SpringRefreshQuestionnaire({
             onPress={() => setHasLawn(false)}
             accessibilityLabel="No lawn"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -174,11 +170,9 @@ export function SpringRefreshQuestionnaire({
             onPress={() => setPropertyType("condo_townhome")}
             accessibilityLabel="Condo or townhome"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -213,7 +207,7 @@ export function SpringRefreshQuestionnaire({
             onPress={() => setHeatSource("other")}
             accessibilityLabel="Other heating"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
       </ScrollView>
 
       <View

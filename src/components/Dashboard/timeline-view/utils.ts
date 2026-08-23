@@ -1,5 +1,4 @@
 import { MaintenanceTask } from "../../../types/maintenance";
-import { ThemeColors } from "../../../types/navigation";
 import { formatTaskSectionHeading } from "../../../utils/formatTaskDates";
 
 // groupTasksByDate function to group the tasks by date
@@ -45,18 +44,7 @@ export const formatTime = (dateString: string) => {
   });
 };
 
-// getPriorityColor function to get the priority color
-export const getPriorityColor = (priority: string, colors: ThemeColors) => {
-  switch (priority) {
-    case "urgent":
-      return colors.error;
-    case "high":
-      return "#FF6B35";
-    case "medium":
-      return colors.warning;
-    case "low":
-      return colors.success;
-    default:
-      return colors.textSecondary;
-  }
-};
+import { getPriorityColor as hearthPriorityColor } from "../../ui/PriorityMark";
+
+// getPriorityColor — Hearth semantic mapping (copper / warning / sage)
+export const getPriorityColor = hearthPriorityColor;

@@ -24,8 +24,7 @@ import { useTasks } from "../../../context/TasksContext";
 import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
 import { DesignSystem } from "../../../theme/designSystem";
-import { GlassCard, SheetGrabber, TintedGlassAvatar } from "../../ui";
-import { hexWithAlpha } from "../popups/popupChrome";
+import { SheetGrabber, TintedGlassAvatar, HearthSurfaceCard } from "../../ui";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
 import { AllTasksModal } from "../../modals/all-tasks-modal";
@@ -45,10 +44,10 @@ interface ProfileMenuProps {
  * presentation matches the rest of the 2026 glass chrome.
  */
 export function ProfileMenu({ navigation }: ProfileMenuProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { stats } = useTasks();
-  const { haloGradient } = useGradients();
+  const { authAtmosphere } = useGradients();
   const { selectedGradient, loading: preferencesLoading } =
     useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
@@ -151,6 +150,14 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
     }, DesignSystem.motion.duration.fast + 50);
   };
 
+  const handleCompletionHistory = async () => {
+    await triggerLight();
+    hideMenu();
+    setTimeout(() => {
+      navigation.navigate("CompletionHistory");
+    }, DesignSystem.motion.duration.fast + 50);
+  };
+
   const handleAllTasks = async () => {
     await triggerLight();
     hideMenu();
@@ -185,16 +192,14 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
               sheetStyle,
             ]}
           >
-            <GlassCard
-              material="thick"
-              radius={DesignSystem.borders.radius.glass}
+            <HearthSurfaceCard
               containerStyle={styles.glassOuter}
               style={styles.glassInner}
             >
               <LinearGradient
-                colors={[...haloGradient]}
+                colors={authAtmosphere}
                 start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
+                end={{ x: 0.5, y: 0.35 }}
                 style={styles.haloFill}
                 pointerEvents="none"
               />
@@ -257,11 +262,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                   <TouchableOpacity
                     style={[
                       styles.menuActionButton,
-                      {
-                        backgroundColor: isDark
-                          ? hexWithAlpha("#FFFFFF", 0.04)
-                          : hexWithAlpha("#000000", 0.025),
-                      },
+                      { backgroundColor: colors.fieldFill },
                     ]}
                     onPress={handleAllTasks}
                     activeOpacity={0.75}
@@ -333,15 +334,59 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                     </View>
                   </TouchableOpacity>
 
+                  {/* Completion History */}
+                  <TouchableOpacity
+                    style={[
+                      styles.menuActionButton,
+                      { backgroundColor: colors.fieldFill },
+                    ]}
+                    onPress={handleCompletionHistory}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open completion history"
+                  >
+                    <View
+                      style={[
+                        styles.menuActionIconContainer,
+                        { backgroundColor: colors.secondary + "18" },
+                        isTablet && {
+                          width: getResponsiveValue(36, 44, 48),
+                          height: getResponsiveValue(36, 44, 48),
+                          borderRadius: getResponsiveValue(18, 22, 24),
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="time-outline"
+                        size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+                        color={colors.secondary}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.menuActionText,
+                        { color: colors.text },
+                        isTablet && {
+                          fontSize:
+                            (styles.menuActionText.fontSize || 16) *
+                            fontMultiplier,
+                        },
+                      ]}
+                    >
+                      Completion History
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+
                   {/* Settings */}
                   <TouchableOpacity
                     style={[
                       styles.menuActionButton,
-                      {
-                        backgroundColor: isDark
-                          ? hexWithAlpha("#FFFFFF", 0.04)
-                          : hexWithAlpha("#000000", 0.025),
-                      },
+                      { backgroundColor: colors.fieldFill },
                     ]}
                     onPress={handleSettings}
                     activeOpacity={0.75}
@@ -389,11 +434,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                   <TouchableOpacity
                     style={[
                       styles.menuActionButton,
-                      {
-                        backgroundColor: isDark
-                          ? hexWithAlpha("#FFFFFF", 0.04)
-                          : hexWithAlpha("#000000", 0.025),
-                      },
+                      { backgroundColor: colors.fieldFill },
                     ]}
                     onPress={handleSignOut}
                     activeOpacity={0.75}
@@ -436,7 +477,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                 {/* Loading hint while preferences resolve */}
                 {preferencesLoading ? null : null}
               </SafeAreaView>
-            </GlassCard>
+            </HearthSurfaceCard>
           </Animated.View>
         </Animated.View>
       </Modal>

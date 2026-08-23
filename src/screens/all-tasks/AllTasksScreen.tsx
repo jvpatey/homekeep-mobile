@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
-import { PriorityBadge } from "../../components/Dashboard";
+import { PriorityMark } from "../../components/ui/PriorityMark";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { MaintenanceService } from "../../services/maintenanceService";
 import { AllTasksScreenProps } from "./types";
@@ -147,13 +147,9 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
         style={[
           styles.taskItem,
           {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
+            backgroundColor: colors.surface,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
+            borderColor: colors.border,
             ...(planTheme && {
               borderLeftWidth: 4,
               borderLeftColor: planTheme.primary,
@@ -169,7 +165,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
             >
               {item.title}
             </Text>
-            <PriorityBadge priority={item.priority} />
+            <PriorityMark priority={item.priority} size={8} />
           </View>
 
           <View style={styles.taskDetails}>

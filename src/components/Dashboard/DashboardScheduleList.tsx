@@ -1,14 +1,16 @@
-import React from "react";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import {
   SectionList,
   RefreshControl,
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useDevice } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
@@ -20,6 +22,11 @@ import {
   formatTaskSectionMonth,
   formatTaskSectionYear,
 } from "../../utils/formatTaskDates";
+import { Button, TextLink } from "../ui";
+
+export interface DashboardScheduleListRef {
+  scrollToSection: (key: string) => void;
+}
 
 interface DashboardScheduleListProps {
   sections: DashboardScheduleSection[];
@@ -34,102 +41,88 @@ interface DashboardScheduleListProps {
   ) => void | Promise<void>;
   onAddTask?: () => void;
   onBrowseMaintenancePlans?: () => void;
-  /** Bottom padding so content clears the FAB */
   contentPaddingBottom: number;
 }
 
-export function DashboardScheduleList({
-  sections,
-  ListHeaderComponent,
-  onRefresh,
-  refreshing = false,
-  onCompleteTask,
-  onTaskPress,
-  onSkipOccurrence,
-  onAddTask,
-  onBrowseMaintenancePlans,
-  contentPaddingBottom,
-}: DashboardScheduleListProps) {
-  const { colors, isDark } = useTheme();
+export const DashboardScheduleList = forwardRef<
+  DashboardScheduleListRef,
+  DashboardScheduleListProps
+>(function DashboardScheduleList(
+  {
+    sections,
+    ListHeaderComponent,
+    onRefresh,
+    refreshing = false,
+    onCompleteTask,
+    onTaskPress,
+    onSkipOccurrence,
+    onAddTask,
+    onBrowseMaintenancePlans,
+    contentPaddingBottom,
+  },
+  ref
+) {
+  const { colors } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
+  const listRef = useRef<SectionList<MaintenanceTask, DashboardScheduleSection>>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToSection: (key: string) => {
+      let targetKey = key;
+      if (key === "__today__") {
+        const todaySection = sections.find((s) => s.title === "Today");
+        if (!todaySection) return;
+        targetKey = todaySection.key;
+      }
+      const sectionIndex = sections.findIndex((s) => s.key === targetKey);
+      if (sectionIndex < 0) return;
+      listRef.current?.scrollToLocation({
+        sectionIndex,
+        itemIndex: 0,
+        animated: true,
+        viewOffset: 0,
+      });
+    },
+  }));
+
+  const renderOverdueHeader = (section: DashboardScheduleSection) => (
+    <View
+      style={[
+        scheduleStyles.stickyHeaderBase,
+        {
+          backgroundColor: colors.background,
+          paddingHorizontal: DesignSystem.spacing.lg,
+          paddingTop: DesignSystem.spacing.md,
+          paddingBottom: DesignSystem.spacing.sm,
+        },
+      ]}
+    >
+      <Text style={[scheduleStyles.sectionTitle, { color: colors.error }]}>
+        {section.title}
+      </Text>
+      {section.subtitle ? (
+        <Text
+          style={[scheduleStyles.sectionSubtitle, { color: colors.textSecondary }]}
+        >
+          {section.subtitle}
+        </Text>
+      ) : null}
+    </View>
+  );
 
   const renderSectionHeader = ({
     section,
   }: {
     section: DashboardScheduleSection;
   }) => {
-    if (section.headerVariant === "due_soon") {
-      return (
-        <View
-          style={[
-            scheduleStyles.stickyHeaderBase,
-            {
-              backgroundColor: colors.background,
-              paddingHorizontal: DesignSystem.spacing.md,
-              paddingTop: isTablet
-                ? getResponsiveValue(
-                    DesignSystem.spacing.md,
-                    DesignSystem.spacing.sm,
-                    DesignSystem.spacing.sm,
-                  )
-                : DesignSystem.spacing.md,
-              paddingBottom: DesignSystem.spacing.sm,
-            },
-            isTablet && {
-              paddingHorizontal: getResponsiveValue(
-                DesignSystem.spacing.md,
-                DesignSystem.spacing.lg,
-                DesignSystem.spacing.xl
-              ),
-            },
-          ]}
-        >
-          <Text
-            style={[
-              DesignSystem.typography.h3,
-              {
-                color: isDark
-                  ? "rgba(255, 255, 255, 0.92)"
-                  : "rgba(15, 23, 42, 0.92)",
-                letterSpacing: -0.2,
-              },
-              isTablet && {
-                fontSize:
-                  (DesignSystem.typography.h3.fontSize || 22) *
-                  fontMultiplier,
-              },
-            ]}
-          >
-            {section.title}
-          </Text>
-          {section.subtitle ? (
-            <Text
-              style={[
-                DesignSystem.typography.small,
-                {
-                  color: isDark
-                    ? "rgba(255, 255, 255, 0.65)"
-                    : "rgba(15, 23, 42, 0.65)",
-                  marginTop: DesignSystem.spacing.xs,
-                },
-              ]}
-            >
-              {section.subtitle}
-            </Text>
-          ) : null}
-        </View>
-      );
+    if (section.headerVariant === "overdue") {
+      return renderOverdueHeader(section);
     }
 
     const date = section.date!;
     const sectionYear = formatTaskSectionYear(date);
-    const sectionIndex = sections.findIndex((s) => s.key === section.key);
-    const prevSection =
-      sectionIndex > 0 ? sections[sectionIndex - 1] : undefined;
-    const timelineFollowsDueSoonDivider =
-      prevSection?.headerVariant === "due_soon";
 
     return (
       <View
@@ -137,19 +130,18 @@ export function DashboardScheduleList({
           scheduleStyles.stickyHeaderBase,
           {
             backgroundColor: colors.background,
-            paddingTop: timelineFollowsDueSoonDivider
-              ? 0
-              : DesignSystem.spacing.md,
+            paddingTop: DesignSystem.spacing.md,
           },
         ]}
       >
         <View
           style={[
             timelineStyles.dateHeader,
+            { paddingHorizontal: DesignSystem.spacing.lg },
             isTablet && {
               paddingHorizontal: getResponsiveValue(
-                DesignSystem.spacing.md,
                 DesignSystem.spacing.lg,
+                DesignSystem.spacing.xl,
                 DesignSystem.spacing.xl
               ),
             },
@@ -160,44 +152,20 @@ export function DashboardScheduleList({
               timelineStyles.dateIndicator,
               sectionYear ? timelineStyles.dateIndicatorWithYear : null,
               {
-                backgroundColor: isDark
-                  ? "rgba(35, 37, 38, 0.4)"
-                  : "rgba(255, 255, 255, 0.4)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(255, 255, 255, 0.6)",
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
                 borderWidth: 1,
               },
-              isTablet && {
-                width: getResponsiveValue(56, 64, 72),
-                height: sectionYear
-                  ? getResponsiveValue(62, 70, 78)
-                  : getResponsiveValue(56, 64, 72),
-                borderRadius: getResponsiveValue(14, 16, 18),
-              },
+              DesignSystem.shadows.softAmbient,
             ]}
           >
             <Text
-              style={[
-                timelineStyles.dateNumber,
-                { color: colors.primary },
-                isTablet && {
-                  fontSize: 18 * fontMultiplier,
-                  lineHeight: 20 * fontMultiplier,
-                },
-              ]}
+              style={[timelineStyles.dateNumber, { color: colors.primary }]}
             >
               {date.getDate()}
             </Text>
             <Text
-              style={[
-                timelineStyles.dateMonth,
-                { color: colors.primary },
-                isTablet && {
-                  fontSize: 11 * fontMultiplier,
-                  lineHeight: 13 * fontMultiplier,
-                },
-              ]}
+              style={[timelineStyles.dateMonth, { color: colors.primary }]}
             >
               {formatTaskSectionMonth(date)}
             </Text>
@@ -216,11 +184,12 @@ export function DashboardScheduleList({
           <View style={timelineStyles.dateInfo}>
             <Text
               style={[
-                timelineStyles.dateText,
+                scheduleStyles.sectionTitle,
                 { color: colors.text },
                 isTablet && {
                   fontSize:
-                    timelineStyles.dateText.fontSize * fontMultiplier,
+                    (DesignSystem.typography.title2.fontSize || 24) *
+                    fontMultiplier,
                 },
               ]}
             >
@@ -228,80 +197,18 @@ export function DashboardScheduleList({
             </Text>
             <Text
               style={[
-                timelineStyles.taskCount,
+                scheduleStyles.sectionSubtitle,
                 { color: colors.textSecondary },
-                isTablet && {
-                  fontSize:
-                    (timelineStyles.taskCount.fontSize || 14) *
-                    fontMultiplier,
-                },
               ]}
             >
               {section.taskCount} task{section.taskCount !== 1 ? "s" : ""}
             </Text>
-            {section.subtitle ? (
-              <Text
-                style={[
-                  DesignSystem.typography.small,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.55)"
-                      : "rgba(15, 23, 42, 0.55)",
-                    marginTop: DesignSystem.spacing.xs,
-                  },
-                ]}
-              >
-                {section.subtitle}
-              </Text>
-            ) : null}
           </View>
         </View>
       </View>
     );
   };
 
-  const renderSectionFooter = ({
-    section,
-  }: {
-    section: DashboardScheduleSection;
-  }) => {
-    const idx = sections.findIndex((s) => s.key === section.key);
-    const showDueSoonToTimelineDivider =
-      section.headerVariant === "due_soon" &&
-      idx >= 0 &&
-      idx < sections.length - 1;
-
-    if (!showDueSoonToTimelineDivider) return null;
-
-    return (
-      <View
-        style={[
-          scheduleStyles.sectionDividerWrap,
-          { backgroundColor: colors.background },
-          isTablet && {
-            paddingHorizontal: getResponsiveValue(
-              DesignSystem.spacing.md,
-              DesignSystem.spacing.lg,
-              DesignSystem.spacing.xl
-            ),
-          },
-        ]}
-      >
-        <View
-          style={[
-            scheduleStyles.sectionDividerLine,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.09)"
-                : "rgba(15, 23, 42, 0.08)",
-            },
-          ]}
-        />
-      </View>
-    );
-  };
-
-  // SectionList often gives ListEmptyComponent no horizontal measure; borders then collapse to a vertical hairline.
   const renderEmpty = () => (
     <View
       style={[
@@ -309,133 +216,38 @@ export function DashboardScheduleList({
         {
           width: windowWidth,
           maxWidth: windowWidth,
-          alignSelf: "center",
+          paddingHorizontal: DesignSystem.spacing.lg,
         },
       ]}
     >
-      <TouchableOpacity
-        onPress={onAddTask}
-        activeOpacity={onAddTask ? 0.85 : 1}
-        disabled={!onAddTask}
-        accessibilityRole={onAddTask ? "button" : undefined}
-        accessibilityLabel={
-          onAddTask ? "Nothing scheduled. Add a task." : "Nothing scheduled."
-        }
-        style={[
-          scheduleStyles.emptyWrap,
-          {
-            backgroundColor: isDark
-              ? "rgba(35, 37, 38, 0.4)"
-              : "rgba(255, 255, 255, 0.4)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
-          },
-          isTablet && {
-            marginHorizontal: getResponsiveValue(
-              DesignSystem.spacing.md,
-              DesignSystem.spacing.lg,
-              DesignSystem.spacing.xl
-            ),
-          },
-        ]}
+      <Text style={[scheduleStyles.emptyTitle, { color: colors.text }]}>
+        Nothing scheduled yet
+      </Text>
+      <Text
+        style={[scheduleStyles.emptySubtitle, { color: colors.textSecondary }]}
       >
-        <View style={scheduleStyles.emptyIconOuter}>
-          <View
-            style={[
-              scheduleStyles.emptyIconInner,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(255, 255, 255, 0.6)",
-              },
-            ]}
-          >
-            <Ionicons
-              name={onAddTask ? "add-circle" : "calendar-outline"}
-              size={32}
-              color={
-                isDark
-                  ? "rgba(255, 255, 255, 0.7)"
-                  : "rgba(15, 23, 42, 0.7)"
-              }
-            />
-          </View>
+        Add a task or browse a maintenance plan to get started.
+      </Text>
+
+      {onAddTask ? (
+        <View style={scheduleStyles.emptyButton}>
+          <Button label="Add a task" onPress={onAddTask} variant="primary" />
         </View>
-        <Text
-          style={[
-            scheduleStyles.emptyTitle,
-            {
-              color: isDark
-                ? "rgba(255, 255, 255, 0.9)"
-                : "rgba(15, 23, 42, 0.85)",
-            },
-          ]}
-        >
-          Nothing scheduled yet
-        </Text>
-        <Text
-          style={[
-            scheduleStyles.emptySubtitle,
-            {
-              color: isDark
-                ? "rgba(255, 255, 255, 0.7)"
-                : "rgba(15, 23, 42, 0.65)",
-            },
-          ]}
-        >
-          {onAddTask
-            ? "Tap to add a task and build your home schedule"
-            : "Your upcoming tasks will appear here"}
-        </Text>
-      </TouchableOpacity>
+      ) : null}
 
       {onBrowseMaintenancePlans ? (
-        <TouchableOpacity
+        <TextLink
+          prefix=""
+          linkText="Browse maintenance plans"
           onPress={onBrowseMaintenancePlans}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Browse maintenance plans"
-          style={[
-            scheduleStyles.emptyPlansLink,
-            isTablet && {
-              marginHorizontal: getResponsiveValue(
-                DesignSystem.spacing.md,
-                DesignSystem.spacing.lg,
-                DesignSystem.spacing.xl
-              ),
-            },
-          ]}
-        >
-          <Text
-            style={[
-              scheduleStyles.emptyPlansLinkText,
-              {
-                color: colors.primary,
-                fontSize:
-                  (scheduleStyles.emptyPlansLinkText.fontSize ||
-                    DesignSystem.typography.bodyMedium.fontSize) *
-                  fontMultiplier,
-              },
-            ]}
-          >
-            Browse maintenance plans
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={18 * fontMultiplier}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
+        />
       ) : null}
     </View>
   );
 
   return (
     <SectionList<MaintenanceTask, DashboardScheduleSection>
+      ref={listRef}
       style={scheduleStyles.list}
       sections={sections}
       keyExtractor={(item) => item.instance_id}
@@ -461,82 +273,51 @@ export function DashboardScheduleList({
         ) : undefined
       }
       renderSectionHeader={renderSectionHeader}
-      renderSectionFooter={renderSectionFooter}
       renderItem={({ item, index, section }) => (
         <ScheduleTaskRow
           task={item}
           showConnectorBelow={index < section.data.length - 1}
           variant={
-            section.headerVariant === "due_soon" ? "dueSoon" : "default"
+            section.headerVariant === "overdue" ? "overdue" : "default"
           }
           onCompleteTask={onCompleteTask}
           onTaskPress={onTaskPress}
           onSkipOccurrence={onSkipOccurrence}
         />
       )}
+      onScrollToIndexFailed={() => {}}
     />
   );
-}
+});
 
 const scheduleStyles = StyleSheet.create({
   list: {
     flex: 1,
   },
   stickyHeaderBase: {},
-  sectionDividerWrap: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.md,
+  sectionTitle: {
+    ...DesignSystem.typography.title2,
   },
-  sectionDividerLine: {
-    height: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
+  sectionSubtitle: {
+    ...DesignSystem.typography.footnote,
+    marginTop: DesignSystem.spacing.xs,
   },
   emptyOuter: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.lg,
-  },
-  emptyWrap: {
-    alignSelf: "stretch",
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: 1,
-    paddingVertical: DesignSystem.spacing.xxl,
-    paddingHorizontal: DesignSystem.spacing.lg,
-    alignItems: "center",
+    marginTop: DesignSystem.spacing.xl,
+    alignItems: "stretch",
   },
   emptyListContent: {
     justifyContent: "flex-start",
   },
-  emptyIconOuter: {
-    marginBottom: DesignSystem.spacing.md,
-  },
-  emptyIconInner: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyTitle: {
-    ...DesignSystem.typography.h3,
-    textAlign: "center",
+    ...DesignSystem.typography.title2,
     marginBottom: DesignSystem.spacing.sm,
   },
   emptySubtitle: {
-    ...DesignSystem.typography.body,
-    textAlign: "center",
+    ...DesignSystem.typography.callout,
+    marginBottom: DesignSystem.spacing.lg,
   },
-  emptyPlansLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: DesignSystem.spacing.xs,
-    marginTop: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.sm,
-  },
-  emptyPlansLinkText: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: DesignSystem.typography.bodySemiBold.fontSize,
+  emptyButton: {
+    marginBottom: DesignSystem.spacing.sm,
   },
 });

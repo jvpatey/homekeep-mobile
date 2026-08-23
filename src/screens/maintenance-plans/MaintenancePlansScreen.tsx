@@ -20,7 +20,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
-import { GlassCard } from "../../components/ui";
+import { HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   MAINTENANCE_PLANS,
@@ -291,12 +291,10 @@ export function MaintenancePlansScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={maintenancePlansStyles.scrollContent}
     >
-      <GlassCard
-        material="regular"
-        radius={DesignSystem.borders.radius.glass}
-        containerStyle={maintenancePlansStyles.cardContainer}
-        style={maintenancePlansStyles.cardSurface}
-      >
+        <HearthSurfaceCard
+          containerStyle={maintenancePlansStyles.cardContainer}
+          style={maintenancePlansStyles.cardSurface}
+        >
         {MAINTENANCE_PLANS.map((plan, index) => {
           const theme = getPlanTheme(plan.id);
           return (
@@ -389,7 +387,7 @@ export function MaintenancePlansScreen() {
           </TouchableOpacity>
           );
         })}
-      </GlassCard>
+      </HearthSurfaceCard>
     </ScrollView>
     );
   };
@@ -433,12 +431,10 @@ export function MaintenancePlansScreen() {
             </TouchableOpacity>
           </View>
 
-          <GlassCard
-            material="regular"
-            radius={DesignSystem.borders.radius.glass}
-            containerStyle={maintenancePlansStyles.cardContainer}
-            style={maintenancePlansStyles.cardSurface}
-          >
+        <HearthSurfaceCard
+          containerStyle={maintenancePlansStyles.cardContainer}
+          style={maintenancePlansStyles.cardSurface}
+        >
             {plan.body ? (
               <View style={{ padding: DesignSystem.spacing.md }}>
                 <Text
@@ -470,12 +466,14 @@ export function MaintenancePlansScreen() {
                   onPress={() => toggleTaskAt(index)}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked }}
-                  style={[
+                    style={[
                     maintenancePlansStyles.taskRowSelectable,
+                    {
+                      backgroundColor: colors.fieldFill,
+                    },
                     !isLast && {
-                      borderBottomColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.06)",
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border,
                     },
                     isLast && { borderBottomWidth: 0 },
                   ]}
@@ -484,7 +482,7 @@ export function MaintenancePlansScreen() {
                     <Ionicons
                       name={checked ? "checkbox" : "square-outline"}
                       size={26}
-                      color={checked ? accent : colors.textSecondary}
+                      color={checked ? colors.primary : colors.textSecondary}
                     />
                   </View>
                   <View style={maintenancePlansStyles.taskRowMain}>
@@ -505,7 +503,7 @@ export function MaintenancePlansScreen() {
                 </TouchableOpacity>
               );
             })}
-          </GlassCard>
+          </HearthSurfaceCard>
         </ScrollView>
         <View
           style={[

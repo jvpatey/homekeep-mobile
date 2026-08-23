@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
-import { GlassCard } from "../../components/ui";
+import { HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NewHomeownerStarterAnswers } from "../../data/maintenancePlans";
@@ -155,9 +155,7 @@ export function NewHomeownerStarterQuestionnaire({
           apply.
         </Text>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -180,11 +178,9 @@ export function NewHomeownerStarterQuestionnaire({
             onPress={() => setHasHeatPump(false)}
             accessibilityLabel="No heat pump"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -209,11 +205,9 @@ export function NewHomeownerStarterQuestionnaire({
             onPress={() => setHasAirExchanger(false)}
             accessibilityLabel="No whole-home air exchanger"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -236,11 +230,9 @@ export function NewHomeownerStarterQuestionnaire({
             onPress={() => setHasWaterSoftener(false)}
             accessibilityLabel="No water softener"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -265,11 +257,9 @@ export function NewHomeownerStarterQuestionnaire({
             onPress={() => setHasRefrigeratorWaterFilter(false)}
             accessibilityLabel="No refrigerator water filter"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -296,11 +286,9 @@ export function NewHomeownerStarterQuestionnaire({
             onPress={() => setHasVentHoodFilters(false)}
             accessibilityLabel="No vent hood grease filters"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
 
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
+        <HearthSurfaceCard
           containerStyle={styles.cardGap}
           style={styles.cardInner}
         >
@@ -323,7 +311,7 @@ export function NewHomeownerStarterQuestionnaire({
             onPress={() => setHasSeptic(false)}
             accessibilityLabel="No septic, connected to sewer"
           />
-        </GlassCard>
+        </HearthSurfaceCard>
       </ScrollView>
 
       <View

@@ -1,32 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import {
-  View,
-  Modal,
-  Text,
-  TouchableOpacity,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-} from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, useWindowDimensions, Pressable } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withDelay,
-  runOnJS,
-} from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../../../types/maintenance";
 import { useTheme } from "../../../../context/ThemeContext";
-import { useGradients, useDevice } from "../../../../hooks";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
-import { GlassCard } from "../../../ui/glass-card/GlassCard";
-import { SheetGrabber } from "../../../ui/sheet-grabber";
-import { sheetChromeStyles, createContentStyles } from "./styles";
+import { HearthSheet } from "../../../ui/HearthSheet";
+import { Button } from "../../../ui/Button";
+import { PriorityMark } from "../../../ui/PriorityMark";
+import { categories } from "../create-task-modal/data";
 import { formatTaskSectionHeading } from "../../../../utils/formatTaskDates";
 
 interface SimpleTaskDetailModalProps {
@@ -36,8 +19,19 @@ interface SimpleTaskDetailModalProps {
   onComplete: (instanceId: string) => void;
   onEdit?: (task: MaintenanceTask) => void;
   onSkipOccurrence?: (task: MaintenanceTask) => Promise<boolean>;
-  /** Reserved for callers that refresh after external edits */
   onModified?: () => void;
+}
+
+function getCategoryInfo(category: string) {
+  const match = categories.find((c) => c.id === category);
+  return (
+    match ?? {
+      id: "GENERAL" as const,
+      name: category,
+      icon: "construct-outline",
+      color: "#6B645C",
+    }
+  );
 }
 
 export function SimpleTaskDetailModal({
@@ -48,172 +42,14 @@ export function SimpleTaskDetailModal({
   onEdit,
   onSkipOccurrence,
 }: SimpleTaskDetailModalProps) {
-  const { colors, isDark } = useTheme();
-  const { haloGradient, ctaHighlight } = useGradients();
+  const { colors } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
-  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
-    useDevice();
-  const fontMultiplier = getFontMultiplier();
+  const { isTablet } = useDevice();
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
-
-  const contentStyles = createContentStyles(
-    {
-      glass: colors.glass,
-      glassBorder: colors.glassBorder,
-      text: colors.text,
-      textSecondary: colors.textSecondary,
-    },
-    isTablet
-  );
-
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(windowHeight);
-  const contentOpacity = useSharedValue(0);
 
   const sheetMaxHeight = windowHeight * 0.9;
-
-  const motionFast = DesignSystem.motion.duration.fast;
-  const motionEasing = DesignSystem.motion.easing.standard;
-
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const contentAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-  }));
-
-  const openSheet = useCallback(() => {
-    translateY.value = windowHeight;
-    opacity.value = 0;
-    contentOpacity.value = 0;
-    opacity.value = withTiming(1, {
-      duration: motionFast,
-      easing: motionEasing,
-    });
-    translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
-    contentOpacity.value = withDelay(
-      DesignSystem.motion.stagger,
-      withTiming(1, {
-        duration: DesignSystem.motion.duration.base,
-        easing: motionEasing,
-      })
-    );
-  }, [
-    contentOpacity,
-    motionEasing,
-    motionFast,
-    opacity,
-    translateY,
-    windowHeight,
-  ]);
-
-  useEffect(() => {
-    if (visible && task) {
-      setIsCompleting(false);
-      openSheet();
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ y: 0, animated: false });
-      });
-    }
-  }, [visible, task?.instance_id, openSheet]);
-
-  const handleClose = () => {
-    contentOpacity.value = withTiming(0, {
-      duration: motionFast,
-      easing: motionEasing,
-    });
-    opacity.value = withTiming(0, {
-      duration: motionFast,
-      easing: motionEasing,
-    });
-    translateY.value = withTiming(
-      windowHeight,
-      {
-        duration: motionFast,
-        easing: motionEasing,
-      },
-      (finished) => {
-        if (finished) runOnJS(onClose)();
-      }
-    );
-  };
-
-  const getCategoryInfo = (category: string) => {
-    const categoryMap: Record<
-      string,
-      { icon: string; gradient: [string, string]; displayName: string }
-    > = {
-      HVAC: {
-        icon: "snow-outline",
-        gradient: ["#FF6B6B", "#FF8E8E"],
-        displayName: "HVAC",
-      },
-      PLUMBING: {
-        icon: "water-outline",
-        gradient: ["#4ECDC4", "#6EDDD6"],
-        displayName: "Plumbing",
-      },
-      ELECTRICAL: {
-        icon: "flash-outline",
-        gradient: ["#FFE66D", "#FFF08C"],
-        displayName: "Electrical",
-      },
-      APPLIANCES: {
-        icon: "hardware-chip-outline",
-        gradient: ["#A8E6CF", "#C8F0D9"],
-        displayName: "Appliances",
-      },
-      EXTERIOR: {
-        icon: "home-outline",
-        gradient: ["#FF9A8B", "#FFB3A8"],
-        displayName: "Exterior",
-      },
-      INTERIOR: {
-        icon: "bed-outline",
-        gradient: ["#B8E0D2", "#D0E8DD"],
-        displayName: "Interior",
-      },
-      LANDSCAPING: {
-        icon: "leaf-outline",
-        gradient: ["#95E1D3", "#B0E8DD"],
-        displayName: "Landscaping",
-      },
-      SAFETY: {
-        icon: "shield-checkmark-outline",
-        gradient: ["#F38181", "#F5A0A0"],
-        displayName: "Safety",
-      },
-      GENERAL: {
-        icon: "construct-outline",
-        gradient: ["#C7CEEA", "#D8E0F0"],
-        displayName: "General",
-      },
-    };
-
-    return (
-      categoryMap[category] || {
-        icon: "construct-outline",
-        gradient: ["#C7CEEA", "#D8E0F0"] as [string, string],
-        displayName: category,
-      }
-    );
-  };
-
-  const priorityColors = {
-    low: colors.success,
-    medium: colors.warning,
-    high: colors.accent,
-    urgent: colors.error,
-  };
-
+  const scrollViewportMaxHeight = sheetMaxHeight * 0.55;
 
   const formatTime = (minutes?: number) => {
     if (!minutes) return "No time estimate";
@@ -242,7 +78,7 @@ export function SimpleTaskDetailModal({
     setIsCompleting(true);
     try {
       await onComplete(task.instance_id);
-      handleClose();
+      onClose();
     } catch (error) {
       console.error("Error completing task:", error);
       setIsCompleting(false);
@@ -255,7 +91,7 @@ export function SimpleTaskDetailModal({
     try {
       const skipped = await onSkipOccurrence(task);
       if (skipped) {
-        handleClose();
+        onClose();
       }
     } catch (error) {
       console.error("Error skipping task occurrence:", error);
@@ -264,456 +100,292 @@ export function SimpleTaskDetailModal({
     }
   };
 
-  const showSkipOccurrence =
-    !!onSkipOccurrence &&
-    !task?.is_completed &&
-    (task?.interval_days ?? 0) > 0;
-
-  const mutedSurface = {
-    backgroundColor: isDark
-      ? "rgba(35, 37, 38, 0.45)"
-      : "rgba(255, 255, 255, 0.55)",
-    borderColor: isDark
-      ? "rgba(255, 255, 255, 0.1)"
-      : "rgba(255, 255, 255, 0.55)",
-  };
-
   if (!task) return null;
 
   const category = getCategoryInfo(task.category);
+  const showSkipOccurrence =
+    !!onSkipOccurrence &&
+    !task.is_completed &&
+    (task.interval_days ?? 0) > 0;
 
-  /** Match CreateTaskModal: explicit maxHeight avoids flex-collapsed BlurView; reserve real space for footer row outside the ScrollView. */
-  const grabberChrome =
-    DesignSystem.spacing.sm + 4 + DesignSystem.spacing.md;
-  const titleRowChrome = 56 + DesignSystem.spacing.md;
-  const actionsRowChrome =
-    DesignSystem.spacing.sm +
-    DesignSystem.spacing.md +
-    DesignSystem.components.buttonLarge +
-    DesignSystem.spacing.sm;
-  const gradientVerticalPad =
-    DesignSystem.spacing.xs + DesignSystem.spacing.md;
-  const scrollChromeOverhead =
-    grabberChrome +
-    titleRowChrome +
-    actionsRowChrome +
-    gradientVerticalPad +
-    8;
-  const scrollViewportMaxHeight = Math.max(
-    220,
-    sheetMaxHeight - scrollChromeOverhead
+  const footer = (
+    <View style={styles.footerInner}>
+      <View style={styles.actionsRow}>
+        {onEdit ? (
+          <View style={styles.actionSlot}>
+            <Button
+              label="Edit"
+              variant="secondary"
+              onPress={() => onEdit(task)}
+              accessibilityLabel="Edit task"
+            />
+          </View>
+        ) : null}
+        <View style={styles.actionSlot}>
+          <Button
+            label={isCompleting ? "Completing…" : "Complete"}
+            onPress={() => void handleComplete()}
+            loading={isCompleting}
+            disabled={isSkipping}
+            accessibilityLabel="Mark task complete"
+          />
+        </View>
+      </View>
+      {showSkipOccurrence ? (
+        <Pressable
+          onPress={() => void handleSkipOccurrence()}
+          disabled={isCompleting || isSkipping}
+          style={styles.skipButton}
+          accessibilityRole="button"
+          accessibilityLabel="Skip this occurrence"
+        >
+          <Text
+            style={[
+              styles.skipLabel,
+              {
+                color: colors.error,
+                opacity: isCompleting || isSkipping ? 0.6 : 1,
+              },
+            ]}
+          >
+            {isSkipping ? "Skipping…" : "Skip this occurrence"}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 
   return (
-    <Modal
+    <HearthSheet
       visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={handleClose}
-      statusBarTranslucent
-      presentationStyle="overFullScreen"
+      onClose={onClose}
+      title="Task details"
+      maxHeightRatio={0.9}
+      footer={footer}
+      contentStyle={{ paddingHorizontal: 0 }}
     >
-      <Animated.View
-        style={[sheetChromeStyles.sheetOverlay, backdropAnimatedStyle]}
+      <ScrollView
+        style={{ maxHeight: scrollViewportMaxHeight }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Pressable
-          style={sheetChromeStyles.backdropPressable}
-          onPress={handleClose}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss task details"
-        />
-        <Animated.View
-          pointerEvents="box-none"
-          style={[
-            sheetChromeStyles.sheetContainer,
-            getTabletSheetContainerStyle(),
-            { maxHeight: sheetMaxHeight },
-            sheetAnimatedStyle,
-          ]}
-        >
-          <GlassCard
-            material="thick"
-            radius={DesignSystem.borders.radius.glass}
-            containerStyle={sheetChromeStyles.sheetGlassOuter}
-            style={sheetChromeStyles.sheetGlassInner}
+        <Text style={[styles.taskTitle, { color: colors.text }]}>
+          {task.title}
+        </Text>
+
+        <View style={styles.metaRow}>
+          <View
+            style={[
+              styles.metaChip,
+              {
+                backgroundColor: colors.fieldFill,
+                borderColor: colors.border,
+              },
+            ]}
           >
-            <LinearGradient
-              colors={[...haloGradient]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
+            <View
               style={[
-                sheetChromeStyles.gradientBackground,
-                { maxHeight: sheetMaxHeight },
+                styles.categoryIcon,
+                { backgroundColor: category.color + "22" },
               ]}
             >
-              <SafeAreaView
-                edges={["bottom"]}
-                style={sheetChromeStyles.sheetSafeArea}
-              >
-                <SheetGrabber />
-                <View style={sheetChromeStyles.sheetTitleRow}>
-                  <View style={sheetChromeStyles.sheetTitleSideSpacer} />
-                  <Pressable style={sheetChromeStyles.sheetTitlePressable}>
-                    <Text
-                      style={[
-                        sheetChromeStyles.modalTitle,
-                        { color: colors.text },
-                        isTablet && {
-                          fontSize:
-                            (sheetChromeStyles.modalTitle.fontSize ||
-                              DesignSystem.typography.h2.fontSize) *
-                            fontMultiplier,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      Task details
-                    </Text>
-                  </Pressable>
-                  <TouchableOpacity
-                    style={[
-                      sheetChromeStyles.sheetCloseButton,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(35, 37, 38, 0.55)"
-                          : "rgba(255, 255, 255, 0.45)",
-                        borderWidth: DesignSystem.borders.hairline,
-                        borderColor: colors.glassStroke,
-                      },
-                    ]}
-                    onPress={handleClose}
-                    accessibilityRole="button"
-                    accessibilityLabel="Close"
-                  >
-                    <Ionicons
-                      name="close"
-                      size={isTablet ? getResponsiveValue(22, 26, 28) : 22}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-                </View>
+              <Ionicons
+                name={category.icon as keyof typeof Ionicons.glyphMap}
+                size={isTablet ? 18 : 16}
+                color={category.color}
+              />
+            </View>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+              {category.name}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.metaChip,
+              {
+                backgroundColor: colors.fieldFill,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <PriorityMark priority={task.priority} size={8} />
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+              {task.priority} priority
+            </Text>
+          </View>
+        </View>
 
-                <Animated.View
-                  style={[contentAnimatedStyle, sheetChromeStyles.scrollSection]}
-                >
-                  <ScrollView
-                    ref={scrollRef}
-                    style={{ maxHeight: scrollViewportMaxHeight }}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{
-                      paddingBottom: DesignSystem.spacing.md,
-                    }}
-                    bounces={false}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                  >
-                    <Text
-                      style={[contentStyles.taskTitle, { color: colors.text }]}
-                    >
-                      {task.title}
-                    </Text>
+        {task.description ? (
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              Notes
+            </Text>
+            <Text style={[styles.bodyText, { color: colors.text }]}>
+              {task.description}
+            </Text>
+          </View>
+        ) : null}
 
-                    <View style={contentStyles.metaRow}>
-                      <View
-                        style={[
-                          contentStyles.categoryChip,
-                          mutedSurface,
-                        ]}
-                      >
-                        <LinearGradient
-                          colors={category.gradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={contentStyles.categoryIconWrap}
-                        >
-                          <Ionicons
-                            name={category.icon as any}
-                            size={isTablet ? 18 : 16}
-                            color="#fff"
-                          />
-                        </LinearGradient>
-                        <Text
-                          style={[
-                            contentStyles.categoryLabel,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {category.displayName}
-                        </Text>
-                      </View>
-                      <View
-                        style={[contentStyles.priorityPill, mutedSurface]}
-                      >
-                        <View style={contentStyles.priorityLeadingWrap}>
-                          <View
-                            style={[
-                              contentStyles.priorityDot,
-                              {
-                                backgroundColor:
-                                  priorityColors[task.priority],
-                              },
-                            ]}
-                          />
-                        </View>
-                        <Text
-                          style={[
-                            contentStyles.priorityText,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {task.priority.charAt(0).toUpperCase() +
-                            task.priority.slice(1)}{" "}
-                          priority
-                        </Text>
-                      </View>
-                    </View>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Schedule
+        </Text>
 
-                    {task.description ? (
-                      <View style={contentStyles.section}>
-                        <Text
-                          style={[
-                            contentStyles.sectionTitle,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Notes
-                        </Text>
-                        <Text
-                          style={[
-                            contentStyles.descriptionText,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {task.description}
-                        </Text>
-                      </View>
-                    ) : null}
-
-                    <Text
-                      style={[
-                        contentStyles.sectionTitle,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Schedule
-                    </Text>
-                    <View style={[contentStyles.detailCard, mutedSurface]}>
-                      <View
-                        style={[
-                          contentStyles.detailIconBox,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(255,255,255,0.06)"
-                              : "rgba(0,0,0,0.04)",
-                            borderColor: colors.glassStroke,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name="time-outline"
-                          size={22}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[
-                            contentStyles.detailLabel,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Estimated time
-                        </Text>
-                        <Text
-                          style={[
-                            contentStyles.detailValue,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {formatTime(task.estimated_duration_minutes)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={[contentStyles.detailCard, mutedSurface]}>
-                      <View
-                        style={[
-                          contentStyles.detailIconBox,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(255,255,255,0.06)"
-                              : "rgba(0,0,0,0.04)",
-                            borderColor: colors.glassStroke,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name="calendar-outline"
-                          size={22}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[
-                            contentStyles.detailLabel,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Due
-                        </Text>
-                        <Text
-                          style={[
-                            contentStyles.detailValue,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {formatTaskSectionHeading(new Date(task.due_date))}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={[contentStyles.detailCard, mutedSurface]}>
-                      <View
-                        style={[
-                          contentStyles.detailIconBox,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(255,255,255,0.06)"
-                              : "rgba(0,0,0,0.04)",
-                            borderColor: colors.glassStroke,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name="repeat-outline"
-                          size={22}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[
-                            contentStyles.detailLabel,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Recurrence
-                        </Text>
-                        <Text
-                          style={[
-                            contentStyles.detailValue,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {formatInterval(task.interval_days)}
-                        </Text>
-                      </View>
-                    </View>
-                  </ScrollView>
-
-                  <View
-                    style={[
-                      contentStyles.actionsRow,
-                      {
-                        borderTopColor: colors.border,
-                        paddingBottom: DesignSystem.spacing.sm,
-                      },
-                    ]}
-                  >
-                    {onEdit ? (
-                      <TouchableOpacity
-                        style={[
-                          contentStyles.secondaryButton,
-                          {
-                            borderColor: colors.glassStroke,
-                            backgroundColor: isDark
-                              ? "rgba(35, 37, 38, 0.35)"
-                              : "rgba(255, 255, 255, 0.45)",
-                          },
-                        ]}
-                        onPress={() => onEdit(task)}
-                        activeOpacity={0.85}
-                        accessibilityRole="button"
-                        accessibilityLabel="Edit task"
-                      >
-                        <Ionicons
-                          name="create-outline"
-                          size={22}
-                          color={colors.text}
-                        />
-                        <Text
-                          style={[
-                            DesignSystem.typography.bodySemiBold,
-                            { color: colors.text },
-                          ]}
-                        >
-                          Edit
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-
-                    <TouchableOpacity
-                      style={[
-                        contentStyles.primaryButton,
-                        {
-                          position: "relative",
-                          backgroundColor: colors.primary,
-                          opacity: isCompleting || isSkipping ? 0.65 : 1,
-                        },
-                      ]}
-                      onPress={() => void handleComplete()}
-                      disabled={isCompleting || isSkipping}
-                      activeOpacity={0.85}
-                      accessibilityRole="button"
-                      accessibilityLabel="Mark task complete"
-                    >
-                      <LinearGradient
-                        colors={ctaHighlight}
-                        start={{ x: 0.5, y: 0 }}
-                        end={{ x: 0.5, y: 1 }}
-                        style={StyleSheet.absoluteFillObject}
-                        pointerEvents="none"
-                      />
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={22}
-                        color="#fff"
-                      />
-                      <Text style={contentStyles.primaryButtonLabel}>
-                        {isCompleting ? "Completing…" : "Complete"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {showSkipOccurrence ? (
-                    <TouchableOpacity
-                      style={contentStyles.skipOccurrenceButton}
-                      onPress={() => void handleSkipOccurrence()}
-                      disabled={isCompleting || isSkipping}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityLabel="Skip this occurrence"
-                    >
-                      <Text
-                        style={[
-                          contentStyles.skipOccurrenceButtonText,
-                          {
-                            color: colors.error,
-                            opacity: isSkipping ? 0.65 : 1,
-                          },
-                        ]}
-                      >
-                        {isSkipping ? "Skipping…" : "Skip this occurrence"}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </Animated.View>
-              </SafeAreaView>
-            </LinearGradient>
-          </GlassCard>
-        </Animated.View>
-      </Animated.View>
-    </Modal>
+        <DetailRow
+          icon="time-outline"
+          label="Estimated time"
+          value={formatTime(task.estimated_duration_minutes)}
+        />
+        <DetailRow
+          icon="calendar-outline"
+          label="Due"
+          value={formatTaskSectionHeading(new Date(task.due_date))}
+        />
+        <DetailRow
+          icon="repeat-outline"
+          label="Recurrence"
+          value={formatInterval(task.interval_days)}
+        />
+      </ScrollView>
+    </HearthSheet>
   );
 }
+
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.detailRow,
+        {
+          backgroundColor: colors.fieldFill,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.detailIcon,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Ionicons name={icon} size={20} color={colors.primary} />
+      </View>
+      <View style={styles.detailText}>
+        <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+          {label}
+        </Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+  taskTitle: {
+    ...DesignSystem.typography.title2,
+    marginBottom: DesignSystem.spacing.md,
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  metaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  categoryIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  metaLabel: {
+    ...DesignSystem.typography.footnote,
+    textTransform: "capitalize",
+  },
+  section: {
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  sectionLabel: {
+    ...DesignSystem.typography.footnote,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  bodyText: {
+    ...DesignSystem.typography.body,
+    lineHeight: 24,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    marginBottom: DesignSystem.spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  detailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: DesignSystem.borders.radius.medium,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: DesignSystem.spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  detailText: {
+    flex: 1,
+  },
+  detailLabel: {
+    ...DesignSystem.typography.footnote,
+    marginBottom: 2,
+  },
+  detailValue: {
+    ...DesignSystem.typography.bodySemiBold,
+  },
+  footerInner: {
+    gap: DesignSystem.spacing.sm,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: DesignSystem.spacing.md,
+  },
+  actionSlot: {
+    flex: 1,
+  },
+  skipButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: DesignSystem.components.minTouchTarget,
+    paddingVertical: DesignSystem.spacing.sm,
+  },
+  skipLabel: {
+    ...DesignSystem.typography.body,
+  },
+});

@@ -18,7 +18,7 @@ export const maintenancePlansStyles = StyleSheet.create({
     zIndex: 1,
   },
   headerTitle: {
-    ...DesignSystem.typography.h3,
+    ...DesignSystem.typography.title2,
     flex: 1,
     textAlign: "center",
   },

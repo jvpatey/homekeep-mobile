@@ -30,7 +30,7 @@ export const completionHistoryStyles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.sm,
   },
   headerTitle: {
-    ...DesignSystem.typography.h3,
+    ...DesignSystem.typography.title2,
     textAlign: "center",
   },
   headerSubtitle: {
@@ -141,19 +141,8 @@ export const completionHistoryStyles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   completeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.small,
+    alignSelf: "flex-start",
     marginTop: DesignSystem.spacing.sm,
-    gap: DesignSystem.spacing.xs,
-  },
-  completeButtonText: {
-    ...DesignSystem.typography.captionSemiBold,
-    fontSize: 12,
-    fontWeight: "600",
   },
   instanceHeader: {
     flexDirection: "row",
@@ -185,7 +174,7 @@ export const completionHistoryStyles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.lg,
   },
   emptyStateTitle: {
-    ...DesignSystem.typography.h2,
+    ...DesignSystem.typography.title2,
     marginTop: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.sm,
     textAlign: "center",

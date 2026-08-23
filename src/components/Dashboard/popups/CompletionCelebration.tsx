@@ -17,10 +17,8 @@ import Animated, {
 import { DesignSystem } from "../../../theme/designSystem";
 import { useTheme } from "../../../context/ThemeContext";
 import { useDevice, useGradients } from "../../../hooks";
-import { GlassCard } from "../../ui/glass-card/GlassCard";
-import { hexWithAlpha } from "./popupChrome";
+import { Button } from "../../ui/Button";
 import { Ionicons } from "@expo/vector-icons";
-import { PopupPrimaryButton } from "./PopupPrimaryButton";
 
 interface CompletionCelebrationProps {
   isVisible: boolean;
@@ -31,8 +29,8 @@ export function CompletionCelebration({
   isVisible,
   onClose,
 }: CompletionCelebrationProps) {
-  const { colors, isDark } = useTheme();
-  const { haloGradient } = useGradients();
+  const { colors } = useTheme();
+  const { authAtmosphere } = useGradients();
   const { isTablet } = useDevice();
 
   const scale = useSharedValue(0.7);
@@ -131,110 +129,87 @@ export function CompletionCelebration({
         style={styles.overlay}
         onPress={handleClose}
         activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss celebration"
       />
       <Animated.View
         style={[
           styles.container,
           containerAnimatedStyle,
           {
-            borderRadius: DesignSystem.borders.radius.glass,
-            overflow: "hidden",
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
             maxWidth: isTablet ? 450 : 350,
           },
+          DesignSystem.shadows.softKey,
         ]}
       >
-        <GlassCard
-          material="thick"
-          radius={DesignSystem.borders.radius.glass}
-          containerStyle={{ width: "100%" }}
-          style={{ overflow: "hidden" }}
+        <LinearGradient
+          colors={authAtmosphere}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.35 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+
+        <Animated.View
+          style={[
+            styles.content,
+            contentAnimatedStyle,
+            {
+              padding: isTablet
+                ? DesignSystem.spacing.xxl
+                : DesignSystem.spacing.xl,
+            },
+          ]}
         >
-          <LinearGradient
-            colors={[...haloGradient]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
+          <View
             style={[
-              styles.gradientBackground,
-              { position: "relative" },
+              styles.trophyWrap,
               {
-                padding: isTablet
-                  ? DesignSystem.spacing.xxl
-                  : DesignSystem.spacing.xl,
+                marginBottom: isTablet
+                  ? DesignSystem.spacing.lg
+                  : DesignSystem.spacing.md,
               },
             ]}
           >
-            <LinearGradient
-              pointerEvents="none"
-              colors={[
-                hexWithAlpha(colors.warning, isDark ? 0.24 : 0.15),
-                hexWithAlpha(colors.primary, isDark ? 0.16 : 0.1),
-                hexWithAlpha(colors.primary, isDark ? 0.09 : 0.055),
+            <View
+              style={[
+                styles.trophyHalo,
+                {
+                  width: isTablet ? 112 : 88,
+                  height: isTablet ? 112 : 88,
+                  borderRadius: isTablet ? 56 : 44,
+                  backgroundColor: colors.primary + "18",
+                  borderColor: colors.primary + "33",
+                },
               ]}
-              locations={[0, 0.48, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.popupAtmosphere}
             />
-            <Animated.View style={[styles.content, contentAnimatedStyle]}>
-              <View
-                style={[
-                  styles.trophyWrap,
-                  {
-                    marginBottom: isTablet
-                      ? DesignSystem.spacing.lg
-                      : DesignSystem.spacing.md,
-                    minHeight: isTablet ? 120 : 96,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.trophyHalo,
-                    {
-                      width: isTablet ? 112 : 88,
-                      height: isTablet ? 112 : 88,
-                      borderRadius: isTablet ? 56 : 44,
-                      backgroundColor: hexWithAlpha(
-                        colors.primary,
-                        isDark ? 0.2 : 0.1
-                      ),
-                      borderColor: hexWithAlpha(
-                        colors.primary,
-                        isDark ? 0.42 : 0.26
-                      ),
-                    },
-                  ]}
-                />
-                <Animated.View
-                  style={[styles.achievementIcon, iconAnimatedStyle]}
-                >
-                  <Ionicons
-                    name="trophy"
-                    size={isTablet ? 64 : 48}
-                    color={colors.primary}
-                  />
-                </Animated.View>
-              </View>
-
-              <Text
-                style={[
-                  styles.achievementMessage,
-                  {
-                    color: colors.text,
-                    fontSize: isTablet ? 32 : 24,
-                    marginBottom: isTablet
-                      ? DesignSystem.spacing.lg
-                      : DesignSystem.spacing.md,
-                  },
-                ]}
-              >
-                {achievementMessage}
-              </Text>
-
-              <PopupPrimaryButton label="Continue" onPress={handleClose} />
+            <Animated.View style={iconAnimatedStyle}>
+              <Ionicons
+                name="trophy"
+                size={isTablet ? 64 : 48}
+                color={colors.primary}
+              />
             </Animated.View>
-          </LinearGradient>
-        </GlassCard>
+          </View>
+
+          <Text
+            style={[
+              styles.achievementMessage,
+              {
+                color: colors.text,
+                marginBottom: isTablet
+                  ? DesignSystem.spacing.lg
+                  : DesignSystem.spacing.md,
+              },
+            ]}
+          >
+            {achievementMessage}
+          </Text>
+
+          <Button label="Continue" onPress={handleClose} />
+        </Animated.View>
       </Animated.View>
     </View>
   );
@@ -252,23 +227,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(26, 22, 18, 0.45)",
   },
   container: {
     width: "85%",
-    maxWidth: 350,
+    borderRadius: DesignSystem.borders.radius.xlarge,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
-  },
-  gradientBackground: {
-    padding: DesignSystem.spacing.xl,
-  },
-  popupAtmosphere: {
-    ...StyleSheet.absoluteFillObject,
   },
   content: {
     alignItems: "center",
@@ -282,12 +248,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderWidth: DesignSystem.borders.hairline,
   },
-  achievementIcon: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
   achievementMessage: {
-    ...DesignSystem.typography.h2,
+    ...DesignSystem.typography.title2,
     textAlign: "center",
   },
 });
