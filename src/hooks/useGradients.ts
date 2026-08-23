@@ -1,63 +1,94 @@
 import { useTheme } from "../context/ThemeContext";
 
 /**
- * Custom hook for gradient colors used across the app
- * Provides consistent gradient styling based on theme with liquid glass effects
+ * Gradient tokens for the Hearth design system.
+ * Gradients are atmosphere (light), not brand chrome.
  */
 export function useGradients() {
   const { colors, isDark } = useTheme();
 
-  // Primary gradient for main buttons and important elements (teal → blue)
+  /** Welcome hero — layered warm bloom behind the sculptural mark. */
+  const welcomeAtmosphere = (
+    isDark
+      ? [
+          "rgba(212, 107, 53, 0.22)",
+          "rgba(74, 122, 106, 0.10)",
+          "transparent",
+        ]
+      : [
+          "rgba(196, 92, 38, 0.18)",
+          "rgba(47, 93, 80, 0.08)",
+          "transparent",
+        ]
+  ) as [string, string, string];
+
+  /** Secondary sage mist for welcome hero depth. */
+  const welcomeAtmosphereSecondary = (
+    isDark
+      ? ["rgba(74, 122, 106, 0.14)", "transparent"]
+      : ["rgba(47, 93, 80, 0.10)", "transparent"]
+  ) as [string, string];
+
+  /** Auth screens — quiet top wash, same hues at lower opacity. */
+  const authAtmosphere = (
+    isDark
+      ? [
+          "rgba(212, 107, 53, 0.12)",
+          "rgba(74, 122, 106, 0.05)",
+          "transparent",
+        ]
+      : [
+          "rgba(196, 92, 38, 0.10)",
+          "rgba(47, 93, 80, 0.04)",
+          "transparent",
+        ]
+  ) as [string, string, string];
+
+  /** @deprecated Use welcomeAtmosphere or authAtmosphere. Kept for dashboard compat. */
+  const haloGradient = authAtmosphere;
+
+  /** @deprecated Solid CTAs no longer use specular overlays. */
+  const ctaHighlight = [
+    "rgba(255, 255, 255, 0)",
+    "rgba(255, 255, 255, 0)",
+  ] as [string, string];
+
   const primaryGradient = (
     isDark
       ? [colors.primary, colors.secondary]
       : [colors.primary, colors.secondary]
   ) as [string, string];
 
-  // Accent gradient for OAuth buttons and special elements (teal → orange)
   const accentGradient = (
-    isDark ? [colors.primary, colors.accent] : [colors.primary, colors.accent]
+    isDark ? [colors.primary, colors.secondary] : [colors.primary, colors.secondary]
   ) as [string, string];
 
-  /**
-   * @deprecated Multi-hue gradients read as pre-iOS 26. Prefer a solid brand color
-   * with a subtle highlight overlay (`ctaHighlight`).
-   */
-  const spectrumGradient = (
-    isDark
-      ? [colors.primary, colors.secondary, colors.accent]
-      : [colors.primary, colors.secondary, colors.accent]
-  ) as [string, string, string];
+  const spectrumGradient = primaryGradient as unknown as [string, string, string];
 
-  // Glass overlay gradient for glassmorphism effects
   const glassOverlay = (
     isDark
-      ? ["rgba(35, 37, 38, 0.7)", "rgba(35, 37, 38, 0.5)"]
-      : ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.5)"]
+      ? ["rgba(30, 27, 24, 0.7)", "rgba(30, 27, 24, 0.5)"]
+      : ["rgba(255, 251, 247, 0.7)", "rgba(255, 251, 247, 0.5)"]
   ) as [string, string];
 
-  // Glass border gradient (subtle teal → blue)
   const glassBorder = (
     isDark
-      ? ["rgba(32, 180, 134, 0.4)", "rgba(58, 134, 255, 0.4)"]
-      : ["rgba(46, 196, 182, 0.5)", "rgba(58, 134, 255, 0.5)"]
+      ? ["rgba(255, 255, 255, 0.12)", "rgba(255, 255, 255, 0.08)"]
+      : ["rgba(26, 22, 18, 0.08)", "rgba(26, 22, 18, 0.04)"]
   ) as [string, string];
 
-  // Icon gradient for feature icons and decorative elements
   const iconGradient = (
     isDark
-      ? ["rgba(32, 180, 134, 0.2)", "rgba(58, 134, 255, 0.15)"]
-      : ["rgba(46, 196, 182, 0.15)", "rgba(58, 134, 255, 0.1)"]
+      ? ["rgba(212, 107, 53, 0.18)", "rgba(74, 122, 106, 0.12)"]
+      : ["rgba(196, 92, 38, 0.12)", "rgba(47, 93, 80, 0.08)"]
   ) as [string, string];
 
-  // Glow gradient for soft shadows and highlights
   const glowGradient = (
     isDark
-      ? ["rgba(32, 180, 134, 0.3)", "rgba(58, 134, 255, 0.2)", "rgba(255, 159, 28, 0.1)"]
-      : ["rgba(46, 196, 182, 0.4)", "rgba(58, 134, 255, 0.3)", "rgba(255, 159, 28, 0.2)"]
+      ? ["rgba(212, 107, 53, 0.20)", "rgba(74, 122, 106, 0.10)", "transparent"]
+      : ["rgba(196, 92, 38, 0.16)", "rgba(47, 93, 80, 0.08)", "transparent"]
   ) as [string, string, string];
 
-  // Fade gradient for dividers and decorative elements
   const fadeGradient = [
     colors.background,
     colors.background,
@@ -68,99 +99,41 @@ export function useGradients() {
     colors.background,
   ] as const;
 
-  /**
-   * @deprecated Use `haloGradient` instead. This 8-stop multi-hue gradient is the
-   * pre-iOS 26 look; new screens should use the single-hue halo.
-   */
-  const heroGradient = (
-    isDark
-      ? [
-          "rgba(46, 196, 182, 0.04)",
-          "rgba(46, 196, 182, 0.10)",
-          "rgba(46, 196, 182, 0.15)",
-          "rgba(58, 134, 255, 0.12)",
-          "rgba(46, 196, 182, 0.08)",
-          "rgba(46, 196, 182, 0.04)",
-          "rgba(46, 196, 182, 0.02)",
-          "transparent",
-        ]
-      : [
-          "rgba(46, 196, 182, 0.06)",
-          "rgba(46, 196, 182, 0.14)",
-          "rgba(46, 196, 182, 0.22)",
-          "rgba(58, 134, 255, 0.18)",
-          "rgba(46, 196, 182, 0.08)",
-          "rgba(46, 196, 182, 0.04)",
-          "rgba(46, 196, 182, 0.015)",
-          "transparent",
-        ]
-  ) as [string, string, string, string, string, string, string, string];
+  const heroGradient = welcomeAtmosphere as unknown as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
 
   const heroGradientLocations = [0, 0.15, 0.30, 0.50, 0.70, 0.85, 0.95, 1] as const;
 
-  // Radial glow for content highlighting (for use with RadialGradient)
   const radialGlow = (
     isDark
       ? {
-          innerColor: "rgba(46, 196, 182, 0.20)",
-          midColor: "rgba(58, 134, 255, 0.15)",
-          outerColor: "rgba(255, 159, 28, 0.05)",
+          innerColor: "rgba(212, 107, 53, 0.18)",
+          midColor: "rgba(74, 122, 106, 0.10)",
+          outerColor: "rgba(212, 107, 53, 0.04)",
           fadeColor: colors.background,
         }
       : {
-          innerColor: "rgba(46, 196, 182, 0.35)",
-          midColor: "rgba(58, 134, 255, 0.30)",
-          outerColor: "rgba(255, 159, 28, 0.10)",
-          fadeColor: "rgba(255, 255, 255, 0.5)",
+          innerColor: "rgba(196, 92, 38, 0.20)",
+          midColor: "rgba(47, 93, 80, 0.10)",
+          outerColor: "rgba(196, 92, 38, 0.04)",
+          fadeColor: colors.background,
         }
   );
 
-  /**
-   * @deprecated Use a single tint color or `haloGradient` instead.
-   */
-  const ambientGradient = (
-    isDark
-      ? [
-          "rgba(46, 196, 182, 0.10)",
-          "rgba(58, 134, 255, 0.06)",
-          "rgba(46, 196, 182, 0.03)",
-          colors.background,
-        ]
-      : [
-          "rgba(46, 196, 182, 0.12)",
-          "rgba(58, 134, 255, 0.08)",
-          "rgba(46, 196, 182, 0.025)",
-          "rgba(255, 255, 255, 0.4)",
-        ]
-  ) as [string, string, string, string];
-
-  /**
-   * 2026 single-hue teal halo. Use as the only background gradient on a
-   * Liquid Glass screen, positioned behind the focal element (logo, hero icon).
-   * Fades to transparent so the system background shows through.
-   */
-  const haloGradient = (
-    isDark
-      ? [
-          "rgba(46, 196, 182, 0.18)",
-          "rgba(46, 196, 182, 0.06)",
-          "transparent",
-        ]
-      : [
-          "rgba(46, 196, 182, 0.22)",
-          "rgba(46, 196, 182, 0.08)",
-          "transparent",
-        ]
-  ) as [string, string, string];
-
-  /**
-   * 2026 specular highlight for solid CTAs. Two-stop white-to-transparent that
-   * sits on the top portion of a button to suggest a glass gleam.
-   */
-  const ctaHighlight = [
-    "rgba(255, 255, 255, 0.18)",
-    "rgba(255, 255, 255, 0)",
-  ] as [string, string];
+  const ambientGradient = authAtmosphere as unknown as [
+    string,
+    string,
+    string,
+    string,
+  ];
 
   return {
     primaryGradient,
@@ -177,6 +150,9 @@ export function useGradients() {
     ambientGradient,
     haloGradient,
     ctaHighlight,
+    welcomeAtmosphere,
+    welcomeAtmosphereSecondary,
+    authAtmosphere,
     isDark,
     colors,
   };
