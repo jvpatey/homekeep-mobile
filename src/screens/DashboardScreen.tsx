@@ -1,16 +1,13 @@
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+import { StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useTheme } from "../context/ThemeContext";
 import { Dashboard } from "../components/Dashboard";
+import { HearthScreen } from "../components/ui";
 import { useTasks } from "../context/TasksContext";
 import { AppStackParamList } from "../navigation/types";
 
 export function DashboardScreen() {
-  const { colors, isDark } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const {
@@ -24,12 +21,10 @@ export function DashboardScreen() {
   } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
-  // handleCompleteTask for the handleCompleteTask on the home screen
   const handleCompleteTask = async (instanceId: string) => {
     await completeTask(instanceId);
   };
 
-  // handleTaskPress for the handleTaskPress on the home screen
   const handleTaskPress = (instanceId: string) => {
     const task = upcomingTasks.find((t) => t.instance_id === instanceId);
     if (task) {
@@ -37,7 +32,6 @@ export function DashboardScreen() {
     }
   };
 
-  // handleRefresh for the handleRefresh on the home screen
   const handleRefresh = async () => {
     setRefreshing(true);
     await refreshTasks();
@@ -45,34 +39,33 @@ export function DashboardScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDark ? "light" : "dark"} translucent />
-      <SafeAreaView
-        edges={["left", "right", "bottom"]}
-        style={{ flex: 1 }}
-      >
-        <Dashboard
-          tasks={upcomingTasks}
-          overdueTasks={overdueTasks}
-          completedTasks={completedTasks}
-          onCompleteTask={handleCompleteTask}
-          onSkipTaskOccurrence={skipTaskOccurrence}
-          onTaskPress={handleTaskPress}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-          tasksError={tasksError}
-          onRetryTasks={refreshTasks}
-          onBrowseMaintenancePlans={() =>
-            navigation.navigate("MaintenancePlans")
-          }
-        />
-      </SafeAreaView>
-    </View>
+    <HearthScreen
+      edges={["left", "right"]}
+      statusBarTranslucent
+      style={styles.screen}
+    >
+      <Dashboard
+        tasks={upcomingTasks}
+        overdueTasks={overdueTasks}
+        completedTasks={completedTasks}
+        onCompleteTask={handleCompleteTask}
+        onSkipTaskOccurrence={skipTaskOccurrence}
+        onTaskPress={handleTaskPress}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        tasksError={tasksError}
+        onRetryTasks={refreshTasks}
+        onBrowseMaintenancePlans={() =>
+          navigation.navigate("MaintenancePlans")
+        }
+      />
+    </HearthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: "transparent",
   },
 });

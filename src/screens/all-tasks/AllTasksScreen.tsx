@@ -6,14 +6,13 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
-  SafeAreaView,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
-import { useHaptics } from "../../hooks";
+import { useHaptics, useScreenInsets } from "../../hooks";
+import { HearthScreen } from "../../components/ui";
 import { PriorityMark } from "../../components/ui/PriorityMark";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { MaintenanceService } from "../../services/maintenanceService";
@@ -21,9 +20,10 @@ import { AllTasksScreenProps } from "./types";
 import { getPlanTheme } from "../../data/maintenancePlans/planThemes";
 
 export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { deleteTask, refreshTasks } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { scrollPaddingBottom } = useScreenInsets();
   const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
@@ -233,11 +233,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
   );
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
+    <HearthScreen style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
@@ -257,11 +253,14 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
         data={routines}
         renderItem={renderRoutineItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[
+          styles.listContainer,
+          { paddingBottom: scrollPaddingBottom },
+        ]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
       />
-    </SafeAreaView>
+    </HearthScreen>
   );
 }
 

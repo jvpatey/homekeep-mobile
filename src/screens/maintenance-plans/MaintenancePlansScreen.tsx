@@ -9,10 +9,8 @@ import {
   StyleSheet,
 } from "react-native";
 import {
-  SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -20,7 +18,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
-import { HearthSurfaceCard } from "../../components/ui";
+import { HearthScreen, HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   MAINTENANCE_PLANS,
@@ -645,12 +643,7 @@ export function MaintenancePlansScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[maintenancePlansStyles.container, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
+    <HearthScreen style={maintenancePlansStyles.container}>
       <View style={maintenancePlansStyles.header}>
         <TouchableOpacity
           style={maintenancePlansStyles.backButton}
@@ -678,6 +671,6 @@ export function MaintenancePlansScreen() {
         <View style={{ flex: 1 }}>{renderTaskPicker(detailPlan)}</View>
       ) : null}
       </MaintenancePlanAccentProvider>
-    </SafeAreaView>
+    </HearthScreen>
   );
 }

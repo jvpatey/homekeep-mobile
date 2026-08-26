@@ -145,6 +145,8 @@ export function NewDashboard({
     [tasks, overdueTasks]
   );
 
+  const hasScheduleTasks = sections.length > 0;
+
   const dueTodayCount = useMemo(
     () => countDueToday([...tasks, ...overdueTasks]),
     [tasks, overdueTasks]
@@ -237,11 +239,13 @@ export function NewDashboard({
     listRef.current?.scrollToSection(key);
   };
 
-  const contentPaddingBottom =
-    insets.bottom +
-    DesignSystem.spacing.xxxl +
-    DesignSystem.spacing.xl +
-    56;
+  const contentPaddingBottom = hasScheduleTasks
+    ? insets.bottom +
+      DesignSystem.spacing.md +
+      DesignSystem.components.buttonLarge +
+      DesignSystem.spacing.md +
+      DesignSystem.spacing.lg
+    : insets.bottom + DesignSystem.spacing.xxxl;
 
   const listHeader = (
     <>
@@ -283,12 +287,17 @@ export function NewDashboard({
         contentPaddingBottom={contentPaddingBottom}
       />
 
-      <FloatingActionButton onPress={openCreateModal} />
+      {hasScheduleTasks ? (
+        <FloatingActionButton onPress={openCreateModal} />
+      ) : null}
 
       <SimpleTaskDetailModal
         task={selectedTask}
         visible={showTaskDetail}
-        onClose={() => setShowTaskDetail(false)}
+        onClose={() => {
+          setShowTaskDetail(false);
+          setSelectedTask(null);
+        }}
         onComplete={handleCompleteTask}
         onEdit={(task) => {
           setShowTaskDetail(false);

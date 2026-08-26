@@ -6,17 +6,24 @@ import { DesignSystem } from "../../../../theme/designSystem";
 interface SubmitButtonProps {
   onPress: () => void;
   disabled: boolean;
+  loading?: boolean;
   title: string;
 }
 
-export function SubmitButton({ onPress, disabled, title }: SubmitButtonProps) {
+export function SubmitButton({
+  onPress,
+  disabled,
+  loading = false,
+  title,
+}: SubmitButtonProps) {
   return (
-    <View style={{ paddingTop: DesignSystem.spacing.md }}>
+    <View style={{ paddingTop: DesignSystem.spacing.sm }}>
       <Button
         label={title}
         onPress={onPress}
         disabled={disabled}
-        variant="primary"
+        loading={loading}
+        accessibilityLabel={title}
       />
     </View>
   );

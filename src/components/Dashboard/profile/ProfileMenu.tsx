@@ -14,14 +14,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   runOnJS,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useTasks } from "../../../context/TasksContext";
-import { useGradients, useHaptics, useDevice } from "../../../hooks";
+import { useGradients, useHaptics, useDevice, useReducedMotion } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
 import { DesignSystem } from "../../../theme/designSystem";
 import { SheetGrabber, TintedGlassAvatar, HearthSurfaceCard } from "../../ui";
@@ -58,6 +57,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
     getTabletSheetContainerStyle,
   } = useDevice();
   const fontMultiplier = getFontMultiplier();
+  const reducedMotion = useReducedMotion();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [allTasksModalVisible, setAllTasksModalVisible] = useState(false);
@@ -91,13 +91,21 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
 
   useEffect(() => {
     if (menuVisible) {
+      if (reducedMotion) {
+        opacity.value = 1;
+        translateY.value = 0;
+        return;
+      }
       opacity.value = withTiming(1, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.emphasized,
       });
-      translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
+      translateY.value = withTiming(0, {
+        duration: DesignSystem.motion.duration.base,
+        easing: DesignSystem.motion.easing.emphasized,
+      });
     }
-  }, [menuVisible]);
+  }, [menuVisible, opacity, translateY, reducedMotion]);
 
   const showMenu = async () => {
     await triggerLight();
@@ -105,6 +113,12 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
   };
 
   const hideMenu = () => {
+    if (reducedMotion) {
+      opacity.value = 0;
+      translateY.value = screenHeight;
+      setMenuVisible(false);
+      return;
+    }
     opacity.value = withTiming(0, {
       duration: DesignSystem.motion.duration.fast,
       easing: DesignSystem.motion.easing.standard,
@@ -117,7 +131,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
       },
       (finished) => {
         if (finished) runOnJS(setMenuVisible)(false);
-      },
+      }
     );
   };
 

@@ -7,8 +7,6 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
@@ -16,11 +14,12 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { TasksLoadErrorBanner } from "../../components/Dashboard/TasksLoadErrorBanner";
+import { useScreenInsets, useDevice } from "../../hooks";
 import { Button } from "../../components/ui/Button";
+import { HearthScreen } from "../../components/ui";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
 import { colors as palette } from "../../theme/colors";
-import { useDevice } from "../../hooks";
 import {
   GroupedRoutine,
   groupTasksByRoutine,
@@ -31,7 +30,7 @@ import {
 type ThemePalette = typeof palette.light;
 
 export function CompletionHistoryScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const {
     completedTasks,
     overdueTasks,
@@ -42,6 +41,7 @@ export function CompletionHistoryScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
+  const { scrollPaddingBottom } = useScreenInsets();
   const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
   const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
     new Set()
@@ -535,12 +535,7 @@ export function CompletionHistoryScreen() {
       } completed`;
 
   return (
-    <SafeAreaView
-      style={[completionHistoryStyles.container, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
+    <HearthScreen style={completionHistoryStyles.container}>
       <View
         style={[
           completionHistoryStyles.header,
@@ -599,11 +594,14 @@ export function CompletionHistoryScreen() {
           data={groupedRoutines}
           renderItem={renderRoutineItem}
           keyExtractor={(item) => item.routineId}
-          contentContainerStyle={completionHistoryStyles.routinesList}
+          contentContainerStyle={[
+            completionHistoryStyles.routinesList,
+            { paddingBottom: scrollPaddingBottom },
+          ]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderListEmpty}
         />
       </View>
-    </SafeAreaView>
+    </HearthScreen>
   );
 }

@@ -266,7 +266,7 @@ export function StartDateSelector({
             onChange={handleDateChange}
             minimumDate={new Date()}
             textColor={colors.text}
-            themeVariant={colors.background === "#F7F9FA" ? "light" : "dark"}
+            themeVariant={isDark ? "dark" : "light"}
             style={[dateStyles.datePicker, { backgroundColor: colors.surface }]}
           />
           {Platform.OS === "ios" && (

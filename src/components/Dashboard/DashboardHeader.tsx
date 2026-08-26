@@ -13,6 +13,7 @@ import { useProfile } from "../../context/ProfileContext";
 import { useWeather } from "../../hooks";
 import { pickTemperatureUnit } from "../../services/WeatherService";
 import { useDevice, useHaptics } from "../../hooks";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/types";
@@ -42,6 +43,7 @@ export function DashboardHeader({
   animatedStyle,
 }: DashboardHeaderProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { profile } = useProfile();
   const { triggerLight } = useHaptics();
   const { isTablet, getResponsiveValue } = useDevice();
@@ -91,7 +93,13 @@ export function DashboardHeader({
   const Wrapper = animatedStyle ? Animated.View : View;
 
   return (
-    <Wrapper style={[styles.container, animatedStyle]}>
+    <Wrapper
+      style={[
+        styles.container,
+        { paddingTop: insets.top + DesignSystem.spacing.md },
+        animatedStyle,
+      ]}
+    >
       {/* Top bar */}
       <View style={styles.topBar}>
         <View style={styles.wordmarkRow}>
@@ -200,7 +208,6 @@ export function DashboardHeader({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.xl + DesignSystem.spacing.md,
     paddingBottom: DesignSystem.spacing.md,
   },
   topBar: {

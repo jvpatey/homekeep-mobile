@@ -7,8 +7,6 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -16,7 +14,8 @@ import { format } from "date-fns";
 import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useAuth } from "../../context/AuthContext";
-import { useHaptics } from "../../hooks";
+import { useHaptics, useScreenInsets } from "../../hooks";
+import { HearthScreen } from "../../components/ui";
 import { AppStackParamList } from "../../navigation/types";
 import { HomeKeepBrand } from "../../components/ui/HomeKeepBrand";
 import {
@@ -79,6 +78,7 @@ export function HomeSummaryPreviewScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { scrollPaddingBottom, footerPaddingBottom } = useScreenInsets();
 
   const [report, setReport] = useState<HomeSummaryReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,12 +143,7 @@ export function HomeSummaryPreviewScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
+    <HearthScreen style={styles.container}>
       <View
         style={[
           styles.header,
@@ -213,7 +208,10 @@ export function HomeSummaryPreviewScreen() {
       ) : (
         <>
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: scrollPaddingBottom },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View
@@ -360,6 +358,7 @@ export function HomeSummaryPreviewScreen() {
               {
                 backgroundColor: colors.surface,
                 borderTopColor: colors.border,
+                paddingBottom: footerPaddingBottom,
               },
             ]}
           >
@@ -391,6 +390,6 @@ export function HomeSummaryPreviewScreen() {
           </View>
         </>
       )}
-    </SafeAreaView>
+    </HearthScreen>
   );
 }

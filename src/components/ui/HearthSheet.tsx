@@ -15,18 +15,27 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useGradients, useDevice } from "../../hooks";
+import { useGradients, useDevice, useReducedMotion } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import { SheetGrabber } from "./sheet-grabber";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+const SHEET_ENTER = {
+  duration: DesignSystem.motion.duration.base,
+  easing: DesignSystem.motion.easing.emphasized,
+};
+
+const SHEET_EXIT = {
+  duration: DesignSystem.motion.duration.fast,
+  easing: DesignSystem.motion.easing.standard,
+};
 
 interface HearthSheetProps {
   visible: boolean;
@@ -41,6 +50,8 @@ interface HearthSheetProps {
    * When false, sheet sizes to content up to maxHeight.
    */
   fillMaxHeight?: boolean;
+  /** Lift sheet when the keyboard opens (iOS forms). Default true. */
+  keyboardAvoiding?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
@@ -53,26 +64,31 @@ export function HearthSheet({
   footer,
   maxHeightRatio = 0.92,
   fillMaxHeight = false,
+  keyboardAvoiding = true,
   contentStyle,
   accessibilityLabel,
 }: HearthSheetProps) {
   const { colors } = useTheme();
   const { authAtmosphere } = useGradients();
   const { getTabletSheetContainerStyle } = useDevice();
+  const reducedMotion = useReducedMotion();
 
-  const [mounted, setMounted] = useState(visible);
+  const [mounted, setMounted] = useState(false);
   const isAnimatingOut = useRef(false);
-  const wasVisible = useRef(visible);
+  const wasVisible = useRef(false);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
   const animateIn = useCallback(() => {
     translateY.value = SCREEN_HEIGHT;
-    opacity.value = withTiming(1, {
-      duration: DesignSystem.motion.duration.fast,
-    });
-    translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
-  }, [opacity, translateY]);
+    if (reducedMotion) {
+      opacity.value = 1;
+      translateY.value = 0;
+      return;
+    }
+    opacity.value = withTiming(1, SHEET_ENTER);
+    translateY.value = withTiming(0, SHEET_ENTER);
+  }, [opacity, translateY, reducedMotion]);
 
   const finishClose = useCallback(
     (notifyParent: boolean) => {
@@ -89,12 +105,16 @@ export function HearthSheet({
     (notifyParent: boolean) => {
       if (isAnimatingOut.current) return;
       isAnimatingOut.current = true;
-      opacity.value = withTiming(0, {
-        duration: DesignSystem.motion.duration.fast,
-      });
+      if (reducedMotion) {
+        opacity.value = 0;
+        translateY.value = SCREEN_HEIGHT;
+        finishClose(notifyParent);
+        return;
+      }
+      opacity.value = withTiming(0, SHEET_EXIT);
       translateY.value = withTiming(
         SCREEN_HEIGHT,
-        { duration: DesignSystem.motion.duration.fast },
+        SHEET_EXIT,
         (finished) => {
           if (finished) {
             runOnJS(finishClose)(notifyParent);
@@ -102,19 +122,21 @@ export function HearthSheet({
         }
       );
     },
-    [finishClose, opacity, translateY]
+    [finishClose, opacity, translateY, reducedMotion]
   );
 
   useEffect(() => {
-    if (visible && !wasVisible.current) {
+    if (visible) {
       isAnimatingOut.current = false;
       setMounted(true);
-      animateIn();
-    } else if (!visible && wasVisible.current && mounted) {
+      if (!wasVisible.current) {
+        animateIn();
+      }
+    } else if (wasVisible.current) {
       animateOut(false);
     }
     wasVisible.current = visible;
-  }, [visible, mounted, animateIn, animateOut]);
+  }, [visible, animateIn, animateOut]);
 
   const dismiss = () => {
     animateOut(true);
@@ -130,6 +152,120 @@ export function HearthSheet({
 
   const maxHeight = SCREEN_HEIGHT * maxHeightRatio;
 
+  const sheetInterior = (
+    <SafeAreaView
+      edges={["bottom"]}
+      style={[styles.safeArea, fillMaxHeight && styles.safeAreaFill]}
+    >
+      <SheetGrabber />
+
+      <View style={styles.titleRow}>
+        <Text
+          style={[styles.title, { color: colors.text }]}
+          numberOfLines={1}
+          accessibilityRole="header"
+        >
+          {title}
+        </Text>
+        <Pressable
+          onPress={dismiss}
+          hitSlop={8}
+          style={styles.closeHit}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
+        </Pressable>
+      </View>
+
+      {keyboardAvoiding ? (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={[
+            styles.keyboardAvoiding,
+            fillMaxHeight && styles.keyboardAvoidingFill,
+          ]}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
+          <View
+            style={[
+              styles.content,
+              fillMaxHeight && styles.contentFill,
+              contentStyle,
+            ]}
+          >
+            {children}
+          </View>
+          {footer ? (
+            <View style={[styles.footer, { borderTopColor: colors.border }]}>
+              {footer}
+            </View>
+          ) : null}
+        </KeyboardAvoidingView>
+      ) : (
+        <>
+          <View
+            style={[
+              styles.content,
+              fillMaxHeight && styles.contentFill,
+              contentStyle,
+            ]}
+          >
+            {children}
+          </View>
+          {footer ? (
+            <View style={[styles.footer, { borderTopColor: colors.border }]}>
+              {footer}
+            </View>
+          ) : null}
+        </>
+      )}
+    </SafeAreaView>
+  );
+
+  const sheetBody = (
+    <>
+      <Animated.View style={[styles.backdrop, backdropStyle]}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={dismiss}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel ?? "Close"}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          styles.sheetContainer,
+          getTabletSheetContainerStyle(),
+          fillMaxHeight ? { height: maxHeight } : { maxHeight },
+          sheetStyle,
+        ]}
+      >
+        <View
+          style={[
+            styles.sheetSurface,
+            fillMaxHeight && styles.sheetSurfaceFill,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+            DesignSystem.shadows.softKey,
+          ]}
+        >
+          <LinearGradient
+            colors={authAtmosphere}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.35 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {sheetInterior}
+        </View>
+      </Animated.View>
+    </>
+  );
+
   return (
     <Modal
       transparent
@@ -139,85 +275,7 @@ export function HearthSheet({
       statusBarTranslucent
       accessibilityViewIsModal
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardRoot}
-      >
-        <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={dismiss}
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel ?? "Close"}
-          />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.sheetContainer,
-            getTabletSheetContainerStyle(),
-            fillMaxHeight ? { height: maxHeight } : { maxHeight },
-            sheetStyle,
-          ]}
-        >
-          <View
-            style={[
-              styles.sheetSurface,
-              fillMaxHeight && styles.sheetSurfaceFill,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-              DesignSystem.shadows.softKey,
-            ]}
-          >
-            <LinearGradient
-              colors={authAtmosphere}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 0.35 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-
-            <SafeAreaView
-              edges={["bottom"]}
-              style={[styles.safeArea, fillMaxHeight && styles.safeAreaFill]}
-            >
-              <SheetGrabber />
-
-              <View style={styles.titleRow}>
-                <Text
-                  style={[styles.title, { color: colors.text }]}
-                  numberOfLines={1}
-                  accessibilityRole="header"
-                >
-                  {title}
-                </Text>
-                <Pressable
-                  onPress={dismiss}
-                  hitSlop={8}
-                  style={styles.closeHit}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                >
-                  <Ionicons name="close" size={24} color={colors.textSecondary} />
-                </Pressable>
-              </View>
-
-              <View
-                style={[
-                  styles.content,
-                  fillMaxHeight && styles.contentFill,
-                  contentStyle,
-                ]}
-              >
-                {children}
-              </View>
-              {footer ? <View style={styles.footer}>{footer}</View> : null}
-            </SafeAreaView>
-          </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
+      <View style={styles.keyboardRoot}>{sheetBody}</View>
     </Modal>
   );
 }
@@ -249,6 +307,13 @@ const styles = StyleSheet.create({
   safeAreaFill: {
     flex: 1,
   },
+  keyboardAvoiding: {
+    flexShrink: 1,
+  },
+  keyboardAvoidingFill: {
+    flex: 1,
+    minHeight: 0,
+  },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -279,5 +344,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

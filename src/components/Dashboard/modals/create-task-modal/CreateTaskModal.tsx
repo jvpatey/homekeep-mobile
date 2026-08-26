@@ -3,6 +3,7 @@ import React, {
   useRef,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
 import {
   ScrollView,
@@ -15,7 +16,6 @@ import {
   Platform,
   Pressable,
   InputAccessoryView,
-  useWindowDimensions,
   TextInput as RNTextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -41,19 +41,22 @@ import {
   Priority,
 } from "../../../../types/maintenance";
 
-const ESTIMATED_DURATION_INPUT_ACCESSORY_ID =
-  "createTaskEstimatedDurationInputAccessory";
+const FORM_KEYBOARD_ACCESSORY_ID = "createTaskFormKeyboardAccessory";
 
-// CreateTaskModalProps
+type FormFieldKey =
+  | "title"
+  | "description"
+  | "category"
+  | "estimated_duration_minutes"
+  | "interval_days";
+
 interface CreateTaskModalProps {
   onClose: () => void;
   onTaskCreated: () => void;
-  // Optional edit mode support
   initialValues?: Partial<MaintenanceRoutineForm> & { id?: string };
   isEdit?: boolean;
 }
 
-// MaintenanceRoutineForm
 interface MaintenanceRoutineForm {
   title: string;
   category: MaintenanceCategory;
@@ -81,7 +84,25 @@ function getIntervalLabel(interval: number): string {
   }
 }
 
-// CreateTaskModal component
+function buildInitialForm(
+  initialValues?: Partial<MaintenanceRoutineForm>
+): MaintenanceRoutineForm {
+  const startDate = initialValues?.startDate
+    ? new Date(initialValues.startDate)
+    : new Date();
+  startDate.setHours(12, 0, 0, 0);
+
+  return {
+    title: initialValues?.title ?? "",
+    category: (initialValues?.category ?? "GENERAL") as MaintenanceCategory,
+    interval_days: initialValues?.interval_days ?? 30,
+    startDate,
+    priority: (initialValues?.priority ?? "medium") as Priority,
+    estimated_duration_minutes: initialValues?.estimated_duration_minutes ?? 30,
+    description: initialValues?.description ?? "",
+  };
+}
+
 export function CreateTaskModal({
   onClose,
   onTaskCreated,
@@ -93,85 +114,103 @@ export function CreateTaskModal({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
-  const { height: windowHeight } = useWindowDimensions();
-  const sheetMaxHeight = windowHeight * 0.85;
-  /** Reserve space for sheet chrome so ScrollView doesn't collapse. */
-  const sheetChromeOverhead =
-    DesignSystem.spacing.sm +
-    4 +
-    DesignSystem.spacing.md * 2 +
-    56 +
-    DesignSystem.spacing.lg * 2 +
-    DesignSystem.spacing.md;
-  const scrollViewportMaxHeight = Math.max(
-    280,
-    sheetMaxHeight - sheetChromeOverhead
+
+  const initialForm = useMemo(
+    () => buildInitialForm(initialValues),
+    [initialValues]
   );
+
+  const titleFieldRef = useRef<RNTextInput | null>(null);
   const descriptionFieldRef = useRef<RNTextInput | null>(null);
   const durationFieldRef = useRef<RNTextInput | null>(null);
   const formScrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
+  const fieldOffsets = useRef<Partial<Record<FormFieldKey, number>>>({});
 
-  const scrollTitleFieldIntoView = useCallback(() => {
-    /** Title sits at the top of the sheet ScrollView; after the keyboard opens,
-     * iOS can clip it unless we scroll to offset 0 and let inset adjustment land. */
-    setTimeout(() => {
-      formScrollRef.current?.scrollTo({ y: 0, animated: true });
-    }, 50);
-  }, []);
-
-  const [form, setForm] = useState<MaintenanceRoutineForm>({
-    title: initialValues?.title ?? "",
-    category: (initialValues?.category ?? "GENERAL") as MaintenanceCategory,
-    interval_days: initialValues?.interval_days ?? 30,
-    startDate: (() => {
-      const base = initialValues?.startDate
-        ? new Date(initialValues.startDate)
-        : new Date();
-      base.setHours(12, 0, 0, 0);
-      return base;
-    })(),
-    priority: (initialValues?.priority ?? "medium") as Priority,
-    estimated_duration_minutes: initialValues?.estimated_duration_minutes ?? 30,
-    description: initialValues?.description ?? "",
+  const [form, setForm] = useState<MaintenanceRoutineForm>(initialForm);
+  const [durationText, setDurationText] = useState(
+    String(initialForm.estimated_duration_minutes)
+  );
+  const [selectedInterval, setSelectedInterval] = useState<number>(() => {
+    const days = initialValues?.interval_days ?? 30;
+    const presets = [7, 30, 90, 365];
+    for (const preset of presets) {
+      if (days % preset === 0) return preset;
+    }
+    return 0;
   });
-
-  // Separate state for interval management
-  const [selectedInterval, setSelectedInterval] = useState<number>(
-    // seed from existing interval if editing
-    (() => {
-      const days = initialValues?.interval_days ?? 30;
-      // Snap to common presets if divisible
+  const [intervalValue, setIntervalValue] = useState<number>(() => {
+    const days = initialValues?.interval_days ?? 30;
+    const interval = (() => {
       const presets = [7, 30, 90, 365];
-      for (const p of presets) {
-        if (days % p === 0) return p;
+      for (const preset of presets) {
+        if (days % preset === 0) return preset;
       }
-      return 0; // custom
-    })()
-  );
-  const [intervalValue, setIntervalValue] = useState<number>(
-    (() => {
-      const days = initialValues?.interval_days ?? 30;
-      if (selectedInterval === 0) return days;
-      return Math.max(1, Math.round(days / (selectedInterval || 1)));
-    })()
-  );
+      return 0;
+    })();
+    if (interval === 0) return days;
+    return Math.max(1, Math.round(days / interval));
+  });
 
   const [errors, setErrors] = useState<
     Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [dismissChromeToken, setDismissChromeToken] = useState(0);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, () =>
+      setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(hideEvent, () =>
+      setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const dismissFormChrome = useCallback(() => {
     Keyboard.dismiss();
-    setDismissChromeToken((t) => t + 1);
+    setDismissChromeToken((token) => token + 1);
   }, []);
+
+  const scrollFieldIntoView = useCallback((fieldKey: FormFieldKey) => {
+    const runScroll = () => {
+      const y = fieldOffsets.current[fieldKey];
+      if (y == null) return;
+      formScrollRef.current?.scrollTo({
+        y: Math.max(0, y - DesignSystem.spacing.xl),
+        animated: true,
+      });
+    };
+
+    runScroll();
+    if (Platform.OS === "ios") {
+      setTimeout(runScroll, 100);
+      setTimeout(runScroll, 300);
+    }
+  }, []);
+
+  const registerFieldLayout = useCallback(
+    (fieldKey: FormFieldKey) => (y: number) => {
+      fieldOffsets.current[fieldKey] = y;
+    },
+    []
+  );
 
   const capitalizeFirst = (input: string) => {
     if (!input) return "";
-    return input.replace(/^\s*([a-zA-Z])/, (m, p1) => p1.toUpperCase());
+    return input.replace(/^\s*([a-zA-Z])/, (_match, first: string) =>
+      first.toUpperCase()
+    );
   };
 
-  /** Matches interval math in handleSubmit */
   const getEffectiveIntervalDays = (): number => {
     if (selectedInterval === 0) {
       return intervalValue;
@@ -179,7 +218,23 @@ export function CreateTaskModal({
     return selectedInterval * intervalValue;
   };
 
-  const validateForm = (): { ok: boolean; firstError?: string } => {
+  const isFormDirty = useMemo(() => {
+    return (
+      form.title !== initialForm.title ||
+      form.category !== initialForm.category ||
+      form.priority !== initialForm.priority ||
+      form.description !== initialForm.description ||
+      form.estimated_duration_minutes !== initialForm.estimated_duration_minutes ||
+      form.startDate.getTime() !== initialForm.startDate.getTime() ||
+      getEffectiveIntervalDays() !== initialForm.interval_days
+    );
+  }, [form, initialForm, selectedInterval, intervalValue]);
+
+  const validateForm = (): {
+    ok: boolean;
+    firstError?: string;
+    firstErrorField?: FormFieldKey;
+  } => {
     const newErrors: Partial<{ [K in keyof MaintenanceRoutineForm]: string }> =
       {};
 
@@ -191,10 +246,8 @@ export function CreateTaskModal({
       newErrors.category = "Please select a category";
     }
 
-    if (
-      !form.estimated_duration_minutes ||
-      form.estimated_duration_minutes <= 0
-    ) {
+    const duration = parseInt(durationText, 10);
+    if (!durationText.trim() || Number.isNaN(duration) || duration <= 0) {
       newErrors.estimated_duration_minutes = "Duration must be greater than 0";
     }
 
@@ -204,19 +257,45 @@ export function CreateTaskModal({
     }
 
     setErrors(newErrors);
-    const firstError = Object.values(newErrors).find(
-      (v): v is string => Boolean(v)
-    );
+
+    const fieldOrder: FormFieldKey[] = [
+      "title",
+      "category",
+      "estimated_duration_minutes",
+      "interval_days",
+    ];
+    const firstErrorField = fieldOrder.find((key) => {
+      if (key === "interval_days") return Boolean(newErrors.interval_days);
+      return Boolean(newErrors[key]);
+    });
+    const firstError = firstErrorField
+      ? newErrors[firstErrorField === "interval_days" ? "interval_days" : firstErrorField]
+      : undefined;
+
     return {
       ok: Object.keys(newErrors).length === 0,
       firstError,
+      firstErrorField,
     };
   };
 
   const handleSubmit = async () => {
-    const { ok, firstError } = validateForm();
+    if (isSubmitting) return;
+
+    const duration = parseInt(durationText, 10);
+    if (!Number.isNaN(duration) && duration > 0) {
+      setForm((prev) => ({
+        ...prev,
+        estimated_duration_minutes: duration,
+      }));
+    }
+
+    const { ok, firstError, firstErrorField } = validateForm();
     if (!ok) {
       triggerMedium();
+      if (firstErrorField) {
+        scrollFieldIntoView(firstErrorField);
+      }
       Alert.alert(
         "Check your task",
         firstError ?? "Please fix the highlighted fields and try again."
@@ -224,10 +303,10 @@ export function CreateTaskModal({
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const actualIntervalDays = getEffectiveIntervalDays();
-
-      // Ensure we persist start_date at local noon (stable day boundary)
       const startAtNoon = new Date(form.startDate);
       startAtNoon.setHours(12, 0, 0, 0);
 
@@ -235,7 +314,7 @@ export function CreateTaskModal({
         title: form.title.trim(),
         category: form.category,
         priority: form.priority,
-        estimated_duration_minutes: form.estimated_duration_minutes,
+        estimated_duration_minutes: parseInt(durationText, 10),
         interval_days: actualIntervalDays,
         start_date: startAtNoon.toISOString(),
         description: form.description?.trim() || undefined,
@@ -263,6 +342,8 @@ export function CreateTaskModal({
     } catch (error) {
       console.error("Error creating task:", error);
       Alert.alert("Error", "Failed to create task");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -271,7 +352,6 @@ export function CreateTaskModal({
     value: MaintenanceRoutineForm[keyof MaintenanceRoutineForm]
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
@@ -280,69 +360,95 @@ export function CreateTaskModal({
   const isFormValid =
     Boolean(form.title.trim()) &&
     Boolean(form.category) &&
-    form.estimated_duration_minutes > 0 &&
+    Boolean(durationText.trim()) &&
+    parseInt(durationText, 10) > 0 &&
     getEffectiveIntervalDays() > 0;
 
   const summaryPreviewText = useMemo(() => {
-    return `"${form.title}" will be scheduled every ${intervalValue} ${getIntervalLabel(selectedInterval)}${intervalValue > 1 ? "s" : ""} starting ${form.startDate.toLocaleDateString()}.`;
+    return `"${form.title.trim() || "Your task"}" will be scheduled every ${intervalValue} ${getIntervalLabel(selectedInterval)}${intervalValue > 1 ? "s" : ""} starting ${form.startDate.toLocaleDateString()}.`;
   }, [form.title, intervalValue, selectedInterval, form.startDate]);
-
-  const scrollBottomPadding =
-    insets.bottom + DesignSystem.spacing.xxxl + DesignSystem.spacing.md;
 
   const handleSheetClose = () => {
     Keyboard.dismiss();
+    if (isFormDirty && !isSubmitting) {
+      Alert.alert(
+        "Discard changes?",
+        "You have unsaved changes to this task.",
+        [
+          { text: "Keep editing", style: "cancel" },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: onClose,
+          },
+        ]
+      );
+      return;
+    }
     onClose();
   };
 
+  const keyboardAccessory = Platform.OS === "ios" ? (
+    <InputAccessoryView nativeID={FORM_KEYBOARD_ACCESSORY_ID}>
+      <View
+        style={[
+          styles.keyboardAccessory,
+          {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={dismissFormChrome}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="Done editing"
+        >
+          <Text
+            style={[styles.keyboardAccessoryDone, { color: colors.primary }]}
+          >
+            Done
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </InputAccessoryView>
+  ) : null;
+
   return (
     <>
-      {Platform.OS === "ios" && (
-        <InputAccessoryView nativeID={ESTIMATED_DURATION_INPUT_ACCESSORY_ID}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              paddingHorizontal: DesignSystem.spacing.md,
-              paddingVertical: DesignSystem.spacing.sm,
-              backgroundColor: colors.surface,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.border,
-            }}
-          >
-            <TouchableOpacity
-              onPress={dismissFormChrome}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Text
-                style={{
-                  fontSize: DesignSystem.typography.bodyMedium.fontSize,
-                  fontWeight: "600",
-                  color: colors.primary,
-                }}
-              >
-                Done
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </InputAccessoryView>
-      )}
+      {keyboardAccessory}
       <HearthSheet
         visible
         onClose={handleSheetClose}
         title={isEdit ? "Edit task" : "Add a task"}
-        maxHeightRatio={0.85}
+        maxHeightRatio={0.92}
+        fillMaxHeight
         accessibilityLabel={isEdit ? "Close edit task" : "Close add task"}
         contentStyle={{ paddingHorizontal: 0 }}
+        footer={
+          keyboardVisible ? undefined : (
+            <SubmitButton
+              onPress={() => {
+                Keyboard.dismiss();
+                void handleSubmit();
+              }}
+              disabled={!isFormValid || isSubmitting}
+              loading={isSubmitting}
+              title={isEdit ? "Save changes" : "Add task"}
+            />
+          )
+        }
       >
         <ScrollView
           ref={formScrollRef}
-          style={{ maxHeight: scrollViewportMaxHeight }}
+          style={styles.formScroll}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: DesignSystem.spacing.lg,
-            paddingBottom: scrollBottomPadding,
+            paddingBottom: keyboardVisible
+              ? DesignSystem.spacing.xxxl
+              : insets.bottom + DesignSystem.spacing.lg,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={
@@ -352,27 +458,34 @@ export function CreateTaskModal({
           onScrollBeginDrag={dismissFormChrome}
         >
           <FormField
+            ref={titleFieldRef}
             label="Task Title"
             value={form.title}
             onChangeText={(text) => updateForm("title", text)}
             placeholder="e.g., Change air filter, Clean gutters..."
             error={errors.title}
             autoCapitalize="words"
+            autoCorrect
+            textContentType="none"
             required
             returnKeyType="next"
+            enablesReturnKeyAutomatically
             onSubmitEditing={() => descriptionFieldRef.current?.focus()}
-            onFocusExtra={scrollTitleFieldIntoView}
+            onFocusExtra={() => scrollFieldIntoView("title")}
+            onFieldLayout={registerFieldLayout("title")}
           />
 
-          <CategorySelector
-            categories={categories}
-            selectedCategory={form.category}
-            dismissChromeToken={dismissChromeToken}
-            onSelectCategory={(categoryId) => {
-              updateForm("category", categoryId);
-            }}
-            error={errors.category}
-          />
+          <View onLayout={(event) => registerFieldLayout("category")(event.nativeEvent.layout.y)}>
+            <CategorySelector
+              categories={categories}
+              selectedCategory={form.category}
+              dismissChromeToken={dismissChromeToken}
+              onSelectCategory={(categoryId) => {
+                updateForm("category", categoryId);
+              }}
+              error={errors.category}
+            />
+          </View>
 
           <PrioritySelector
             priorities={priorities}
@@ -392,15 +505,38 @@ export function CreateTaskModal({
             multiline
             numberOfLines={3}
             autoCapitalize="sentences"
+            autoCorrect
+            spellCheck
             blurOnSubmit={false}
+            inputAccessoryViewID={FORM_KEYBOARD_ACCESSORY_ID}
+            returnKeyType="default"
+            onFocusExtra={() => scrollFieldIntoView("description")}
+            onFieldLayout={registerFieldLayout("description")}
           />
 
           <FormField
             ref={durationFieldRef}
             label="Estimated Duration (minutes)"
-            value={form.estimated_duration_minutes.toString()}
+            value={durationText}
             onChangeText={(text) => {
-              const num = parseInt(text) || 0;
+              const sanitized = text.replace(/[^0-9]/g, "");
+              setDurationText(sanitized);
+              if (errors.estimated_duration_minutes) {
+                setErrors((prev) => ({
+                  ...prev,
+                  estimated_duration_minutes: undefined,
+                }));
+              }
+            }}
+            onBlurExtra={() => {
+              const num = parseInt(durationText, 10);
+              if (!durationText.trim() || Number.isNaN(num) || num <= 0) {
+                setDurationText(
+                  String(form.estimated_duration_minutes || 30)
+                );
+                return;
+              }
+              setDurationText(String(num));
               setForm((prev) => ({
                 ...prev,
                 estimated_duration_minutes: num,
@@ -408,25 +544,30 @@ export function CreateTaskModal({
             }}
             placeholder="e.g., 30"
             keyboardType="numeric"
-            inputAccessoryViewID={
-              Platform.OS === "ios"
-                ? ESTIMATED_DURATION_INPUT_ACCESSORY_ID
-                : undefined
-            }
-            error={errors.estimated_duration_minutes?.toString()}
+            textContentType="none"
+            inputAccessoryViewID={FORM_KEYBOARD_ACCESSORY_ID}
+            error={errors.estimated_duration_minutes}
             required
             returnKeyType="done"
             onSubmitEditing={dismissFormChrome}
+            onFocusExtra={() => scrollFieldIntoView("estimated_duration_minutes")}
+            onFieldLayout={registerFieldLayout("estimated_duration_minutes")}
           />
 
-          <IntervalSelector
-            selectedInterval={selectedInterval}
-            intervalValue={intervalValue}
-            dismissChromeToken={dismissChromeToken}
-            onSelectInterval={(interval: number) => setSelectedInterval(interval)}
-            onIntervalValueChange={(value) => setIntervalValue(value)}
-            error={errors.interval_days?.toString()}
-          />
+          <View
+            onLayout={(event) =>
+              registerFieldLayout("interval_days")(event.nativeEvent.layout.y)
+            }
+          >
+            <IntervalSelector
+              selectedInterval={selectedInterval}
+              intervalValue={intervalValue}
+              dismissChromeToken={dismissChromeToken}
+              onSelectInterval={(interval: number) => setSelectedInterval(interval)}
+              onIntervalValueChange={(value) => setIntervalValue(value)}
+              error={errors.interval_days}
+            />
+          </View>
 
           <StartDateSelector
             startDate={form.startDate}
@@ -481,22 +622,6 @@ export function CreateTaskModal({
               </Text>
             </View>
           </Pressable>
-
-          <View
-            style={{
-              marginTop: DesignSystem.spacing.lg,
-              marginBottom: DesignSystem.spacing.md,
-            }}
-          >
-            <SubmitButton
-              onPress={() => {
-                Keyboard.dismiss();
-                void handleSubmit();
-              }}
-              disabled={!isFormValid}
-              title={isEdit ? "Save changes" : "Add task"}
-            />
-          </View>
         </ScrollView>
       </HearthSheet>
     </>
@@ -504,6 +629,21 @@ export function CreateTaskModal({
 }
 
 const styles = StyleSheet.create({
+  formScroll: {
+    flex: 1,
+  },
+  keyboardAccessory: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  keyboardAccessoryDone: {
+    fontSize: DesignSystem.typography.bodyMedium.fontSize,
+    fontWeight: "600",
+  },
   summaryContainer: {
     borderRadius: DesignSystem.borders.radius.medium,
     padding: DesignSystem.spacing.md,
