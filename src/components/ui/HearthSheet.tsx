@@ -39,7 +39,10 @@ const SHEET_EXIT = {
 
 interface HearthSheetProps {
   visible: boolean;
+  /** Called when the user requests close (backdrop tap, close button, back). */
   onClose: () => void;
+  /** Called after the exit animation finishes (visible became false). */
+  onDismissed?: () => void;
   title: string;
   children: ReactNode;
   footer?: ReactNode;
@@ -59,6 +62,7 @@ interface HearthSheetProps {
 export function HearthSheet({
   visible,
   onClose,
+  onDismissed,
   title,
   children,
   footer,
@@ -90,56 +94,48 @@ export function HearthSheet({
     translateY.value = withTiming(0, SHEET_ENTER);
   }, [opacity, translateY, reducedMotion]);
 
-  const finishClose = useCallback(
-    (notifyParent: boolean) => {
-      isAnimatingOut.current = false;
-      setMounted(false);
-      if (notifyParent) {
-        onClose();
-      }
-    },
-    [onClose]
-  );
+  const finishClose = useCallback(() => {
+    isAnimatingOut.current = false;
+    setMounted(false);
+    onDismissed?.();
+  }, [onDismissed]);
 
-  const animateOut = useCallback(
-    (notifyParent: boolean) => {
-      if (isAnimatingOut.current) return;
-      isAnimatingOut.current = true;
-      if (reducedMotion) {
-        opacity.value = 0;
-        translateY.value = SCREEN_HEIGHT;
-        finishClose(notifyParent);
-        return;
-      }
-      opacity.value = withTiming(0, SHEET_EXIT);
-      translateY.value = withTiming(
-        SCREEN_HEIGHT,
-        SHEET_EXIT,
-        (finished) => {
-          if (finished) {
-            runOnJS(finishClose)(notifyParent);
-          }
+  const animateOut = useCallback(() => {
+    if (isAnimatingOut.current) return;
+    isAnimatingOut.current = true;
+    if (reducedMotion) {
+      opacity.value = 0;
+      translateY.value = SCREEN_HEIGHT;
+      finishClose();
+      return;
+    }
+    opacity.value = withTiming(0, SHEET_EXIT);
+    translateY.value = withTiming(
+      SCREEN_HEIGHT,
+      SHEET_EXIT,
+      (finished) => {
+        if (finished) {
+          runOnJS(finishClose)();
         }
-      );
-    },
-    [finishClose, opacity, translateY, reducedMotion]
-  );
+      }
+    );
+  }, [finishClose, opacity, translateY, reducedMotion]);
 
   useEffect(() => {
     if (visible) {
-      isAnimatingOut.current = false;
-      setMounted(true);
       if (!wasVisible.current) {
+        isAnimatingOut.current = false;
+        setMounted(true);
         animateIn();
       }
     } else if (wasVisible.current) {
-      animateOut(false);
+      animateOut();
     }
     wasVisible.current = visible;
   }, [visible, animateIn, animateOut]);
 
   const dismiss = () => {
-    animateOut(true);
+    onClose();
   };
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));

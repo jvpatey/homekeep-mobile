@@ -155,6 +155,7 @@ export function CreateTaskModal({
     Partial<{ [K in keyof MaintenanceRoutineForm]: string }>
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(true);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [dismissChromeToken, setDismissChromeToken] = useState(0);
 
@@ -368,7 +369,7 @@ export function CreateTaskModal({
     return `"${form.title.trim() || "Your task"}" will be scheduled every ${intervalValue} ${getIntervalLabel(selectedInterval)}${intervalValue > 1 ? "s" : ""} starting ${form.startDate.toLocaleDateString()}.`;
   }, [form.title, intervalValue, selectedInterval, form.startDate]);
 
-  const handleSheetClose = () => {
+  const handleSheetCloseRequest = () => {
     Keyboard.dismiss();
     if (isFormDirty && !isSubmitting) {
       Alert.alert(
@@ -379,13 +380,13 @@ export function CreateTaskModal({
           {
             text: "Discard",
             style: "destructive",
-            onPress: onClose,
+            onPress: () => setSheetVisible(false),
           },
         ]
       );
       return;
     }
-    onClose();
+    setSheetVisible(false);
   };
 
   const keyboardAccessory = Platform.OS === "ios" ? (
@@ -419,8 +420,9 @@ export function CreateTaskModal({
     <>
       {keyboardAccessory}
       <HearthSheet
-        visible
-        onClose={handleSheetClose}
+        visible={sheetVisible}
+        onClose={handleSheetCloseRequest}
+        onDismissed={onClose}
         title={isEdit ? "Edit task" : "Add a task"}
         maxHeightRatio={0.92}
         fillMaxHeight
