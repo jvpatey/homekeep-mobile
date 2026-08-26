@@ -6,7 +6,7 @@ const { height: screenHeight } = Dimensions.get("window");
 export const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(26, 22, 18, 0.45)",
     justifyContent: "flex-end",
   },
 
@@ -16,28 +16,18 @@ export const styles = StyleSheet.create({
 
   sheetContainer: {
     width: "100%",
-    height: screenHeight * 0.85,
+    height: screenHeight * 0.92,
   },
 
-  glassOuter: {
+  sheetSurface: {
     flex: 1,
-    width: "100%",
-    borderTopLeftRadius: DesignSystem.borders.radius.glass,
-    borderTopRightRadius: DesignSystem.borders.radius.glass,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderTopLeftRadius: DesignSystem.borders.radius.xlarge + 4,
+    borderTopRightRadius: DesignSystem.borders.radius.xlarge + 4,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
 
-  glassInner: {
-    flex: 1,
-    borderTopLeftRadius: DesignSystem.borders.radius.glass,
-    borderTopRightRadius: DesignSystem.borders.radius.glass,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-
-  haloFill: {
+  atmosphereFill: {
     ...StyleSheet.absoluteFillObject,
   },
 
@@ -45,93 +35,59 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
 
-  header: {
+  titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.sm,
-    paddingBottom: DesignSystem.spacing.lg,
-    borderBottomWidth: 1,
+    paddingBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.md,
   },
 
-  headerForm: {
-    flexDirection: "column",
-    alignItems: "stretch",
-  },
-
-  headerList: {
-    flexDirection: "column",
-    alignItems: "stretch",
-  },
-
-  headerCloseRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    width: "100%",
-    marginBottom: DesignSystem.spacing.xs,
-  },
-
-  headerFormToolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    marginBottom: DesignSystem.spacing.sm,
-  },
-
-  headerToolbarSpacer: {
-    flex: 1,
-  },
-
-  headerTitleBlock: {
+  titleBlock: {
     flex: 1,
     minWidth: 0,
   },
 
-  headerTitleBlockForm: {
-    flex: 0,
-    alignSelf: "stretch",
+  sheetTitle: {
+    ...DesignSystem.typography.title2,
   },
 
-  headerHeroTitle: {
-    ...DesignSystem.typography.h2,
-    fontSize: 22,
-    fontWeight: "800",
-    letterSpacing: -0.4,
-    lineHeight: 28,
-  },
-
-  headerHeroSubtitle: {
-    ...DesignSystem.typography.small,
-    fontSize: 14,
-    lineHeight: 20,
+  sheetSubtitle: {
+    ...DesignSystem.typography.footnote,
     marginTop: DesignSystem.spacing.xs,
-    opacity: 0.92,
+    lineHeight: 18,
   },
 
-  addEquipmentButton: {
-    marginTop: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.md,
+  formNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: DesignSystem.spacing.lg,
-    borderRadius: DesignSystem.borders.radius.medium,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "stretch",
+    paddingBottom: DesignSystem.spacing.sm,
   },
 
-  addEquipmentButtonText: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 16,
-  },
-
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  navButton: {
+    minWidth: DesignSystem.components.minTouchTarget,
+    minHeight: DesignSystem.components.minTouchTarget,
     alignItems: "center",
     justifyContent: "center",
+    marginHorizontal: -DesignSystem.spacing.sm,
+  },
+
+  formTitleBlock: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+
+  formTitle: {
+    ...DesignSystem.typography.title2,
+  },
+
+  formSubtitle: {
+    ...DesignSystem.typography.footnote,
+    marginTop: DesignSystem.spacing.xs,
+    lineHeight: 18,
   },
 
   list: {
@@ -139,24 +95,42 @@ export const styles = StyleSheet.create({
   },
 
   listContent: {
-    padding: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xs,
     flexGrow: 1,
-    paddingBottom: DesignSystem.spacing.xxxl,
+    paddingBottom: DesignSystem.spacing.md,
+  },
+
+  listFooter: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+
+  equipmentCard: {
+    marginBottom: DesignSystem.spacing.md,
   },
 
   equipmentRow: {
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "flex-start",
     padding: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.md,
+  },
+
+  equipmentIconBadge: {
+    width: 44,
+    height: 44,
     borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
-    minHeight: 144,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
   },
 
   equipmentMain: {
     flex: 1,
-    justifyContent: "flex-start",
+    minWidth: 0,
   },
 
   equipmentMainTouchable: {
@@ -165,38 +139,54 @@ export const styles = StyleSheet.create({
   },
 
   equipmentTitle: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 16,
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
     marginBottom: DesignSystem.spacing.xs,
   },
 
   equipmentMeta: {
-    ...DesignSystem.typography.small,
-    fontSize: 14,
+    ...DesignSystem.typography.caption,
     marginBottom: 2,
   },
 
-  equipmentRowActions: {
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.xs,
+    marginTop: DesignSystem.spacing.sm,
+  },
+
+  statusChip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 4,
+    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+
+  statusChipText: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+    fontSize: 11,
+  },
+
+  equipmentRowActions: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-start",
     gap: DesignSystem.spacing.xs,
+    paddingTop: 2,
   },
 
-  viewManualButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-  },
-
-  deleteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
   },
 
   deletingButton: {
@@ -211,19 +201,32 @@ export const styles = StyleSheet.create({
     paddingVertical: DesignSystem.spacing.xxxl,
   },
 
-  emptyText: {
-    ...DesignSystem.typography.h4,
-    fontSize: 18,
-    marginTop: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.sm,
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: DesignSystem.spacing.lg,
+  },
+
+  emptyTitle: {
+    ...DesignSystem.typography.h3,
     textAlign: "center",
+    marginBottom: DesignSystem.spacing.sm,
   },
 
   emptySubtext: {
-    ...DesignSystem.typography.small,
-    fontSize: 14,
+    ...DesignSystem.typography.footnote,
     textAlign: "center",
     lineHeight: 20,
+    maxWidth: 280,
+  },
+
+  emptyAction: {
+    marginTop: DesignSystem.spacing.xl,
+    alignSelf: "stretch",
+    maxWidth: 280,
   },
 
   formScroll: {
@@ -232,44 +235,41 @@ export const styles = StyleSheet.create({
 
   formScrollContent: {
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingBottom: DesignSystem.spacing.xxxl,
+    paddingBottom: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xs,
+  },
+
+  formFooter: {
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 
   sectionLabel: {
-    ...DesignSystem.typography.smallMedium,
-    fontSize: 13,
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
     marginBottom: DesignSystem.spacing.sm,
-    marginTop: DesignSystem.spacing.md,
-  },
-
-  dateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
-    gap: DesignSystem.spacing.sm,
-  },
-
-  dateButtonText: {
-    ...DesignSystem.typography.body,
-    fontSize: 16,
-    flex: 1,
+    marginTop: DesignSystem.spacing.lg,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
 
   attachCard: {
     padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
-    marginTop: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: DesignSystem.spacing.xs,
+  },
+
+  attachTitle: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
   },
 
   attachHint: {
-    ...DesignSystem.typography.small,
-    fontSize: 13,
-    marginTop: DesignSystem.spacing.sm,
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.xs,
     lineHeight: 18,
   },
 
@@ -280,22 +280,30 @@ export const styles = StyleSheet.create({
     marginTop: DesignSystem.spacing.md,
   },
 
-  textButton: {
+  attachButton: {
     paddingVertical: DesignSystem.spacing.sm,
     paddingHorizontal: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 
-  saveButton: {
-    marginTop: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
+  attachButtonText: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+  },
+
+  dateButton: {
+    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: DesignSystem.spacing.sm,
   },
 
-  saveButtonText: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 16,
+  dateButtonText: {
+    ...DesignSystem.typography.body,
+    flex: 1,
   },
 });
