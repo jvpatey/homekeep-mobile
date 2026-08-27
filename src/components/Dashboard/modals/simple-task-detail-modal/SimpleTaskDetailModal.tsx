@@ -16,7 +16,7 @@ interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
   visible: boolean;
   onClose: () => void;
-  onComplete: (instanceId: string) => void;
+  onComplete: (instanceId: string) => void | Promise<boolean>;
   onEdit?: (task: MaintenanceTask) => void;
   onSkipOccurrence?: (task: MaintenanceTask) => Promise<boolean>;
   onModified?: () => void;
@@ -77,7 +77,11 @@ export function SimpleTaskDetailModal({
     if (!task || isCompleting || isSkipping) return;
     setIsCompleting(true);
     try {
-      await onComplete(task.instance_id);
+      const ok = await onComplete(task.instance_id);
+      if (ok === false) {
+        setIsCompleting(false);
+        return;
+      }
       onClose();
     } catch (error) {
       console.error("Error completing task:", error);

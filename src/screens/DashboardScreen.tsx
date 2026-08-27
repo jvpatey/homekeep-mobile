@@ -21,10 +21,6 @@ export function DashboardScreen() {
   } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
-  const handleCompleteTask = async (instanceId: string) => {
-    await completeTask(instanceId);
-  };
-
   const handleTaskPress = (instanceId: string) => {
     const task = upcomingTasks.find((t) => t.instance_id === instanceId);
     if (task) {
@@ -48,7 +44,7 @@ export function DashboardScreen() {
         tasks={upcomingTasks}
         overdueTasks={overdueTasks}
         completedTasks={completedTasks}
-        onCompleteTask={handleCompleteTask}
+        onCompleteTask={completeTask}
         onSkipTaskOccurrence={skipTaskOccurrence}
         onTaskPress={handleTaskPress}
         onRefresh={handleRefresh}

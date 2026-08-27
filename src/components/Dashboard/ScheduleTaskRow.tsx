@@ -17,6 +17,7 @@ interface ScheduleTaskRowProps {
   /** Section variant for row styling */
   variant?: "default" | "overdue";
   onCompleteTask: (instanceId: string) => void;
+  isCompleting?: boolean;
   onTaskPress?: (instanceId: string) => void;
   onSkipOccurrence?: (
     task: MaintenanceTask,
@@ -30,6 +31,7 @@ export function ScheduleTaskRow({
   showConnectorBelow,
   variant = "default",
   onCompleteTask,
+  isCompleting = false,
   onTaskPress,
   onSkipOccurrence,
 }: ScheduleTaskRowProps) {
@@ -252,6 +254,7 @@ export function ScheduleTaskRow({
               timelineStyles.completeButton,
               {
                 backgroundColor: colors.primary,
+                opacity: isCompleting ? 0.5 : 1,
               },
               isTablet && {
                 width: 44 * fontMultiplier,
@@ -259,10 +262,20 @@ export function ScheduleTaskRow({
                 borderRadius: 22 * fontMultiplier,
               },
             ]}
-            onPress={() => onCompleteTask(task.instance_id)}
+            onPress={() => {
+              if (isCompleting || task.is_completed) return;
+              onCompleteTask(task.instance_id);
+            }}
+            disabled={isCompleting || task.is_completed}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isCompleting || task.is_completed }}
             accessibilityLabel={
-              task.is_completed ? "Completed" : "Mark complete"
+              isCompleting
+                ? "Completing"
+                : task.is_completed
+                  ? "Completed"
+                  : "Mark complete"
             }
           >
             {task.is_completed ? (

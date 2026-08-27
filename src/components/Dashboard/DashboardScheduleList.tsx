@@ -33,7 +33,8 @@ interface DashboardScheduleListProps {
   ListHeaderComponent: React.ComponentType<unknown> | React.ReactElement | null;
   onRefresh?: () => void;
   refreshing?: boolean;
-  onCompleteTask: (instanceId: string) => void;
+  onCompleteTask: (instanceId: string) => void | Promise<boolean>;
+  completingInstanceIds?: Set<string>;
   onTaskPress?: (instanceId: string) => void;
   onSkipOccurrence?: (
     task: MaintenanceTask,
@@ -54,6 +55,7 @@ export const DashboardScheduleList = forwardRef<
     onRefresh,
     refreshing = false,
     onCompleteTask,
+    completingInstanceIds,
     onTaskPress,
     onSkipOccurrence,
     onAddTask,
@@ -281,6 +283,7 @@ export const DashboardScheduleList = forwardRef<
             section.headerVariant === "overdue" ? "overdue" : "default"
           }
           onCompleteTask={onCompleteTask}
+          isCompleting={completingInstanceIds?.has(item.instance_id) ?? false}
           onTaskPress={onTaskPress}
           onSkipOccurrence={onSkipOccurrence}
         />

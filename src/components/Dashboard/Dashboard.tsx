@@ -37,7 +37,9 @@ interface NewDashboardProps {
   tasks: MaintenanceTask[];
   overdueTasks?: MaintenanceTask[];
   completedTasks?: MaintenanceTask[];
-  onCompleteTask: (instanceId: string) => void;
+  onCompleteTask: (
+    instanceId: string
+  ) => Promise<{ success: boolean; error?: string }>;
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -73,6 +75,10 @@ export function NewDashboard({
   const listRef = useRef<DashboardScheduleListRef>(null);
 
   const [showCelebration, setShowCelebration] = useState(false);
+  const [completingInstanceIds, setCompletingInstanceIds] = useState<
+    Set<string>
+  >(new Set());
+  const completingRef = useRef<Set<string>>(new Set());
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
@@ -152,14 +158,41 @@ export function NewDashboard({
     [tasks, overdueTasks]
   );
 
-  const handleCompleteTask = async (instanceId: string) => {
-    try {
-      await onCompleteTask(instanceId);
-      setShowCelebration(true);
-    } catch (error) {
-      console.error("Error completing task:", error);
-    }
-  };
+  const handleCompleteTask = useCallback(
+    async (instanceId: string): Promise<boolean> => {
+      if (completingRef.current.has(instanceId)) return false;
+
+      completingRef.current.add(instanceId);
+      setCompletingInstanceIds(new Set(completingRef.current));
+      await triggerMedium();
+
+      try {
+        const result = await onCompleteTask(instanceId);
+        if (result.success) {
+          setShowCelebration(true);
+          setShowTaskDetail(false);
+          setSelectedTask(null);
+          return true;
+        }
+        Alert.alert(
+          "Could not complete",
+          result.error || "Failed to complete the task. Please try again."
+        );
+        return false;
+      } catch (error) {
+        console.error("Error completing task:", error);
+        Alert.alert(
+          "Could not complete",
+          "An unexpected error occurred. Please try again."
+        );
+        return false;
+      } finally {
+        completingRef.current.delete(instanceId);
+        setCompletingInstanceIds(new Set(completingRef.current));
+      }
+    },
+    [onCompleteTask, triggerMedium]
+  );
 
   const handleSkipOccurrence = useCallback(
     async (
@@ -221,7 +254,6 @@ export function NewDashboard({
 
   const handleCloseCelebration = () => {
     setShowCelebration(false);
-    onRefresh?.();
   };
 
   const handleTaskCreated = () => {
@@ -274,6 +306,7 @@ export function NewDashboard({
         onRefresh={onRefresh}
         refreshing={refreshing}
         onCompleteTask={handleCompleteTask}
+        completingInstanceIds={completingInstanceIds}
         onTaskPress={handleTaskPress}
         onSkipOccurrence={
           onSkipTaskOccurrence

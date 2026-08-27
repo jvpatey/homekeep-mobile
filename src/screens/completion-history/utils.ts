@@ -1,107 +1,22 @@
 import {
   format,
   isSameYear,
+  isToday,
   isValid,
+  isYesterday,
   parseISO,
+  startOfDay,
+  subDays,
 } from "date-fns";
 import { MaintenanceTask } from "../../types/maintenance";
 
-export interface GroupedRoutine {
-  routineId: string;
+export type HistoryLookback = 30 | 90 | "all";
+
+export interface CompletionDaySection {
+  key: string;
   title: string;
-  category: string;
-  priority: string;
-  estimatedDuration: number;
-  intervalDays: number;
-  completedInstances: MaintenanceTask[];
-  pastDueInstances: MaintenanceTask[];
-  totalInstances: number;
-  completionRate: number;
-  latestCompletion?: string;
-  nextDueDate?: string;
+  data: MaintenanceTask[];
 }
-
-// groupTasksByRoutine function to group completed and past due tasks by routine
-export const groupTasksByRoutine = (
-  completedTasks: MaintenanceTask[],
-  pastDueTasks: MaintenanceTask[] = []
-) => {
-  const groups: { [key: string]: GroupedRoutine } = {};
-
-  // Group completed tasks by routine
-  completedTasks.forEach((task) => {
-    const routineId = task.id;
-    if (!groups[routineId]) {
-      groups[routineId] = {
-        routineId,
-        title: task.title,
-        category: task.category,
-        priority: task.priority,
-        estimatedDuration: task.estimated_duration_minutes,
-        intervalDays: task.interval_days,
-        completedInstances: [],
-        pastDueInstances: [],
-        totalInstances: 0,
-        completionRate: 0,
-      };
-    }
-    groups[routineId].completedInstances.push(task);
-  });
-
-  // Group past due tasks by routine
-  pastDueTasks.forEach((task) => {
-    const routineId = task.id;
-    if (!groups[routineId]) {
-      groups[routineId] = {
-        routineId,
-        title: task.title,
-        category: task.category,
-        priority: task.priority,
-        estimatedDuration: task.estimated_duration_minutes,
-        intervalDays: task.interval_days,
-        completedInstances: [],
-        pastDueInstances: [],
-        totalInstances: 0,
-        completionRate: 0,
-      };
-    }
-    groups[routineId].pastDueInstances.push(task);
-  });
-
-  // Calculate statistics for each routine
-  Object.values(groups).forEach((routine) => {
-    // Sort instances by completion date (newest first)
-    routine.completedInstances.sort(
-      (a, b) =>
-        new Date(b.completed_at || "").getTime() -
-        new Date(a.completed_at || "").getTime()
-    );
-
-    // Sort past due instances by due date (newest first)
-    routine.pastDueInstances.sort(
-      (a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
-    );
-
-    // Calculate completion rate and find latest completion
-    routine.totalInstances =
-      routine.completedInstances.length + routine.pastDueInstances.length;
-    routine.completionRate =
-      routine.totalInstances > 0
-        ? (routine.completedInstances.length / routine.totalInstances) * 100
-        : 0;
-    routine.latestCompletion = routine.completedInstances[0]?.completed_at;
-
-    // Calculate next due date based on latest completion and interval
-    if (routine.latestCompletion && routine.intervalDays > 0) {
-      const lastCompletion = new Date(routine.latestCompletion);
-      const nextDue = new Date(lastCompletion);
-      nextDue.setDate(nextDue.getDate() + routine.intervalDays);
-      routine.nextDueDate = nextDue.toISOString();
-    }
-  });
-
-  return Object.values(groups);
-};
 
 function toLocalDate(dateString: string): Date {
   const parsed = parseISO(dateString);
@@ -116,17 +31,81 @@ function historyDatePattern(date: Date, referenceDate: Date): string {
   return "EEE, MMM d, yyyy";
 }
 
-// formatDate function to format the date
+function completionTimestamp(task: MaintenanceTask): number {
+  const raw = task.completed_at || task.due_date;
+  const time = toLocalDate(raw).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function dayKey(task: MaintenanceTask): string {
+  const raw = task.completed_at || task.due_date;
+  const date = toLocalDate(raw);
+  if (!isValid(date)) return "unknown";
+  return format(date, "yyyy-MM-dd");
+}
+
+function daySectionTitle(key: string, referenceDate: Date): string {
+  if (key === "unknown") return "Unknown date";
+  const date = parseISO(key);
+  if (!isValid(date)) return "Unknown date";
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
+  return format(date, historyDatePattern(date, referenceDate));
+}
+
+export function filterCompletionsByLookback(
+  tasks: MaintenanceTask[],
+  lookback: HistoryLookback
+): MaintenanceTask[] {
+  if (lookback === "all") return tasks;
+  const cutoff = subDays(startOfDay(new Date()), lookback);
+  return tasks.filter((task) => {
+    const date = toLocalDate(task.completed_at || task.due_date);
+    return isValid(date) && date >= cutoff;
+  });
+}
+
+export function groupCompletionsByDay(
+  tasks: MaintenanceTask[]
+): CompletionDaySection[] {
+  const sorted = [...tasks].sort(
+    (a, b) => completionTimestamp(b) - completionTimestamp(a)
+  );
+  const byDay = new Map<string, MaintenanceTask[]>();
+
+  for (const task of sorted) {
+    const key = dayKey(task);
+    const list = byDay.get(key);
+    if (list) {
+      list.push(task);
+    } else {
+      byDay.set(key, [task]);
+    }
+  }
+
+  const now = new Date();
+  return Array.from(byDay.entries()).map(([key, data]) => ({
+    key,
+    title: daySectionTitle(key, now),
+    data,
+  }));
+}
+
 export const formatDate = (dateString: string) => {
   const date = toLocalDate(dateString);
   if (!isValid(date)) return "—";
   return format(date, historyDatePattern(date, new Date()));
 };
 
-// formatDateTime function to format the date with time (for completed tasks)
 export const formatDateTime = (dateString: string) => {
   const date = toLocalDate(dateString);
   if (!isValid(date)) return "—";
   const base = historyDatePattern(date, new Date());
   return format(date, `${base} · h:mm a`);
+};
+
+export const formatCompletionTime = (dateString: string) => {
+  const date = toLocalDate(dateString);
+  if (!isValid(date)) return "—";
+  return format(date, "h:mm a");
 };

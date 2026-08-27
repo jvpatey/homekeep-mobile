@@ -11,153 +11,101 @@ export const completionHistoryStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingVertical: DesignSystem.spacing.md,
-    borderBottomWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   backButton: {
     padding: DesignSystem.spacing.sm,
     marginLeft: -DesignSystem.spacing.sm,
     zIndex: 1,
   },
-  headerTitleBlock: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: DesignSystem.spacing.sm,
-  },
   headerTitle: {
     ...DesignSystem.typography.title2,
+    flex: 1,
     textAlign: "center",
-  },
-  headerSubtitle: {
-    ...DesignSystem.typography.small,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.xs,
-  },
-  headerRightSpacer: {
-    width: 40,
-    zIndex: 1,
   },
   headerAction: {
     padding: DesignSystem.spacing.sm,
     marginRight: -DesignSystem.spacing.sm,
     zIndex: 1,
+    width: 40,
+    alignItems: "flex-end",
   },
-  routinesList: {
+  listContent: {
+    paddingHorizontal: DesignSystem.spacing.lg,
     flexGrow: 1,
-    padding: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.xxxl,
   },
-  routineItem: {
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
-    borderWidth: 1,
-    marginBottom: DesignSystem.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  routineHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  routineHeaderLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.sm,
-  },
-  routineHeaderRight: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  routineTitle: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 18,
-    lineHeight: 24,
-    flex: 1,
-  },
-  categoryBadge: {
-    paddingHorizontal: DesignSystem.spacing.sm,
-    paddingVertical: DesignSystem.spacing.xs,
-    borderRadius: DesignSystem.borders.radius.small,
-    borderWidth: 1,
-  },
-  categoryText: {
-    ...DesignSystem.typography.captionSemiBold,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  routineSummary: {
+  listHeader: {
     marginBottom: DesignSystem.spacing.md,
   },
-  routineSummaryStats: {
+  chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    gap: DesignSystem.spacing.md,
-  },
-  routineSummaryStat: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.xs,
-  },
-  routineSummaryText: {
-    ...DesignSystem.typography.caption,
-    fontSize: 12,
-  },
-  lastCompletion: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: DesignSystem.spacing.sm,
     marginBottom: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.xs,
   },
-  lastCompletionText: {
-    ...DesignSystem.typography.caption,
-    fontSize: 12,
-    flex: 1,
+  chip: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  instanceDetails: {
-    borderTopWidth: 1,
-    paddingTop: DesignSystem.spacing.md,
+  chipText: {
+    ...DesignSystem.typography.captionSemiBold,
   },
-  instanceTitle: {
-    ...DesignSystem.typography.bodySemiBold,
+  subtitle: {
+    ...DesignSystem.typography.footnote,
     marginBottom: DesignSystem.spacing.sm,
-    fontSize: 14,
   },
-  instanceItem: {
-    paddingVertical: DesignSystem.spacing.sm,
-    borderBottomWidth: 1,
-  },
-  completeButton: {
-    alignSelf: "flex-start",
-    marginTop: DesignSystem.spacing.sm,
-  },
-  instanceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  instanceDate: {
+  truncationNote: {
     ...DesignSystem.typography.caption,
-    fontSize: 12,
-    flex: 1,
+    marginBottom: DesignSystem.spacing.sm,
   },
-  instancePriority: {
+  sectionHeader: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.md,
+  },
+  cardContainer: {
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  cardSurface: {
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.xs,
+    alignItems: "flex-start",
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.md,
+  },
+  rowMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowTitle: {
+    ...DesignSystem.typography.bodyMedium,
+    marginBottom: 2,
+  },
+  rowMeta: {
+    ...DesignSystem.typography.caption,
+  },
+  rowNotes: {
+    ...DesignSystem.typography.caption,
+    lineHeight: 18,
+    marginTop: DesignSystem.spacing.xs,
+  },
+  rowError: {
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.xs,
+  },
+  undoButton: {
+    paddingVertical: DesignSystem.spacing.xs,
+    paddingLeft: DesignSystem.spacing.sm,
+  },
+  undoText: {
+    ...DesignSystem.typography.smallSemiBold,
   },
   loadingState: {
     alignItems: "center",
@@ -169,19 +117,29 @@ export const completionHistoryStyles = StyleSheet.create({
     ...DesignSystem.typography.body,
   },
   emptyState: {
+    flexGrow: 1,
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing.xxxl,
-    paddingHorizontal: DesignSystem.spacing.lg,
   },
-  emptyStateTitle: {
-    ...DesignSystem.typography.title2,
-    marginTop: DesignSystem.spacing.md,
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  emptyTitle: {
+    ...DesignSystem.typography.h3,
+    textAlign: "center",
     marginBottom: DesignSystem.spacing.sm,
-    textAlign: "center",
   },
-  emptyStateSubtitle: {
-    ...DesignSystem.typography.body,
+  emptySubtext: {
+    ...DesignSystem.typography.footnote,
     textAlign: "center",
-    opacity: 0.85,
+    lineHeight: 20,
+    maxWidth: 280,
   },
 });
