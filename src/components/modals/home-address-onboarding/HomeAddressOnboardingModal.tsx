@@ -17,7 +17,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
@@ -48,6 +47,16 @@ import {
 import { styles } from "./styles";
 
 const { height: screenHeight } = Dimensions.get("window");
+
+const SHEET_ENTER = {
+  duration: DesignSystem.motion.duration.base,
+  easing: DesignSystem.motion.easing.emphasized,
+};
+
+const SHEET_EXIT = {
+  duration: DesignSystem.motion.duration.fast,
+  easing: DesignSystem.motion.easing.standard,
+};
 
 interface HomeAddressOnboardingModalProps {
   visible: boolean;
@@ -204,22 +213,13 @@ export function HomeAddressOnboardingModal({
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      opacity.value = withTiming(1, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
-      });
-      translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
+      opacity.value = withTiming(1, SHEET_ENTER);
+      translateY.value = withTiming(0, SHEET_ENTER);
     } else {
-      opacity.value = withTiming(0, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
-      });
+      opacity.value = withTiming(0, SHEET_EXIT);
       translateY.value = withTiming(
         screenHeight,
-        {
-          duration: DesignSystem.motion.duration.fast,
-          easing: DesignSystem.motion.easing.standard,
-        },
+        SHEET_EXIT,
         (finished) => {
           if (finished) runOnJS(setMounted)(false);
         }
