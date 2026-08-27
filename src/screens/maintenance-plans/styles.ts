@@ -26,9 +26,13 @@ export const maintenancePlansStyles = StyleSheet.create({
     width: 40,
     zIndex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.xxxl + 72,
+  listScroll: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+  },
+  listIntro: {
+    ...DesignSystem.typography.footnote,
+    lineHeight: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
   cardContainer: {
     marginBottom: DesignSystem.spacing.md,
@@ -38,72 +42,97 @@ export const maintenancePlansStyles = StyleSheet.create({
   },
   planRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.md,
+    alignItems: "flex-start",
+    padding: DesignSystem.spacing.md,
     gap: DesignSystem.spacing.md,
   },
   planRowText: {
     flex: 1,
+    minWidth: 0,
   },
   planIconBubble: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: DesignSystem.borders.radius.medium,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 2,
   },
   planTitle: {
-    ...DesignSystem.typography.bodySemiBold,
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
     marginBottom: DesignSystem.spacing.xs,
   },
   planSubtitle: {
-    ...DesignSystem.typography.small,
+    ...DesignSystem.typography.footnote,
+    lineHeight: 20,
+  },
+  planCaption: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+    marginTop: DesignSystem.spacing.sm,
   },
   tagPill: {
     alignSelf: "flex-start",
     paddingHorizontal: DesignSystem.spacing.sm,
     paddingVertical: 4,
     borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
     marginBottom: DesignSystem.spacing.xs,
   },
   tagPillText: {
     ...DesignSystem.typography.caption,
     fontWeight: "600",
   },
-  detailBody: {
-    ...DesignSystem.typography.body,
-    marginBottom: DesignSystem.spacing.lg,
-    lineHeight: 24,
-  },
-  taskRow: {
+  pillRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.xs,
+    marginBottom: DesignSystem.spacing.xs,
+  },
+  suggestedPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  suggestedPillText: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "700",
+  },
+  profileBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
   },
-  taskBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 8,
-  },
-  taskRowMain: {
+  profileBannerText: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
     flex: 1,
   },
-  taskTitle: {
-    ...DesignSystem.typography.bodyMedium,
-    marginBottom: 2,
+  alreadyScheduled: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+    marginTop: DesignSystem.spacing.xs,
   },
-  taskMeta: {
-    ...DesignSystem.typography.small,
+  chevron: {
+    marginTop: DesignSystem.spacing.sm,
+  },
+  pickerScroll: {
+    paddingHorizontal: DesignSystem.spacing.lg,
   },
   pickIntro: {
-    ...DesignSystem.typography.small,
+    ...DesignSystem.typography.footnote,
     marginBottom: DesignSystem.spacing.md,
     lineHeight: 20,
+  },
+  pickCount: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
+    marginBottom: DesignSystem.spacing.md,
   },
   pickActionsRow: {
     flexDirection: "row",
@@ -114,34 +143,85 @@ export const maintenancePlansStyles = StyleSheet.create({
   pickActionText: {
     ...DesignSystem.typography.smallSemiBold,
   },
+  categoryHeader: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.md,
+  },
   taskRowSelectable: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: DesignSystem.spacing.md,
   },
   taskCheckboxHit: {
     paddingTop: 2,
-    paddingRight: DesignSystem.spacing.xs,
+  },
+  taskRowMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  taskTitle: {
+    ...DesignSystem.typography.bodyMedium,
+    marginBottom: 2,
+  },
+  taskMeta: {
+    ...DesignSystem.typography.caption,
+  },
+  taskDescription: {
+    ...DesignSystem.typography.caption,
+    lineHeight: 18,
+    marginTop: DesignSystem.spacing.xs,
   },
   applyFooter: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  applyButton: {
-    borderRadius: DesignSystem.borders.radius.large,
-    paddingVertical: DesignSystem.spacing.md,
+  emptyState: {
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingVertical: DesignSystem.spacing.xxxl,
   },
-  applyButtonText: {
-    ...DesignSystem.typography.bodySemiBold,
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  emptyTitle: {
+    ...DesignSystem.typography.h3,
+    textAlign: "center",
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  emptySubtext: {
+    ...DesignSystem.typography.footnote,
+    textAlign: "center",
+    lineHeight: 20,
+    maxWidth: 280,
+    marginBottom: DesignSystem.spacing.xl,
+  },
+  emptyAction: {
+    alignSelf: "stretch",
+    maxWidth: 280,
+  },
+  questionnaireIntro: {
+    ...DesignSystem.typography.body,
+    marginBottom: DesignSystem.spacing.lg,
+    lineHeight: 22,
+  },
+  warningHint: {
+    ...DesignSystem.typography.footnote,
+    marginTop: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.md,
+    lineHeight: 20,
   },
 });
