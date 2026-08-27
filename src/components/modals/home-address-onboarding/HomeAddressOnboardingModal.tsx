@@ -23,11 +23,12 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  allCountries,
   sortedCountryRows,
   flagEmoji,
   getRegionsForCountry,
   countryNameForIso,
+  lookupCountryIso,
+  lookupRegionIso,
 } from "../../../utils/countryRegionData";
 import { useTheme } from "../../../context/ThemeContext";
 import { useGradients, useHaptics, useDevice } from "../../../hooks";
@@ -93,42 +94,6 @@ function deriveDefaultCountryIso(): string {
   } catch {
     return "";
   }
-}
-
-/**
- * Resolve a stored country value (could be ISO code or full name) back to
- * an ISO code so the dropdown can show the right selection on edit.
- */
-function lookupCountryIso(stored: string | null | undefined): string {
-  if (!stored) return "";
-  const trimmed = stored.trim();
-  if (!trimmed) return "";
-  if (trimmed.length === 2) {
-    const upper = trimmed.toUpperCase();
-    if (allCountries.some((c) => c[1] === upper)) return upper;
-  }
-  const match = allCountries.find(
-    (c) => c[0].toLowerCase() === trimmed.toLowerCase()
-  );
-  return match?.[1] ?? "";
-}
-
-function lookupRegionIso(
-  countryIso: string,
-  stored: string | null | undefined
-): string {
-  if (!countryIso || !stored) return "";
-  const trimmed = stored.trim();
-  if (!trimmed) return "";
-  const states = getRegionsForCountry(countryIso);
-  const byIso = states.find(
-    (s) => s.isoCode.toLowerCase() === trimmed.toLowerCase()
-  );
-  if (byIso) return byIso.isoCode;
-  const byName = states.find(
-    (s) => s.name.toLowerCase() === trimmed.toLowerCase()
-  );
-  return byName?.isoCode ?? "";
 }
 
 const SUGGEST_DEBOUNCE_MS = 250;

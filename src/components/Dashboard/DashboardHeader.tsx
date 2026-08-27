@@ -20,6 +20,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { DesignSystem } from "../../theme/designSystem";
 import { HouseMark } from "../ui";
+import { formatProfileLocality } from "../../utils/formatProfileAddress";
 
 interface DashboardHeaderProps {
   userName: string;
@@ -66,15 +67,24 @@ export function DashboardHeader({
 
   const unitSymbol = temperatureUnit === "fahrenheit" ? "°F" : "°C";
 
-  const weatherLine = useMemo(() => {
+  const contextLine = useMemo(() => {
+    const locality = formatProfileLocality(profile);
     if (weather) {
-      return `${weather.temperature}${unitSymbol} · ${weather.conditionLabel}`;
+      const conditions = `${weather.temperature}${unitSymbol} · ${weather.conditionLabel}`;
+      return {
+        icon: weather.iconName,
+        text: locality ? `${conditions} · ${locality}` : conditions,
+      };
     }
     if (!hasCoords) {
-      return "Add your address for local weather";
+      return {
+        icon: "location-outline" as const,
+        text: "Add your address for local weather",
+      };
     }
-    return null;
-  }, [weather, hasCoords, unitSymbol]);
+    if (!locality) return null;
+    return { icon: "location-outline" as const, text: locality };
+  }, [weather, hasCoords, unitSymbol, profile?.city, profile?.region, profile?.country]);
 
   const headerAvatarSize = isTablet ? getResponsiveValue(44, 52, 56) : 44;
 
@@ -145,17 +155,23 @@ export function DashboardHeader({
 
       {/* Context line + chips */}
       <View style={styles.contextRow}>
-        {weatherLine ? (
+        {contextLine ? (
           <Pressable
             onPress={handleWeatherPress}
             accessibilityRole="button"
-            accessibilityLabel={weatherLine}
+            accessibilityLabel={contextLine.text}
+            style={styles.contextPressable}
           >
+            <Ionicons
+              name={contextLine.icon}
+              size={16}
+              color={colors.textSecondary}
+            />
             <Text
               style={[styles.contextText, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              {weatherLine}
+              {contextLine.text}
             </Text>
           </Pressable>
         ) : null}
@@ -249,8 +265,14 @@ const styles = StyleSheet.create({
   contextRow: {
     marginBottom: DesignSystem.spacing.sm,
   },
+  contextPressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+  },
   contextText: {
     ...DesignSystem.typography.callout,
+    flex: 1,
   },
   chipRow: {
     flexDirection: "row",

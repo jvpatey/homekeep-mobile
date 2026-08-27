@@ -36,3 +36,37 @@ export function getRegionsForCountry(countryIso: string): RegionOption[] {
 export function countryNameForIso(iso: string): string | undefined {
   return allCountries.find((c) => c[1] === iso)?.[0];
 }
+
+/** Resolve a stored country (ISO or full name) to an ISO 3166-1 alpha-2 code. */
+export function lookupCountryIso(stored: string | null | undefined): string {
+  if (!stored) return "";
+  const trimmed = stored.trim();
+  if (!trimmed) return "";
+  if (trimmed.length === 2) {
+    const upper = trimmed.toUpperCase();
+    if (allCountries.some((c) => c[1] === upper)) return upper;
+  }
+  const match = allCountries.find(
+    (c) => c[0].toLowerCase() === trimmed.toLowerCase()
+  );
+  return match?.[1] ?? "";
+}
+
+/** Resolve a stored region (ISO slug or full name) to its subdivision code. */
+export function lookupRegionIso(
+  countryIso: string,
+  stored: string | null | undefined
+): string {
+  if (!countryIso || !stored) return "";
+  const trimmed = stored.trim();
+  if (!trimmed) return "";
+  const states = getRegionsForCountry(countryIso);
+  const byIso = states.find(
+    (s) => s.isoCode.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (byIso) return byIso.isoCode;
+  const byName = states.find(
+    (s) => s.name.toLowerCase() === trimmed.toLowerCase()
+  );
+  return byName?.isoCode ?? "";
+}
