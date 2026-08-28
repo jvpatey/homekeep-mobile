@@ -1,25 +1,20 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
-import { GlassCard } from "../../components/ui";
-import { DesignSystem } from "../../theme/designSystem";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SpringRefreshAnswers } from "../../data/maintenancePlans";
-import { useMaintenancePlanAccent } from "./MaintenancePlanAccentContext";
+import { maintenancePlansStyles } from "./styles";
+import {
+  QuestionnaireShell,
+  QuestionCard,
+  QuestionLabel,
+  QuestionHint,
+  ChoiceRow,
+} from "./questionnaireChrome";
 
 interface SpringRefreshQuestionnaireProps {
-  /** When continuing with answers (never submit invalid state — parent validates). */
   onComplete: (answers: SpringRefreshAnswers) => void;
   onBack: () => void;
-  /** When returning from the task picker, restore prior answers. */
-  initialAnswers?: SpringRefreshAnswers | null;
+  initialAnswers?: Partial<SpringRefreshAnswers> | null;
 }
 
 export function SpringRefreshQuestionnaire({
@@ -27,9 +22,7 @@ export function SpringRefreshQuestionnaire({
   onBack,
   initialAnswers,
 }: SpringRefreshQuestionnaireProps) {
-  const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  const accent = useMaintenancePlanAccent();
+  const { colors } = useTheme();
   const [hasLawn, setHasLawn] = useState<boolean | null>(null);
   const [propertyType, setPropertyType] = useState<
     "house" | "condo_townhome" | null
@@ -39,299 +32,104 @@ export function SpringRefreshQuestionnaire({
   >(null);
 
   useEffect(() => {
-    if (!initialAnswers) {
-      setHasLawn(null);
-      setPropertyType(null);
-      setHeatSource(null);
-      return;
-    }
-    setHasLawn(initialAnswers.hasLawn);
-    setPropertyType(initialAnswers.propertyType);
-    setHeatSource(initialAnswers.heatSource);
+    setHasLawn(initialAnswers?.hasLawn ?? null);
+    setPropertyType(initialAnswers?.propertyType ?? null);
+    setHeatSource(initialAnswers?.heatSource ?? null);
   }, [initialAnswers]);
 
-  const canContinue =
-    hasLawn !== null && propertyType !== null && heatSource !== null;
+  const answered =
+    Number(hasLawn !== null) +
+    Number(propertyType !== null) +
+    Number(heatSource !== null);
+  const canContinue = answered === 3;
 
   const handleContinue = () => {
-    if (
-      hasLawn === null ||
-      propertyType === null ||
-      heatSource === null
-    ) {
+    if (hasLawn === null || propertyType === null || heatSource === null) {
       return;
     }
-    onComplete({
-      hasLawn,
-      propertyType,
-      heatSource,
-    });
+    onComplete({ hasLawn, propertyType, heatSource });
   };
 
-  const SectionLabel = ({ children }: { children: string }) => (
-    <Text
-      style={[
-        styles.sectionLabel,
-        { color: colors.textSecondary },
-      ]}
-    >
-      {children}
-    </Text>
-  );
-
-  const ChoiceRow = ({
-    label,
-    selected,
-    onPress,
-    accessibilityLabel,
-  }: {
-    label: string;
-    selected: boolean;
-    onPress: () => void;
-    accessibilityLabel: string;
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.choiceRow,
-        {
-          borderColor: selected ? accent : colors.border,
-          backgroundColor: selected
-            ? isDark
-              ? "rgba(255,255,255,0.06)"
-              : "rgba(0,0,0,0.03)"
-            : "transparent",
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.85}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected }}
-    >
-      <Text style={[styles.choiceLabel, { color: colors.text }]}>{label}</Text>
-      {selected ? (
-        <Ionicons name="checkmark-circle" size={22} color={accent} />
-      ) : (
-        <View
-          style={[
-            styles.radioOuter,
-            { borderColor: colors.border },
-          ]}
-        />
-      )}
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={styles.wrapper}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={[styles.intro, { color: colors.textSecondary }]}>
-          {`Tell us a bit about your home so we only add maintenance you're responsible for — lawn care, exterior access, and how you heat.`}
-        </Text>
-
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
-          containerStyle={styles.cardGap}
-          style={styles.cardInner}
-        >
-          <SectionLabel>Do you have a lawn?</SectionLabel>
-          <ChoiceRow
-            label="Yes"
-            selected={hasLawn === true}
-            onPress={() => setHasLawn(true)}
-            accessibilityLabel="Yes, I have a lawn"
-          />
-          <ChoiceRow
-            label="No"
-            selected={hasLawn === false}
-            onPress={() => setHasLawn(false)}
-            accessibilityLabel="No lawn"
-          />
-        </GlassCard>
-
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
-          containerStyle={styles.cardGap}
-          style={styles.cardInner}
-        >
-          <SectionLabel>What best describes your home?</SectionLabel>
-          <ChoiceRow
-            label="House (I maintain my own exterior)"
-            selected={propertyType === "house"}
-            onPress={() => setPropertyType("house")}
-            accessibilityLabel="House, I maintain exterior"
-          />
-          <ChoiceRow
-            label="Condo or townhome"
-            selected={propertyType === "condo_townhome"}
-            onPress={() => setPropertyType("condo_townhome")}
-            accessibilityLabel="Condo or townhome"
-          />
-        </GlassCard>
-
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
-          containerStyle={styles.cardGap}
-          style={styles.cardInner}
-        >
-          <SectionLabel>How do you heat your home?</SectionLabel>
-          <Text
-            style={[styles.sectionHint, { color: colors.textSecondary }]}
-          >
-            We use this to suggest spring HVAC tasks (for example heat pumps vs.
-            gas furnaces).
-          </Text>
-          <ChoiceRow
-            label="Gas furnace"
-            selected={heatSource === "gas_furnace"}
-            onPress={() => setHeatSource("gas_furnace")}
-            accessibilityLabel="Gas furnace"
-          />
-          <ChoiceRow
-            label="Heat pump"
-            selected={heatSource === "heat_pump"}
-            onPress={() => setHeatSource("heat_pump")}
-            accessibilityLabel="Heat pump"
-          />
-          <ChoiceRow
-            label="Electric (radiant / baseboard)"
-            selected={heatSource === "electric"}
-            onPress={() => setHeatSource("electric")}
-            accessibilityLabel="Electric heat"
-          />
-          <ChoiceRow
-            label="Other"
-            selected={heatSource === "other"}
-            onPress={() => setHeatSource("other")}
-            accessibilityLabel="Other heating"
-          />
-        </GlassCard>
-      </ScrollView>
-
-      <View
+    <QuestionnaireShell
+      progressLabel={`${answered} of 3 answered`}
+      canContinue={canContinue}
+      onContinue={handleContinue}
+      onCancel={onBack}
+    >
+      <Text
         style={[
-          styles.footer,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.background,
-            paddingBottom: DesignSystem.spacing.md + insets.bottom,
-          },
+          maintenancePlansStyles.questionnaireIntro,
+          { color: colors.textSecondary },
         ]}
       >
-        <TouchableOpacity
-          style={[styles.secondaryBtn, { borderColor: colors.border }]}
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel"
-        >
-          <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-            Cancel
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.primaryBtn,
-            {
-              backgroundColor: canContinue ? accent : colors.border,
-            },
-          ]}
-          onPress={handleContinue}
-          disabled={!canContinue}
-          accessibilityRole="button"
-          accessibilityLabel="Continue to checklist"
-        >
-          <Text style={styles.primaryBtnText}>Continue</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        Tell us a bit about your home so we only add maintenance you’re
+        responsible for — lawn care, exterior access, and how you heat.
+      </Text>
+
+      <QuestionCard>
+        <QuestionLabel>Do you have a lawn?</QuestionLabel>
+        <ChoiceRow
+          label="Yes"
+          selected={hasLawn === true}
+          onPress={() => setHasLawn(true)}
+          accessibilityLabel="Yes, I have a lawn"
+        />
+        <ChoiceRow
+          label="No"
+          selected={hasLawn === false}
+          onPress={() => setHasLawn(false)}
+          accessibilityLabel="No lawn"
+        />
+      </QuestionCard>
+
+      <QuestionCard>
+        <QuestionLabel>What best describes your home?</QuestionLabel>
+        <ChoiceRow
+          label="House (I maintain my own exterior)"
+          selected={propertyType === "house"}
+          onPress={() => setPropertyType("house")}
+          accessibilityLabel="House, I maintain exterior"
+        />
+        <ChoiceRow
+          label="Condo or townhome"
+          selected={propertyType === "condo_townhome"}
+          onPress={() => setPropertyType("condo_townhome")}
+          accessibilityLabel="Condo or townhome"
+        />
+      </QuestionCard>
+
+      <QuestionCard>
+        <QuestionLabel>How do you heat your home?</QuestionLabel>
+        <QuestionHint>
+          We use this to suggest spring HVAC tasks (for example heat pumps vs.
+          gas furnaces).
+        </QuestionHint>
+        <ChoiceRow
+          label="Gas furnace"
+          selected={heatSource === "gas_furnace"}
+          onPress={() => setHeatSource("gas_furnace")}
+          accessibilityLabel="Gas furnace"
+        />
+        <ChoiceRow
+          label="Heat pump"
+          selected={heatSource === "heat_pump"}
+          onPress={() => setHeatSource("heat_pump")}
+          accessibilityLabel="Heat pump"
+        />
+        <ChoiceRow
+          label="Electric (radiant / baseboard)"
+          selected={heatSource === "electric"}
+          onPress={() => setHeatSource("electric")}
+          accessibilityLabel="Electric heat"
+        />
+        <ChoiceRow
+          label="Other"
+          selected={heatSource === "other"}
+          onPress={() => setHeatSource("other")}
+          accessibilityLabel="Other heating"
+        />
+      </QuestionCard>
+    </QuestionnaireShell>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
-  scroll: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.xxxl,
-  },
-  intro: {
-    ...DesignSystem.typography.body,
-    marginBottom: DesignSystem.spacing.lg,
-    lineHeight: 22,
-  },
-  cardGap: {
-    marginBottom: DesignSystem.spacing.md,
-  },
-  cardInner: {
-    padding: DesignSystem.spacing.md,
-  },
-  sectionLabel: {
-    ...DesignSystem.typography.smallSemiBold,
-    marginBottom: DesignSystem.spacing.sm,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  sectionHint: {
-    ...DesignSystem.typography.small,
-    marginBottom: DesignSystem.spacing.sm,
-    lineHeight: 18,
-  },
-  choiceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  choiceLabel: {
-    ...DesignSystem.typography.body,
-    flex: 1,
-    paddingRight: DesignSystem.spacing.sm,
-  },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-  },
-  footer: {
-    flexDirection: "row",
-    gap: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  secondaryBtn: {
-    flex: 1,
-    paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-  },
-  secondaryBtnText: {
-    ...DesignSystem.typography.bodySemiBold,
-  },
-  primaryBtn: {
-    flex: 1,
-    paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
-    alignItems: "center",
-  },
-  primaryBtnText: {
-    ...DesignSystem.typography.bodySemiBold,
-    color: "#FFFFFF",
-  },
-});

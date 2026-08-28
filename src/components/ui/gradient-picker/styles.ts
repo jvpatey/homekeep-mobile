@@ -1,67 +1,29 @@
 import { StyleSheet } from "react-native";
+import { DesignSystem } from "../../../theme/designSystem";
 
 export const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
-
-  headerContainer: {
-    marginBottom: 16,
-  },
-
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-
-  gradientContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 16,
-  },
-
-  gradientOption: {
+  option: {
+    width: "25%",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 4,
+    paddingVertical: DesignSystem.spacing.sm,
   },
-
-  gradientWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    padding: 4,
+  ring: {
+    padding: 3,
+    borderRadius: 31,
+    borderWidth: 2,
   },
-
-  gradientCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    position: "relative",
+  swatch: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
-
-  gradientName: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 8,
+  caption: {
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.xs,
     textAlign: "center",
-    letterSpacing: 0.1,
   },
 });

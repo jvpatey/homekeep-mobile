@@ -21,7 +21,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
@@ -38,14 +37,23 @@ import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useGradients, useHaptics, useDevice } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
-import { GlassCard, SheetGrabber } from "../../ui";
+import { Button, HearthSurfaceCard, SheetGrabber } from "../../ui";
 import { FormField } from "../../Dashboard/modals/create-task-modal/FormField";
-import { formControlFill } from "../../Dashboard/modals/create-task-modal/formChrome";
 import { EquipmentManual } from "../../../types/equipmentManual";
 import { EquipmentManualService } from "../../../services/EquipmentManualService";
 import { styles } from "./styles";
 
 const { height: screenHeight } = Dimensions.get("window");
+
+const SHEET_ENTER = {
+  duration: DesignSystem.motion.duration.base,
+  easing: DesignSystem.motion.easing.emphasized,
+};
+
+const SHEET_EXIT = {
+  duration: DesignSystem.motion.duration.fast,
+  easing: DesignSystem.motion.easing.standard,
+};
 
 type ScreenMode = "list" | "form";
 
@@ -60,7 +68,7 @@ export function EquipmentManualsModal({
 }: EquipmentManualsModalProps) {
   const { colors, isDark } = useTheme();
   const { isConfigured } = useAuth();
-  const { haloGradient } = useGradients();
+  const { authAtmosphere } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
   const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
     useDevice();
@@ -123,22 +131,13 @@ export function EquipmentManualsModal({
 
   useEffect(() => {
     if (visible) {
-      opacity.value = withTiming(1, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
-      });
-      translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
+      opacity.value = withTiming(1, SHEET_ENTER);
+      translateY.value = withTiming(0, SHEET_ENTER);
     } else {
-      opacity.value = withTiming(0, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
-      });
+      opacity.value = withTiming(0, SHEET_EXIT);
       translateY.value = withTiming(
         screenHeight,
-        {
-          duration: DesignSystem.motion.duration.fast,
-          easing: DesignSystem.motion.easing.standard,
-        },
+        SHEET_EXIT,
         (finished) => {
           if (finished) runOnJS(setMounted)(false);
         }
@@ -631,209 +630,203 @@ export function EquipmentManualsModal({
     }
   };
 
+  const listSubtitle =
+    items.length === 0
+      ? "Manuals, models, and purchase dates in one place"
+      : `${items.length} item${items.length === 1 ? "" : "s"} · tap a row to edit`;
+
+  const renderAttachmentChip = (
+    label: string,
+    attached: boolean,
+    icon: React.ComponentProps<typeof Ionicons>["name"]
+  ) => (
+    <View
+      style={[
+        styles.statusChip,
+        {
+          backgroundColor: attached ? colors.primary + "12" : colors.fieldFill,
+          borderColor: attached ? colors.primary + "33" : colors.border,
+        },
+      ]}
+    >
+      <Ionicons
+        name={icon}
+        size={12}
+        color={attached ? colors.primary : colors.textSecondary}
+      />
+      <Text
+        style={[
+          styles.statusChipText,
+          { color: attached ? colors.primary : colors.textSecondary },
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+
   const renderItem = ({ item }: { item: EquipmentManual }) => {
     const isDeleting = deletingIds.has(item.id);
     const purchaseLabel = formatPurchase(item.purchase_date);
-    const iconHit = isTablet ? getResponsiveValue(20, 22, 24) : 20;
-    const actionSize = isTablet ? getResponsiveValue(40, 44, 48) : 40;
-    const actionRadius = actionSize / 2;
+    const iconHit = isTablet ? getResponsiveValue(18, 20, 22) : 18;
 
     return (
-      <View
-        style={[
-          styles.equipmentRow,
-          {
-            backgroundColor: formControlFill(isDark),
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(255, 255, 255, 0.6)",
-          },
-          isTablet && {
-            padding: getResponsiveValue(16, 20, 24),
-            marginBottom: getResponsiveValue(12, 16, 20),
-            minHeight: getResponsiveValue(152, 164, 176),
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.equipmentMainTouchable}
-          onPress={() => openEdit(item)}
-          activeOpacity={0.75}
-          accessibilityRole="button"
-          accessibilityLabel={`Edit ${item.name}`}
-        >
-          <View style={styles.equipmentMain}>
-            <Text
-              style={[
-                styles.equipmentTitle,
-                { color: colors.text },
-                isTablet && {
-                  fontSize:
-                    (styles.equipmentTitle.fontSize || 16) * fontMultiplier,
-                },
-              ]}
-              numberOfLines={2}
-            >
-              {item.name}
-            </Text>
-            {item.model_number ? (
-              <Text
-                style={[
-                  styles.equipmentMeta,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize:
-                      (styles.equipmentMeta.fontSize || 14) * fontMultiplier,
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                Model {item.model_number}
-              </Text>
-            ) : null}
-            {purchaseLabel ? (
-              <Text
-                style={[
-                  styles.equipmentMeta,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize:
-                      (styles.equipmentMeta.fontSize || 14) * fontMultiplier,
-                  },
-                ]}
-              >
-                Purchased {purchaseLabel}
-              </Text>
-            ) : null}
-            <Text
-              style={[
-                styles.equipmentMeta,
-                {
-                  color: item.manual_storage_path
-                    ? colors.primary
-                    : colors.textSecondary,
-                },
-                isTablet && {
-                  fontSize:
-                    (styles.equipmentMeta.fontSize || 14) * fontMultiplier,
-                },
-              ]}
-            >
-              {item.manual_storage_path ? "Manual attached" : "No manual yet"}
-            </Text>
-            <Text
-              style={[
-                styles.equipmentMeta,
-                {
-                  color: item.receipt_storage_path
-                    ? colors.primary
-                    : colors.textSecondary,
-                },
-                isTablet && {
-                  fontSize:
-                    (styles.equipmentMeta.fontSize || 14) * fontMultiplier,
-                },
-              ]}
-            >
-              {item.receipt_storage_path
-                ? "Receipt attached"
-                : "No receipt yet"}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.equipmentRowActions}>
-          {item.receipt_storage_path ? (
-            <TouchableOpacity
-              style={[
-                styles.viewManualButton,
-                {
-                  backgroundColor: colors.primary + "18",
-                  width: actionSize,
-                  height: actionSize,
-                  borderRadius: actionRadius,
-                },
-              ]}
-              onPress={() => handleViewReceipt(item)}
-              accessibilityRole="button"
-              accessibilityLabel={`View receipt for ${item.name}`}
-            >
-              <Ionicons
-                name="receipt-outline"
-                size={iconHit}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          ) : null}
-          {item.manual_storage_path ? (
-            <TouchableOpacity
-              style={[
-                styles.viewManualButton,
-                {
-                  backgroundColor: colors.primary + "18",
-                  width: actionSize,
-                  height: actionSize,
-                  borderRadius: actionRadius,
-                },
-              ]}
-              onPress={() => handleViewManual(item)}
-              accessibilityRole="button"
-              accessibilityLabel={`View manual for ${item.name}`}
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={iconHit}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity
+      <HearthSurfaceCard containerStyle={styles.equipmentCard}>
+        <View style={styles.equipmentRow}>
+          <View
             style={[
-              styles.deleteButton,
-              {
-                backgroundColor: colors.error + "15",
-                width: actionSize,
-                height: actionSize,
-                borderRadius: actionRadius,
-              },
-              isDeleting && styles.deletingButton,
+              styles.equipmentIconBadge,
+              { backgroundColor: colors.primary + "14" },
             ]}
-            onPress={() => handleDelete(item)}
-            disabled={isDeleting}
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${item.name}`}
           >
-            <Ionicons
-              name={isDeleting ? "hourglass-outline" : "trash-outline"}
-              size={iconHit}
-              color={colors.error}
-            />
+            <Ionicons name="construct-outline" size={22} color={colors.primary} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.equipmentMainTouchable}
+            onPress={() => openEdit(item)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${item.name}`}
+          >
+            <View style={styles.equipmentMain}>
+              <Text
+                style={[
+                  styles.equipmentTitle,
+                  { color: colors.text },
+                  isTablet && {
+                    fontSize:
+                      (styles.equipmentTitle.fontSize || 16) * fontMultiplier,
+                  },
+                ]}
+                numberOfLines={2}
+              >
+                {item.name}
+              </Text>
+              {item.model_number ? (
+                <Text
+                  style={[
+                    styles.equipmentMeta,
+                    { color: colors.textSecondary },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Model {item.model_number}
+                </Text>
+              ) : null}
+              {purchaseLabel ? (
+                <Text
+                  style={[
+                    styles.equipmentMeta,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Purchased {purchaseLabel}
+                </Text>
+              ) : null}
+              <View style={styles.chipRow}>
+                {renderAttachmentChip(
+                  item.manual_storage_path ? "Manual" : "No manual",
+                  Boolean(item.manual_storage_path),
+                  "document-text-outline"
+                )}
+                {renderAttachmentChip(
+                  item.receipt_storage_path ? "Receipt" : "No receipt",
+                  Boolean(item.receipt_storage_path),
+                  "receipt-outline"
+                )}
+              </View>
+            </View>
           </TouchableOpacity>
+
+          <View style={styles.equipmentRowActions}>
+            {item.receipt_storage_path ? (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: colors.fieldFill,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => handleViewReceipt(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`View receipt for ${item.name}`}
+              >
+                <Ionicons
+                  name="receipt-outline"
+                  size={iconHit}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ) : null}
+            {item.manual_storage_path ? (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: colors.fieldFill,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => handleViewManual(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`View manual for ${item.name}`}
+              >
+                <Ionicons
+                  name="document-text-outline"
+                  size={iconHit}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor: colors.error + "10",
+                  borderColor: colors.error + "30",
+                },
+                isDeleting && styles.deletingButton,
+              ]}
+              onPress={() => handleDelete(item)}
+              disabled={isDeleting}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${item.name}`}
+            >
+              <Ionicons
+                name={isDeleting ? "hourglass-outline" : "trash-outline"}
+                size={iconHit}
+                color={colors.error}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </HearthSurfaceCard>
     );
   };
 
-  const formFooter = (
-    <TouchableOpacity
-      style={[
-        styles.saveButton,
-        {
-          backgroundColor: colors.primary,
-          opacity: saving ? 0.6 : 1,
-        },
-      ]}
-      onPress={handleSave}
-      disabled={saving}
-    >
-      {saving ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <Text style={[styles.saveButtonText, { color: "#fff" }]}>
-          Save
-        </Text>
-      )}
-    </TouchableOpacity>
+  const renderEmptyList = () => (
+    <View style={styles.emptyState}>
+      <View
+        style={[
+          styles.emptyIconCircle,
+          { backgroundColor: colors.primary + "14" },
+        ]}
+      >
+        <Ionicons name="file-tray-full-outline" size={32} color={colors.primary} />
+      </View>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+        No equipment yet
+      </Text>
+      <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+        Store manuals, model numbers, and receipts for everything you maintain
+        at home.
+      </Text>
+      <View style={styles.emptyAction}>
+        <Button label="Add equipment" onPress={openAdd} variant="primary" />
+      </View>
+    </View>
   );
 
   const renderForm = () => (
@@ -846,7 +839,18 @@ export function EquipmentManualsModal({
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        showsVerticalScrollIndicator={false}
       >
+        <Text
+          style={[
+            styles.sectionLabel,
+            { color: colors.textSecondary, marginTop: 0 },
+          ]}
+        >
+          Details
+        </Text>
         <FormField
           label="Name"
           value={name}
@@ -876,8 +880,8 @@ export function EquipmentManualsModal({
           style={[
             styles.dateButton,
             {
-              backgroundColor: formControlFill(isDark),
-              borderColor: colors.glassStroke,
+              backgroundColor: colors.fieldFill,
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setShowPurchasePicker((v) => !v)}
@@ -919,23 +923,23 @@ export function EquipmentManualsModal({
             isTablet && { fontSize: 13 * fontMultiplier },
           ]}
         >
-          Manual (PDF or photo)
+          Attachments
         </Text>
         <View
           style={[
             styles.attachCard,
             {
-              backgroundColor: formControlFill(isDark),
-              borderColor: colors.glassStroke,
+              backgroundColor: colors.fieldFill,
+              borderColor: colors.border,
             },
           ]}
         >
-          <Text style={{ color: colors.text, fontWeight: "600" }}>
+          <Text style={[styles.attachTitle, { color: colors.text }]}>
             {pendingFileName
-              ? `Ready to upload: ${pendingFileName}`
+              ? pendingFileName
               : editing?.manual_storage_path
-                ? "Manual saved"
-                : "No file selected"}
+                ? "Manual on file"
+                : "No manual attached"}
           </Text>
           <Text style={[styles.attachHint, { color: colors.textSecondary }]}>
             Attach a PDF from Files or a photo from your library or camera.
@@ -943,37 +947,47 @@ export function EquipmentManualsModal({
           <View style={styles.rowButtons}>
             <TouchableOpacity
               style={[
-                styles.textButton,
+                styles.attachButton,
                 {
-                  borderColor: colors.primary,
+                  borderColor: colors.primary + "44",
                   backgroundColor: colors.primary + "12",
                 },
               ]}
               onPress={() => promptAttach("manual")}
             >
-              <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                {pendingUri || editing?.manual_storage_path
-                  ? "Replace"
-                  : "Attach"}
+              <Text style={[styles.attachButtonText, { color: colors.primary }]}>
+                {pendingUri || editing?.manual_storage_path ? "Replace" : "Attach"}
               </Text>
             </TouchableOpacity>
             {editing?.manual_storage_path ? (
               <TouchableOpacity
-                style={[styles.textButton, { borderColor: colors.glassStroke }]}
+                style={[
+                  styles.attachButton,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
                 onPress={() => handleViewManual(editing)}
               >
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                <Text style={[styles.attachButtonText, { color: colors.primary }]}>
                   View
                 </Text>
               </TouchableOpacity>
             ) : null}
             {editing?.manual_storage_path ? (
               <TouchableOpacity
-                style={[styles.textButton, { borderColor: colors.error + "40" }]}
+                style={[
+                  styles.attachButton,
+                  {
+                    borderColor: colors.error + "40",
+                    backgroundColor: colors.error + "10",
+                  },
+                ]}
                 onPress={handleRemoveStoredManual}
               >
-                <Text style={{ color: colors.error, fontWeight: "600" }}>
-                  Remove file
+                <Text style={[styles.attachButtonText, { color: colors.error }]}>
+                  Remove
                 </Text>
               </TouchableOpacity>
             ) : null}
@@ -981,29 +995,25 @@ export function EquipmentManualsModal({
         </View>
 
         <Text
-          style={[
-            styles.sectionLabel,
-            { color: colors.textSecondary },
-            isTablet && { fontSize: 13 * fontMultiplier },
-          ]}
+          style={[styles.sectionLabel, { color: colors.textSecondary }]}
         >
-          Purchase receipt (optional)
+          Receipt
         </Text>
         <View
           style={[
             styles.attachCard,
             {
-              backgroundColor: formControlFill(isDark),
-              borderColor: colors.glassStroke,
+              backgroundColor: colors.fieldFill,
+              borderColor: colors.border,
             },
           ]}
         >
-          <Text style={{ color: colors.text, fontWeight: "600" }}>
+          <Text style={[styles.attachTitle, { color: colors.text }]}>
             {pendingReceiptFileName
-              ? `Ready to upload: ${pendingReceiptFileName}`
+              ? pendingReceiptFileName
               : editing?.receipt_storage_path
-                ? "Receipt saved"
-                : "No file selected"}
+                ? "Receipt on file"
+                : "No receipt attached"}
           </Text>
           <Text style={[styles.attachHint, { color: colors.textSecondary }]}>
             Store your receipt as a PDF or photo for warranty and returns.
@@ -1011,15 +1021,15 @@ export function EquipmentManualsModal({
           <View style={styles.rowButtons}>
             <TouchableOpacity
               style={[
-                styles.textButton,
+                styles.attachButton,
                 {
-                  borderColor: colors.primary,
+                  borderColor: colors.primary + "44",
                   backgroundColor: colors.primary + "12",
                 },
               ]}
               onPress={() => promptAttach("receipt")}
             >
-              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              <Text style={[styles.attachButtonText, { color: colors.primary }]}>
                 {pendingReceiptUri || editing?.receipt_storage_path
                   ? "Replace"
                   : "Attach"}
@@ -1027,29 +1037,47 @@ export function EquipmentManualsModal({
             </TouchableOpacity>
             {editing?.receipt_storage_path ? (
               <TouchableOpacity
-                style={[styles.textButton, { borderColor: colors.glassStroke }]}
+                style={[
+                  styles.attachButton,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
                 onPress={() => handleViewReceipt(editing)}
               >
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                <Text style={[styles.attachButtonText, { color: colors.primary }]}>
                   View
                 </Text>
               </TouchableOpacity>
             ) : null}
             {editing?.receipt_storage_path ? (
               <TouchableOpacity
-                style={[styles.textButton, { borderColor: colors.error + "40" }]}
+                style={[
+                  styles.attachButton,
+                  {
+                    borderColor: colors.error + "40",
+                    backgroundColor: colors.error + "10",
+                  },
+                ]}
                 onPress={handleRemoveStoredReceipt}
               >
-                <Text style={{ color: colors.error, fontWeight: "600" }}>
-                  Remove file
+                <Text style={[styles.attachButtonText, { color: colors.error }]}>
+                  Remove
                 </Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </View>
-
-        {formFooter}
       </ScrollView>
+      <View style={[styles.formFooter, { borderTopColor: colors.border }]}>
+        <Button
+          label="Save equipment"
+          onPress={() => void handleSave()}
+          loading={saving}
+          disabled={saving}
+        />
+      </View>
     </KeyboardAvoidingView>
   );
 
@@ -1077,178 +1105,107 @@ export function EquipmentManualsModal({
           ]}
           pointerEvents="auto"
         >
-          <GlassCard
-            material="thick"
-            radius={DesignSystem.borders.radius.glass}
-            containerStyle={styles.glassOuter}
-            style={styles.glassInner}
+          <View
+            style={[
+              styles.sheetSurface,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              DesignSystem.shadows.softKey,
+            ]}
           >
             <LinearGradient
-              colors={[...haloGradient]}
+              colors={authAtmosphere}
               start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.haloFill}
+              end={{ x: 0.5, y: 0.35 }}
+              style={styles.atmosphereFill}
               pointerEvents="none"
             />
 
             <SafeAreaView edges={["bottom"]} style={styles.sheetSafeArea}>
               <SheetGrabber />
 
-              <View
-                style={[
-                  styles.header,
-                  screenMode === "form" ? styles.headerForm : styles.headerList,
-                  { borderBottomColor: colors.border },
-                ]}
-              >
-                {screenMode === "form" ? (
-                  <>
-                    <View style={styles.headerFormToolbar}>
-                      <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={async () => {
-                          await triggerLight();
-                          setScreenMode("list");
-                          resetForm();
-                          setEditing(null);
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel="Back to list"
-                      >
-                        <Ionicons
-                          name="chevron-back"
-                          size={24}
-                          color={colors.text}
-                        />
-                      </TouchableOpacity>
-                      <View style={styles.headerToolbarSpacer} />
-                      <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={handleClose}
-                        accessibilityRole="button"
-                        accessibilityLabel="Close"
-                      >
-                        <Ionicons name="close" size={22} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-                    <View
-                      style={[
-                        styles.headerTitleBlock,
-                        styles.headerTitleBlockForm,
-                      ]}
-                      accessibilityRole="header"
-                    >
-                      <Text
-                        style={[
-                          styles.headerHeroTitle,
-                          { color: colors.text },
-                          isTablet && {
-                            fontSize: getResponsiveValue(24, 26, 28),
-                            lineHeight: getResponsiveValue(30, 32, 34),
-                          },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {editing ? "Edit equipment" : "Add equipment"}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.headerHeroSubtitle,
-                          { color: colors.textSecondary },
-                          isTablet && {
-                            fontSize: 15 * fontMultiplier,
-                            lineHeight: 21 * fontMultiplier,
-                          },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {editing
-                          ? "Update details or replace the manual file."
-                          : "Name it, add model and purchase date, then attach a PDF or photo."}
-                      </Text>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.headerCloseRow}>
-                      <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={handleClose}
-                        accessibilityRole="button"
-                        accessibilityLabel="Close"
-                      >
-                        <Ionicons name="close" size={22} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-                    <View
-                      style={[
-                        styles.headerTitleBlock,
-                        styles.headerTitleBlockForm,
-                      ]}
-                      accessibilityRole="header"
-                    >
-                      <Text
-                        style={[
-                          styles.headerHeroTitle,
-                          { color: colors.text },
-                          isTablet && {
-                            fontSize: getResponsiveValue(24, 26, 28),
-                            lineHeight: getResponsiveValue(30, 32, 34),
-                          },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        Equipment & manuals
-                      </Text>
-                      <Text
-                        style={[
-                          styles.headerHeroSubtitle,
-                          { color: colors.textSecondary },
-                          isTablet && {
-                            fontSize: 15 * fontMultiplier,
-                            lineHeight: 21 * fontMultiplier,
-                          },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        Everything you maintain—manuals, models, and dates—in
-                        one list.
-                      </Text>
-                    </View>
+              {screenMode === "form" ? (
+                <>
+                  <View style={styles.formNavRow}>
                     <TouchableOpacity
-                      style={[
-                        styles.addEquipmentButton,
-                        { backgroundColor: colors.primary },
-                      ]}
-                      onPress={openAdd}
-                      activeOpacity={0.85}
+                      style={styles.navButton}
+                      onPress={async () => {
+                        await triggerLight();
+                        setScreenMode("list");
+                        resetForm();
+                        setEditing(null);
+                      }}
                       accessibilityRole="button"
-                      accessibilityLabel="Add equipment"
+                      accessibilityLabel="Back to list"
                     >
-                      <Text
-                        style={[
-                          styles.addEquipmentButtonText,
-                          { color: "#fff" },
-                          isTablet && {
-                            fontSize: 17 * fontMultiplier,
-                          },
-                        ]}
-                      >
-                        Add equipment
-                      </Text>
+                      <Ionicons
+                        name="chevron-back"
+                        size={24}
+                        color={colors.text}
+                      />
                     </TouchableOpacity>
-                  </>
-                )}
-              </View>
+                    <TouchableOpacity
+                      style={styles.navButton}
+                      onPress={handleClose}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close"
+                    >
+                      <Ionicons name="close" size={24} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.formTitleBlock} accessibilityRole="header">
+                    <Text style={[styles.formTitle, { color: colors.text }]}>
+                      {editing ? "Edit equipment" : "Add equipment"}
+                    </Text>
+                    <Text
+                      style={[styles.formSubtitle, { color: colors.textSecondary }]}
+                    >
+                      {editing
+                        ? "Update details or replace attached files."
+                        : "Name it, then attach a manual or receipt."}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.titleRow} accessibilityRole="header">
+                  <View style={styles.titleBlock}>
+                    <Text style={[styles.sheetTitle, { color: colors.text }]}>
+                      Equipment & manuals
+                    </Text>
+                    <Text
+                      style={[styles.sheetSubtitle, { color: colors.textSecondary }]}
+                    >
+                      {listSubtitle}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={handleClose}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                  >
+                    <Ionicons name="close" size={24} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {!isConfigured ? (
                 <View style={styles.emptyState}>
-                  <Ionicons
-                    name="cloud-offline-outline"
-                    size={48}
-                    color={colors.textSecondary}
-                  />
-                  <Text style={[styles.emptyText, { color: colors.text }]}>
+                  <View
+                    style={[
+                      styles.emptyIconCircle,
+                      { backgroundColor: colors.primary + "14" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="cloud-offline-outline"
+                      size={32}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>
                     Sign in required
                   </Text>
                   <Text
@@ -1263,39 +1220,37 @@ export function EquipmentManualsModal({
                     <ActivityIndicator size="large" color={colors.primary} />
                   </View>
                 ) : (
-                  <FlatList
-                    data={items}
-                    keyExtractor={(it) => it.id}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.listContent}
-                    style={styles.list}
-                    ListEmptyComponent={
-                      <View style={styles.emptyState}>
-                        <Ionicons
-                          name="hardware-chip-outline"
-                          size={48}
-                          color={colors.textSecondary}
+                  <>
+                    <FlatList
+                      data={items}
+                      keyExtractor={(it) => it.id}
+                      renderItem={renderItem}
+                      contentContainerStyle={styles.listContent}
+                      style={styles.list}
+                      showsVerticalScrollIndicator={false}
+                      ListEmptyComponent={renderEmptyList}
+                    />
+                    {items.length > 0 ? (
+                      <View
+                        style={[
+                          styles.listFooter,
+                          { borderTopColor: colors.border },
+                        ]}
+                      >
+                        <Button
+                          label="Add equipment"
+                          onPress={openAdd}
+                          variant="primary"
                         />
-                        <Text style={[styles.emptyText, { color: colors.text }]}>
-                          No equipment yet
-                        </Text>
-                        <Text
-                          style={[
-                            styles.emptySubtext,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Tap Add equipment above to attach a manual.
-                        </Text>
                       </View>
-                    }
-                  />
+                    ) : null}
+                  </>
                 )
               ) : (
                 renderForm()
               )}
             </SafeAreaView>
-          </GlassCard>
+          </View>
         </Animated.View>
       </Animated.View>
     </Modal>

@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { DesignSystem } from "../../theme/designSystem";
 
 export const notificationPreferencesStyles = StyleSheet.create({
   container: {
@@ -7,11 +8,9 @@ export const notificationPreferencesStyles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   backButton: {
     padding: 8,

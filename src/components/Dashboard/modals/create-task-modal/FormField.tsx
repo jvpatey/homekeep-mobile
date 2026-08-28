@@ -2,17 +2,16 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput as RNTextInput,
+  TextInput,
   Platform,
   type NativeSyntheticEvent,
   type TextInputSubmitEditingEventData,
+  type LayoutChangeEvent,
 } from "react-native";
-import { TextInput, HelperText } from "react-native-paper";
 import { useTheme } from "../../../../context/ThemeContext";
-import { useAuthInputTheme, useDevice } from "../../../../hooks";
+import { useDevice } from "../../../../hooks";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { styles } from "./styles";
-import { formControlFill } from "./formChrome";
 
 export interface FormFieldProps {
   label: string;
@@ -23,21 +22,24 @@ export interface FormFieldProps {
   multiline?: boolean;
   numberOfLines?: number;
   keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
-  /** iOS: shows accessory above keyboard (e.g. Done for number pads). */
   inputAccessoryViewID?: string;
   required?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoCorrect?: boolean;
+  spellCheck?: boolean;
+  textContentType?: React.ComponentProps<typeof TextInput>["textContentType"];
   returnKeyType?: React.ComponentProps<typeof TextInput>["returnKeyType"];
   blurOnSubmit?: boolean;
+  enablesReturnKeyAutomatically?: boolean;
   onSubmitEditing?: (
-    e: NativeSyntheticEvent<TextInputSubmitEditingEventData>,
+    e: NativeSyntheticEvent<TextInputSubmitEditingEventData>
   ) => void;
-  /** Extra handler after focus (e.g. scroll parent ScrollView on iOS keyboard). */
   onFocusExtra?: () => void;
+  onBlurExtra?: () => void;
+  onFieldLayout?: (y: number) => void;
 }
 
-// FormField component for the CreateTaskModal
-export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
+export const FormField = React.forwardRef<TextInput, FormFieldProps>(
   function FormField(
     {
       label,
@@ -51,51 +53,51 @@ export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
       inputAccessoryViewID,
       required = false,
       autoCapitalize = "none",
+      autoCorrect,
+      spellCheck,
+      textContentType,
       returnKeyType,
       blurOnSubmit,
+      enablesReturnKeyAutomatically,
       onSubmitEditing,
       onFocusExtra,
+      onBlurExtra,
+      onFieldLayout,
     },
-    ref,
+    ref
   ) {
     const { colors, isDark } = useTheme();
-    const { getInputTheme } = useAuthInputTheme();
     const { isTablet, getFontMultiplier } = useDevice();
-    const [isFocused, setIsFocused] = useState(false);
     const fontMultiplier = getFontMultiplier();
+    const [focused, setFocused] = useState(false);
 
-    const inputTheme = getInputTheme(!!error);
+    const handleLayout = (event: LayoutChangeEvent) => {
+      onFieldLayout?.(event.nativeEvent.layout.y);
+    };
 
     return (
-      <View style={styles.inputGroup}>
+      <View style={styles.inputGroup} onLayout={handleLayout}>
         <Text
-          style={[
-            styles.inputLabel,
-            { color: colors.text },
-            isTablet && {
-              fontSize:
-                (styles.inputLabel.fontSize ||
-                  DesignSystem.typography.bodyMedium.fontSize) * fontMultiplier,
-            },
-          ]}
+          style={[styles.inputLabel, { color: colors.textSecondary }]}
+          accessibilityRole="text"
         >
           {label}{" "}
-          {required && (
+          {required ? (
             <Text style={{ color: colors.error, fontWeight: "700" }}>*</Text>
-          )}
+          ) : null}
         </Text>
         <View
           style={[
             styles.glassInputWrapper,
             {
-              backgroundColor: formControlFill(isDark),
+              backgroundColor: colors.fieldFill,
               borderColor: error
                 ? colors.error
-                : isFocused
-                  ? `${colors.primary}99`
-                  : colors.glassStroke,
+                : focused
+                  ? colors.primary + "66"
+                  : colors.border,
+              minHeight: multiline ? 100 : DesignSystem.components.inputLarge,
             },
-            isFocused && !error && styles.focusGlow,
           ]}
         >
           <TextInput
@@ -103,54 +105,50 @@ export const FormField = React.forwardRef<RNTextInput, FormFieldProps>(
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
+            placeholderTextColor={colors.textSecondary}
             style={[
               multiline ? styles.textArea : styles.textInput,
+              { color: colors.text },
               isTablet && {
                 fontSize:
-                  (styles.textInput.fontSize ||
-                    DesignSystem.typography.body.fontSize) * fontMultiplier,
-                paddingVertical:
-                  DesignSystem.spacing.md * (1 + (fontMultiplier - 1) * 0.3),
+                  DesignSystem.typography.body.fontSize * fontMultiplier,
               },
             ]}
-            textColor={colors.text}
-            placeholderTextColor={colors.textSecondary}
-            cursorColor={colors.primary}
-            selectionColor={
-              Platform.OS === "ios"
-                ? `${colors.primary}55`
-                : `${colors.primary}99`
-            }
-            mode="flat"
-            error={!!error}
             multiline={multiline}
             numberOfLines={numberOfLines}
             keyboardType={keyboardType}
             inputAccessoryViewID={inputAccessoryViewID}
             keyboardAppearance={isDark ? "dark" : "light"}
             autoCapitalize={autoCapitalize}
+            autoCorrect={autoCorrect}
+            spellCheck={spellCheck}
+            textContentType={textContentType}
             returnKeyType={returnKeyType}
             blurOnSubmit={blurOnSubmit}
+            enablesReturnKeyAutomatically={enablesReturnKeyAutomatically}
             onSubmitEditing={onSubmitEditing}
-            theme={inputTheme}
-            dense={false}
-            underlineColor="transparent"
-            underlineColorAndroid="transparent"
-            activeUnderlineColor="transparent"
-            outlineStyle={{ borderRadius: 0, borderWidth: 0 }}
             onFocus={() => {
-              setIsFocused(true);
+              setFocused(true);
               onFocusExtra?.();
             }}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => {
+              setFocused(false);
+              onBlurExtra?.();
+            }}
+            accessibilityLabel={label}
+            accessibilityHint={error}
           />
         </View>
-        {error && (
-          <HelperText type="error" visible={!!error} style={styles.helperText}>
+        {error ? (
+          <Text
+            style={[styles.helperText, { color: colors.error }]}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+          >
             {error}
-          </HelperText>
-        )}
+          </Text>
+        ) : null}
       </View>
     );
-  },
+  }
 );

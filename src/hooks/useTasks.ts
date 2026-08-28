@@ -376,8 +376,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         if (result.error) throw result.error;
 
-        // Refresh all task data to ensure consistency
-        await loadTasks();
+        void loadTasks();
 
         return { success: true };
       } catch (err) {
@@ -403,8 +402,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
         if (result.error) throw result.error;
 
-        // Refresh all task data to ensure consistency
-        await loadTasks();
+        void loadTasks();
 
         return { success: true };
       } catch (err) {

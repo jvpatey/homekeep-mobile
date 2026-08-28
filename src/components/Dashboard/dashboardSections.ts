@@ -1,8 +1,8 @@
 import { MaintenanceTask } from "../../types/maintenance";
 import { groupTasksByDate, formatDate } from "./timeline-view/utils";
-import { getDueSoonTasks, sortTasksByDateThenPriority } from "./utils";
+import { sortTasksByDateThenPriority } from "./utils";
 
-/** One row per routine: earliest upcoming instance only (matches former timeline load). */
+/** One row per routine: earliest upcoming instance only. */
 export function dedupeEarliestPerRoutine(
   tasks: MaintenanceTask[]
 ): MaintenanceTask[] {
@@ -28,50 +28,49 @@ export function dedupeEarliestPerRoutine(
 }
 
 export type DashboardScheduleSection = {
-  /** Stable key for SectionList */
   key: string;
-  /** Primary heading (e.g. Due soon, Today) */
   title: string;
-  /** Secondary line under title */
   subtitle?: string;
-  headerVariant: "due_soon" | "date";
+  headerVariant: "overdue" | "date";
   date?: Date;
   taskCount?: number;
   data: MaintenanceTask[];
 };
 
 /**
- * Builds SectionList sections: "Due soon" (next 7 days, same rules as stats)
- * then date-grouped upcoming tasks. Tasks in Due soon are excluded from date
- * sections so each instance appears once.
+ * Overdue first, then chronological date groups. No separate "Due soon" bucket.
  */
 export function buildDashboardSections(
-  scheduleTasks: MaintenanceTask[]
+  scheduleTasks: MaintenanceTask[],
+  overdueTasks: MaintenanceTask[] = []
 ): DashboardScheduleSection[] {
-  const sorted = dedupeEarliestPerRoutine(scheduleTasks);
-  const dueSoon = sortTasksByDateThenPriority(getDueSoonTasks(sorted));
-  const dueSoonIds = new Set(dueSoon.map((t) => t.instance_id));
-
-  const rest = sorted.filter((t) => !dueSoonIds.has(t.instance_id));
-  const grouped = groupTasksByDate(rest);
-
   const sections: DashboardScheduleSection[] = [];
 
-  if (dueSoon.length > 0) {
+  const overdueSorted = sortTasksByDateThenPriority(overdueTasks);
+  const overdueIds = new Set(overdueSorted.map((t) => t.instance_id));
+
+  if (overdueSorted.length > 0) {
     sections.push({
-      key: "due_soon",
-      title: "Due soon",
-      subtitle: "Next 7 days",
-      headerVariant: "due_soon",
-      data: dueSoon,
+      key: "overdue",
+      title: "Overdue",
+      subtitle:
+        overdueSorted.length === 1
+          ? "1 task needs attention"
+          : `${overdueSorted.length} tasks need attention`,
+      headerVariant: "overdue",
+      data: overdueSorted,
     });
   }
 
-  grouped.forEach(({ date, tasks }, index) => {
+  const upcoming = dedupeEarliestPerRoutine(
+    scheduleTasks.filter((t) => !overdueIds.has(t.instance_id))
+  );
+  const grouped = groupTasksByDate(upcoming);
+
+  grouped.forEach(({ date, tasks }) => {
     sections.push({
       key: `date-${date.toISOString()}`,
       title: formatDate(date),
-      subtitle: index === 0 ? "Scheduled ahead" : undefined,
       headerVariant: "date",
       date,
       taskCount: tasks.length,
@@ -80,4 +79,12 @@ export function buildDashboardSections(
   });
 
   return sections;
+}
+
+/** Count tasks due today (for header chip). */
+export function countDueToday(tasks: MaintenanceTask[]): number {
+  const today = new Date().toDateString();
+  return tasks.filter(
+    (t) => new Date(t.due_date).toDateString() === today && !t.is_completed
+  ).length;
 }

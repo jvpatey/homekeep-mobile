@@ -5,23 +5,20 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
+  BackHandler,
   StyleSheet,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
-import { useHaptics } from "../../hooks";
-import { GlassCard } from "../../components/ui";
+import { useProfile } from "../../context/ProfileContext";
+import { useHaptics, useScreenInsets } from "../../hooks";
+import { Button, HearthScreen, HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
+import { MaintenanceService } from "../../services/maintenanceService";
 import {
   MAINTENANCE_PLANS,
   QUESTIONNAIRE_PLAN_IDS,
@@ -33,8 +30,20 @@ import {
   filterNewHomeownerStarterItems,
   filterPoolSpaItems,
   getPlanTheme,
+  getPlanIconBubbleStyle,
+  getPlanTagPillStyle,
+  routineIdentityKey,
+  recommendMaintenancePlanId,
+  answersForPlan,
+  partialSpringAnswers,
+  partialStarterAnswers,
+  partialPoolSpaAnswers,
+  mergeFromSpringAnswers,
+  mergeFromStarterAnswers,
+  mergeFromPoolSpaAnswers,
 } from "../../data/maintenancePlans";
 import type {
+  HomeSystems,
   SpringRefreshAnswers,
   ColdWeatherPrepAnswers,
   NewHomeownerStarterAnswers,
@@ -46,7 +55,6 @@ import { SpringRefreshQuestionnaire } from "./SpringRefreshQuestionnaire";
 import { ColdWeatherPrepQuestionnaire } from "./ColdWeatherPrepQuestionnaire";
 import { NewHomeownerStarterQuestionnaire } from "./NewHomeownerStarterQuestionnaire";
 import { PoolSpaQuestionnaire } from "./PoolSpaQuestionnaire";
-import { MaintenancePlanAccentProvider } from "./MaintenancePlanAccentContext";
 
 const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   spring: "Spring",
@@ -72,11 +80,24 @@ function formatIntervalDays(days: number): string {
   return `Every ${days} days`;
 }
 
+function itemIdentityKey(item: MaintenancePlanItemTemplate): string {
+  return routineIdentityKey(item.title, item.category, item.interval_days);
+}
+
+function categoryLabel(category: MaintenancePlanItemTemplate["category"]) {
+  return (
+    HOME_MAINTENANCE_CATEGORIES[
+      category as keyof typeof HOME_MAINTENANCE_CATEGORIES
+    ]?.displayName ?? category
+  );
+}
+
 export function MaintenancePlansScreen() {
   const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { scrollPaddingBottom, footerPaddingBottom } = useScreenInsets();
   const { triggerMedium, triggerLight } = useHaptics();
-  const { applyMaintenancePlan } = useTasks();
+  const { applyMaintenancePlan, stats } = useTasks();
+  const { profile, updateHomeSystems } = useProfile();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [phase, setPhase] = useState<FlowPhase>("list");
@@ -91,17 +112,11 @@ export function MaintenancePlansScreen() {
   const [poolSpaAnswers, setPoolSpaAnswers] =
     useState<PoolSpaAnswers | null>(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
+  const [existingRoutineKeys, setExistingRoutineKeys] = useState<Set<string>>(
+    new Set()
+  );
+  const [usedHomeProfile, setUsedHomeProfile] = useState(false);
   const [applying, setApplying] = useState(false);
-
-  const planFlowAccent = useMemo(() => {
-    if (
-      !detailPlan ||
-      (phase !== "questionnaire" && phase !== "pickTasks")
-    ) {
-      return undefined;
-    }
-    return getPlanTheme(detailPlan.id)?.primary;
-  }, [detailPlan, phase]);
 
   const resolvedDetailItems = useMemo((): MaintenancePlanItemTemplate[] => {
     if (!detailPlan) return [];
@@ -122,43 +137,176 @@ export function MaintenancePlansScreen() {
       return filterPoolSpaItems(poolSpaAnswers);
     }
     return detailPlan.items;
-  }, [detailPlan, springAnswers, coldWeatherAnswers, starterAnswers, poolSpaAnswers]);
+  }, [
+    detailPlan,
+    springAnswers,
+    coldWeatherAnswers,
+    starterAnswers,
+    poolSpaAnswers,
+  ]);
 
-  /** Stable identity for the resolved task list so selection resets when items change, not only when length does. */
   const resolvedDetailItemsFingerprint = useMemo(
     () =>
       resolvedDetailItems
-        .map(
-          (item) =>
-            `${item.category}|${item.interval_days}|${item.title}`
-        )
+        .map((item) => `${item.category}|${item.interval_days}|${item.title}`)
         .join("\x1e"),
     [resolvedDetailItems]
   );
 
   useEffect(() => {
     if (phase !== "pickTasks") return;
-    setSelectedMask(Array(resolvedDetailItems.length).fill(true));
-  }, [phase, detailPlan?.id, resolvedDetailItemsFingerprint, resolvedDetailItems]);
+    let cancelled = false;
+
+    const load = async () => {
+      const { data } = await MaintenanceService.getMaintenanceRoutines({
+        is_active: true,
+      });
+      if (cancelled) return;
+      const keys = new Set(
+        (data ?? []).map((routine) =>
+          routineIdentityKey(
+            routine.title,
+            routine.category,
+            routine.interval_days
+          )
+        )
+      );
+      setExistingRoutineKeys(keys);
+      setSelectedMask(
+        resolvedDetailItems.map((item) => !keys.has(itemIdentityKey(item)))
+      );
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    phase,
+    detailPlan?.id,
+    resolvedDetailItemsFingerprint,
+    resolvedDetailItems,
+  ]);
 
   const selectedItems = useMemo(() => {
     return resolvedDetailItems.filter((_, i) => selectedMask[i]);
   }, [resolvedDetailItems, selectedMask]);
 
-  const selectedCount = selectedItems.length;
+  const newSelectedItems = useMemo(
+    () =>
+      selectedItems.filter(
+        (item) => !existingRoutineKeys.has(itemIdentityKey(item))
+      ),
+    [selectedItems, existingRoutineKeys]
+  );
+  const newSelectedCount = newSelectedItems.length;
 
-  const openPlan = useCallback((plan: MaintenancePlanDefinition) => {
-    setDetailPlan(plan);
-    if (QUESTIONNAIRE_PLAN_IDS.has(plan.id)) {
+  const groupedPickerItems = useMemo(() => {
+    const groups: {
+      key: string;
+      label: string;
+      entries: { item: MaintenancePlanItemTemplate; index: number }[];
+    }[] = [];
+    const indexByKey = new Map<string, number>();
+
+    resolvedDetailItems.forEach((item, index) => {
+      const key = item.category;
+      const existing = indexByKey.get(key);
+      if (existing == null) {
+        indexByKey.set(key, groups.length);
+        groups.push({
+          key,
+          label: categoryLabel(item.category),
+          entries: [{ item, index }],
+        });
+        return;
+      }
+      groups[existing].entries.push({ item, index });
+    });
+
+    return groups;
+  }, [resolvedDetailItems]);
+
+  const showCategoryHeaders = groupedPickerItems.length > 1;
+
+  const resetToList = useCallback(() => {
+    setDetailPlan(null);
+    setSpringAnswers(null);
+    setColdWeatherAnswers(null);
+    setStarterAnswers(null);
+    setPoolSpaAnswers(null);
+    setSelectedMask([]);
+    setExistingRoutineKeys(new Set());
+    setUsedHomeProfile(false);
+    setPhase("list");
+  }, []);
+
+  const persistHomeFromAnswers = useCallback(
+    (patchHome: HomeSystems) => {
+      void updateHomeSystems(patchHome);
+    },
+    [updateHomeSystems]
+  );
+
+  const springPrefill = useMemo(
+    () => partialSpringAnswers(profile?.home_systems),
+    [profile?.home_systems]
+  );
+  const starterPrefill = useMemo(
+    () => partialStarterAnswers(profile?.home_systems),
+    [profile?.home_systems]
+  );
+  const poolPrefill = useMemo(
+    () => partialPoolSpaAnswers(profile?.home_systems),
+    [profile?.home_systems]
+  );
+
+  const suggestedPlanId = useMemo(
+    () =>
+      recommendMaintenancePlanId({
+        month: new Date().getMonth(),
+        latitude: profile?.latitude,
+        activeRoutineCount: stats.activeRoutines,
+      }),
+    [profile?.latitude, stats.activeRoutines]
+  );
+
+  const catalogPlans = useMemo(() => {
+    const suggested = MAINTENANCE_PLANS.find((plan) => plan.id === suggestedPlanId);
+    const rest = MAINTENANCE_PLANS.filter((plan) => plan.id !== suggestedPlanId);
+    return suggested ? [suggested, ...rest] : [...MAINTENANCE_PLANS];
+  }, [suggestedPlanId]);
+
+  const openPlan = useCallback(
+    (plan: MaintenancePlanDefinition) => {
+      setDetailPlan(plan);
+      setUsedHomeProfile(false);
+      const home = profile?.home_systems;
+
+      if (!QUESTIONNAIRE_PLAN_IDS.has(plan.id)) {
+        setPhase("pickTasks");
+        return;
+      }
+
+      const complete = answersForPlan(plan.id, home);
+      if (complete) {
+        if (complete.kind === "spring") setSpringAnswers(complete.answers);
+        if (complete.kind === "cold") setColdWeatherAnswers(complete.answers);
+        if (complete.kind === "starter") setStarterAnswers(complete.answers);
+        if (complete.kind === "pool") setPoolSpaAnswers(complete.answers);
+        setUsedHomeProfile(true);
+        setPhase("pickTasks");
+        return;
+      }
+
       setSpringAnswers(null);
       setColdWeatherAnswers(null);
       setStarterAnswers(null);
       setPoolSpaAnswers(null);
       setPhase("questionnaire");
-    } else {
-      setPhase("pickTasks");
-    }
-  }, []);
+    },
+    [profile?.home_systems]
+  );
 
   const toggleTaskAt = useCallback(
     (index: number) => {
@@ -174,8 +322,12 @@ export function MaintenancePlansScreen() {
 
   const selectAllTasks = useCallback(() => {
     void triggerLight();
-    setSelectedMask((prev) => prev.map(() => true));
-  }, [triggerLight]);
+    setSelectedMask(
+      resolvedDetailItems.map(
+        (item) => !existingRoutineKeys.has(itemIdentityKey(item))
+      )
+    );
+  }, [triggerLight, resolvedDetailItems, existingRoutineKeys]);
 
   const clearAllTasks = useCallback(() => {
     void triggerLight();
@@ -184,23 +336,28 @@ export function MaintenancePlansScreen() {
 
   const handleApply = useCallback(
     (plan: MaintenancePlanDefinition, items: MaintenancePlanItemTemplate[]) => {
-      const n = items.length;
+      const n = items.filter(
+        (item) => !existingRoutineKeys.has(itemIdentityKey(item))
+      ).length;
       if (n === 0) {
         Alert.alert(
-          "No tasks selected",
-          "Choose at least one task to add to your schedule.",
+          items.length > 0 ? "Already on your schedule" : "No tasks selected",
+          items.length > 0
+            ? "Those tasks already match recurring tasks on your schedule."
+            : "Choose at least one task to add to your schedule.",
           [{ text: "OK" }]
         );
         return;
       }
       Alert.alert(
         "Add recurring tasks?",
-        `This will add up to ${n} recurring task${n === 1 ? "" : "s"}. Tasks that already match one on your schedule (same title, category, and repeat interval) are skipped — including tasks you added from another guided plan.`,
+        `This will add up to ${n} new recurring task${n === 1 ? "" : "s"}. Tasks that already match one on your schedule are skipped.`,
         [
           { text: "Cancel", style: "cancel" },
           {
             text: "Add tasks",
             onPress: async () => {
+              if (applying) return;
               setApplying(true);
               try {
                 const result = await applyMaintenancePlan(plan.id, items);
@@ -219,11 +376,18 @@ export function MaintenancePlansScreen() {
                     message = `${added} recurring task${added === 1 ? "" : "s"} ${added === 1 ? "was" : "were"} added to your schedule.`;
                   }
                   Alert.alert(
-                    added === 0 && skipped > 0 ? "Nothing new to add" : "Plan applied",
+                    added === 0 && skipped > 0
+                      ? "Nothing new to add"
+                      : "Plan applied",
                     message,
                     [
                       {
-                        text: "OK",
+                        text: "Add another plan",
+                        onPress: resetToList,
+                      },
+                      {
+                        text: "Done",
+                        style: "cancel",
                         onPress: () => navigation.goBack(),
                       },
                     ]
@@ -243,30 +407,42 @@ export function MaintenancePlansScreen() {
         ]
       );
     },
-    [applyMaintenancePlan, navigation]
+    [
+      applyMaintenancePlan,
+      applying,
+      existingRoutineKeys,
+      navigation,
+      resetToList,
+    ]
   );
 
-  const headerBack = () => {
+  const headerBack = useCallback(() => {
     if (phase === "questionnaire") {
-      setDetailPlan(null);
-      setSpringAnswers(null);
-      setColdWeatherAnswers(null);
-      setStarterAnswers(null);
-      setPoolSpaAnswers(null);
-      setPhase("list");
+      resetToList();
       return;
     }
     if (phase === "pickTasks") {
-      if (detailPlan && QUESTIONNAIRE_PLAN_IDS.has(detailPlan.id)) {
+      if (
+        detailPlan &&
+        QUESTIONNAIRE_PLAN_IDS.has(detailPlan.id) &&
+        !usedHomeProfile
+      ) {
         setPhase("questionnaire");
         return;
       }
-      setDetailPlan(null);
-      setPhase("list");
+      resetToList();
       return;
     }
     navigation.goBack();
-  };
+  }, [phase, detailPlan, navigation, resetToList, usedHomeProfile]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      headerBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [headerBack]);
 
   const headerTitle = () => {
     if (phase === "questionnaire" && detailPlan) {
@@ -278,127 +454,267 @@ export function MaintenancePlansScreen() {
     return "Maintenance plans";
   };
 
-  const renderPlanList = () => {
-    const mutedFill = isDark
-      ? "rgba(255,255,255,0.08)"
-      : "rgba(0,0,0,0.05)";
-    const mutedBorder = isDark
-      ? "rgba(255,255,255,0.12)"
-      : "rgba(0,0,0,0.08)";
-
-    return (
+  const renderPlanList = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={maintenancePlansStyles.scrollContent}
+      contentContainerStyle={[
+        maintenancePlansStyles.listScroll,
+        { paddingBottom: scrollPaddingBottom },
+      ]}
     >
-      <GlassCard
-        material="regular"
-        radius={DesignSystem.borders.radius.glass}
-        containerStyle={maintenancePlansStyles.cardContainer}
-        style={maintenancePlansStyles.cardSurface}
+      <Text
+        style={[
+          maintenancePlansStyles.listIntro,
+          { color: colors.textSecondary },
+        ]}
       >
-        {MAINTENANCE_PLANS.map((plan, index) => {
-          const theme = getPlanTheme(plan.id);
-          return (
-          <TouchableOpacity
+        Choose a plan, answer a few questions, then pick what to add.
+      </Text>
+      {catalogPlans.map((plan) => {
+        const theme = getPlanTheme(plan.id);
+        const bubble = theme
+          ? getPlanIconBubbleStyle(theme, isDark)
+          : { backgroundColor: colors.fieldFill };
+        const pill = theme ? getPlanTagPillStyle(theme, isDark) : null;
+        const isSuggested = plan.id === suggestedPlanId;
+
+        return (
+          <HearthSurfaceCard
             key={plan.id}
-            onPress={() => openPlan(plan)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={`${plan.title}`}
-            style={[
-              maintenancePlansStyles.planRow,
-              index < MAINTENANCE_PLANS.length - 1 && {
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "rgba(0,0,0,0.06)",
-              },
-            ]}
+            containerStyle={maintenancePlansStyles.cardContainer}
+            style={maintenancePlansStyles.cardSurface}
           >
-            {theme ? (
-              <View
-                style={[
-                  maintenancePlansStyles.planIconBubble,
-                  { backgroundColor: mutedFill },
-                ]}
-              >
-                <Ionicons
-                  name={theme.icon}
-                  size={22}
-                  color={theme.primary}
-                />
-              </View>
-            ) : null}
-            <View style={maintenancePlansStyles.planRowText}>
-              {plan.tag ? (
+            <TouchableOpacity
+              onPress={() => openPlan(plan)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={plan.title}
+              style={maintenancePlansStyles.planRow}
+            >
+              {theme ? (
                 <View
                   style={[
-                    maintenancePlansStyles.tagPill,
-                    {
-                      backgroundColor: mutedFill,
-                      borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: mutedBorder,
-                    },
+                    maintenancePlansStyles.planIconBubble,
+                    bubble,
                   ]}
                 >
-                  <Text
-                    style={[
-                      maintenancePlansStyles.tagPillText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {TAG_LABELS[plan.tag]}
-                  </Text>
+                  <Ionicons name={theme.icon} size={22} color={theme.primary} />
                 </View>
               ) : null}
-              <Text
-                style={[maintenancePlansStyles.planTitle, { color: colors.text }]}
-              >
-                {plan.title}
-              </Text>
-              <Text
-                style={[
-                  maintenancePlansStyles.planSubtitle,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                {plan.shortDescription}
-              </Text>
-              <Text
-                style={[
-                  maintenancePlansStyles.planSubtitle,
-                  {
-                    color: colors.primary,
-                    marginTop: DesignSystem.spacing.xs,
-                  },
-                ]}
-              >
-                {QUESTIONNAIRE_PLAN_IDS.has(plan.id)
-                  ? `Questionnaire · pick tasks to add`
-                  : `${plan.items.length} recurring task${
-                      plan.items.length === 1 ? "" : "s"
-                    }`}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={theme?.primary ?? colors.textSecondary}
-            />
-          </TouchableOpacity>
-          );
-        })}
-      </GlassCard>
+              <View style={maintenancePlansStyles.planRowText}>
+                {isSuggested || (plan.tag && pill) ? (
+                  <View style={maintenancePlansStyles.pillRow}>
+                    {isSuggested ? (
+                      <View
+                        style={[
+                          maintenancePlansStyles.suggestedPill,
+                          {
+                            backgroundColor: colors.primary + "18",
+                            borderColor: colors.primary,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            maintenancePlansStyles.suggestedPillText,
+                            { color: colors.primary },
+                          ]}
+                        >
+                          Suggested
+                        </Text>
+                      </View>
+                    ) : null}
+                    {plan.tag && pill ? (
+                      <View
+                        style={[
+                          maintenancePlansStyles.tagPill,
+                          {
+                            backgroundColor: pill.backgroundColor,
+                            borderColor: pill.borderColor,
+                            marginBottom: 0,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            maintenancePlansStyles.tagPillText,
+                            { color: pill.color },
+                          ]}
+                        >
+                          {TAG_LABELS[plan.tag]}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+                <Text
+                  style={[
+                    maintenancePlansStyles.planTitle,
+                    { color: colors.text },
+                  ]}
+                >
+                  {plan.title}
+                </Text>
+                <Text
+                  style={[
+                    maintenancePlansStyles.planSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {plan.shortDescription}
+                </Text>
+                <Text
+                  style={[
+                    maintenancePlansStyles.planCaption,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {QUESTIONNAIRE_PLAN_IDS.has(plan.id)
+                    ? "Questionnaire"
+                    : `${plan.items.length} recurring task${
+                        plan.items.length === 1 ? "" : "s"
+                      }`}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.textSecondary}
+                style={maintenancePlansStyles.chevron}
+              />
+            </TouchableOpacity>
+          </HearthSurfaceCard>
+        );
+      })}
     </ScrollView>
+  );
+
+  const renderTaskRow = (
+    plan: MaintenancePlanDefinition,
+    item: MaintenancePlanItemTemplate,
+    index: number,
+    isLast: boolean
+  ) => {
+    const maskOk =
+      selectedMask.length === resolvedDetailItems.length &&
+      resolvedDetailItems.length > 0;
+    const checked = maskOk && selectedMask[index] === true;
+    const alreadyScheduled = existingRoutineKeys.has(itemIdentityKey(item));
+    const meta = `${categoryLabel(item.category)} · ${formatIntervalDays(
+      item.interval_days
+    )}`;
+
+    return (
+      <TouchableOpacity
+        key={`${plan.id}-${item.title}-${index}`}
+        activeOpacity={0.85}
+        onPress={() => toggleTaskAt(index)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
+        style={[
+          maintenancePlansStyles.taskRowSelectable,
+          !isLast && {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View style={maintenancePlansStyles.taskCheckboxHit}>
+          <Ionicons
+            name={checked ? "checkbox" : "square-outline"}
+            size={26}
+            color={checked ? colors.primary : colors.textSecondary}
+          />
+        </View>
+        <View style={maintenancePlansStyles.taskRowMain}>
+          <Text
+            style={[maintenancePlansStyles.taskTitle, { color: colors.text }]}
+          >
+            {item.title}
+          </Text>
+          <Text
+            style={[
+              maintenancePlansStyles.taskMeta,
+              { color: colors.textSecondary },
+            ]}
+          >
+            {meta}
+          </Text>
+          {alreadyScheduled ? (
+            <Text
+              style={[
+                maintenancePlansStyles.alreadyScheduled,
+                { color: colors.primary },
+              ]}
+            >
+              Already on your schedule
+            </Text>
+          ) : null}
+          {item.description ? (
+            <Text
+              style={[
+                maintenancePlansStyles.taskDescription,
+                { color: colors.textSecondary },
+              ]}
+            >
+              {item.description}
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
     );
   };
 
   const renderTaskPicker = (plan: MaintenancePlanDefinition) => {
     const items = resolvedDetailItems;
-    const maskOk =
-      selectedMask.length === items.length && items.length > 0;
-    const accent = getPlanTheme(plan.id)?.primary ?? colors.primary;
+    const maskOk = selectedMask.length === items.length && items.length > 0;
+    const hasQuestionnaire = QUESTIONNAIRE_PLAN_IDS.has(plan.id);
+
+    if (items.length === 0) {
+      return (
+        <View style={{ flex: 1 }}>
+          <View style={maintenancePlansStyles.emptyState}>
+            <View
+              style={[
+                maintenancePlansStyles.emptyIconCircle,
+                { backgroundColor: colors.primary + "14" },
+              ]}
+            >
+              <Ionicons
+                name="search-outline"
+                size={32}
+                color={colors.primary}
+              />
+            </View>
+            <Text
+              style={[
+                maintenancePlansStyles.emptyTitle,
+                { color: colors.text },
+              ]}
+            >
+              Nothing matches these answers
+            </Text>
+            <Text
+              style={[
+                maintenancePlansStyles.emptySubtext,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Change your answers and we’ll tailor a different set of recurring
+              tasks.
+            </Text>
+            {hasQuestionnaire ? (
+              <View style={maintenancePlansStyles.emptyAction}>
+                <Button
+                  label="Change answers"
+                  onPress={() => setPhase("questionnaire")}
+                />
+              </View>
+            ) : null}
+          </View>
+        </View>
+      );
+    }
 
     return (
       <>
@@ -406,106 +722,118 @@ export function MaintenancePlansScreen() {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
-            maintenancePlansStyles.scrollContent,
-            {
-              paddingBottom:
-                DesignSystem.spacing.xxxl + 72 + insets.bottom,
-            },
+            maintenancePlansStyles.pickerScroll,
+            { paddingBottom: DesignSystem.spacing.lg },
           ]}
         >
           <Text
-            style={[maintenancePlansStyles.pickIntro, { color: colors.textSecondary }]}
+            style={[
+              maintenancePlansStyles.pickIntro,
+              { color: colors.textSecondary },
+            ]}
           >
-            Tap tasks to include them when you add this plan. Selected:{" "}
-            {maskOk ? selectedCount : "…"} of {items.length}.
+            We’ll add these as recurring tasks. Uncheck anything that does not
+            apply.
+          </Text>
+          {hasQuestionnaire && usedHomeProfile ? (
+            <View style={maintenancePlansStyles.profileBanner}>
+              <Text
+                style={[
+                  maintenancePlansStyles.profileBannerText,
+                  { color: colors.primary },
+                ]}
+              >
+                Based on your home
+              </Text>
+              <TouchableOpacity
+                onPress={() => setPhase("questionnaire")}
+                accessibilityRole="button"
+                accessibilityLabel="Edit answers"
+              >
+                <Text
+                  style={[
+                    maintenancePlansStyles.pickActionText,
+                    { color: colors.primary },
+                  ]}
+                >
+                  Edit answers
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          <Text
+            style={[maintenancePlansStyles.pickCount, { color: colors.text }]}
+          >
+            Selected {maskOk ? newSelectedCount : "…"} of {items.length}
           </Text>
 
           <View style={maintenancePlansStyles.pickActionsRow}>
-            <TouchableOpacity onPress={selectAllTasks} accessibilityRole="button">
-              <Text style={[maintenancePlansStyles.pickActionText, { color: accent }]}>
+            <TouchableOpacity
+              onPress={selectAllTasks}
+              accessibilityRole="button"
+              accessibilityLabel="Select all tasks"
+            >
+              <Text
+                style={[
+                  maintenancePlansStyles.pickActionText,
+                  { color: colors.primary },
+                ]}
+              >
                 Select all
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={clearAllTasks} accessibilityRole="button">
-              <Text style={[maintenancePlansStyles.pickActionText, { color: accent }]}>
+            <TouchableOpacity
+              onPress={clearAllTasks}
+              accessibilityRole="button"
+              accessibilityLabel="Clear all tasks"
+            >
+              <Text
+                style={[
+                  maintenancePlansStyles.pickActionText,
+                  { color: colors.primary },
+                ]}
+              >
                 Clear all
               </Text>
             </TouchableOpacity>
           </View>
 
-          <GlassCard
-            material="regular"
-            radius={DesignSystem.borders.radius.glass}
-            containerStyle={maintenancePlansStyles.cardContainer}
-            style={maintenancePlansStyles.cardSurface}
-          >
-            {plan.body ? (
-              <View style={{ padding: DesignSystem.spacing.md }}>
-                <Text
-                  style={[
-                    maintenancePlansStyles.detailBody,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {plan.body}
-                </Text>
-              </View>
-            ) : null}
-            {items.map((item, index) => {
-              const cat =
-                HOME_MAINTENANCE_CATEGORIES[
-                  item.category as keyof typeof HOME_MAINTENANCE_CATEGORIES
-                ];
-              const meta = `${cat.displayName} · ${formatIntervalDays(
-                item.interval_days
-              )}`;
-              const isLast = index === items.length - 1;
-              const checked =
-                maskOk && selectedMask[index] === true;
-
-              return (
-                <TouchableOpacity
-                  key={`${plan.id}-${item.title}-${index}`}
-                  activeOpacity={0.85}
-                  onPress={() => toggleTaskAt(index)}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked }}
-                  style={[
-                    maintenancePlansStyles.taskRowSelectable,
-                    !isLast && {
-                      borderBottomColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.06)",
-                    },
-                    isLast && { borderBottomWidth: 0 },
-                  ]}
-                >
-                  <View style={maintenancePlansStyles.taskCheckboxHit}>
-                    <Ionicons
-                      name={checked ? "checkbox" : "square-outline"}
-                      size={26}
-                      color={checked ? accent : colors.textSecondary}
-                    />
-                  </View>
-                  <View style={maintenancePlansStyles.taskRowMain}>
-                    <Text
-                      style={[maintenancePlansStyles.taskTitle, { color: colors.text }]}
-                    >
-                      {item.title}
-                    </Text>
-                    <Text
-                      style={[
-                        maintenancePlansStyles.taskMeta,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {meta}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </GlassCard>
+          {showCategoryHeaders
+            ? groupedPickerItems.map((group) => (
+                <View key={group.key}>
+                  <Text
+                    style={[
+                      maintenancePlansStyles.categoryHeader,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {group.label}
+                  </Text>
+                  <HearthSurfaceCard
+                    containerStyle={maintenancePlansStyles.cardContainer}
+                    style={maintenancePlansStyles.cardSurface}
+                  >
+                    {group.entries.map((entry, i) =>
+                      renderTaskRow(
+                        plan,
+                        entry.item,
+                        entry.index,
+                        i === group.entries.length - 1
+                      )
+                    )}
+                  </HearthSurfaceCard>
+                </View>
+              ))
+            : (
+              <HearthSurfaceCard
+                containerStyle={maintenancePlansStyles.cardContainer}
+                style={maintenancePlansStyles.cardSurface}
+              >
+                {items.map((item, index) =>
+                  renderTaskRow(plan, item, index, index === items.length - 1)
+                )}
+              </HearthSurfaceCard>
+            )}
         </ScrollView>
         <View
           style={[
@@ -513,41 +841,22 @@ export function MaintenancePlansScreen() {
             {
               backgroundColor: colors.background,
               borderTopColor: colors.border,
-              paddingBottom: DesignSystem.spacing.md + insets.bottom,
+              paddingBottom: footerPaddingBottom,
             },
           ]}
         >
-          <TouchableOpacity
-            style={[
-              maintenancePlansStyles.applyButton,
-              {
-                backgroundColor:
-                  applying || selectedCount === 0 ? colors.border : accent,
-                opacity: applying ? 0.7 : 1,
-              },
-            ]}
+          <Button
+            label={`Add ${newSelectedCount} recurring task${
+              newSelectedCount === 1 ? "" : "s"
+            }`}
             onPress={() => {
               void triggerMedium();
               handleApply(plan, selectedItems);
             }}
-            disabled={applying || selectedCount === 0 || !maskOk}
-            accessibilityRole="button"
+            disabled={applying || newSelectedCount === 0 || !maskOk}
+            loading={applying}
             accessibilityLabel="Add selected tasks"
-          >
-            {applying ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text
-                style={[
-                  maintenancePlansStyles.applyButtonText,
-                  { color: "#FFFFFF" },
-                ]}
-              >
-                Add {selectedCount} recurring task
-                {selectedCount === 1 ? "" : "s"}
-              </Text>
-            )}
-          </TouchableOpacity>
+          />
         </View>
       </>
     );
@@ -558,88 +867,76 @@ export function MaintenancePlansScreen() {
     if (detailPlan.id === "spring-refresh") {
       return (
         <SpringRefreshQuestionnaire
-          initialAnswers={springAnswers}
+          initialAnswers={springAnswers ?? springPrefill}
           onComplete={(answers) => {
             setSpringAnswers(answers);
             setColdWeatherAnswers(null);
             setStarterAnswers(null);
             setPoolSpaAnswers(null);
+            setUsedHomeProfile(false);
+            persistHomeFromAnswers(
+              mergeFromSpringAnswers(profile?.home_systems, answers)
+            );
             setPhase("pickTasks");
           }}
-          onBack={() => {
-            setDetailPlan(null);
-            setSpringAnswers(null);
-            setColdWeatherAnswers(null);
-            setStarterAnswers(null);
-            setPoolSpaAnswers(null);
-            setPhase("list");
-          }}
+          onBack={resetToList}
         />
       );
     }
     if (detailPlan.id === "cold-weather-prep") {
       return (
         <ColdWeatherPrepQuestionnaire
-          initialAnswers={coldWeatherAnswers}
+          initialAnswers={coldWeatherAnswers ?? springPrefill}
           onComplete={(answers) => {
             setColdWeatherAnswers(answers);
             setSpringAnswers(null);
             setStarterAnswers(null);
             setPoolSpaAnswers(null);
+            setUsedHomeProfile(false);
+            persistHomeFromAnswers(
+              mergeFromSpringAnswers(profile?.home_systems, answers)
+            );
             setPhase("pickTasks");
           }}
-          onBack={() => {
-            setDetailPlan(null);
-            setColdWeatherAnswers(null);
-            setSpringAnswers(null);
-            setStarterAnswers(null);
-            setPoolSpaAnswers(null);
-            setPhase("list");
-          }}
+          onBack={resetToList}
         />
       );
     }
     if (detailPlan.id === "new-homeowner-starter") {
       return (
         <NewHomeownerStarterQuestionnaire
-          initialAnswers={starterAnswers}
+          initialAnswers={starterAnswers ?? starterPrefill}
           onComplete={(answers) => {
             setStarterAnswers(answers);
             setSpringAnswers(null);
             setColdWeatherAnswers(null);
             setPoolSpaAnswers(null);
+            setUsedHomeProfile(false);
+            persistHomeFromAnswers(
+              mergeFromStarterAnswers(profile?.home_systems, answers)
+            );
             setPhase("pickTasks");
           }}
-          onBack={() => {
-            setDetailPlan(null);
-            setStarterAnswers(null);
-            setSpringAnswers(null);
-            setColdWeatherAnswers(null);
-            setPoolSpaAnswers(null);
-            setPhase("list");
-          }}
+          onBack={resetToList}
         />
       );
     }
     if (detailPlan.id === "pool-spa-care") {
       return (
         <PoolSpaQuestionnaire
-          initialAnswers={poolSpaAnswers}
+          initialAnswers={poolSpaAnswers ?? poolPrefill}
           onComplete={(answers) => {
             setPoolSpaAnswers(answers);
             setSpringAnswers(null);
             setColdWeatherAnswers(null);
             setStarterAnswers(null);
+            setUsedHomeProfile(false);
+            persistHomeFromAnswers(
+              mergeFromPoolSpaAnswers(profile?.home_systems, answers)
+            );
             setPhase("pickTasks");
           }}
-          onBack={() => {
-            setDetailPlan(null);
-            setPoolSpaAnswers(null);
-            setSpringAnswers(null);
-            setColdWeatherAnswers(null);
-            setStarterAnswers(null);
-            setPhase("list");
-          }}
+          onBack={resetToList}
         />
       );
     }
@@ -647,20 +944,13 @@ export function MaintenancePlansScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[maintenancePlansStyles.container, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
+    <HearthScreen style={maintenancePlansStyles.container}>
       <View style={maintenancePlansStyles.header}>
         <TouchableOpacity
           style={maintenancePlansStyles.backButton}
           onPress={headerBack}
           accessibilityRole="button"
-          accessibilityLabel={
-            phase === "list" ? "Go back" : "Back"
-          }
+          accessibilityLabel={phase === "list" ? "Go back" : "Back"}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -673,13 +963,11 @@ export function MaintenancePlansScreen() {
         <View style={maintenancePlansStyles.headerRightSpacer} />
       </View>
 
-      <MaintenancePlanAccentProvider accentHex={planFlowAccent}>
       {phase === "list" && renderPlanList()}
       {phase === "questionnaire" && renderQuestionnaire()}
       {phase === "pickTasks" && detailPlan ? (
         <View style={{ flex: 1 }}>{renderTaskPicker(detailPlan)}</View>
       ) : null}
-      </MaintenancePlanAccentProvider>
-    </SafeAreaView>
+    </HearthScreen>
   );
 }

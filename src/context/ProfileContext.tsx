@@ -9,6 +9,11 @@ import React, {
 } from "react";
 import { useAuth, supabase } from "./AuthContext";
 import { GeocodingService } from "../services/GeocodingService";
+import {
+  HomeSystems,
+  mergeHomeSystems,
+  parseHomeSystems,
+} from "../data/maintenancePlans";
 
 export interface UserProfile {
   id: string;
@@ -23,6 +28,8 @@ export interface UserProfile {
   latitude?: number | null;
   longitude?: number | null;
   address_set_at?: string | null;
+  home_systems?: HomeSystems | null;
+  avatar_style?: string | null;
 }
 
 export interface AddressInput {
@@ -59,11 +66,34 @@ interface ProfileContextValue {
   ) => Promise<UpdateAddressResult>;
   /** Persists address_set_at without saving any address — used by "Skip for now". */
   skipAddressOnboarding: () => Promise<void>;
+  /** Merge-patch home systems answers used by maintenance plan questionnaires. */
+  updateHomeSystems: (
+    patch: HomeSystems
+  ) => Promise<{ success: boolean; error?: string }>;
+  /** Persist the chosen avatar style id. */
+  updateAvatarStyle: (
+    avatarStyle: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
 
-const PROFILE_SELECT = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at`;
+const PROFILE_SELECT = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at, home_systems, avatar_style`;
+const PROFILE_SELECT_LEGACY = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at`;
+
+function normalizeProfile(data: unknown, fallbackId: string): UserProfile {
+  if (!data || typeof data !== "object") {
+    return { id: fallbackId };
+  }
+  const row = data as UserProfile & { home_systems?: unknown; avatar_style?: unknown };
+  return {
+    ...row,
+    id: row.id || fallbackId,
+    home_systems: parseHomeSystems(row.home_systems),
+    avatar_style:
+      typeof row.avatar_style === "string" ? row.avatar_style : null,
+  };
+}
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -80,24 +110,34 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("profiles")
         .select(PROFILE_SELECT)
         .eq("id", user.id)
         .maybeSingle();
 
       if (error) {
-        // Use warn so a missing column / RLS hiccup doesn't surface as a
-        // RedBox in development.
-        console.warn("Failed to load profile", error);
-        setProfile({ id: user.id });
+        console.warn(
+          "Failed to load profile (home_systems or avatar_style column may be missing); retrying without them",
+          error
+        );
+        const fallback = await supabase
+          .from("profiles")
+          .select(PROFILE_SELECT_LEGACY)
+          .eq("id", user.id)
+          .maybeSingle();
+        if (fallback.data) {
+          setProfile(normalizeProfile(fallback.data, user.id));
+          return;
+        }
+        setProfile({ id: user.id, home_systems: {} });
         return;
       }
 
-      setProfile((data as UserProfile) ?? { id: user.id });
+      setProfile(normalizeProfile(data, user.id));
     } catch (err) {
       console.warn("Profile load threw", err);
-      setProfile({ id: user.id });
+      setProfile({ id: user.id, home_systems: {} });
     } finally {
       setLoading(false);
     }
@@ -167,7 +207,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
-        setProfile(data as UserProfile);
+        setProfile(normalizeProfile(data, user.id));
       }
       return { success: true, geocoded: !!resolvedCoords };
     },
@@ -195,9 +235,100 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (data) {
-      setProfile(data as UserProfile);
+      setProfile(normalizeProfile(data, user.id));
     }
   }, [user]);
+
+  const updateHomeSystems = useCallback(
+    async (
+      patch: HomeSystems
+    ): Promise<{ success: boolean; error?: string }> => {
+      const merged = mergeHomeSystems(profile?.home_systems, patch);
+      setProfile((prev) =>
+        prev
+          ? { ...prev, home_systems: merged }
+          : user
+            ? { id: user.id, home_systems: merged }
+            : prev
+      );
+
+      if (!supabase || !user) {
+        return { success: false, error: "Not signed in" };
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            home_systems: merged,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select(PROFILE_SELECT)
+        .maybeSingle();
+
+      if (error) {
+        console.warn(
+          "Failed to persist home_systems (column may be missing); keeping in-memory merge",
+          error
+        );
+        return { success: false, error: error.message };
+      }
+
+      if (data) {
+        setProfile(normalizeProfile(data, user.id));
+      }
+      return { success: true };
+    },
+    [profile?.home_systems, user]
+  );
+
+  const updateAvatarStyle = useCallback(
+    async (
+      avatarStyle: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      setProfile((prev) =>
+        prev
+          ? { ...prev, avatar_style: avatarStyle }
+          : user
+            ? { id: user.id, avatar_style: avatarStyle }
+            : prev
+      );
+
+      if (!supabase || !user) {
+        return { success: false, error: "Not signed in" };
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            avatar_style: avatarStyle,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select(PROFILE_SELECT)
+        .maybeSingle();
+
+      if (error) {
+        console.warn(
+          "Failed to persist avatar_style (column may be missing); keeping in-memory value",
+          error
+        );
+        return { success: false, error: error.message };
+      }
+
+      if (data) {
+        setProfile(normalizeProfile(data, user.id));
+      }
+      return { success: true };
+    },
+    [user]
+  );
 
   const addressNeeded = useMemo(() => {
     if (!user) return false;
@@ -214,8 +345,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       refresh: loadProfile,
       updateAddress,
       skipAddressOnboarding,
+      updateHomeSystems,
+      updateAvatarStyle,
     }),
-    [profile, loading, addressNeeded, loadProfile, updateAddress, skipAddressOnboarding]
+    [
+      profile,
+      loading,
+      addressNeeded,
+      loadProfile,
+      updateAddress,
+      skipAddressOnboarding,
+      updateHomeSystems,
+      updateAvatarStyle,
+    ]
   );
 
   return (

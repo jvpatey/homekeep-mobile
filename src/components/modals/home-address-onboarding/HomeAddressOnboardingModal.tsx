@@ -17,18 +17,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  allCountries,
   sortedCountryRows,
   flagEmoji,
   getRegionsForCountry,
   countryNameForIso,
+  lookupCountryIso,
+  lookupRegionIso,
 } from "../../../utils/countryRegionData";
 import { useTheme } from "../../../context/ThemeContext";
 import { useGradients, useHaptics, useDevice } from "../../../hooks";
@@ -48,6 +48,16 @@ import {
 import { styles } from "./styles";
 
 const { height: screenHeight } = Dimensions.get("window");
+
+const SHEET_ENTER = {
+  duration: DesignSystem.motion.duration.base,
+  easing: DesignSystem.motion.easing.emphasized,
+};
+
+const SHEET_EXIT = {
+  duration: DesignSystem.motion.duration.fast,
+  easing: DesignSystem.motion.easing.standard,
+};
 
 interface HomeAddressOnboardingModalProps {
   visible: boolean;
@@ -84,42 +94,6 @@ function deriveDefaultCountryIso(): string {
   } catch {
     return "";
   }
-}
-
-/**
- * Resolve a stored country value (could be ISO code or full name) back to
- * an ISO code so the dropdown can show the right selection on edit.
- */
-function lookupCountryIso(stored: string | null | undefined): string {
-  if (!stored) return "";
-  const trimmed = stored.trim();
-  if (!trimmed) return "";
-  if (trimmed.length === 2) {
-    const upper = trimmed.toUpperCase();
-    if (allCountries.some((c) => c[1] === upper)) return upper;
-  }
-  const match = allCountries.find(
-    (c) => c[0].toLowerCase() === trimmed.toLowerCase()
-  );
-  return match?.[1] ?? "";
-}
-
-function lookupRegionIso(
-  countryIso: string,
-  stored: string | null | undefined
-): string {
-  if (!countryIso || !stored) return "";
-  const trimmed = stored.trim();
-  if (!trimmed) return "";
-  const states = getRegionsForCountry(countryIso);
-  const byIso = states.find(
-    (s) => s.isoCode.toLowerCase() === trimmed.toLowerCase()
-  );
-  if (byIso) return byIso.isoCode;
-  const byName = states.find(
-    (s) => s.name.toLowerCase() === trimmed.toLowerCase()
-  );
-  return byName?.isoCode ?? "";
 }
 
 const SUGGEST_DEBOUNCE_MS = 250;
@@ -204,22 +178,13 @@ export function HomeAddressOnboardingModal({
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      opacity.value = withTiming(1, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
-      });
-      translateY.value = withSpring(0, DesignSystem.motion.spring.snappy);
+      opacity.value = withTiming(1, SHEET_ENTER);
+      translateY.value = withTiming(0, SHEET_ENTER);
     } else {
-      opacity.value = withTiming(0, {
-        duration: DesignSystem.motion.duration.fast,
-        easing: DesignSystem.motion.easing.standard,
-      });
+      opacity.value = withTiming(0, SHEET_EXIT);
       translateY.value = withTiming(
         screenHeight,
-        {
-          duration: DesignSystem.motion.duration.fast,
-          easing: DesignSystem.motion.easing.standard,
-        },
+        SHEET_EXIT,
         (finished) => {
           if (finished) runOnJS(setMounted)(false);
         }

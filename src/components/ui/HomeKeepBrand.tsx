@@ -49,8 +49,7 @@ export function HomeKeepBrand({ size = "md", style }: HomeKeepBrandProps) {
           lineHeight: fontSize + 2,
         }}
       >
-        Home
-        <Text style={{ color: colors.accent }}>Keep</Text>
+        HomeKeep
       </Text>
     </View>
   );

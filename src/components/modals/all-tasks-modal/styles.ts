@@ -85,8 +85,8 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     padding: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 
   taskContent: {
@@ -161,8 +161,7 @@ export const styles = StyleSheet.create({
   },
 
   emptyText: {
-    ...DesignSystem.typography.h4,
-    fontSize: 18,
+    ...DesignSystem.typography.title2,
     marginTop: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.sm,
     textAlign: "center",

@@ -52,3 +52,22 @@ export {
   getNewHomeownerStarterBaseItems,
   NEW_HOMEOWNER_STARTER_BASE_TASK_CAP,
 } from "./newHomeownerStarter";
+export {
+  type HomeSystems,
+  type HomePropertyType,
+  type HomeHeatSource,
+  parseHomeSystems,
+  mergeHomeSystems,
+  toSpringAnswers,
+  toColdWeatherAnswers,
+  toStarterAnswers,
+  toPoolSpaAnswers,
+  partialSpringAnswers,
+  partialStarterAnswers,
+  partialPoolSpaAnswers,
+  mergeFromSpringAnswers,
+  mergeFromStarterAnswers,
+  mergeFromPoolSpaAnswers,
+  answersForPlan,
+} from "./homeSystems";
+export { recommendMaintenancePlanId } from "./recommendPlan";

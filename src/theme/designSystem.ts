@@ -1,8 +1,11 @@
 // DesignSystem for the home screen
 import { StyleSheet } from "react-native";
 import { Easing } from "react-native-reanimated";
+import { FontFamily } from "./fonts";
 
 export const DesignSystem = {
+  fonts: FontFamily,
+
   spacing: {
     xs: 4,
     sm: 8,
@@ -14,6 +17,41 @@ export const DesignSystem = {
   },
 
   typography: {
+    display: {
+      fontFamily: FontFamily.display,
+      fontSize: 42,
+      fontWeight: "700" as const,
+      lineHeight: 48,
+      letterSpacing: -1.2,
+    },
+    title1: {
+      fontFamily: FontFamily.display,
+      fontSize: 32,
+      fontWeight: "700" as const,
+      lineHeight: 38,
+      letterSpacing: -0.8,
+    },
+    title2: {
+      fontFamily: FontFamily.displaySemiBold,
+      fontSize: 24,
+      fontWeight: "600" as const,
+      lineHeight: 30,
+      letterSpacing: -0.5,
+    },
+    callout: {
+      fontFamily: FontFamily.ui,
+      fontSize: 16,
+      fontWeight: "500" as const,
+      lineHeight: 22,
+      letterSpacing: -0.1,
+    },
+    footnote: {
+      fontFamily: FontFamily.ui,
+      fontSize: 13,
+      fontWeight: "400" as const,
+      lineHeight: 18,
+      letterSpacing: 0,
+    },
     h1: {
       fontSize: 32,
       fontWeight: "800" as const,
@@ -113,11 +151,11 @@ export const DesignSystem = {
   components: {
     minTouchTarget: 44,
 
-    buttonLarge: 52,
+    buttonLarge: 56,
     buttonMedium: 44,
     buttonSmall: 36,
 
-    inputLarge: 52,
+    inputLarge: 56,
     inputMedium: 44,
 
     cardPadding: 20,

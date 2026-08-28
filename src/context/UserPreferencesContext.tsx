@@ -1,155 +1,180 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useProfile } from "./ProfileContext";
 
-// Gradient presets for the gradient picker
 export const GRADIENT_PRESETS = {
-  ocean: {
-    id: "ocean",
-    name: "Ocean",
-    colors: ["#667eea", "#764ba2"] as [string, string],
+  copper: {
+    id: "copper",
+    name: "Copper",
+    colors: ["#C45C26", "#E09A6A"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  sunset: {
-    id: "sunset",
-    name: "Sunset",
-    colors: ["#f093fb", "#f5576c"] as [string, string],
+  terracotta: {
+    id: "terracotta",
+    name: "Terracotta",
+    colors: ["#B5523A", "#E07A5F"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  forest: {
-    id: "forest",
-    name: "Forest",
-    colors: ["#56ab2f", "#a8e6cf"] as [string, string],
+  sage: {
+    id: "sage",
+    name: "Sage",
+    colors: ["#2F5D50", "#6B9B8A"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  cosmic: {
-    id: "cosmic",
-    name: "Cosmic",
-    colors: ["#667eea", "#764ba2"] as [string, string],
+  olive: {
+    id: "olive",
+    name: "Olive",
+    colors: ["#5C6B3A", "#A3B18A"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  aurora: {
-    id: "aurora",
-    name: "Aurora",
-    colors: ["#a8edea", "#fed6e3"] as [string, string],
-    start: { x: 0, y: 0 },
-    end: { x: 1, y: 1 },
-  },
-  lavender: {
-    id: "lavender",
-    name: "Lavender",
-    colors: ["#d299c2", "#fef9d7"] as [string, string],
-    start: { x: 0, y: 0 },
-    end: { x: 1, y: 1 },
-  },
-  mint: {
-    id: "mint",
-    name: "Mint",
-    colors: ["#89f7fe", "#66a6ff"] as [string, string],
-    start: { x: 0, y: 0 },
-    end: { x: 1, y: 1 },
-  },
-  peach: {
-    id: "peach",
-    name: "Peach",
-    colors: ["#ffecd2", "#fcb69f"] as [string, string],
+  clay: {
+    id: "clay",
+    name: "Clay",
+    colors: ["#8B5E3C", "#C4A484"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
   slate: {
     id: "slate",
     name: "Slate",
-    colors: ["#bdc3c7", "#2c3e50"] as [string, string],
+    colors: ["#4A453F", "#8A8278"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  rose: {
-    id: "rose",
-    name: "Rose",
-    colors: ["#ff9a9e", "#fecfef"] as [string, string],
+  ink: {
+    id: "ink",
+    name: "Ink",
+    colors: ["#1A1612", "#6B645C"] as [string, string],
+    start: { x: 0, y: 0 },
+    end: { x: 1, y: 1 },
+  },
+  roseclay: {
+    id: "roseclay",
+    name: "Rose clay",
+    colors: ["#A64B4B", "#D4A5A5"] as [string, string],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
 } as const;
 
-// GradientPreset type for the gradient preset
-export type GradientPreset =
-  (typeof GRADIENT_PRESETS)[keyof typeof GRADIENT_PRESETS];
+export type GradientPresetId = keyof typeof GRADIENT_PRESETS;
 
-// UserPreferencesContextType type for the user preferences context
+export type GradientPreset =
+  (typeof GRADIENT_PRESETS)[GradientPresetId];
+
+const STORAGE_KEY = "@user_preferences";
+
+/** Map a stored id (including retired presets) to a current Hearth style. */
+export function resolveGradientPreset(
+  id: string | null | undefined
+): GradientPreset {
+  if (id && id in GRADIENT_PRESETS) {
+    return GRADIENT_PRESETS[id as GradientPresetId];
+  }
+  return GRADIENT_PRESETS.copper;
+}
+
 interface UserPreferencesContextType {
   selectedGradient: GradientPreset;
   updateGradient: (gradient: GradientPreset) => Promise<void>;
   loading: boolean;
 }
 
-// UserPreferencesContext context for the user preferences context
 const UserPreferencesContext = createContext<
   UserPreferencesContextType | undefined
 >(undefined);
 
-// STORAGE_KEY for the user preferences
-const STORAGE_KEY = "@user_preferences";
-
-// UserPreferencesProviderProps type for the user preferences provider props
 interface UserPreferencesProviderProps {
   children: React.ReactNode;
 }
 
-// UserPreferencesProvider provider for the user preferences context
+async function writeLocalCache(gradientId: string) {
+  await AsyncStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ gradientId })
+  );
+}
+
 export function UserPreferencesProvider({
   children,
 }: UserPreferencesProviderProps) {
+  const { profile, loading: profileLoading, updateAvatarStyle } = useProfile();
   const [selectedGradient, setSelectedGradient] = useState<GradientPreset>(
-    GRADIENT_PRESETS.ocean
+    GRADIENT_PRESETS.copper
   );
   const [loading, setLoading] = useState(true);
 
-  // loadPreferences function for the loadPreferences on the home screen
   useEffect(() => {
-    loadPreferences();
-  }, []);
+    if (profileLoading) return;
+    let cancelled = false;
 
-  const loadPreferences = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const preferences = JSON.parse(stored);
-        if (
-          preferences.gradientId &&
-          GRADIENT_PRESETS[
-            preferences.gradientId as keyof typeof GRADIENT_PRESETS
-          ]
-        ) {
-          setSelectedGradient(
-            GRADIENT_PRESETS[
-              preferences.gradientId as keyof typeof GRADIENT_PRESETS
-            ]
-          );
+    const hydrate = async () => {
+      try {
+        const profileId = profile?.avatar_style;
+        if (profileId && profileId in GRADIENT_PRESETS) {
+          const fromProfile = GRADIENT_PRESETS[profileId as GradientPresetId];
+          if (!cancelled) setSelectedGradient(fromProfile);
+          await writeLocalCache(fromProfile.id);
+          return;
         }
+
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        let resolved: GradientPreset = GRADIENT_PRESETS.copper;
+        if (stored) {
+          try {
+            const preferences = JSON.parse(stored) as { gradientId?: string };
+            resolved = resolveGradientPreset(preferences.gradientId);
+          } catch {
+            resolved = GRADIENT_PRESETS.copper;
+          }
+        }
+
+        if (!cancelled) setSelectedGradient(resolved);
+        await writeLocalCache(resolved.id);
+        if (profile?.id && profile.avatar_style !== resolved.id) {
+          void updateAvatarStyle(resolved.id);
+        }
+      } catch (error) {
+        console.error("Failed to load user preferences:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to load user preferences:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  // updateGradient function for the updateGradient on the home screen
-  const updateGradient = async (gradient: GradientPreset) => {
-    try {
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    profileLoading,
+    profile?.id,
+    profile?.avatar_style,
+    updateAvatarStyle,
+  ]);
+
+  const updateGradient = useCallback(
+    async (gradient: GradientPreset) => {
       setSelectedGradient(gradient);
-      const preferences = { gradientId: gradient.id };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-    } catch (error) {
-      console.error("Failed to save user preferences:", error);
-    }
-  };
+      try {
+        await writeLocalCache(gradient.id);
+      } catch (error) {
+        console.error("Failed to cache avatar style:", error);
+      }
+      await updateAvatarStyle(gradient.id);
+    },
+    [updateAvatarStyle]
+  );
 
-  // value for the user preferences context
   const value = {
     selectedGradient,
     updateGradient,
@@ -163,7 +188,6 @@ export function UserPreferencesProvider({
   );
 }
 
-// useUserPreferences hook for the useUserPreferences on the home screen
 export function useUserPreferences() {
   const context = useContext(UserPreferencesContext);
   if (context === undefined) {

@@ -8,12 +8,12 @@ import {
   Alert,
   Linking,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { useHaptics } from "../../hooks";
+import { useHaptics, useScreenInsets } from "../../hooks";
+import { HearthScreen } from "../../components/ui";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
 import { MaintenanceCategory } from "../../types/maintenance";
 import { notificationPreferencesStyles } from "./styles";
@@ -28,7 +28,7 @@ import {
 export function NotificationPreferencesScreen({
   navigation,
 }: NotificationPreferencesScreenProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const {
     notificationSettings,
     updateNotificationPreferences,
@@ -37,6 +37,7 @@ export function NotificationPreferencesScreen({
     syncPushToken,
   } = useNotifications();
   const { triggerLight } = useHaptics();
+  const { scrollPaddingBottom } = useScreenInsets();
   const [expandedType, setExpandedType] = useState<string | null>(null);
 
   // handleGlobalToggle for the handleGlobalToggle on the home screen
@@ -241,17 +242,14 @@ export function NotificationPreferencesScreen({
 
   // return the NotificationPreferencesScreen on the home screen
   return (
-    <View
-      style={[
-        notificationPreferencesStyles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <HearthScreen style={notificationPreferencesStyles.container}>
       <View
         style={[
           notificationPreferencesStyles.header,
-          { backgroundColor: colors.surface },
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+          },
         ]}
       >
         <TouchableOpacity
@@ -273,6 +271,7 @@ export function NotificationPreferencesScreen({
 
       <ScrollView
         style={notificationPreferencesStyles.content}
+        contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         showsVerticalScrollIndicator={false}
       >
         {/* Global Settings */}
@@ -393,8 +392,7 @@ export function NotificationPreferencesScreen({
           </>
         )}
 
-        <View style={notificationPreferencesStyles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </HearthScreen>
   );
 }

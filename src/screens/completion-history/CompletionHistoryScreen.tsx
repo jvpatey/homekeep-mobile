@@ -1,54 +1,67 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
+  RefreshControl,
+  StyleSheet,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { AppStackParamList } from "../../navigation/types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { TasksLoadErrorBanner } from "../../components/Dashboard/TasksLoadErrorBanner";
+import { useHaptics, useScreenInsets } from "../../hooks";
+import { HearthScreen, HearthSurfaceCard } from "../../components/ui";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
-import { colors as palette } from "../../theme/colors";
-import { useDevice } from "../../hooks";
+import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
+import type { MaintenanceTask } from "../../types/maintenance";
+import { TASK_LIST_LIMIT } from "../../services/MaintenanceTaskService";
 import {
-  GroupedRoutine,
-  groupTasksByRoutine,
-  formatDate,
-  formatDateTime,
+  HistoryLookback,
+  filterCompletionsByLookback,
+  formatCompletionTime,
+  groupCompletionsByDay,
 } from "./utils";
 
-type ThemePalette = typeof palette.light;
+const LOOKBACK_OPTIONS: { value: HistoryLookback; label: string }[] = [
+  { value: 30, label: "30 days" },
+  { value: 90, label: "90 days" },
+  { value: "all", label: "All" },
+];
+
+function categoryLabel(category: MaintenanceTask["category"]): string {
+  return (
+    HOME_MAINTENANCE_CATEGORIES[
+      category as keyof typeof HOME_MAINTENANCE_CATEGORIES
+    ]?.displayName ?? category
+  );
+}
 
 export function CompletionHistoryScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const {
     completedTasks,
-    overdueTasks,
-    completeTask,
+    uncompleteTask,
     refreshTasks,
     error: tasksError,
   } = useTasks();
+  const { triggerLight, triggerMedium } = useHaptics();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
-  const [groupedRoutines, setGroupedRoutines] = useState<GroupedRoutine[]>([]);
-  const [expandedRoutines, setExpandedRoutines] = useState<Set<string>>(
-    new Set()
-  );
-  const [completingTasks, setCompletingTasks] = useState<Set<string>>(
-    new Set()
-  );
+  const { scrollPaddingBottom } = useScreenInsets();
+
+  const [lookback, setLookback] = useState<HistoryLookback>("all");
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [undoingIds, setUndoingIds] = useState<Set<string>>(new Set());
+  const undoingRef = useRef<Set<string>>(new Set());
+  const [undoErrors, setUndoErrors] = useState<Record<string, string>>({});
 
   useFocusEffect(
     useCallback(() => {
@@ -68,436 +81,249 @@ export function CompletionHistoryScreen() {
     }, [refreshTasks])
   );
 
-  useEffect(() => {
-    setGroupedRoutines(groupTasksByRoutine(completedTasks, overdueTasks));
-  }, [completedTasks, overdueTasks]);
+  const filteredTasks = useMemo(
+    () => filterCompletionsByLookback(completedTasks, lookback),
+    [completedTasks, lookback]
+  );
 
-  const toggleRoutineExpansion = (routineId: string) => {
-    const newExpanded = new Set(expandedRoutines);
-    if (newExpanded.has(routineId)) {
-      newExpanded.delete(routineId);
-    } else {
-      newExpanded.add(routineId);
-    }
-    setExpandedRoutines(newExpanded);
-  };
+  const sections = useMemo(
+    () => groupCompletionsByDay(filteredTasks),
+    [filteredTasks]
+  );
 
-  const handleCompleteOverdueTask = async (
-    instanceId: string,
-    taskTitle: string
-  ) => {
-    if (completingTasks.has(instanceId)) return;
-
-    setCompletingTasks((prev) => new Set(prev).add(instanceId));
-
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
     try {
-      const result = await completeTask(instanceId);
-
-      if (result.success) {
-        Alert.alert(
-          "Task Completed!",
-          `"${taskTitle}" has been marked as completed.`,
-          [{ text: "OK" }]
-        );
-      } else {
-        Alert.alert(
-          "Completion Failed",
-          result.error || "Failed to complete the task. Please try again.",
-          [{ text: "OK" }]
-        );
-      }
-    } catch (error) {
-      console.error("Error completing overdue task:", error);
-      Alert.alert(
-        "Completion Failed",
-        "An unexpected error occurred. Please try again.",
-        [{ text: "OK" }]
-      );
+      await refreshTasks();
     } finally {
-      setCompletingTasks((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(instanceId);
-        return newSet;
-      });
+      setRefreshing(false);
+      setHasLoadedOnce(true);
     }
-  };
+  }, [refreshTasks]);
 
-  const renderRoutineSummary = (routine: GroupedRoutine) => {
-    const fontMultiplier = getFontMultiplier();
+  const handleLookback = useCallback(
+    (value: HistoryLookback) => {
+      void triggerLight();
+      setLookback(value);
+    },
+    [triggerLight]
+  );
+
+  const handleUndo = useCallback(
+    async (task: MaintenanceTask) => {
+      if (undoingRef.current.has(task.instance_id)) return;
+
+      undoingRef.current.add(task.instance_id);
+      setUndoingIds(new Set(undoingRef.current));
+      setUndoErrors((prev) => {
+        const next = { ...prev };
+        delete next[task.instance_id];
+        return next;
+      });
+      await triggerMedium();
+
+      try {
+        const result = await uncompleteTask(task.instance_id);
+        if (!result.success) {
+          setUndoErrors((prev) => ({
+            ...prev,
+            [task.instance_id]:
+              result.error || "Could not undo. Please try again.",
+          }));
+        }
+      } catch (error) {
+        console.error("Error undoing completion:", error);
+        setUndoErrors((prev) => ({
+          ...prev,
+          [task.instance_id]: "Could not undo. Please try again.",
+        }));
+      } finally {
+        undoingRef.current.delete(task.instance_id);
+        setUndoingIds(new Set(undoingRef.current));
+      }
+    },
+    [triggerMedium, uncompleteTask]
+  );
+
+  const renderRow = (
+    task: MaintenanceTask,
+    isLast: boolean
+  ) => {
+    const undoing = undoingIds.has(task.instance_id);
+    const error = undoErrors[task.instance_id];
+    const notes = task.notes?.trim();
+    const timeLabel = formatCompletionTime(
+      task.completed_at || task.due_date
+    );
+    const meta = `${categoryLabel(task.category)} · ${timeLabel}`;
+
     return (
-      <View style={completionHistoryStyles.routineSummary}>
-        <View style={completionHistoryStyles.routineSummaryStats}>
-          <View style={completionHistoryStyles.routineSummaryStat}>
-            <Ionicons
-              name="checkmark-circle"
-              size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-              color={colors.success}
-            />
+      <View
+        key={task.instance_id}
+        style={[
+          completionHistoryStyles.row,
+          !isLast && {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View style={completionHistoryStyles.rowMain}>
+          <Text
+            style={[
+              completionHistoryStyles.rowTitle,
+              { color: colors.text },
+            ]}
+            numberOfLines={2}
+          >
+            {task.title}
+          </Text>
+          <Text
+            style={[
+              completionHistoryStyles.rowMeta,
+              { color: colors.textSecondary },
+            ]}
+          >
+            {meta}
+          </Text>
+          {notes ? (
             <Text
               style={[
-                completionHistoryStyles.routineSummaryText,
+                completionHistoryStyles.rowNotes,
                 { color: colors.textSecondary },
-                isTablet && {
-                  fontSize:
-                    (completionHistoryStyles.routineSummaryText.fontSize || 12) *
-                    fontMultiplier,
-                },
               ]}
             >
-              {routine.completedInstances.length} completed
+              {notes}
             </Text>
-          </View>
-          {routine.pastDueInstances.length > 0 && (
-            <View style={completionHistoryStyles.routineSummaryStat}>
-              <Ionicons
-                name="close-circle"
-                size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                color={colors.error}
-              />
-              <Text
-                style={[
-                  completionHistoryStyles.routineSummaryText,
-                  { color: colors.error },
-                  isTablet && {
-                    fontSize:
-                      (completionHistoryStyles.routineSummaryText.fontSize ||
-                        12) * fontMultiplier,
-                  },
-                ]}
-              >
-                {routine.pastDueInstances.length} overdue
-              </Text>
-            </View>
-          )}
-          {routine.intervalDays > 0 && (
-            <View style={completionHistoryStyles.routineSummaryStat}>
-              <Ionicons
-                name="refresh"
-                size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                color={colors.textSecondary}
-              />
-              <Text
-                style={[
-                  completionHistoryStyles.routineSummaryText,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize:
-                      (completionHistoryStyles.routineSummaryText.fontSize ||
-                        12) * fontMultiplier,
-                  },
-                ]}
-              >
-                Every {routine.intervalDays} days
-              </Text>
-            </View>
-          )}
+          ) : null}
+          {error ? (
+            <Text
+              style={[
+                completionHistoryStyles.rowError,
+                { color: colors.error },
+              ]}
+              accessibilityLiveRegion="polite"
+            >
+              {error}
+            </Text>
+          ) : null}
         </View>
+        <TouchableOpacity
+          style={completionHistoryStyles.undoButton}
+          onPress={() => void handleUndo(task)}
+          disabled={undoing}
+          accessibilityRole="button"
+          accessibilityLabel={`Undo completion of ${task.title}`}
+          accessibilityState={{ disabled: undoing }}
+        >
+          <Text
+            style={[
+              completionHistoryStyles.undoText,
+              { color: colors.primary, opacity: undoing ? 0.5 : 1 },
+            ]}
+          >
+            {undoing ? "Undoing…" : "Undo"}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   };
 
-  const renderRoutineSummaryForItem = (routine: GroupedRoutine) => {
-    return renderRoutineSummary(routine);
-  };
-
-  const RoutineItem = React.memo(
-    ({
-      item,
-      isExpanded,
-      onToggle,
-      onCompleteOverdueTask,
-      completingTasks,
-      colors,
-      renderSummary,
-      isTablet,
-      getFontMultiplier,
-      getResponsiveValue,
-    }: {
-      item: GroupedRoutine;
-      isExpanded: boolean;
-      onToggle: () => void;
-      onCompleteOverdueTask: (instanceId: string, taskTitle: string) => void;
-      completingTasks: Set<string>;
-      colors: ThemePalette;
-      renderSummary: (routine: GroupedRoutine) => React.ReactNode;
-      isTablet: boolean;
-      getFontMultiplier: () => number;
-      getResponsiveValue: (
-        phone: number,
-        tablet: number,
-        largeTablet: number
-      ) => number;
-    }) => {
-      const fontMultiplier = getFontMultiplier();
-      return (
-        <View
-          style={[
-            completionHistoryStyles.routineItem,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={completionHistoryStyles.routineHeader}
-            onPress={onToggle}
-            activeOpacity={0.7}
-          >
-            <View style={completionHistoryStyles.routineHeaderLeft}>
-              <Text
-                style={[
-                  completionHistoryStyles.routineTitle,
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize:
-                      (completionHistoryStyles.routineTitle.fontSize || 18) *
-                      fontMultiplier,
-                    lineHeight:
-                      (completionHistoryStyles.routineTitle.fontSize || 18) *
-                      fontMultiplier *
-                      1.3,
-                  },
-                ]}
-                numberOfLines={2}
-              >
-                {item.title}
-              </Text>
-              <View
-                style={[
-                  completionHistoryStyles.categoryBadge,
-                  {
-                    backgroundColor: colors.primary + "15",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    completionHistoryStyles.categoryText,
-                    { color: colors.primary },
-                    isTablet && {
-                      fontSize:
-                        (completionHistoryStyles.categoryText.fontSize || 12) *
-                        fontMultiplier,
-                    },
-                  ]}
-                >
-                  {item.category}
-                </Text>
-              </View>
-            </View>
-
-            <View style={completionHistoryStyles.routineHeaderRight}>
-              <Ionicons
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
-                color={colors.textSecondary}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {renderSummary(item)}
-
-          <View style={completionHistoryStyles.lastCompletion}>
-            <Ionicons
-              name="calendar-outline"
-              size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-              color={colors.textSecondary}
-            />
-            <Text
-              style={[
-                completionHistoryStyles.lastCompletionText,
-                { color: colors.textSecondary },
-                isTablet && {
-                  fontSize:
-                    (completionHistoryStyles.lastCompletionText.fontSize ||
-                      12) * fontMultiplier,
-                },
-              ]}
-            >
-              Last completed:{" "}
-              {item.latestCompletion
-                ? formatDateTime(item.latestCompletion)
-                : "N/A"}
-            </Text>
-          </View>
-
-          {isExpanded && (
-            <View
-              style={[
-                completionHistoryStyles.instanceDetails,
-                { borderTopColor: colors.border },
-              ]}
-            >
-              <Text
-                style={[
-                  completionHistoryStyles.instanceTitle,
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize:
-                      (completionHistoryStyles.instanceTitle.fontSize || 14) *
-                      fontMultiplier,
-                    lineHeight:
-                      (completionHistoryStyles.instanceTitle.fontSize || 14) *
-                      fontMultiplier *
-                      1.3,
-                  },
-                ]}
-              >
-                Task History
-              </Text>
-              {item.completedInstances.map((instance) => (
-                <View
-                  key={instance.instance_id}
-                  style={[
-                    completionHistoryStyles.instanceItem,
-                    { borderBottomColor: colors.border },
-                  ]}
-                >
-                  <View style={completionHistoryStyles.instanceHeader}>
-                    <Text
-                      style={[
-                        completionHistoryStyles.instanceDate,
-                        { color: colors.textSecondary },
-                        isTablet && {
-                          fontSize:
-                            (completionHistoryStyles.instanceDate.fontSize ||
-                              12) * fontMultiplier,
-                        },
-                      ]}
-                    >
-                      Completed:{" "}
-                      {instance.completed_at
-                        ? formatDateTime(instance.completed_at)
-                        : "Date unknown"}
-                    </Text>
-                    <View style={completionHistoryStyles.instancePriority}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                        color={colors.success}
-                      />
-                    </View>
-                  </View>
-                </View>
-              ))}
-              {item.pastDueInstances.map((instance) => {
-                const isCompleting = completingTasks.has(instance.instance_id);
-                return (
-                  <View
-                    key={instance.instance_id}
-                    style={[
-                      completionHistoryStyles.instanceItem,
-                      { borderBottomColor: colors.border },
-                    ]}
-                  >
-                    <View style={completionHistoryStyles.instanceHeader}>
-                      <Text
-                        style={[
-                          completionHistoryStyles.instanceDate,
-                          { color: colors.textSecondary },
-                          isTablet && {
-                            fontSize:
-                              (completionHistoryStyles.instanceDate.fontSize ||
-                                12) * fontMultiplier,
-                          },
-                        ]}
-                      >
-                        Past Due: {formatDate(instance.due_date)}
-                      </Text>
-                      <View style={completionHistoryStyles.instancePriority}>
-                        <Ionicons
-                          name="close-circle"
-                          size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                          color={colors.error}
-                        />
-                      </View>
-                    </View>
-
-                    <TouchableOpacity
-                      style={[
-                        completionHistoryStyles.completeButton,
-                        {
-                          backgroundColor: isCompleting
-                            ? colors.surface
-                            : colors.primary + "10",
-                          borderColor: colors.primary,
-                          borderWidth: 2,
-                          opacity: isCompleting ? 0.6 : 1,
-                        },
-                      ]}
-                      onPress={() =>
-                        onCompleteOverdueTask(
-                          instance.instance_id,
-                          instance.title
-                        )
-                      }
-                      disabled={isCompleting}
-                      activeOpacity={0.8}
-                    >
-                      {isCompleting ? (
-                        <Ionicons
-                          name="hourglass"
-                          size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                          color={colors.primary}
-                        />
-                      ) : (
-                        <Ionicons
-                          name="checkmark"
-                          size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                          color={colors.primary}
-                        />
-                      )}
-                      <Text
-                        style={[
-                          completionHistoryStyles.completeButtonText,
-                          { color: colors.primary },
-                          isTablet && {
-                            fontSize:
-                              (completionHistoryStyles.completeButtonText
-                                .fontSize || 12) * fontMultiplier,
-                          },
-                        ]}
-                      >
-                        {isCompleting ? "Completing..." : "Complete Now"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      );
-    }
+  const renderSection = ({
+    item: section,
+    index,
+  }: {
+    item: ReturnType<typeof groupCompletionsByDay>[number];
+    index: number;
+  }) => (
+    <View>
+      <Text
+        style={[
+          completionHistoryStyles.sectionHeader,
+          { color: colors.textSecondary, marginTop: index === 0 ? 0 : undefined },
+        ]}
+        accessibilityRole="header"
+      >
+        {section.title}
+      </Text>
+      <HearthSurfaceCard
+        containerStyle={completionHistoryStyles.cardContainer}
+        style={completionHistoryStyles.cardSurface}
+      >
+        {section.data.map((task, rowIndex) =>
+          renderRow(task, rowIndex === section.data.length - 1)
+        )}
+      </HearthSurfaceCard>
+    </View>
   );
 
-  const renderRoutineItem = ({
-    item,
-  }: {
-    item: GroupedRoutine;
-    index: number;
-  }) => {
-    const isExpanded = expandedRoutines.has(item.routineId);
+  const listHeader = (
+    <View style={completionHistoryStyles.listHeader}>
+      <View style={completionHistoryStyles.chipRow}>
+        {LOOKBACK_OPTIONS.map((option) => {
+          const selected = lookback === option.value;
+          return (
+            <TouchableOpacity
+              key={String(option.value)}
+              onPress={() => handleLookback(option.value)}
+              style={[
+                completionHistoryStyles.chip,
+                {
+                  backgroundColor: selected
+                    ? colors.primary + "18"
+                    : colors.fieldFill,
+                  borderColor: selected ? colors.primary : colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`Show ${option.label}`}
+            >
+              <Text
+                style={[
+                  completionHistoryStyles.chipText,
+                  {
+                    color: selected ? colors.primary : colors.textSecondary,
+                  },
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      {hasLoadedOnce ? (
+        <Text
+          style={[
+            completionHistoryStyles.subtitle,
+            { color: colors.textSecondary },
+          ]}
+        >
+          {filteredTasks.length === 0
+            ? lookback === "all"
+              ? "No completions yet"
+              : "No completions in this range"
+            : `${filteredTasks.length} completion${
+                filteredTasks.length === 1 ? "" : "s"
+              }`}
+        </Text>
+      ) : null}
+      {completedTasks.length >= TASK_LIST_LIMIT ? (
+        <Text
+          style={[
+            completionHistoryStyles.truncationNote,
+            { color: colors.textSecondary },
+          ]}
+        >
+          Showing the {TASK_LIST_LIMIT} most recent. Older entries are in
+          Export.
+        </Text>
+      ) : null}
+    </View>
+  );
 
-    return (
-      <RoutineItem
-        item={item}
-        isExpanded={isExpanded}
-        onToggle={() => toggleRoutineExpansion(item.routineId)}
-        onCompleteOverdueTask={handleCompleteOverdueTask}
-        completingTasks={completingTasks}
-        colors={colors}
-        renderSummary={renderRoutineSummaryForItem}
-        isTablet={isTablet}
-        getFontMultiplier={getFontMultiplier}
-        getResponsiveValue={getResponsiveValue}
-      />
-    );
-  };
-
-  const renderListEmpty = () => {
+  const renderEmpty = () => {
     if (!hasLoadedOnce) {
       return (
         <View style={completionHistoryStyles.loadingState}>
@@ -513,76 +339,43 @@ export function CompletionHistoryScreen() {
         </View>
       );
     }
-    const fontMultiplier = getFontMultiplier();
+
     return (
       <View style={completionHistoryStyles.emptyState}>
-        <Ionicons
-          name="checkmark-circle-outline"
-          size={isTablet ? getResponsiveValue(64, 80, 90) : 64}
-          color={colors.textSecondary}
-        />
-        <Text
+        <View
           style={[
-            completionHistoryStyles.emptyStateTitle,
-            { color: colors.text },
-            isTablet && {
-              fontSize:
-                (completionHistoryStyles.emptyStateTitle.fontSize ||
-                  DesignSystem.typography.h2.fontSize) * fontMultiplier,
-              lineHeight:
-                (completionHistoryStyles.emptyStateTitle.fontSize ||
-                  DesignSystem.typography.h2.fontSize) *
-                fontMultiplier *
-                1.2,
-            },
+            completionHistoryStyles.emptyIconCircle,
+            { backgroundColor: colors.primary + "14" },
           ]}
         >
-          No completed tasks yet
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={32}
+            color={colors.primary}
+          />
+        </View>
+        <Text
+          style={[completionHistoryStyles.emptyTitle, { color: colors.text }]}
+        >
+          {lookback === "all" ? "No completions yet" : "Nothing in this range"}
         </Text>
         <Text
           style={[
-            completionHistoryStyles.emptyStateSubtitle,
+            completionHistoryStyles.emptySubtext,
             { color: colors.textSecondary },
-            isTablet && {
-              fontSize:
-                (completionHistoryStyles.emptyStateSubtitle.fontSize ||
-                  DesignSystem.typography.body.fontSize) * fontMultiplier,
-              lineHeight:
-                (completionHistoryStyles.emptyStateSubtitle.fontSize ||
-                  DesignSystem.typography.body.fontSize) *
-                fontMultiplier *
-                1.4,
-            },
           ]}
         >
-          Complete your first task to see it here!
+          {lookback === "all"
+            ? "Finished tasks will show up here as a journal of what you’ve kept up with."
+            : "Try a wider date range, or complete a task from the dashboard."}
         </Text>
       </View>
     );
   };
 
-  const subtitleText = !hasLoadedOnce
-    ? "Loading…"
-    : `${completedTasks.length} task${
-        completedTasks.length === 1 ? "" : "s"
-      } completed`;
-
   return (
-    <SafeAreaView
-      style={[completionHistoryStyles.container, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
-      <View
-        style={[
-          completionHistoryStyles.header,
-          {
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
+    <HearthScreen style={completionHistoryStyles.container}>
+      <View style={completionHistoryStyles.header}>
         <TouchableOpacity
           style={completionHistoryStyles.backButton}
           onPress={() => navigation.goBack()}
@@ -591,21 +384,12 @@ export function CompletionHistoryScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <View style={completionHistoryStyles.headerTitleBlock}>
-          <Text
-            style={[completionHistoryStyles.headerTitle, { color: colors.text }]}
-          >
-            Completion History
-          </Text>
-          <Text
-            style={[
-              completionHistoryStyles.headerSubtitle,
-              { color: colors.textSecondary },
-            ]}
-          >
-            {subtitleText}
-          </Text>
-        </View>
+        <Text
+          style={[completionHistoryStyles.headerTitle, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          Completion history
+        </Text>
         <TouchableOpacity
           style={completionHistoryStyles.headerAction}
           onPress={() => navigation.navigate("HomeSummaryPreview")}
@@ -621,22 +405,29 @@ export function CompletionHistoryScreen() {
       </View>
 
       {tasksError ? (
-        <TasksLoadErrorBanner
-          message={tasksError}
-          onRetry={refreshTasks}
-        />
+        <TasksLoadErrorBanner message={tasksError} onRetry={refreshTasks} />
       ) : null}
 
-      <View style={{ flex: 1 }}>
-        <FlatList
-          data={groupedRoutines}
-          renderItem={renderRoutineItem}
-          keyExtractor={(item) => item.routineId}
-          contentContainerStyle={completionHistoryStyles.routinesList}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderListEmpty}
-        />
-      </View>
-    </SafeAreaView>
+      <FlatList
+        data={sections}
+        keyExtractor={(item) => item.key}
+        renderItem={renderSection}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={renderEmpty}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          completionHistoryStyles.listContent,
+          { paddingBottom: scrollPaddingBottom },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void handleRefresh()}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      />
+    </HearthScreen>
   );
 }

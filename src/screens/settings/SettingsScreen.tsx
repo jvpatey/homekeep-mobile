@@ -7,14 +7,13 @@ import {
   Alert,
   StyleSheet,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useHaptics } from "../../hooks";
+import { useHaptics, useScreenInsets } from "../../hooks";
+import { HearthScreen } from "../../components/ui";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeAddressOnboardingModal } from "../../components/modals/home-address-onboarding";
@@ -28,6 +27,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { deleteAllTasks, stats } = useTasks();
   const { selectedGradient } = useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { scrollPaddingBottom } = useScreenInsets();
   const [customizationModalVisible, setCustomizationModalVisible] =
     useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
@@ -314,12 +314,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
+    <HearthScreen style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -339,7 +334,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       {/* Content */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.contentInner}
+        contentContainerStyle={[
+          styles.contentInner,
+          { paddingBottom: scrollPaddingBottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Account card */}
@@ -423,7 +421,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         onClose={() => setAddressModalVisible(false)}
         hideSkip
       />
-    </SafeAreaView>
+    </HearthScreen>
   );
 }
 

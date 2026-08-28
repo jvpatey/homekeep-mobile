@@ -1,59 +1,50 @@
 import React, { useEffect, useCallback } from "react";
-import { TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useDevice } from "../../hooks";
+import { useScalePress } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
-import { fabStyles } from "./styles";
 
 interface FloatingActionButtonProps {
   onPress: () => void;
-  hasTasks: boolean;
 }
 
-export function FloatingActionButton({
-  onPress,
-  hasTasks,
-}: FloatingActionButtonProps) {
+/**
+ * Centered dock pill — distinct from per-row copper complete circles on the right.
+ * Sits bottom-center so it never stacks on task complete buttons.
+ */
+export function FloatingActionButton({ onPress }: FloatingActionButtonProps) {
   const { colors } = useTheme();
-  const { isTablet, getResponsiveValue } = useDevice();
+  const insets = useSafeAreaInsets();
+  const { animatedStyle, onPressIn, onPressOut } = useScalePress(0.97);
 
-  // Animation for button press feedback
-  const pressScale = useSharedValue(1);
-  
-  // Entrance animations
   const fabOpacity = useSharedValue(0);
-  const fabScale = useSharedValue(0.8);
-  const fabTranslateY = useSharedValue(20);
+  const fabTranslateY = useSharedValue(16);
 
   const triggerFabAnimations = useCallback(() => {
-    // reset
     fabOpacity.value = 0;
-    fabScale.value = 0.8;
-    fabTranslateY.value = 20;
+    fabTranslateY.value = 16;
 
-    const s = DesignSystem.motion.stagger * 2;
-    const d = DesignSystem.motion.duration.base;
+    const delay = DesignSystem.motion.stagger * 2;
+    const duration = DesignSystem.motion.duration.base;
 
     fabOpacity.value = withDelay(
-      s,
-      withTiming(1, { duration: d, easing: DesignSystem.motion.easing.standard })
+      delay,
+      withTiming(1, { duration, easing: DesignSystem.motion.easing.standard })
     );
-    fabScale.value = withDelay(s, withSpring(1, DesignSystem.motion.spring.smooth));
     fabTranslateY.value = withDelay(
-      s,
-      withTiming(0, { duration: d, easing: DesignSystem.motion.easing.standard })
+      delay,
+      withTiming(0, { duration, easing: DesignSystem.motion.easing.emphasized })
     );
-  }, []);
+  }, [fabOpacity, fabTranslateY]);
 
   useEffect(() => {
     triggerFabAnimations();
@@ -65,64 +56,80 @@ export function FloatingActionButton({
     }, [triggerFabAnimations])
   );
 
-  const fabAnimatedStyle = useAnimatedStyle(() => ({
+  const entranceStyle = useAnimatedStyle(() => ({
     opacity: fabOpacity.value,
-    transform: [
-      { scale: pressScale.value * fabScale.value },
-      { translateY: fabTranslateY.value },
-    ],
+    transform: [{ translateY: fabTranslateY.value }],
   }));
 
-  const handlePressIn = () => {
-    pressScale.value = withSpring(0.96, DesignSystem.motion.spring.snappy);
-  };
-
-  const handlePressOut = () => {
-    pressScale.value = withSpring(1, DesignSystem.motion.spring.snappy);
-  };
-
   return (
-    <Animated.View style={fabAnimatedStyle}>
-      <TouchableOpacity
-        style={[
-          fabStyles.floatingActionButton,
-          {
-            backgroundColor: colors.glass,
-            borderColor: colors.glassStroke,
-            borderWidth: DesignSystem.borders.hairline,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.06,
-            shadowRadius: 24,
-            elevation: 4,
-          },
-          isTablet && {
-            width: getResponsiveValue(64, 72, 80),
-            height: getResponsiveValue(64, 72, 80),
-            borderRadius: getResponsiveValue(32, 36, 40),
-            bottom: getResponsiveValue(
-              DesignSystem.spacing.xl,
-              DesignSystem.spacing.xl + DesignSystem.spacing.md,
-              DesignSystem.spacing.xl + DesignSystem.spacing.lg,
-            ),
-            right: getResponsiveValue(
-              DesignSystem.spacing.xl,
-              DesignSystem.spacing.xl + DesignSystem.spacing.md,
-              DesignSystem.spacing.xl + DesignSystem.spacing.lg,
-            ),
-          },
-        ]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.8}
-      >
-        <Ionicons 
-          name="add" 
-          size={isTablet ? getResponsiveValue(28, 32, 36) : 28} 
-          color={colors.primary} 
-        />
-      </TouchableOpacity>
-    </Animated.View>
+    <View
+      style={[
+        styles.dock,
+        { paddingBottom: insets.bottom + DesignSystem.spacing.md },
+      ]}
+      pointerEvents="box-none"
+    >
+      <Animated.View style={entranceStyle}>
+        <Pressable
+          onPress={onPress}
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+          accessibilityRole="button"
+          accessibilityLabel="Add task"
+        >
+          <Animated.View
+            style={[
+              styles.pillOuter,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              DesignSystem.shadows.softKey,
+              animatedStyle,
+            ]}
+          >
+            <View
+              style={[
+                styles.pillInner,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Ionicons name="add" size={22} color="#FFFFFF" />
+              <Text style={styles.pillLabel}>Add task</Text>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Animated.View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  dock: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    paddingHorizontal: DesignSystem.spacing.lg,
+  },
+  pillOuter: {
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 3,
+  },
+  pillInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: DesignSystem.spacing.sm,
+    minHeight: DesignSystem.components.buttonLarge,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    borderRadius: DesignSystem.borders.radius.round,
+  },
+  pillLabel: {
+    ...DesignSystem.typography.button,
+    color: "#FFFFFF",
+    fontSize: 17,
+  },
+});

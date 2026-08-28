@@ -18,6 +18,7 @@ export { useHaptics } from "./useHaptics";
 
 // Spacing hooks
 export { useDynamicSpacing } from "./useDynamicSpacing";
+export { useScreenInsets } from "./useScreenInsets";
 
 // Device detection hooks
 export { useDevice } from "./useDevice";

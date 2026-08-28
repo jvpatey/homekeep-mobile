@@ -8,16 +8,16 @@ import { MaintenanceTask } from "../../types/maintenance";
 import { DesignSystem } from "../../theme/designSystem";
 import { timelineStyles } from "./timeline-view/styles";
 import { getPriorityColor } from "./timeline-view/utils";
-import { hexWithAlpha } from "./popups/popupChrome";
 import { getPlanTheme } from "../../data/maintenancePlans/planThemes";
 import { formatTaskDueLabel } from "../../utils/formatTaskDates";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
   showConnectorBelow: boolean;
-  /** Section variant (Due soon vs timeline); tile styling matches dashboard glass for both. */
-  variant?: "default" | "dueSoon";
+  /** Section variant for row styling */
+  variant?: "default" | "overdue";
   onCompleteTask: (instanceId: string) => void;
+  isCompleting?: boolean;
   onTaskPress?: (instanceId: string) => void;
   onSkipOccurrence?: (
     task: MaintenanceTask,
@@ -31,25 +31,19 @@ export function ScheduleTaskRow({
   showConnectorBelow,
   variant = "default",
   onCompleteTask,
+  isCompleting = false,
   onTaskPress,
   onSkipOccurrence,
 }: ScheduleTaskRowProps) {
   const { colors, isDark } = useTheme();
-  const isDueSoon = variant === "dueSoon";
+  const isOverdue = variant === "overdue";
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
   const swipeableRef = useRef<Swipeable>(null);
 
   const planTheme = getPlanTheme(task.source_plan_id ?? undefined);
 
-  const defaultGlassBg = isDark
-    ? "rgba(35, 37, 38, 0.4)"
-    : "rgba(255, 255, 255, 0.4)";
-  const defaultGlassBorder = isDark
-    ? "rgba(255, 255, 255, 0.1)"
-    : "rgba(255, 255, 255, 0.6)";
-
-  const timelineDotFill = colors.primary;
+  const timelineDotFill = isOverdue ? colors.error : colors.primary;
   const timelineDotRing = colors.surface;
 
   const canSkip =
@@ -95,7 +89,7 @@ export function ScheduleTaskRow({
       onPress={() => onTaskPress?.(task.instance_id)}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`${isDueSoon ? "Due soon. " : ""}${task.title}. ${
+      accessibilityLabel={`${isOverdue ? "Overdue. " : ""}${task.title}. ${
         task.priority
       } priority.`}
     >
@@ -139,14 +133,16 @@ export function ScheduleTaskRow({
         style={[
           timelineStyles.taskContent,
           {
-            backgroundColor: defaultGlassBg,
-            borderColor: defaultGlassBorder,
+            backgroundColor: colors.surface,
+            borderColor: isOverdue ? colors.error + "55" : colors.border,
             borderWidth: 1,
+            borderRadius: DesignSystem.borders.radius.xlarge,
             ...(planTheme && {
               borderLeftWidth: 4,
               borderLeftColor: planTheme.primary,
             }),
           },
+          DesignSystem.shadows.softAmbient,
           isTablet && {
             padding: getResponsiveValue(
               DesignSystem.spacing.md,
@@ -160,11 +156,7 @@ export function ScheduleTaskRow({
           <Text
             style={[
               timelineStyles.taskTitle,
-              {
-                color: isDark
-                  ? "rgba(255, 255, 255, 0.7)"
-                  : "rgba(0, 0, 0, 0.6)",
-              },
+              { color: colors.text },
               isTablet && {
                 fontSize: timelineStyles.taskTitle.fontSize * fontMultiplier,
                 lineHeight:
@@ -181,11 +173,7 @@ export function ScheduleTaskRow({
             <View
               style={[
                 timelineStyles.priorityBadge,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.05)"
-                    : "rgba(0, 0, 0, 0.05)",
-                },
+                { backgroundColor: colors.fieldFill },
                 isTablet && {
                   paddingHorizontal: getResponsiveValue(
                     DesignSystem.spacing.sm,
@@ -202,26 +190,12 @@ export function ScheduleTaskRow({
                   {
                     backgroundColor: getPriorityColor(task.priority, colors),
                   },
-                  isTablet && {
-                    width: 6 * fontMultiplier,
-                    height: 6 * fontMultiplier,
-                    borderRadius: 3 * fontMultiplier,
-                  },
                 ]}
               />
               <Text
                 style={[
                   timelineStyles.priorityText,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.65)"
-                      : "rgba(15, 23, 42, 0.7)",
-                  },
-                  isTablet && {
-                    fontSize:
-                      (timelineStyles.priorityText.fontSize || 12) *
-                      fontMultiplier,
-                  },
+                  { color: colors.textSecondary },
                 ]}
               >
                 {task.priority}
@@ -231,43 +205,18 @@ export function ScheduleTaskRow({
               <View
                 style={[
                   timelineStyles.durationBadge,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.05)",
-                  },
-                  isTablet && {
-                    paddingHorizontal: getResponsiveValue(
-                      DesignSystem.spacing.sm,
-                      DesignSystem.spacing.md,
-                      DesignSystem.spacing.md
-                    ),
-                    paddingVertical: getResponsiveValue(4, 6, 8),
-                  },
+                  { backgroundColor: colors.fieldFill },
                 ]}
               >
                 <Ionicons
                   name="time-outline"
-                  size={isTablet ? 12 * fontMultiplier : 12}
-                  color={
-                    isDark
-                      ? "rgba(255, 255, 255, 0.6)"
-                      : "rgba(15, 23, 42, 0.65)"
-                  }
+                  size={12}
+                  color={colors.textSecondary}
                 />
                 <Text
                   style={[
                     timelineStyles.durationText,
-                    {
-                      color: isDark
-                        ? "rgba(255, 255, 255, 0.6)"
-                        : "rgba(15, 23, 42, 0.65)",
-                    },
-                    isTablet && {
-                      fontSize:
-                        (timelineStyles.durationText.fontSize || 12) *
-                        fontMultiplier,
-                    },
+                    { color: colors.textSecondary },
                   ]}
                 >
                   {task.estimated_duration_minutes}m
@@ -290,19 +239,8 @@ export function ScheduleTaskRow({
                 style={[
                   timelineStyles.taskTime,
                   {
-                    color: isDueToday
-                      ? isDark
-                        ? "rgba(255, 107, 107, 0.7)"
-                        : "rgba(235, 87, 87, 0.9)"
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.6)"
-                      : "rgba(15, 23, 42, 0.65)",
-                    fontWeight: isDueToday ? "600" : "normal",
-                  },
-                  isTablet && {
-                    fontSize:
-                      (timelineStyles.taskTime.fontSize || 14) *
-                      fontMultiplier,
+                    color: isDueToday ? colors.primary : colors.textSecondary,
+                    fontWeight: isDueToday ? "600" : "400",
                   },
                 ]}
               >
@@ -315,37 +253,39 @@ export function ScheduleTaskRow({
             style={[
               timelineStyles.completeButton,
               {
-                backgroundColor: hexWithAlpha(
-                  colors.primary,
-                  isDark ? 0.14 : 0.1
-                ),
-                borderColor: colors.primary,
-                borderWidth: 1.5,
+                backgroundColor: colors.primary,
+                opacity: isCompleting ? 0.5 : 1,
               },
               isTablet && {
-                width: 48 * fontMultiplier,
-                height: 48 * fontMultiplier,
-                borderRadius: 24 * fontMultiplier,
+                width: 44 * fontMultiplier,
+                height: 44 * fontMultiplier,
+                borderRadius: 22 * fontMultiplier,
               },
             ]}
-            onPress={() => onCompleteTask(task.instance_id)}
-            activeOpacity={0.8}
+            onPress={() => {
+              if (isCompleting || task.is_completed) return;
+              onCompleteTask(task.instance_id);
+            }}
+            disabled={isCompleting || task.is_completed}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isCompleting || task.is_completed }}
             accessibilityLabel={
-              task.is_completed ? "Completed" : "Mark complete"
+              isCompleting
+                ? "Completing"
+                : task.is_completed
+                  ? "Completed"
+                  : "Mark complete"
             }
           >
             {task.is_completed ? (
               <Ionicons
                 name="checkmark-circle"
-                size={isTablet ? 24 * fontMultiplier : 24}
-                color={colors.primary}
+                size={24}
+                color="#FFFFFF"
               />
             ) : (
-              <Ionicons
-                name="checkmark"
-                size={isTablet ? 20 * fontMultiplier : 20}
-                color={colors.primary}
-              />
+              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
             )}
           </TouchableOpacity>
         </View>

@@ -1,68 +1,32 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { StatusBar } from "expo-status-bar";
-import Animated from "react-native-reanimated";
-import { useTheme } from "../../context/ThemeContext";
+import { AuthScaffold } from "../../components/auth";
+import { Button } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
-import { useGradients, useScalePress } from "../../hooks";
-import { AuthTopHeader } from "../../components/auth";
-import { GlassCard } from "../../components/ui/glass-card";
+import { useTheme } from "../../context/ThemeContext";
 import { useAuthHaptics } from "./hooks";
-import { useDynamicSpacing, useDevice } from "../../hooks";
-import { authStyles } from "./styles/authStyles";
 import { DesignSystem } from "../../theme/designSystem";
 
-// VerificationStatus for the VerificationStatus on the home screen
 type VerificationStatus = "verifying" | "success" | "error";
 
-// EmailVerificationScreen for the EmailVerificationScreen on the home screen
 export function EmailVerificationScreen() {
-  const { colors, isDark } = useTheme();
-  const { haloGradient, ctaHighlight } = useGradients();
+  const { colors } = useTheme();
   const { supabase } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
-
-  // Shared hooks
-  const { dynamicBottomSpacing } = useDynamicSpacing();
   const { triggerSuccess, triggerError } = useAuthHaptics();
-  const {
-    isTablet,
-    getMaxContentWidth,
-    getResponsiveValue,
-    getAuthHeroMinHeight,
-  } = useDevice();
-
-  const tabletHeroPadding = isTablet
-    ? getResponsiveValue(
-        DesignSystem.spacing.md,
-        DesignSystem.spacing.lg,
-        DesignSystem.spacing.xl,
-      )
-    : undefined;
-
-  const maxContentWidth = getMaxContentWidth();
-  const authHeroMinHeight = getAuthHeroMinHeight();
-  const { animatedStyle: ctaAnimatedStyle, onPressIn, onPressOut } =
-    useScalePress();
 
   const [status, setStatus] = useState<VerificationStatus>("verifying");
   const [message, setMessage] = useState("Verifying your email...");
 
-  // handleEmailVerification for the handleEmailVerification on the home screen
   useEffect(() => {
     const handleEmailVerification = async () => {
       try {
-        const params = route.params as any;
+        const params = route.params as { url?: string };
         let urlToProcess = params?.url;
+
         if (!urlToProcess) {
           if (typeof window !== "undefined" && window.location) {
             urlToProcess = window.location.href;
@@ -83,27 +47,25 @@ export function EmailVerificationScreen() {
           if (!hashParams) {
             throw new Error("Invalid verification link format");
           }
-
           urlObj = new URL(`http://dummy.com?${hashParams}`);
         }
 
-        // Extract verification parameters from URL
         const token_hash = urlObj.searchParams.get("token_hash");
         const type = urlObj.searchParams.get("type");
 
         if (!token_hash || !type) {
           throw new Error(
-            "Invalid verification link - missing required parameters"
+            "Invalid verification link — missing required parameters",
           );
         }
 
-        // Verify the email using the token with Supabase
         if (!supabase) {
           throw new Error("Supabase not configured");
         }
+
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
-          type: type as any,
+          type: type as "signup" | "email",
         });
 
         if (error) {
@@ -111,318 +73,101 @@ export function EmailVerificationScreen() {
         }
 
         if (data.session) {
-          // Success! User is now signed in
           triggerSuccess();
           setStatus("success");
-          setMessage("Email verified successfully! Welcome to HomeKeep.");
+          setMessage("Email verified. Welcome to HomeKeep.");
         } else {
-          throw new Error("Verification failed - no session created");
+          throw new Error("Verification failed — no session created");
         }
-      } catch (error) {
-        const errorObj = error as Error;
+      } catch (err) {
+        const errorObj = err as Error;
         console.error("Email verification error:", errorObj);
         triggerError();
         setStatus("error");
         setMessage(
-          errorObj.message || "Failed to verify email. Please try again."
+          errorObj.message || "Failed to verify email. Please try again.",
         );
       }
     };
 
-    // Start verification process
     handleEmailVerification();
-  }, [route.params, navigation, supabase, triggerSuccess, triggerError]);
+  }, [route.params, supabase, triggerSuccess, triggerError]);
 
-  // handleBackToHome for the handleBackToHome on the home screen
   const handleBackToHome = () => {
-    navigation.navigate("Home" as any);
+    navigation.navigate("Home" as never);
   };
 
-  // handleManualCode for the handleManualCode on the home screen
   const handleManualCode = () => {
-    navigation.navigate("CodeVerification" as any);
+    navigation.navigate("CodeVerification" as never);
   };
 
-  const renderContent = () => {
+  const statusIcon = () => {
     switch (status) {
       case "verifying":
         return (
-          <View style={authStyles.statusContainer}>
-            <View
-              style={[
-                authStyles.successIcon,
-                { backgroundColor: colors.primary },
-              ]}
-            >
-              <ActivityIndicator size={24} color="white" />
-            </View>
-            <Text style={[authStyles.message, { color: colors.text }]}>
-              {message}
-            </Text>
-          </View>
+          <ActivityIndicator size="large" color={colors.primary} />
         );
-
       case "success":
         return (
-          <>
-            <View style={authStyles.statusContainer}>
-              <View
-                style={[
-                  authStyles.successIcon,
-                  { backgroundColor: colors.primary },
-                ]}
-              >
-                <Text style={authStyles.checkmark}>✓</Text>
-              </View>
-              <Text style={[authStyles.message, { color: colors.text }]}>
-                {message}
-              </Text>
-            </View>
-            <View style={{ marginTop: DesignSystem.spacing.xl }}>
-              <Pressable
-                onPress={handleBackToHome}
-                onPressIn={onPressIn}
-                onPressOut={onPressOut}
-              >
-                <Animated.View
-                  style={[
-                    {
-                      borderRadius: DesignSystem.borders.radius.large,
-                      backgroundColor: colors.primary,
-                      shadowColor: colors.primary,
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.18,
-                      shadowRadius: 18,
-                      elevation: 5,
-                      borderWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.12)"
-                        : "rgba(255, 255, 255, 0.22)",
-                      overflow: "hidden",
-                      position: "relative",
-                    },
-                    ctaAnimatedStyle,
-                  ]}
-                >
-                  <LinearGradient
-                    colors={ctaHighlight}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "45%",
-                    }}
-                    pointerEvents="none"
-                  />
-                  <View
-                    style={{
-                      paddingVertical: DesignSystem.spacing.md,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "white",
-                        fontWeight: "600",
-                        fontSize: 16,
-                      }}
-                    >
-                      Continue to App
-                    </Text>
-                  </View>
-                </Animated.View>
-              </Pressable>
-            </View>
-          </>
+          <Ionicons
+            name="checkmark-circle"
+            size={64}
+            color={colors.secondary}
+          />
         );
-
       case "error":
         return (
-          <>
-            <View style={authStyles.statusContainer}>
-              <View
-                style={[authStyles.errorIcon, { backgroundColor: colors.error }]}
-              >
-                <Text style={authStyles.errorMark}>✕</Text>
-              </View>
-              <Text style={[authStyles.message, { color: colors.text }]}>
-                {message}
-              </Text>
-            </View>
-            <View
-              style={{
-                marginTop: DesignSystem.spacing.xl,
-                gap: DesignSystem.spacing.md,
-              }}
-            >
-              <Pressable
-                onPress={handleManualCode}
-                onPressIn={onPressIn}
-                onPressOut={onPressOut}
-              >
-                <Animated.View
-                  style={[
-                    {
-                      borderRadius: DesignSystem.borders.radius.large,
-                      backgroundColor: colors.primary,
-                      shadowColor: colors.primary,
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.18,
-                      shadowRadius: 18,
-                      elevation: 5,
-                      borderWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.12)"
-                        : "rgba(255, 255, 255, 0.22)",
-                      overflow: "hidden",
-                      position: "relative",
-                    },
-                    ctaAnimatedStyle,
-                  ]}
-                >
-                  <LinearGradient
-                    colors={ctaHighlight}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "45%",
-                    }}
-                    pointerEvents="none"
-                  />
-                  <View
-                    style={{
-                      paddingVertical: DesignSystem.spacing.md,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "white",
-                        fontWeight: "600",
-                        fontSize: 16,
-                      }}
-                    >
-                      Enter Code Manually
-                    </Text>
-                  </View>
-                </Animated.View>
-              </Pressable>
-
-              <Pressable onPress={handleBackToHome}>
-                <GlassCard
-                  material="regular"
-                  radius={DesignSystem.borders.radius.large}
-                  style={{
-                    paddingVertical: DesignSystem.spacing.md,
-                    alignItems: "center",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(255, 255, 255, 0.12)"
-                      : "rgba(255, 255, 255, 0.22)",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: colors.textSecondary,
-                      fontWeight: "600",
-                      fontSize: 16,
-                    }}
-                  >
-                    Back to Home
-                  </Text>
-                </GlassCard>
-              </Pressable>
-            </View>
-          </>
+          <Ionicons name="close-circle" size={64} color={colors.error} />
         );
     }
   };
 
   return (
-    <View
-      style={[authStyles.container, { backgroundColor: colors.background }]}
+    <AuthScaffold
+      title="Email verification"
+      onBack={handleBackToHome}
+      scrollable={false}
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={styles.statusBlock}>
+        {statusIcon()}
+        <Text style={[styles.message, { color: colors.text }]}>{message}</Text>
+      </View>
 
-      {/* Hero Section — match Welcome screen (single halo) */}
-      <View
-        style={[
-          authStyles.heroSection,
-          { backgroundColor: colors.background, justifyContent: "flex-start" },
-          authHeroMinHeight !== undefined && {
-            minHeight: authHeroMinHeight,
-          },
-          tabletHeroPadding !== undefined && {
-            paddingHorizontal: tabletHeroPadding,
-          },
-          isTablet && {
-            paddingBottom: getResponsiveValue(
-              DesignSystem.spacing.md,
-              DesignSystem.spacing.sm,
-              DesignSystem.spacing.sm,
-            ),
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={haloGradient}
-          start={{ x: 0.5, y: 0.15 }}
-          end={{ x: 0.5, y: 1 }}
-          style={authStyles.gradientBase}
-          pointerEvents="none"
-        />
+      {status === "success" && (
+        <View style={styles.actions}>
+          <Button label="Continue to app" onPress={handleBackToHome} />
+        </View>
+      )}
 
-        {/* Header */}
-        <View style={[
-          authStyles.headerContainer,
-          authStyles.heroContent,
-          maxContentWidth !== undefined && {
-            maxWidth: maxContentWidth,
-            alignSelf: "center",
-            width: "100%",
-          },
-          { zIndex: 1 },
-        ]}>
-          <AuthTopHeader
-            title="Email Verification"
-            onBack={handleBackToHome}
+      {status === "error" && (
+        <View style={styles.actions}>
+          <Button label="Enter code manually" onPress={handleManualCode} />
+          <Button
+            label="Back to home"
+            onPress={handleBackToHome}
+            variant="secondary"
           />
         </View>
-      </View>
-
-      <View style={{ 
-        paddingTop: getResponsiveValue(
-          DesignSystem.spacing.lg,
-          DesignSystem.spacing.sm,
-          DesignSystem.spacing.xs,
-        ),
-        flex: 1,
-        paddingHorizontal: isTablet
-          ? getResponsiveValue(
-              DesignSystem.spacing.md,
-              DesignSystem.spacing.lg,
-              DesignSystem.spacing.xl,
-            )
-          : DesignSystem.spacing.md,
-        alignItems: "center",
-        width: "100%",
-      }}>
-        <View style={[
-          { width: "100%" },
-          maxContentWidth !== undefined && { maxWidth: maxContentWidth },
-          { paddingBottom: dynamicBottomSpacing },
-        ]}>
-        {/* Content */}
-        {renderContent()}
-        </View>
-      </View>
-    </View>
+      )}
+    </AuthScaffold>
   );
 }
+
+const styles = {
+  statusBlock: {
+    flex: 1,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    paddingVertical: DesignSystem.spacing.xxxl,
+    gap: DesignSystem.spacing.lg,
+  },
+  message: {
+    ...DesignSystem.typography.callout,
+    textAlign: "center" as const,
+    paddingHorizontal: DesignSystem.spacing.md,
+  },
+  actions: {
+    gap: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.lg,
+  },
+};

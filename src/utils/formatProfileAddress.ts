@@ -1,4 +1,5 @@
 import { UserProfile } from "../context/ProfileContext";
+import { lookupCountryIso, lookupRegionIso } from "./countryRegionData";
 
 function trimOrNull(value?: string | null): string | null {
   const trimmed = value?.trim();
@@ -45,4 +46,20 @@ export function formatProfileAddressLines(
   if (country) lines.push(country);
 
   return lines;
+}
+
+/** Short locality for dashboard chrome: city + abbreviated region. Never street. */
+export function formatProfileLocality(
+  profile: UserProfile | null
+): string | null {
+  if (!profile) return null;
+  const city = trimOrNull(profile.city);
+  const region = trimOrNull(profile.region);
+  const countryIso = lookupCountryIso(profile.country);
+  const regionAbbr = region
+    ? lookupRegionIso(countryIso, region) ||
+      (region.length <= 3 ? region.toUpperCase() : region)
+    : null;
+  if (city && regionAbbr) return `${city}, ${regionAbbr}`;
+  return city || regionAbbr;
 }
