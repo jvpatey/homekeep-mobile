@@ -24,6 +24,7 @@ import {
   zoneTaskCounts,
   HomeMapZone,
 } from "../../data/homeMapZones";
+import { countFilledEmergencySpots } from "../../types/homeEmergency";
 
 interface HomeSystemMapProps {
   overdueTasks: MaintenanceTask[];
@@ -259,6 +260,13 @@ export function HomeSystemMap({
     zoneTaskCounts(zone, overdueTasks, upcomingTasks);
 
   const selectedZone = zones.find((z) => z.id === selectedZoneId);
+  const emergencyProgress = countFilledEmergencySpots(profile?.home_emergency);
+  const emergencySubtitle =
+    emergencyProgress.filled === 0
+      ? "Save where water, panel, and gas live"
+      : emergencyProgress.filled === emergencyProgress.total
+        ? "All 3 spots saved"
+        : `${emergencyProgress.filled} of ${emergencyProgress.total} spots saved`;
 
   const toggle = (id: HomeMapZoneId) => {
     onSelectZone(selectedZoneId === id ? null : id);
@@ -345,20 +353,46 @@ export function HomeSystemMap({
               void triggerLight();
               onPinPress("water");
             }}
-            style={styles.emergencyRow}
+            style={[
+              styles.emergencyCard,
+              {
+                backgroundColor: colors.fieldFill,
+                borderColor: colors.border,
+              },
+            ]}
             accessibilityRole="button"
-            accessibilityLabel="Emergency shutoffs and panel"
+            accessibilityLabel={`Emergency shutoffs. ${emergencySubtitle}`}
           >
+            <View
+              style={[
+                styles.emergencyIcon,
+                { backgroundColor: colors.primary + "22" },
+              ]}
+            >
+              <Ionicons
+                name="warning-outline"
+                size={18}
+                color={colors.primary}
+              />
+            </View>
+            <View style={styles.emergencyCopy}>
+              <Text style={[styles.emergencyTitle, { color: colors.text }]}>
+                Emergency shutoffs
+              </Text>
+              <Text
+                style={[
+                  styles.emergencySubtitle,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {emergencySubtitle}
+              </Text>
+            </View>
             <Ionicons
-              name="warning-outline"
-              size={14}
+              name="chevron-forward"
+              size={18}
               color={colors.textSecondary}
             />
-            <Text
-              style={[styles.emergencyText, { color: colors.textSecondary }]}
-            >
-              Shutoffs & panel
-            </Text>
           </Pressable>
         ) : null}
 
@@ -475,18 +509,37 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 12,
   },
-  emergencyRow: {
+  emergencyCard: {
+    marginHorizontal: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.md,
+    marginTop: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingBottom: DesignSystem.spacing.md,
-    paddingTop: 2,
+    gap: 12,
   },
-  emergencyText: {
+  emergencyIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emergencyCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  emergencyTitle: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "700",
+  },
+  emergencySubtitle: {
     ...DesignSystem.typography.caption,
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 12,
   },
   setupButtonWrap: {
     marginTop: DesignSystem.spacing.sm,

@@ -83,16 +83,20 @@ export function useSheetMount(visible: boolean, onDismissed?: () => void) {
     if (visible) {
       clearCloseSafety();
       isClosingRef.current = false;
-      wasOpenRef.current = true;
-      setMounted(true);
 
-      translateY.value = SCREEN_HEIGHT;
-      if (reducedMotion) {
-        opacity.value = 1;
-        translateY.value = 0;
-      } else {
-        opacity.value = withTiming(1, SHEET_ENTER);
-        translateY.value = withTiming(0, SHEET_ENTER);
+      // Only mount + enter when opening; don't restart animation if other
+      // deps (e.g. reducedMotion) change while the sheet is already open.
+      if (!wasOpenRef.current) {
+        wasOpenRef.current = true;
+        setMounted(true);
+        translateY.value = SCREEN_HEIGHT;
+        if (reducedMotion) {
+          opacity.value = 1;
+          translateY.value = 0;
+        } else {
+          opacity.value = withTiming(1, SHEET_ENTER);
+          translateY.value = withTiming(0, SHEET_ENTER);
+        }
       }
       return;
     }
