@@ -12,7 +12,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useWeather } from "../../hooks";
 import { pickTemperatureUnit } from "../../services/WeatherService";
-import { useDevice, useHaptics } from "../../hooks";
+import { useHaptics } from "../../hooks";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileMenu } from "./profile";
 import { useNavigation } from "@react-navigation/native";
@@ -32,6 +32,7 @@ interface DashboardHeaderProps {
   onOpenHomeSummary?: () => void;
   onScrollToSection?: (sectionKey: string) => void;
   animatedStyle?: object;
+  /** Season only — e.g. "Warm season". Locality lives in the context line. */
   seasonLabel?: string | null;
   campaignLabel?: string | null;
   onOpenCampaign?: () => void;
@@ -55,7 +56,6 @@ export function DashboardHeader({
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
   const { triggerLight } = useHaptics();
-  const { isTablet, getResponsiveValue } = useDevice();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
@@ -74,38 +74,81 @@ export function DashboardHeader({
   });
 
   const unitSymbol = temperatureUnit === "fahrenheit" ? "°F" : "°C";
+  const locality = formatProfileLocality(profile);
 
+  // One secondary line. Never repeat locality next to weather.
   const contextLine = useMemo(() => {
-    const locality = formatProfileLocality(profile);
     if (weather) {
-      const conditions = `${weather.temperature}${unitSymbol} · ${weather.conditionLabel}`;
+      const parts = [
+        `${weather.temperature}${unitSymbol}`,
+        weather.conditionLabel,
+      ];
+      if (seasonLabel) parts.push(seasonLabel);
       return {
         icon: weather.iconName,
-        text: locality ? `${conditions} · ${locality}` : conditions,
+        text: parts.join(" · "),
+        needsAddress: false,
       };
     }
     if (!hasCoords) {
       return {
         icon: "location-outline" as const,
         text: "Add your address for local weather",
+        needsAddress: true,
       };
     }
-    if (!locality) return null;
-    return { icon: "location-outline" as const, text: locality };
-  }, [weather, hasCoords, unitSymbol, profile?.city, profile?.region, profile?.country]);
+    const parts = [locality, seasonLabel].filter(Boolean) as string[];
+    if (parts.length === 0) return null;
+    return {
+      icon: "location-outline" as const,
+      text: parts.join(" · "),
+      needsAddress: false,
+    };
+  }, [weather, hasCoords, unitSymbol, locality, seasonLabel]);
 
-  const headerAvatarSize = isTablet ? getResponsiveValue(44, 52, 56) : 44;
-
-  const handleWeatherPress = () => {
-    triggerLight();
-    if (!hasCoords) {
-      onOpenAddressEditor();
+  // Prefer a single actionable chip: overdue > due today > campaign.
+  const statusChip = useMemo(() => {
+    if (overdueCount > 0) {
+      return {
+        key: "overdue",
+        label: overdueCount === 1 ? "1 overdue" : `${overdueCount} overdue`,
+        accessibilityLabel: `${overdueCount} overdue tasks`,
+        color: colors.error,
+        onPress: () => onScrollToSection?.("overdue"),
+      };
     }
-  };
+    if (dueTodayCount > 0) {
+      return {
+        key: "today",
+        label: dueTodayCount === 1 ? "1 due today" : `${dueTodayCount} due today`,
+        accessibilityLabel: `${dueTodayCount} due today`,
+        color: colors.primary,
+        onPress: () => onScrollToSection?.("__today__"),
+      };
+    }
+    if (campaignLabel && onOpenCampaign) {
+      return {
+        key: "campaign",
+        label: campaignLabel,
+        accessibilityLabel: campaignLabel,
+        color: colors.primary,
+        onPress: onOpenCampaign,
+      };
+    }
+    return null;
+  }, [
+    overdueCount,
+    dueTodayCount,
+    campaignLabel,
+    onOpenCampaign,
+    onScrollToSection,
+    colors.error,
+    colors.primary,
+  ]);
 
-  const handleChipPress = (key: string) => {
+  const handleContextPress = () => {
     triggerLight();
-    onScrollToSection?.(key);
+    onOpenAddressEditor();
   };
 
   const Wrapper = animatedStyle ? Animated.View : View;
@@ -118,7 +161,6 @@ export function DashboardHeader({
         animatedStyle,
       ]}
     >
-      {/* Top bar */}
       <View style={styles.topBar}>
         <View style={styles.wordmarkRow}>
           <View style={styles.wordmarkMark}>
@@ -172,107 +214,61 @@ export function DashboardHeader({
         </View>
       </View>
 
-      {/* Greeting */}
       <Text
         style={[styles.greeting, { color: colors.text }]}
         maxFontSizeMultiplier={1.25}
       >
         {greeting}, {userName}
       </Text>
-      {seasonLabel ? (
-        <Text
-          style={[styles.seasonLine, { color: colors.textSecondary }]}
-          numberOfLines={1}
-        >
-          {seasonLabel}
-        </Text>
-      ) : null}
 
-      {/* Context line + chips */}
-      <View style={styles.contextRow}>
-        {contextLine ? (
-          <Pressable
-            onPress={handleWeatherPress}
-            accessibilityRole="button"
-            accessibilityLabel={contextLine.text}
-            style={styles.contextPressable}
-          >
-            <Ionicons
-              name={contextLine.icon}
-              size={16}
-              color={colors.textSecondary}
-            />
-            <Text
-              style={[styles.contextText, { color: colors.textSecondary }]}
-              numberOfLines={1}
+      {contextLine || statusChip ? (
+        <View style={styles.metaRow}>
+          {contextLine ? (
+            <Pressable
+              onPress={handleContextPress}
+              accessibilityRole="button"
+              accessibilityLabel={contextLine.text}
+              style={styles.contextPressable}
             >
-              {contextLine.text}
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
+              <Ionicons
+                name={contextLine.icon}
+                size={15}
+                color={colors.textSecondary}
+              />
+              <Text
+                style={[styles.contextText, { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {contextLine.text}
+              </Text>
+            </Pressable>
+          ) : (
+            <View style={styles.contextPressable} />
+          )}
 
-      {(overdueCount > 0 || dueTodayCount > 0 || campaignLabel) && (
-        <View style={styles.chipRow}>
-          {campaignLabel && onOpenCampaign ? (
+          {statusChip ? (
             <Pressable
               onPress={() => {
                 triggerLight();
-                onOpenCampaign();
+                statusChip.onPress();
               }}
               style={[
                 styles.chip,
                 {
                   backgroundColor: colors.glassTint,
-                  borderColor: colors.primary + "44",
+                  borderColor: statusChip.color + "44",
                 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel={campaignLabel}
+              accessibilityLabel={statusChip.accessibilityLabel}
             >
-              <Text style={[styles.chipText, { color: colors.primary }]}>
-                {campaignLabel}
+              <Text style={[styles.chipText, { color: statusChip.color }]}>
+                {statusChip.label}
               </Text>
             </Pressable>
           ) : null}
-          {overdueCount > 0 && (
-            <Pressable
-              onPress={() => handleChipPress("overdue")}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: colors.glassTint,
-                  borderColor: colors.error + "44",
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`${overdueCount} overdue tasks`}
-            >
-              <Text style={[styles.chipText, { color: colors.error }]}>
-                {overdueCount} overdue
-              </Text>
-            </Pressable>
-          )}
-          {dueTodayCount > 0 && (
-            <Pressable
-              onPress={() => handleChipPress("__today__")}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: colors.glassTint,
-                  borderColor: colors.primary + "44",
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`${dueTodayCount} due today`}
-            >
-              <Text style={[styles.chipText, { color: colors.primary }]}>
-                {dueTodayCount} due today
-              </Text>
-            </Pressable>
-          )}
         </View>
-      )}
+      ) : null}
     </Wrapper>
   );
 }
@@ -286,7 +282,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.md,
   },
   wordmarkRow: {
     flexDirection: "row",
@@ -316,35 +312,30 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...DesignSystem.typography.title1,
-    marginBottom: DesignSystem.spacing.xs,
-  },
-  seasonLine: {
-    ...DesignSystem.typography.footnote,
     marginBottom: DesignSystem.spacing.sm,
   },
-  contextRow: {
-    marginBottom: DesignSystem.spacing.sm,
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
   },
   contextPressable: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.xs,
+    minWidth: 0,
   },
   contextText: {
-    ...DesignSystem.typography.callout,
-    flex: 1,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.sm,
-    marginTop: DesignSystem.spacing.xs,
+    ...DesignSystem.typography.footnote,
+    flexShrink: 1,
   },
   chip: {
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.xs + 2,
     borderRadius: DesignSystem.borders.radius.round,
     borderWidth: 1,
+    flexShrink: 0,
   },
   chipText: {
     ...DesignSystem.typography.footnote,

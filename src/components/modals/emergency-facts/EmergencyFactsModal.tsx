@@ -21,8 +21,14 @@ import { DesignSystem } from "../../../theme/designSystem";
 import {
   HomeEmergencyFacts,
   HomeEmergencySpot,
+  newlyFilledEmergencySpots,
+  findOpenTasksForEmergencySpots,
+  isEmergencySpotFilled,
+  HOME_EMERGENCY_SPOT_KEYS,
+  HomeEmergencySpotKey,
 } from "../../../types/homeEmergency";
 import { EquipmentManualService } from "../../../services/EquipmentManualService";
+import { useTasks } from "../../../context/TasksContext";
 
 interface EmergencyFactsModalProps {
   visible: boolean;
@@ -186,6 +192,7 @@ export function EmergencyFactsModal({
   const { colors } = useTheme();
   const { user } = useAuth();
   const { profile, updateHomeEmergency } = useProfile();
+  const { upcomingTasks, overdueTasks, completeTask } = useTasks();
   const hydratedForOpen = useRef(false);
 
   const [notes, setNotes] = useState<Record<SpotKey, string>>(emptyNotes);
@@ -276,6 +283,7 @@ export function EmergencyFactsModal({
   const handleSave = async () => {
     setSaving(true);
     try {
+      const previous = profile?.home_emergency ?? {};
       const facts: HomeEmergencyFacts = {};
       for (const spot of SPOTS) {
         const note = notes[spot.key].trim();
@@ -295,7 +303,55 @@ export function EmergencyFactsModal({
         Alert.alert("Couldn't save", result.error ?? "Please try again.");
         return;
       }
-      onClose();
+
+      // Prefer newly filled spots; if none, still check all filled spots so a
+      // prior save that never cleared the starter task can be resolved.
+      let spotKeys: HomeEmergencySpotKey[] = newlyFilledEmergencySpots(
+        previous,
+        facts
+      );
+      if (spotKeys.length === 0) {
+        spotKeys = HOME_EMERGENCY_SPOT_KEYS.filter((key) =>
+          isEmergencySpotFilled(facts[key])
+        );
+      }
+
+      const openTasks = [...overdueTasks, ...upcomingTasks];
+      const related = findOpenTasksForEmergencySpots(openTasks, spotKeys);
+
+      if (related.length === 0) {
+        onClose();
+        return;
+      }
+
+      const list = related.map((t) => `• ${t.title}`).join("\n");
+      Alert.alert(
+        "Mark related tasks done?",
+        `You saved this on your emergency map:\n\n${list}\n\nMark ${
+          related.length === 1 ? "it" : "them"
+        } complete on your schedule?`,
+        [
+          {
+            text: "Not now",
+            style: "cancel",
+            onPress: onClose,
+          },
+          {
+            text: related.length === 1 ? "Mark done" : "Mark all done",
+            onPress: () => {
+              void (async () => {
+                for (const task of related) {
+                  await completeTask(task.instance_id, {
+                    notes: "Recorded on emergency shutoffs map",
+                    labor_type: "diy",
+                  });
+                }
+                onClose();
+              })();
+            },
+          },
+        ]
+      );
     } finally {
       setSaving(false);
     }

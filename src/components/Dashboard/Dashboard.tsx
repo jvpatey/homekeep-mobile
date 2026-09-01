@@ -42,7 +42,6 @@ import {
   recommendInSeasonPlanId,
   homeSeasonLabel,
 } from "../../utils/homeSeason";
-import { formatProfileLocality } from "../../utils/formatProfileAddress";
 import {
   pickNextRightThing,
   nextRightThingWhy,
@@ -254,11 +253,10 @@ export function NewDashboard({
       : "Cold-weather prep";
   }, [inSeasonPlanId, seasonalTasks, seasonalOverdue]);
 
-  const seasonLabel = useMemo(() => {
-    const locality = formatProfileLocality(profile);
-    const season = homeSeasonLabel(month, profile?.latitude);
-    return locality ? `${locality} · ${season}` : season;
-  }, [profile, month]);
+  const seasonLabel = useMemo(
+    () => homeSeasonLabel(month, profile?.latitude),
+    [month, profile?.latitude]
+  );
 
   const hasScheduleTasks = sections.length > 0;
 
