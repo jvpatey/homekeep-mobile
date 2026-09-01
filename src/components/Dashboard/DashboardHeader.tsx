@@ -29,8 +29,12 @@ interface DashboardHeaderProps {
   dueTodayCount: number;
   onOpenEquipmentManuals?: () => void;
   onOpenAddressEditor: () => void;
+  onOpenHomeSummary?: () => void;
   onScrollToSection?: (sectionKey: string) => void;
   animatedStyle?: object;
+  seasonLabel?: string | null;
+  campaignLabel?: string | null;
+  onOpenCampaign?: () => void;
 }
 
 export function DashboardHeader({
@@ -40,8 +44,12 @@ export function DashboardHeader({
   dueTodayCount,
   onOpenEquipmentManuals,
   onOpenAddressEditor,
+  onOpenHomeSummary,
   onScrollToSection,
   animatedStyle,
+  seasonLabel,
+  campaignLabel,
+  onOpenCampaign,
 }: DashboardHeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -141,6 +149,25 @@ export function DashboardHeader({
             </TouchableOpacity>
           ) : null}
 
+          {onOpenHomeSummary ? (
+            <TouchableOpacity
+              onPress={() => {
+                triggerLight();
+                onOpenHomeSummary();
+              }}
+              hitSlop={8}
+              style={styles.iconHit}
+              accessibilityRole="button"
+              accessibilityLabel="Home maintenance summary"
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={22}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ) : null}
+
           <ProfileMenu navigation={navigation} />
         </View>
       </View>
@@ -152,6 +179,14 @@ export function DashboardHeader({
       >
         {greeting}, {userName}
       </Text>
+      {seasonLabel ? (
+        <Text
+          style={[styles.seasonLine, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
+          {seasonLabel}
+        </Text>
+      ) : null}
 
       {/* Context line + chips */}
       <View style={styles.contextRow}>
@@ -177,8 +212,29 @@ export function DashboardHeader({
         ) : null}
       </View>
 
-      {(overdueCount > 0 || dueTodayCount > 0) && (
+      {(overdueCount > 0 || dueTodayCount > 0 || campaignLabel) && (
         <View style={styles.chipRow}>
+          {campaignLabel && onOpenCampaign ? (
+            <Pressable
+              onPress={() => {
+                triggerLight();
+                onOpenCampaign();
+              }}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: colors.glassTint,
+                  borderColor: colors.primary + "44",
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={campaignLabel}
+            >
+              <Text style={[styles.chipText, { color: colors.primary }]}>
+                {campaignLabel}
+              </Text>
+            </Pressable>
+          ) : null}
           {overdueCount > 0 && (
             <Pressable
               onPress={() => handleChipPress("overdue")}
@@ -260,6 +316,10 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...DesignSystem.typography.title1,
+    marginBottom: DesignSystem.spacing.xs,
+  },
+  seasonLine: {
+    ...DesignSystem.typography.footnote,
     marginBottom: DesignSystem.spacing.sm,
   },
   contextRow: {

@@ -56,8 +56,14 @@ export {
   type HomeSystems,
   type HomePropertyType,
   type HomeHeatSource,
+  HOME_HEAT_SOURCE_OPTIONS,
+  canonicalizeHeatSource,
+  isHeatPumpFamily,
+  homeHeatSources,
+  homeHasHeatPump,
   parseHomeSystems,
   mergeHomeSystems,
+  isHomeSystemsComplete,
   toSpringAnswers,
   toColdWeatherAnswers,
   toStarterAnswers,
@@ -71,3 +77,8 @@ export {
   answersForPlan,
 } from "./homeSystems";
 export { recommendMaintenancePlanId } from "./recommendPlan";
+export {
+  type ScheduledHomeItem,
+  generateHomeScheduleItems,
+  scheduledItemsToPayloads,
+} from "./generateHomeSchedule";

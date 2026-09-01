@@ -16,7 +16,9 @@ import { useHaptics, useScreenInsets } from "../../hooks";
 import { HearthScreen } from "../../components/ui";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
-import { HomeAddressOnboardingModal } from "../../components/modals/home-address-onboarding";
+import { HomeSetupModal } from "../../components/modals/home-setup";
+import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
+import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
 import { GlassCard, TintedGlassAvatar } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
@@ -32,7 +34,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
-  const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [homeSetupVisible, setHomeSetupVisible] = useState(false);
+  const [householdVisible, setHouseholdVisible] = useState(false);
+  const [emergencyVisible, setEmergencyVisible] = useState(false);
 
   const getUserInitial = () => {
     const fullName = user?.user_metadata?.full_name;
@@ -57,9 +61,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     setNotificationModalVisible(true);
   };
 
-  const handleHomeAddress = async () => {
+  const handleEditHome = async () => {
     await triggerLight();
-    setAddressModalVisible(true);
+    setHomeSetupVisible(true);
   };
 
   const handleHomeSummary = async () => {
@@ -193,10 +197,30 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       type: "navigation",
     },
     {
-      id: "home-address",
-      title: "Home Address",
+      id: "edit-home",
+      title: "Your home",
       icon: "home-outline",
-      onPress: handleHomeAddress,
+      onPress: handleEditHome,
+      type: "navigation",
+    },
+    {
+      id: "emergency-map",
+      title: "Emergency map",
+      icon: "warning-outline",
+      onPress: () => {
+        void triggerLight();
+        setEmergencyVisible(true);
+      },
+      type: "navigation",
+    },
+    {
+      id: "household",
+      title: "Household sharing",
+      icon: "people-outline",
+      onPress: () => {
+        void triggerLight();
+        setHouseholdVisible(true);
+      },
       type: "navigation",
     },
     {
@@ -403,24 +427,41 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         </GlassCard>
       </ScrollView>
 
-      {/* Avatar Customization Modal */}
-      <AvatarCustomizationModal
-        visible={customizationModalVisible}
-        onClose={() => setCustomizationModalVisible(false)}
-      />
+      {customizationModalVisible ? (
+        <AvatarCustomizationModal
+          visible
+          onClose={() => setCustomizationModalVisible(false)}
+        />
+      ) : null}
 
-      {/* Notification Settings Modal */}
-      <NotificationSettingsModal
-        visible={notificationModalVisible}
-        onClose={() => setNotificationModalVisible(false)}
-      />
+      {notificationModalVisible ? (
+        <NotificationSettingsModal
+          visible
+          onClose={() => setNotificationModalVisible(false)}
+        />
+      ) : null}
 
-      {/* Home Address Modal — same modal used for first-run onboarding. */}
-      <HomeAddressOnboardingModal
-        visible={addressModalVisible}
-        onClose={() => setAddressModalVisible(false)}
-        hideSkip
-      />
+      {homeSetupVisible ? (
+        <HomeSetupModal
+          visible
+          onClose={() => setHomeSetupVisible(false)}
+          hideSkip
+        />
+      ) : null}
+
+      {householdVisible ? (
+        <HouseholdSharingModal
+          visible
+          onClose={() => setHouseholdVisible(false)}
+        />
+      ) : null}
+
+      {emergencyVisible ? (
+        <EmergencyFactsModal
+          visible
+          onClose={() => setEmergencyVisible(false)}
+        />
+      ) : null}
     </HearthScreen>
   );
 }

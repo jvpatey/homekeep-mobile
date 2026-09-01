@@ -82,6 +82,14 @@ export class EquipmentManualService {
     }
   }
 
+  static uploadFromUriPublic(
+    objectPath: string,
+    localUri: string,
+    mimeType: string
+  ) {
+    return this.uploadFromUri(objectPath, localUri, mimeType);
+  }
+
   static async listEquipmentManuals(): Promise<EquipmentManualsResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };

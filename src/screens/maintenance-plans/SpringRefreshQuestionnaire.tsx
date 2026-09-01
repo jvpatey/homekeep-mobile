@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Text } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import type { SpringRefreshAnswers } from "../../data/maintenancePlans";
+import {
+  HOME_HEAT_SOURCE_OPTIONS,
+  canonicalizeHeatSource,
+} from "../../data/maintenancePlans";
 import { maintenancePlansStyles } from "./styles";
 import {
   QuestionnaireShell,
@@ -34,7 +38,7 @@ export function SpringRefreshQuestionnaire({
   useEffect(() => {
     setHasLawn(initialAnswers?.hasLawn ?? null);
     setPropertyType(initialAnswers?.propertyType ?? null);
-    setHeatSource(initialAnswers?.heatSource ?? null);
+    setHeatSource(canonicalizeHeatSource(initialAnswers?.heatSource) ?? null);
   }, [initialAnswers]);
 
   const answered =
@@ -47,7 +51,12 @@ export function SpringRefreshQuestionnaire({
     if (hasLawn === null || propertyType === null || heatSource === null) {
       return;
     }
-    onComplete({ hasLawn, propertyType, heatSource });
+    onComplete({
+      hasLawn,
+      propertyType,
+      heatSource,
+      heatSources: [heatSource],
+    });
   };
 
   return (
@@ -102,33 +111,18 @@ export function SpringRefreshQuestionnaire({
       <QuestionCard>
         <QuestionLabel>How do you heat your home?</QuestionLabel>
         <QuestionHint>
-          We use this to suggest spring HVAC tasks (for example heat pumps vs.
-          gas furnaces).
+          Pick the main system. Setup can record more than one if you use
+          several.
         </QuestionHint>
-        <ChoiceRow
-          label="Gas furnace"
-          selected={heatSource === "gas_furnace"}
-          onPress={() => setHeatSource("gas_furnace")}
-          accessibilityLabel="Gas furnace"
-        />
-        <ChoiceRow
-          label="Heat pump"
-          selected={heatSource === "heat_pump"}
-          onPress={() => setHeatSource("heat_pump")}
-          accessibilityLabel="Heat pump"
-        />
-        <ChoiceRow
-          label="Electric (radiant / baseboard)"
-          selected={heatSource === "electric"}
-          onPress={() => setHeatSource("electric")}
-          accessibilityLabel="Electric heat"
-        />
-        <ChoiceRow
-          label="Other"
-          selected={heatSource === "other"}
-          onPress={() => setHeatSource("other")}
-          accessibilityLabel="Other heating"
-        />
+        {HOME_HEAT_SOURCE_OPTIONS.map((option) => (
+          <ChoiceRow
+            key={option.id}
+            label={option.label}
+            selected={heatSource === option.id}
+            onPress={() => setHeatSource(option.id)}
+            accessibilityLabel={option.label}
+          />
+        ))}
       </QuestionCard>
     </QuestionnaireShell>
   );

@@ -15,6 +15,8 @@ export interface MaintenanceRoutine {
   updated_at: string;
   /** Set when the routine was created from a guided maintenance plan. */
   source_plan_id?: string | null;
+  /** Optional equipment this routine belongs to. */
+  equipment_id?: string | null;
 }
 
 export interface RoutineInstance {
@@ -25,6 +27,9 @@ export interface RoutineInstance {
   is_completed: boolean;
   is_overdue: boolean;
   notes?: string;
+  cost_amount?: number | null;
+  labor_type?: "diy" | "hired" | null;
+  photo_storage_path?: string | null;
   created_at: string;
 }
 
@@ -49,6 +54,10 @@ export interface MaintenanceTask {
   updated_at: string;
   is_active: boolean;
   source_plan_id?: string | null;
+  equipment_id?: string | null;
+  cost_amount?: number | null;
+  labor_type?: "diy" | "hired" | null;
+  photo_storage_path?: string | null;
 }
 
 export type MaintenanceCategory =
@@ -81,6 +90,7 @@ export interface CreateMaintenanceRoutineData {
   interval_days: number;
   start_date: string;
   source_plan_id?: string | null;
+  equipment_id?: string | null;
 }
 
 // Data for updating maintenance routines
@@ -94,6 +104,7 @@ export interface UpdateMaintenanceRoutineData {
   start_date?: string;
   is_active?: boolean;
   source_plan_id?: string | null;
+  equipment_id?: string | null;
 }
 
 // Data for updating routine instances
@@ -103,6 +114,9 @@ export interface UpdateRoutineInstanceData {
   notes?: string;
   // Allow rescheduling the current instance
   due_date?: string;
+  cost_amount?: number | null;
+  labor_type?: "diy" | "hired" | null;
+  photo_storage_path?: string | null;
 }
 
 export interface CreateRoutineInstanceData {
@@ -337,5 +351,8 @@ export interface InstanceWithRoutine {
   is_overdue: boolean;
   completed_at?: string;
   notes?: string;
+  cost_amount?: number | null;
+  labor_type?: "diy" | "hired" | null;
+  photo_storage_path?: string | null;
   created_at: string;
 }

@@ -1,3 +1,5 @@
+import { recommendInSeasonPlanId } from "../../utils/homeSeason";
+
 export function recommendMaintenancePlanId({
   month,
   latitude,
@@ -12,15 +14,5 @@ export function recommendMaintenancePlanId({
     return "new-homeowner-starter";
   }
 
-  const southern = (latitude ?? 0) < 0;
-  const isSpring = southern
-    ? month >= 8 && month <= 10
-    : month >= 2 && month <= 4;
-  const isFall = southern
-    ? month >= 2 && month <= 4
-    : month >= 8 && month <= 10;
-
-  if (isSpring) return "spring-refresh";
-  if (isFall) return "cold-weather-prep";
-  return "year-round-safety";
+  return recommendInSeasonPlanId(month, latitude) ?? "year-round-safety";
 }

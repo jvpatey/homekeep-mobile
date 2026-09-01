@@ -5,7 +5,7 @@ import {
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
 } from "../types/maintenance";
-import type { MaintenancePlanItemTemplate } from "../data/maintenancePlans";
+import type { MaintenancePlanItemTemplate, ScheduledHomeItem } from "../data/maintenancePlans";
 
 // TimeRange type for the time range
 export type TimeRange = 30 | 60 | 90 | 120 | "all";
@@ -42,12 +42,26 @@ interface UseTasksReturn {
     addedCount?: number;
     skippedCount?: number;
   }>;
+  applyGeneratedHomeSchedule: (
+    items: ScheduledHomeItem[]
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    skippedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
   completeTask: (
-    instanceId: string
+    instanceId: string,
+    extras?: {
+      notes?: string;
+      cost_amount?: number | null;
+      labor_type?: "diy" | "hired" | null;
+      photo_storage_path?: string | null;
+    }
   ) => Promise<{ success: boolean; error?: string }>;
   uncompleteTask: (
     instanceId: string

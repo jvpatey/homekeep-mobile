@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import React, { ReactNode } from "react";
 import {
   View,
   Text,
@@ -12,30 +12,15 @@ import {
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useGradients, useDevice, useReducedMotion } from "../../hooks";
+import { useGradients, useDevice, useSheetMount } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import { SheetGrabber } from "./sheet-grabber";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-const SHEET_ENTER = {
-  duration: DesignSystem.motion.duration.base,
-  easing: DesignSystem.motion.easing.emphasized,
-};
-
-const SHEET_EXIT = {
-  duration: DesignSystem.motion.duration.fast,
-  easing: DesignSystem.motion.easing.standard,
-};
 
 interface HearthSheetProps {
   visible: boolean;
@@ -75,74 +60,14 @@ export function HearthSheet({
   const { colors } = useTheme();
   const { authAtmosphere } = useGradients();
   const { getTabletSheetContainerStyle } = useDevice();
-  const reducedMotion = useReducedMotion();
-
-  const [mounted, setMounted] = useState(false);
-  const isAnimatingOut = useRef(false);
-  const wasVisible = useRef(false);
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(SCREEN_HEIGHT);
-
-  const animateIn = useCallback(() => {
-    translateY.value = SCREEN_HEIGHT;
-    if (reducedMotion) {
-      opacity.value = 1;
-      translateY.value = 0;
-      return;
-    }
-    opacity.value = withTiming(1, SHEET_ENTER);
-    translateY.value = withTiming(0, SHEET_ENTER);
-  }, [opacity, translateY, reducedMotion]);
-
-  const finishClose = useCallback(() => {
-    isAnimatingOut.current = false;
-    setMounted(false);
-    onDismissed?.();
-  }, [onDismissed]);
-
-  const animateOut = useCallback(() => {
-    if (isAnimatingOut.current) return;
-    isAnimatingOut.current = true;
-    if (reducedMotion) {
-      opacity.value = 0;
-      translateY.value = SCREEN_HEIGHT;
-      finishClose();
-      return;
-    }
-    opacity.value = withTiming(0, SHEET_EXIT);
-    translateY.value = withTiming(
-      SCREEN_HEIGHT,
-      SHEET_EXIT,
-      (finished) => {
-        if (finished) {
-          runOnJS(finishClose)();
-        }
-      }
-    );
-  }, [finishClose, opacity, translateY, reducedMotion]);
-
-  useEffect(() => {
-    if (visible) {
-      if (!wasVisible.current) {
-        isAnimatingOut.current = false;
-        setMounted(true);
-        animateIn();
-      }
-    } else if (wasVisible.current) {
-      animateOut();
-    }
-    wasVisible.current = visible;
-  }, [visible, animateIn, animateOut]);
+  const { mounted, backdropStyle, sheetStyle } = useSheetMount(
+    visible,
+    onDismissed
+  );
 
   const dismiss = () => {
     onClose();
   };
-
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  const sheetStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
 
   if (!mounted) return null;
 
@@ -219,49 +144,6 @@ export function HearthSheet({
     </SafeAreaView>
   );
 
-  const sheetBody = (
-    <>
-      <Animated.View style={[styles.backdrop, backdropStyle]}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={dismiss}
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel ?? "Close"}
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          styles.sheetContainer,
-          getTabletSheetContainerStyle(),
-          fillMaxHeight ? { height: maxHeight } : { maxHeight },
-          sheetStyle,
-        ]}
-      >
-        <View
-          style={[
-            styles.sheetSurface,
-            fillMaxHeight && styles.sheetSurfaceFill,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-            DesignSystem.shadows.softKey,
-          ]}
-        >
-          <LinearGradient
-            colors={authAtmosphere}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.35 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          {sheetInterior}
-        </View>
-      </Animated.View>
-    </>
-  );
-
   return (
     <Modal
       transparent
@@ -271,7 +153,46 @@ export function HearthSheet({
       statusBarTranslucent
       accessibilityViewIsModal
     >
-      <View style={styles.keyboardRoot}>{sheetBody}</View>
+      <View style={styles.keyboardRoot}>
+        <Animated.View style={[styles.backdrop, backdropStyle]}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={dismiss}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? "Close"}
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.sheetContainer,
+            getTabletSheetContainerStyle(),
+            fillMaxHeight ? { height: maxHeight } : { maxHeight },
+            sheetStyle,
+          ]}
+        >
+          <View
+            style={[
+              styles.sheetSurface,
+              fillMaxHeight && styles.sheetSurfaceFill,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              DesignSystem.shadows.softKey,
+            ]}
+          >
+            <LinearGradient
+              colors={authAtmosphere}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 0.35 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            {sheetInterior}
+          </View>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }

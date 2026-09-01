@@ -35,7 +35,12 @@ export class MaintenanceInstanceService {
   // Complete a routine instance
   static async completeInstance(
     instanceId: string,
-    notes?: string
+    extras?: {
+      notes?: string;
+      cost_amount?: number | null;
+      labor_type?: "diy" | "hired" | null;
+      photo_storage_path?: string | null;
+    }
   ): Promise<RoutineInstanceResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -48,8 +53,17 @@ export class MaintenanceInstanceService {
         completed_at: now,
       };
 
-      if (notes) {
-        updateData.notes = notes;
+      if (extras?.notes) {
+        updateData.notes = extras.notes;
+      }
+      if (extras?.cost_amount != null) {
+        updateData.cost_amount = extras.cost_amount;
+      }
+      if (extras?.labor_type) {
+        updateData.labor_type = extras.labor_type;
+      }
+      if (extras?.photo_storage_path) {
+        updateData.photo_storage_path = extras.photo_storage_path;
       }
 
       const { data, error } = await supabase

@@ -40,6 +40,8 @@ import {
   MaintenanceCategory,
   Priority,
 } from "../../../../types/maintenance";
+import { EquipmentManual } from "../../../../types/equipmentManual";
+import { EquipmentManualService } from "../../../../services/EquipmentManualService";
 
 const FORM_KEYBOARD_ACCESSORY_ID = "createTaskFormKeyboardAccessory";
 
@@ -65,6 +67,7 @@ interface MaintenanceRoutineForm {
   priority: Priority;
   estimated_duration_minutes: number;
   description?: string;
+  equipment_id?: string | null;
 }
 
 function getIntervalLabel(interval: number): string {
@@ -100,6 +103,7 @@ function buildInitialForm(
     priority: (initialValues?.priority ?? "medium") as Priority,
     estimated_duration_minutes: initialValues?.estimated_duration_minutes ?? 30,
     description: initialValues?.description ?? "",
+    equipment_id: initialValues?.equipment_id ?? null,
   };
 }
 
@@ -127,6 +131,7 @@ export function CreateTaskModal({
   const fieldOffsets = useRef<Partial<Record<FormFieldKey, number>>>({});
 
   const [form, setForm] = useState<MaintenanceRoutineForm>(initialForm);
+  const [equipmentList, setEquipmentList] = useState<EquipmentManual[]>([]);
   const [durationText, setDurationText] = useState(
     String(initialForm.estimated_duration_minutes)
   );
@@ -174,6 +179,12 @@ export function CreateTaskModal({
       showSub.remove();
       hideSub.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    void EquipmentManualService.listEquipmentManuals().then((result) => {
+      if (result.data) setEquipmentList(result.data);
+    });
   }, []);
 
   const dismissFormChrome = useCallback(() => {
@@ -319,6 +330,7 @@ export function CreateTaskModal({
         interval_days: actualIntervalDays,
         start_date: startAtNoon.toISOString(),
         description: form.description?.trim() || undefined,
+        equipment_id: form.equipment_id || null,
       };
 
       if (isEdit && initialValues?.id) {
@@ -488,6 +500,48 @@ export function CreateTaskModal({
               error={errors.category}
             />
           </View>
+
+          {equipmentList.length > 0 ? (
+            <View style={{ marginBottom: DesignSystem.spacing.md }}>
+              <Text
+                style={{
+                  ...DesignSystem.typography.footnote,
+                  color: colors.textSecondary,
+                  fontWeight: "600",
+                  marginBottom: DesignSystem.spacing.sm,
+                }}
+              >
+                Equipment (optional)
+              </Text>
+              {equipmentList.map((item) => {
+                const selected = form.equipment_id === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() =>
+                      updateForm(
+                        "equipment_id",
+                        selected ? null : item.id
+                      )
+                    }
+                    style={{
+                      paddingVertical: DesignSystem.spacing.sm,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: selected ? colors.primary : colors.text,
+                        fontWeight: selected ? "700" : "500",
+                      }}
+                    >
+                      {selected ? "✓ " : ""}
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
 
           <PrioritySelector
             priorities={priorities}

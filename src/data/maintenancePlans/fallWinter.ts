@@ -1,10 +1,14 @@
 import { MaintenancePlanItemTemplate } from "./types";
+import { type HomeHeatSource, uniqueHeatSources } from "./heatSources";
+import { heatItemsForSeason } from "./heatMaintenance";
 
 /** Same dimensions as spring questionnaire — lawn, exterior responsibility, heating type. */
 export interface ColdWeatherPrepAnswers {
   hasLawn: boolean;
   propertyType: "house" | "condo_townhome";
-  heatSource: "gas_furnace" | "heat_pump" | "electric" | "other";
+  heatSource: HomeHeatSource;
+  /** When set, tasks are included for every selected source. */
+  heatSources?: HomeHeatSource[];
 }
 
 type FallItemDefinition = MaintenancePlanItemTemplate & {
@@ -110,40 +114,6 @@ const COLD_WEATHER_PREP_CATALOG: FallItemDefinition[] = [
   },
 ];
 
-/** Heat pump — align with spring cadence: filters monthly, professional service yearly. */
-const HEAT_PUMP_FALL_FILTERS_MONTHLY: MaintenancePlanItemTemplate = {
-  title: "Clean / replace heat pump filters",
-  description:
-    "Wash or replace filters monthly during peak heating (and cooling) seasons.",
-  category: "HVAC",
-  priority: "medium",
-  estimated_duration_minutes: 25,
-  interval_days: 30,
-  start_offset_days: 8,
-};
-
-const HEAT_PUMP_FALL_PRO_YEARLY: MaintenancePlanItemTemplate = {
-  title: "Professional heat pump inspection",
-  description:
-    "Annual technician visit before peak heating — coils, refrigerant, defrost, and safe operation.",
-  category: "HVAC",
-  priority: "high",
-  estimated_duration_minutes: 120,
-  interval_days: 365,
-  start_offset_days: 9,
-};
-
-const GAS_FURNACE_FALL_EXTRA: MaintenancePlanItemTemplate = {
-  title: "Gas furnace tune-up before heating season",
-  description:
-    "Professional inspection: heat exchanger, ignition, flame, and CO safety before you rely on heat daily.",
-  category: "HVAC",
-  priority: "high",
-  estimated_duration_minutes: 120,
-  interval_days: 365,
-  start_offset_days: 10,
-};
-
 function toTemplate(row: FallItemDefinition): MaintenancePlanItemTemplate {
   return {
     title: row.title,
@@ -171,14 +141,10 @@ export function filterColdWeatherPrepItems(
     out.push(toTemplate(row));
   }
 
-  if (answers.heatSource === "heat_pump") {
-    out.push(
-      { ...HEAT_PUMP_FALL_FILTERS_MONTHLY },
-      { ...HEAT_PUMP_FALL_PRO_YEARLY }
-    );
-  } else if (answers.heatSource === "gas_furnace") {
-    out.push({ ...GAS_FURNACE_FALL_EXTRA });
-  }
+  const heatSources = uniqueHeatSources(
+    answers.heatSources?.length ? answers.heatSources : [answers.heatSource]
+  );
+  out.push(...heatItemsForSeason(heatSources, "fall"));
 
   return out;
 }

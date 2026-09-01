@@ -9,6 +9,12 @@ export {
 
 export { useReducedMotion } from "./useReducedMotion";
 export { useScalePress } from "./useScalePress";
+export {
+  useSheetMount,
+  SHEET_ENTER,
+  SHEET_EXIT,
+  SHEET_UNMOUNT_SAFETY_MS,
+} from "./useSheetMount";
 
 // Gradient hooks
 export { useGradients } from "./useGradients";

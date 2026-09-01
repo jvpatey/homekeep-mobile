@@ -1,11 +1,15 @@
 import { MaintenancePlanItemTemplate } from "./types";
+import { type HomeHeatSource, uniqueHeatSources } from "./heatSources";
+import { heatItemsForSeason } from "./heatMaintenance";
 
 /** Answers collected before showing the tailored Spring refresh checklist. */
 export interface SpringRefreshAnswers {
   hasLawn: boolean;
   /** House: you typically maintain your own roof, gutters, and yard. Condo/townhome: shared or HOA-managed exterior. */
   propertyType: "house" | "condo_townhome";
-  heatSource: "gas_furnace" | "heat_pump" | "electric" | "other";
+  heatSource: HomeHeatSource;
+  /** When set, tasks are included for every selected source. */
+  heatSources?: HomeHeatSource[];
 }
 
 type SpringItemDefinition = MaintenancePlanItemTemplate & {
@@ -115,40 +119,6 @@ const SPRING_REFRESH_CATALOG: SpringItemDefinition[] = [
   },
 ];
 
-/** Heat pump: homeowner filter cadence + annual pro service. */
-const HEAT_PUMP_FILTERS_MONTHLY: MaintenancePlanItemTemplate = {
-  title: "Clean / replace heat pump filters",
-  description:
-    "Wash or replace air filters per manufacturer — typically monthly during peak heating and cooling.",
-  category: "HVAC",
-  priority: "medium",
-  estimated_duration_minutes: 25,
-  interval_days: 30,
-  start_offset_days: 8,
-};
-
-const HEAT_PUMP_PRO_YEARLY: MaintenancePlanItemTemplate = {
-  title: "Professional heat pump clean & inspection",
-  description:
-    "Annual technician visit for deep cleaning, refrigerant check, and safe operation per manufacturer.",
-  category: "HVAC",
-  priority: "high",
-  estimated_duration_minutes: 120,
-  interval_days: 365,
-  start_offset_days: 9,
-};
-
-const GAS_FURNACE_EXTRA: MaintenancePlanItemTemplate = {
-  title: "Replace HVAC filter before cooling season",
-  description:
-    "Fresh filter before you rely on central AC or air handler airflow.",
-  category: "HVAC",
-  priority: "medium",
-  estimated_duration_minutes: 15,
-  interval_days: 90,
-  start_offset_days: 10,
-};
-
 function toTemplate(row: SpringItemDefinition): MaintenancePlanItemTemplate {
   return {
     title: row.title,
@@ -180,14 +150,10 @@ export function filterSpringRefreshItems(
     out.push(toTemplate(row));
   }
 
-  if (answers.heatSource === "heat_pump") {
-    out.push(
-      { ...HEAT_PUMP_FILTERS_MONTHLY },
-      { ...HEAT_PUMP_PRO_YEARLY }
-    );
-  } else if (answers.heatSource === "gas_furnace") {
-    out.push({ ...GAS_FURNACE_EXTRA });
-  }
+  const heatSources = uniqueHeatSources(
+    answers.heatSources?.length ? answers.heatSources : [answers.heatSource]
+  );
+  out.push(...heatItemsForSeason(heatSources, "spring"));
 
   return out;
 }

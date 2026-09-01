@@ -20,6 +20,7 @@ interface SimpleTaskDetailModalProps {
   onEdit?: (task: MaintenanceTask) => void;
   onSkipOccurrence?: (task: MaintenanceTask) => Promise<boolean>;
   onModified?: () => void;
+  onStartComplete?: (task: MaintenanceTask) => void;
 }
 
 function getCategoryInfo(category: string) {
@@ -41,6 +42,7 @@ export function SimpleTaskDetailModal({
   onComplete,
   onEdit,
   onSkipOccurrence,
+  onStartComplete,
 }: SimpleTaskDetailModalProps) {
   const { colors } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
@@ -126,13 +128,19 @@ export function SimpleTaskDetailModal({
           </View>
         ) : null}
         <View style={styles.actionSlot}>
-          <Button
-            label={isCompleting ? "Completing…" : "Complete"}
-            onPress={() => void handleComplete()}
-            loading={isCompleting}
-            disabled={isSkipping}
-            accessibilityLabel="Mark task complete"
-          />
+            <Button
+              label={isCompleting ? "Completing…" : "Complete"}
+              onPress={() => {
+                if (onStartComplete && task) {
+                  onStartComplete(task);
+                  return;
+                }
+                void handleComplete();
+              }}
+              loading={isCompleting}
+              disabled={isSkipping}
+              accessibilityLabel="Mark task complete"
+            />
         </View>
       </View>
       {showSkipOccurrence ? (

@@ -11,19 +11,13 @@ import {
   Alert,
   Modal,
   Pressable,
-  Dimensions,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, {
@@ -35,25 +29,13 @@ import * as WebBrowser from "expo-web-browser";
 import { format, parseISO } from "date-fns";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
-import { useGradients, useHaptics, useDevice } from "../../../hooks";
+import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { Button, HearthSurfaceCard, SheetGrabber } from "../../ui";
 import { FormField } from "../../Dashboard/modals/create-task-modal/FormField";
 import { EquipmentManual } from "../../../types/equipmentManual";
 import { EquipmentManualService } from "../../../services/EquipmentManualService";
 import { styles } from "./styles";
-
-const { height: screenHeight } = Dimensions.get("window");
-
-const SHEET_ENTER = {
-  duration: DesignSystem.motion.duration.base,
-  easing: DesignSystem.motion.easing.emphasized,
-};
-
-const SHEET_EXIT = {
-  duration: DesignSystem.motion.duration.fast,
-  easing: DesignSystem.motion.easing.standard,
-};
 
 type ScreenMode = "list" | "form";
 
@@ -74,7 +56,11 @@ export function EquipmentManualsModal({
     useDevice();
   const fontMultiplier = getFontMultiplier();
 
-  const [mounted, setMounted] = useState(visible);
+  const {
+    mounted,
+    backdropStyle: animatedBackdropStyle,
+    sheetStyle: animatedSheetStyle,
+  } = useSheetMount(visible);
   const [screenMode, setScreenMode] = useState<ScreenMode>("list");
   const [items, setItems] = useState<EquipmentManual[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,9 +87,6 @@ export function EquipmentManualsModal({
     string | null
   >(null);
 
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(screenHeight);
-
   const loadItems = useCallback(async () => {
     if (!isConfigured) return;
     setLoading(true);
@@ -124,29 +107,12 @@ export function EquipmentManualsModal({
 
   useEffect(() => {
     if (visible) {
-      setMounted(true);
       loadItems();
     }
   }, [visible, loadItems]);
 
   useEffect(() => {
-    if (visible) {
-      opacity.value = withTiming(1, SHEET_ENTER);
-      translateY.value = withTiming(0, SHEET_ENTER);
-    } else {
-      opacity.value = withTiming(0, SHEET_EXIT);
-      translateY.value = withTiming(
-        screenHeight,
-        SHEET_EXIT,
-        (finished) => {
-          if (finished) runOnJS(setMounted)(false);
-        }
-      );
-    }
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible && mounted === false) {
+    if (!visible && !mounted) {
       setScreenMode("list");
       setEditing(null);
       resetForm();
@@ -165,15 +131,6 @@ export function EquipmentManualsModal({
     setPendingReceiptMime(null);
     setPendingReceiptFileName(null);
   };
-
-  const animatedBackdropStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  const animatedSheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: opacity.value,
-  }));
 
   const handleClose = async () => {
     await triggerLight();

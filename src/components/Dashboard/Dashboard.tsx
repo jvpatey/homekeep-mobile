@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Alert, View } from "react-native";
+import { Alert, View, Pressable, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   useSharedValue,
@@ -8,18 +8,24 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../context/ThemeContext";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AppStackParamList } from "../../navigation/types";
 import { MaintenanceTask } from "../../types/maintenance";
+import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
 import { CompletionCelebration } from "./popups";
 import { NotificationPermissionRequest, HearthCanvas } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
+import { NextRightThingCard } from "./NextRightThingCard";
+import { HomeSystemMap } from "./HomeSystemMap";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
 import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
-import { HomeAddressOnboardingModal } from "../modals/home-address-onboarding";
+import { HomeSetupModal } from "../modals/home-setup";
 import { useProfile } from "../../context/ProfileContext";
+import { isHomeSystemsComplete } from "../../data/maintenancePlans";
 import { DesignSystem } from "../../theme/designSystem";
 import { getGreeting, getUserName } from "./utils";
 import {
@@ -32,13 +38,38 @@ import {
 } from "./DashboardScheduleList";
 import { confirmSkipTaskOccurrence } from "../../utils/skipTaskOccurrence";
 import { useHaptics, useReducedMotion } from "../../hooks";
+import {
+  recommendInSeasonPlanId,
+  homeSeasonLabel,
+} from "../../utils/homeSeason";
+import { formatProfileLocality } from "../../utils/formatProfileAddress";
+import {
+  pickNextRightThing,
+  nextRightThingWhy,
+} from "../../utils/nextRightThing";
+import {
+  HomeMapZoneId,
+  getHomeMapZones,
+  taskMatchesZone,
+} from "../../data/homeMapZones";
+import { isTaskInSeason } from "../../utils/seasonalTasks";
+import { CompleteTaskSheet } from "../modals/complete-task/CompleteTaskSheet";
+import { EmergencyFactsModal } from "../modals/emergency-facts/EmergencyFactsModal";
+import { WeekendBudgetSheet } from "./WeekendBudgetSheet";
+import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
   overdueTasks?: MaintenanceTask[];
   completedTasks?: MaintenanceTask[];
   onCompleteTask: (
-    instanceId: string
+    instanceId: string,
+    extras?: {
+      notes?: string;
+      cost_amount?: number | null;
+      labor_type?: "diy" | "hired" | null;
+      photo_storage_path?: string | null;
+    }
   ) => Promise<{ success: boolean; error?: string }>;
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
@@ -70,16 +101,18 @@ export function NewDashboard({
   const { colors } = useTheme();
   const { triggerMedium, triggerLight } = useHaptics();
   const reducedMotion = useReducedMotion();
-  const { addressNeeded } = useProfile();
+  const { addressNeeded, homeSetupNeeded, profile } = useProfile();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [completingInstanceIds, setCompletingInstanceIds] = useState<
     Set<string>
   >(new Set());
   const completingRef = useRef<Set<string>>(new Set());
-  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showHomeSetupModal, setShowHomeSetupModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
   );
@@ -89,6 +122,15 @@ export function NewDashboard({
     useState<MaintenanceTask | null>(null);
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
+  const [selectedZoneId, setSelectedZoneId] = useState<HomeMapZoneId | null>(
+    null
+  );
+  const [showWeekendBudget, setShowWeekendBudget] = useState(false);
+  const [showEmergencyFacts, setShowEmergencyFacts] = useState(false);
+  const [completeTarget, setCompleteTarget] = useState<MaintenanceTask | null>(
+    null
+  );
+  const [climateAlert, setClimateAlert] = useState<ClimateAlert | null>(null);
 
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(14);
@@ -139,17 +181,84 @@ export function NewDashboard({
   }));
 
   useEffect(() => {
-    if (!addressNeeded) return;
+    if (profile?.latitude == null || profile?.longitude == null) {
+      setClimateAlert(null);
+      return;
+    }
+    const unit = pickTemperatureUnit(profile.country);
+    void WeatherService.getClimateAlert(
+      profile.latitude,
+      profile.longitude,
+      unit
+    ).then(setClimateAlert);
+  }, [profile?.latitude, profile?.longitude, profile?.country]);
+
+  useEffect(() => {
+    if (!addressNeeded && !homeSetupNeeded) return;
     const timer = setTimeout(() => {
-      setShowAddressModal(true);
+      setShowHomeSetupModal(true);
     }, DesignSystem.motion.duration.base + 200);
     return () => clearTimeout(timer);
-  }, [addressNeeded]);
+  }, [addressNeeded, homeSetupNeeded]);
+
+  const month = new Date().getMonth();
+  const seasonalTasks = useMemo(
+    () => tasks.filter((t) => isTaskInSeason(t, month, profile?.latitude)),
+    [tasks, month, profile?.latitude]
+  );
+  const seasonalOverdue = useMemo(
+    () =>
+      overdueTasks.filter((t) =>
+        isTaskInSeason(t, month, profile?.latitude)
+      ),
+    [overdueTasks, month, profile?.latitude]
+  );
+
+  const zoneFilteredUpcoming = useMemo(() => {
+    if (!selectedZoneId) return seasonalTasks;
+    const zone = getHomeMapZones(profile?.home_systems).find(
+      (z) => z.id === selectedZoneId
+    );
+    if (!zone) return seasonalTasks;
+    return seasonalTasks.filter((t) => taskMatchesZone(t, zone));
+  }, [seasonalTasks, selectedZoneId, profile?.home_systems]);
+
+  const zoneFilteredOverdue = useMemo(() => {
+    if (!selectedZoneId) return seasonalOverdue;
+    const zone = getHomeMapZones(profile?.home_systems).find(
+      (z) => z.id === selectedZoneId
+    );
+    if (!zone) return seasonalOverdue;
+    return seasonalOverdue.filter((t) => taskMatchesZone(t, zone));
+  }, [seasonalOverdue, selectedZoneId, profile?.home_systems]);
 
   const sections = useMemo(
-    () => buildDashboardSections(tasks, overdueTasks),
-    [tasks, overdueTasks]
+    () => buildDashboardSections(zoneFilteredUpcoming, zoneFilteredOverdue),
+    [zoneFilteredUpcoming, zoneFilteredOverdue]
   );
+
+  const nextTask = useMemo(
+    () => pickNextRightThing(seasonalOverdue, seasonalTasks),
+    [seasonalOverdue, seasonalTasks]
+  );
+
+  const inSeasonPlanId = recommendInSeasonPlanId(month, profile?.latitude);
+  const campaignLabel = useMemo(() => {
+    if (!inSeasonPlanId) return null;
+    const hasPlan = [...seasonalTasks, ...seasonalOverdue].some(
+      (t) => t.source_plan_id === inSeasonPlanId
+    );
+    if (hasPlan) return null;
+    return inSeasonPlanId === "spring-refresh"
+      ? "Spring refresh"
+      : "Cold-weather prep";
+  }, [inSeasonPlanId, seasonalTasks, seasonalOverdue]);
+
+  const seasonLabel = useMemo(() => {
+    const locality = formatProfileLocality(profile);
+    const season = homeSeasonLabel(month, profile?.latitude);
+    return locality ? `${locality} · ${season}` : season;
+  }, [profile, month]);
 
   const hasScheduleTasks = sections.length > 0;
 
@@ -159,7 +268,15 @@ export function NewDashboard({
   );
 
   const handleCompleteTask = useCallback(
-    async (instanceId: string): Promise<boolean> => {
+    async (
+      instanceId: string,
+      extras?: {
+        notes?: string;
+        cost_amount?: number | null;
+        labor_type?: "diy" | "hired" | null;
+        photo_storage_path?: string | null;
+      }
+    ): Promise<boolean> => {
       if (completingRef.current.has(instanceId)) return false;
 
       completingRef.current.add(instanceId);
@@ -167,7 +284,7 @@ export function NewDashboard({
       await triggerMedium();
 
       try {
-        const result = await onCompleteTask(instanceId);
+        const result = await onCompleteTask(instanceId, extras);
         if (result.success) {
           setShowCelebration(true);
           setShowTaskDetail(false);
@@ -284,13 +401,58 @@ export function NewDashboard({
       <DashboardHeader
         userName={getUserName(user?.user_metadata?.full_name, user?.email)}
         greeting={getGreeting()}
-        overdueCount={overdueTasks.length}
+        overdueCount={seasonalOverdue.length}
         dueTodayCount={dueTodayCount}
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
-        onOpenAddressEditor={() => setShowAddressModal(true)}
+        onOpenAddressEditor={() => setShowHomeSetupModal(true)}
+        onOpenHomeSummary={() => navigation.navigate("HomeSummaryPreview")}
         onScrollToSection={handleScrollToSection}
         animatedStyle={headerAnimatedStyle}
+        seasonLabel={seasonLabel}
+        campaignLabel={campaignLabel}
+        onOpenCampaign={onBrowseMaintenancePlans}
       />
+      <HomeSystemMap
+        overdueTasks={seasonalOverdue}
+        upcomingTasks={seasonalTasks}
+        selectedZoneId={selectedZoneId}
+        onSelectZone={setSelectedZoneId}
+        onSetupHome={() => setShowHomeSetupModal(true)}
+        weatherOverlay={climateAlert?.kind ?? null}
+        showPins={isHomeSystemsComplete(profile?.home_systems)}
+        onPinPress={() => setShowEmergencyFacts(true)}
+      />
+      {nextTask ? (
+        <NextRightThingCard
+          task={nextTask}
+          why={nextRightThingWhy(nextTask, {
+            inSeasonPlanId,
+            weatherWhy:
+              climateAlert &&
+              (nextTask.category === "EXTERIOR" ||
+                nextTask.category === "PLUMBING")
+                ? climateAlert.label
+                : null,
+          })}
+          onPress={() => {
+            setSelectedTask(nextTask);
+            setShowTaskDetail(true);
+          }}
+        />
+      ) : null}
+      <Pressable
+        onPress={() => setShowWeekendBudget(true)}
+        style={{
+          alignSelf: "center",
+          marginBottom: DesignSystem.spacing.md,
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Plan a weekend with a time budget"
+      >
+        <Text style={{ color: colors.primary, fontWeight: "600" }}>
+          I have some time this weekend
+        </Text>
+      </Pressable>
       {tasksError && onRetryTasks ? (
         <TasksLoadErrorBanner message={tasksError} onRetry={onRetryTasks} />
       ) : null}
@@ -317,6 +479,8 @@ export function NewDashboard({
         }
         onAddTask={openCreateModal}
         onBrowseMaintenancePlans={onBrowseMaintenancePlans}
+        onSetupHome={() => setShowHomeSetupModal(true)}
+        homeSetupIncomplete={!isHomeSystemsComplete(profile?.home_systems)}
         contentPaddingBottom={contentPaddingBottom}
       />
 
@@ -324,26 +488,33 @@ export function NewDashboard({
         <FloatingActionButton onPress={openCreateModal} />
       ) : null}
 
-      <SimpleTaskDetailModal
-        task={selectedTask}
-        visible={showTaskDetail}
-        onClose={() => {
-          setShowTaskDetail(false);
-          setSelectedTask(null);
-        }}
-        onComplete={handleCompleteTask}
-        onEdit={(task) => {
-          setShowTaskDetail(false);
-          setEditTaskInitial(task);
-          setShowCreateModal(true);
-        }}
-        onSkipOccurrence={
-          onSkipTaskOccurrence
-            ? (task) => handleSkipOccurrence(task)
-            : undefined
-        }
-        onModified={onRefresh}
-      />
+      {showTaskDetail && selectedTask ? (
+        <SimpleTaskDetailModal
+          task={selectedTask}
+          visible
+          onClose={() => {
+            setShowTaskDetail(false);
+            setSelectedTask(null);
+          }}
+          onComplete={handleCompleteTask}
+          onStartComplete={(task) => {
+            setShowTaskDetail(false);
+            setSelectedTask(null);
+            setCompleteTarget(task);
+          }}
+          onEdit={(task) => {
+            setShowTaskDetail(false);
+            setEditTaskInitial(task);
+            setShowCreateModal(true);
+          }}
+          onSkipOccurrence={
+            onSkipTaskOccurrence
+              ? (task) => handleSkipOccurrence(task)
+              : undefined
+          }
+          onModified={onRefresh}
+        />
+      ) : null}
 
       {showCreateModal && (
         <CreateTaskModal
@@ -364,6 +535,7 @@ export function NewDashboard({
                   estimated_duration_minutes:
                     editTaskInitial.estimated_duration_minutes,
                   description: editTaskInitial.description,
+                  equipment_id: editTaskInitial.equipment_id,
                 }
               : undefined
           }
@@ -376,15 +548,47 @@ export function NewDashboard({
         onClose={handleCloseCelebration}
       />
 
-      <EquipmentManualsModal
-        visible={showEquipmentManualsModal}
-        onClose={() => setShowEquipmentManualsModal(false)}
-      />
+      {showEquipmentManualsModal ? (
+        <EquipmentManualsModal
+          visible
+          onClose={() => setShowEquipmentManualsModal(false)}
+        />
+      ) : null}
 
-      <HomeAddressOnboardingModal
-        visible={showAddressModal}
-        onClose={() => setShowAddressModal(false)}
-      />
+      {showHomeSetupModal ? (
+        <HomeSetupModal
+          visible
+          onClose={() => setShowHomeSetupModal(false)}
+        />
+      ) : null}
+
+      {completeTarget ? (
+        <CompleteTaskSheet
+          visible
+          task={completeTarget}
+          onClose={() => setCompleteTarget(null)}
+          onSubmit={handleCompleteTask}
+        />
+      ) : null}
+
+      {showEmergencyFacts ? (
+        <EmergencyFactsModal
+          visible
+          onClose={() => setShowEmergencyFacts(false)}
+        />
+      ) : null}
+
+      {showWeekendBudget ? (
+        <WeekendBudgetSheet
+          visible
+          tasks={[...seasonalOverdue, ...seasonalTasks]}
+          onClose={() => setShowWeekendBudget(false)}
+          onPickTask={(task) => {
+            setSelectedTask(task);
+            setShowTaskDetail(true);
+          }}
+        />
+      ) : null}
 
       <NotificationPermissionRequest />
     </HearthCanvas>

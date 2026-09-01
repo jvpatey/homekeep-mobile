@@ -42,6 +42,8 @@ interface DashboardScheduleListProps {
   ) => void | Promise<void>;
   onAddTask?: () => void;
   onBrowseMaintenancePlans?: () => void;
+  onSetupHome?: () => void;
+  homeSetupIncomplete?: boolean;
   contentPaddingBottom: number;
 }
 
@@ -60,6 +62,8 @@ export const DashboardScheduleList = forwardRef<
     onSkipOccurrence,
     onAddTask,
     onBrowseMaintenancePlans,
+    onSetupHome,
+    homeSetupIncomplete,
     contentPaddingBottom,
   },
   ref
@@ -223,15 +227,25 @@ export const DashboardScheduleList = forwardRef<
       ]}
     >
       <Text style={[scheduleStyles.emptyTitle, { color: colors.text }]}>
-        Nothing scheduled yet
+        {homeSetupIncomplete ? "Set up your home" : "Nothing scheduled yet"}
       </Text>
       <Text
         style={[scheduleStyles.emptySubtitle, { color: colors.textSecondary }]}
       >
-        Add a task or browse a maintenance plan to get started.
+        {homeSetupIncomplete
+          ? "Tell us about this house and we'll build a maintenance schedule that matches it."
+          : "Add a task or browse a maintenance plan to get started."}
       </Text>
 
-      {onAddTask ? (
+      {homeSetupIncomplete && onSetupHome ? (
+        <View style={scheduleStyles.emptyButton}>
+          <Button
+            label="Set up your home"
+            onPress={onSetupHome}
+            variant="primary"
+          />
+        </View>
+      ) : onAddTask ? (
         <View style={scheduleStyles.emptyButton}>
           <Button label="Add a task" onPress={onAddTask} variant="primary" />
         </View>
