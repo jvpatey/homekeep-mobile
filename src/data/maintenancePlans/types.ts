@@ -25,7 +25,7 @@ export interface MaintenancePlanItemTemplate {
   start_offset_days?: number;
 }
 
-/** Full definition shown in the Maintenance plans screen. */
+/** Full definition shown in the task library. */
 export interface MaintenancePlanDefinition {
   id: string;
   title: string;

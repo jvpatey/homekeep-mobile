@@ -72,9 +72,14 @@ export class MaintenanceService {
   // Complete a routine instance
   static async completeInstance(
     instanceId: string,
-    notes?: string
+    extras?: {
+      notes?: string;
+      cost_amount?: number | null;
+      labor_type?: "diy" | "hired" | null;
+      photo_storage_path?: string | null;
+    }
   ): Promise<RoutineInstanceResponse> {
-    return MaintenanceInstanceService.completeInstance(instanceId, notes);
+    return MaintenanceInstanceService.completeInstance(instanceId, extras);
   }
 
   // Uncomplete a routine instance

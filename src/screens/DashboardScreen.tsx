@@ -51,8 +51,11 @@ export function DashboardScreen() {
         refreshing={refreshing}
         tasksError={tasksError}
         onRetryTasks={refreshTasks}
-        onBrowseMaintenancePlans={() =>
-          navigation.navigate("MaintenancePlans")
+        onBrowseMaintenancePlans={(planId) =>
+          navigation.navigate(
+            "MaintenancePlans",
+            planId ? { planId } : undefined
+          )
         }
       />
     </HearthScreen>

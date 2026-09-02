@@ -1,5 +1,6 @@
 import { File as ExpoFile } from "expo-file-system";
 import { supabase } from "../lib/supabase";
+import { getViewerHouseholdId } from "./householdScope";
 import {
   EquipmentManual,
   CreateEquipmentManualData,
@@ -82,6 +83,14 @@ export class EquipmentManualService {
     }
   }
 
+  static uploadFromUriPublic(
+    objectPath: string,
+    localUri: string,
+    mimeType: string
+  ) {
+    return this.uploadFromUri(objectPath, localUri, mimeType);
+  }
+
   static async listEquipmentManuals(): Promise<EquipmentManualsResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -97,11 +106,17 @@ export class EquipmentManualService {
         throw new Error("User not authenticated");
       }
 
-      const { data, error } = await supabase
+      const householdId = await getViewerHouseholdId();
+      let query = supabase
         .from("equipment_manuals")
         .select("*")
-        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
+      if (householdId) {
+        query = query.eq("household_id", householdId);
+      } else {
+        query = query.eq("user_id", user.id);
+      }
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -137,8 +152,10 @@ export class EquipmentManualService {
       }
 
       const now = new Date().toISOString();
+      const householdId = await getViewerHouseholdId();
       const row = {
         user_id: user.id,
+        household_id: householdId,
         name: payload.name.trim(),
         model_number: payload.model_number?.trim() || null,
         purchase_date: payload.purchase_date ?? null,

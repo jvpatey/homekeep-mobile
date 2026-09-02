@@ -101,11 +101,14 @@ export function ChoiceRow({
   selected,
   onPress,
   accessibilityLabel,
+  multiple = false,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   accessibilityLabel: string;
+  /** When true, the row toggles independently of siblings. */
+  multiple?: boolean;
 }) {
   const { colors } = useTheme();
 
@@ -120,9 +123,9 @@ export function ChoiceRow({
       ]}
       onPress={onPress}
       activeOpacity={0.85}
-      accessibilityRole="radio"
+      accessibilityRole={multiple ? "checkbox" : "radio"}
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected }}
+      accessibilityState={multiple ? { checked: selected } : { selected }}
     >
       <Text style={[chrome.choiceLabel, { color: colors.text }]}>{label}</Text>
       {selected ? (

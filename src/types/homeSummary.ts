@@ -10,6 +10,7 @@ export interface HomeSummaryEquipmentItem {
 
 export interface HomeSummaryTaskCompletion {
   completedDateLabel: string;
+  completedByLabel: string | null;
   notes: string | null;
 }
 

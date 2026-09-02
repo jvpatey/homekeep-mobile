@@ -50,7 +50,7 @@ export function WelcomeText() {
         ]}
         entering={headlineEntering}
       >
-        Never miss home maintenance again.
+        Know this house. Keep it.
       </Animated.Text>
       <Animated.Text
         style={[
@@ -63,7 +63,7 @@ export function WelcomeText() {
         ]}
         entering={subtitleEntering}
       >
-        Track, schedule, and complete home maintenance.
+        A schedule that matches how your home is actually built.
       </Animated.Text>
     </View>
   );

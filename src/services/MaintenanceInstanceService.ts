@@ -19,6 +19,32 @@ function toServiceError(error: unknown) {
   };
 }
 
+function isMissingCompleterColumn(error: { message?: string } | null): boolean {
+  const message = error?.message ?? "";
+  return (
+    /completed_by/i.test(message) &&
+    /column|schema|could not find/i.test(message)
+  );
+}
+
+async function currentCompleter(): Promise<{
+  id: string | null;
+  name: string | null;
+}> {
+  if (!supabase) return { id: null, name: null };
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
+  if (!user) return { id: null, name: null };
+  const metaName =
+    typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name.trim()
+      : "";
+  return {
+    id: user.id,
+    name: metaName || user.email?.trim() || null,
+  };
+}
+
 /** Next occurrence due date at local noon (matches start_date reschedule in useTasks). */
 export function computeNextOccurrenceDueDate(
   dueDate: string,
@@ -35,7 +61,12 @@ export class MaintenanceInstanceService {
   // Complete a routine instance
   static async completeInstance(
     instanceId: string,
-    notes?: string
+    extras?: {
+      notes?: string;
+      cost_amount?: number | null;
+      labor_type?: "diy" | "hired" | null;
+      photo_storage_path?: string | null;
+    }
   ): Promise<RoutineInstanceResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -43,21 +74,49 @@ export class MaintenanceInstanceService {
 
     try {
       const now = new Date().toISOString();
+      const completer = await currentCompleter();
       const updateData: UpdateRoutineInstanceData = {
         is_completed: true,
         completed_at: now,
+        completed_by: completer.id,
+        completed_by_name: completer.name,
       };
 
-      if (notes) {
-        updateData.notes = notes;
+      if (extras?.notes) {
+        updateData.notes = extras.notes;
+      }
+      if (extras?.cost_amount != null) {
+        updateData.cost_amount = extras.cost_amount;
+      }
+      if (extras?.labor_type) {
+        updateData.labor_type = extras.labor_type;
+      }
+      if (extras?.photo_storage_path) {
+        updateData.photo_storage_path = extras.photo_storage_path;
       }
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("routine_instances")
         .update(updateData)
         .eq("id", instanceId)
         .select()
         .single();
+
+      if (error && isMissingCompleterColumn(error)) {
+        const {
+          completed_by: _completedBy,
+          completed_by_name: _completedByName,
+          ...withoutCompleter
+        } = updateData;
+        const retry = await supabase
+          .from("routine_instances")
+          .update(withoutCompleter)
+          .eq("id", instanceId)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
 
@@ -84,15 +143,31 @@ export class MaintenanceInstanceService {
     }
 
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("routine_instances")
         .update({
           is_completed: false,
           completed_at: null,
+          completed_by: null,
+          completed_by_name: null,
         })
         .eq("id", instanceId)
         .select()
         .single();
+
+      if (error && isMissingCompleterColumn(error)) {
+        const retry = await supabase
+          .from("routine_instances")
+          .update({
+            is_completed: false,
+            completed_at: null,
+          })
+          .eq("id", instanceId)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
 
@@ -157,16 +232,33 @@ export class MaintenanceInstanceService {
 
     try {
       const now = new Date().toISOString();
+      const completer = await currentCompleter();
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("routine_instances")
         .update({
           is_completed: true,
           completed_at: now,
+          completed_by: completer.id,
+          completed_by_name: completer.name,
         })
         .in("id", instanceIds)
         .eq("is_completed", false)
         .select();
+
+      if (error && isMissingCompleterColumn(error)) {
+        const retry = await supabase
+          .from("routine_instances")
+          .update({
+            is_completed: true,
+            completed_at: now,
+          })
+          .in("id", instanceIds)
+          .eq("is_completed", false)
+          .select();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
 

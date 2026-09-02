@@ -11,12 +11,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
+import { useProfile } from "../../context/ProfileContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
 import { HearthScreen } from "../../components/ui";
 import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
-import { HomeAddressOnboardingModal } from "../../components/modals/home-address-onboarding";
+import { HomeSetupModal } from "../../components/modals/home-setup";
+import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
+import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
 import { GlassCard, TintedGlassAvatar } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
@@ -25,6 +28,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
   const { user, signOut, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
+  const { canEditHome } = useProfile();
   const { selectedGradient } = useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
   const { scrollPaddingBottom } = useScreenInsets();
@@ -32,7 +36,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
-  const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [homeSetupVisible, setHomeSetupVisible] = useState(false);
+  const [householdVisible, setHouseholdVisible] = useState(false);
+  const [emergencyVisible, setEmergencyVisible] = useState(false);
 
   const getUserInitial = () => {
     const fullName = user?.user_metadata?.full_name;
@@ -57,9 +63,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     setNotificationModalVisible(true);
   };
 
-  const handleHomeAddress = async () => {
+  const handleEditHome = async () => {
     await triggerLight();
-    setAddressModalVisible(true);
+    setHomeSetupVisible(true);
   };
 
   const handleHomeSummary = async () => {
@@ -70,12 +76,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const handleDeleteAllTasks = async () => {
     await triggerMedium();
     Alert.alert(
-      "Delete All Tasks",
-      "This will permanently delete all of your tasks and their history. This action cannot be undone.",
+      "Reset this home's schedule",
+      "This permanently deletes every reminder and its history for this home. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete All",
+          text: "Reset schedule",
           style: "destructive",
           onPress: async () => {
             const { success, error } = await deleteAllTasks();
@@ -83,8 +89,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               Alert.alert("Error", error || "Failed to delete all tasks");
             } else {
               Alert.alert(
-                "Deleted",
-                "All tasks and history have been deleted."
+                "Schedule reset",
+                "This home's reminders and history have been deleted."
               );
             }
           },
@@ -171,6 +177,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   type SettingsOption = {
     id: string;
     title: string;
+    subtitle?: string;
     icon: string;
     onPress: () => void;
     type: "navigation" | "destructive";
@@ -193,10 +200,34 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       type: "navigation",
     },
     {
-      id: "home-address",
-      title: "Home Address",
+      id: "edit-home",
+      title: "Your home",
+      subtitle: canEditHome
+        ? undefined
+        : "The household owner manages this home",
       icon: "home-outline",
-      onPress: handleHomeAddress,
+      onPress: handleEditHome,
+      type: "navigation",
+      disabled: !canEditHome,
+    },
+    {
+      id: "emergency-map",
+      title: "Emergency map",
+      icon: "warning-outline",
+      onPress: () => {
+        void triggerLight();
+        setEmergencyVisible(true);
+      },
+      type: "navigation",
+    },
+    {
+      id: "household",
+      title: "Household sharing",
+      icon: "people-outline",
+      onPress: () => {
+        void triggerLight();
+        setHouseholdVisible(true);
+      },
       type: "navigation",
     },
     {
@@ -208,7 +239,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     },
     {
       id: "maintenance-plans",
-      title: "Maintenance Plans",
+      title: "Task library",
+      subtitle: "Seasonal and specialty bundles",
       icon: "layers-outline",
       onPress: () => {
         void triggerLight();
@@ -218,7 +250,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     },
     {
       id: "delete-tasks",
-      title: "Delete All Tasks",
+      title: "Reset this home's schedule",
       icon: "trash-bin-outline",
       onPress: handleDeleteAllTasks,
       type: "destructive",
@@ -284,7 +316,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         activeOpacity={0.7}
         disabled={Boolean(option.disabled)}
         accessibilityRole="button"
-        accessibilityLabel={option.title}
+        accessibilityLabel={
+          option.subtitle
+            ? `${option.title}. ${option.subtitle}`
+            : option.title
+        }
         accessibilityState={{ disabled: Boolean(option.disabled) }}
       >
         <View
@@ -299,9 +335,18 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             color={getIconColor()}
           />
         </View>
-        <Text style={[styles.optionText, { color: getTextColor() }]}>
-          {option.title}
-        </Text>
+        <View style={styles.optionTextBlock}>
+          <Text style={[styles.optionText, { color: getTextColor() }]}>
+            {option.title}
+          </Text>
+          {option.subtitle ? (
+            <Text
+              style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+            >
+              {option.subtitle}
+            </Text>
+          ) : null}
+        </View>
         {option.type === "navigation" ? (
           <Ionicons
             name="chevron-forward"
@@ -403,24 +448,37 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         </GlassCard>
       </ScrollView>
 
-      {/* Avatar Customization Modal */}
-      <AvatarCustomizationModal
-        visible={customizationModalVisible}
-        onClose={() => setCustomizationModalVisible(false)}
-      />
+      {customizationModalVisible ? (
+        <AvatarCustomizationModal
+          visible
+          onClose={() => setCustomizationModalVisible(false)}
+        />
+      ) : null}
 
-      {/* Notification Settings Modal */}
-      <NotificationSettingsModal
-        visible={notificationModalVisible}
-        onClose={() => setNotificationModalVisible(false)}
-      />
+      {notificationModalVisible ? (
+        <NotificationSettingsModal
+          visible
+          onClose={() => setNotificationModalVisible(false)}
+        />
+      ) : null}
 
-      {/* Home Address Modal — same modal used for first-run onboarding. */}
-      <HomeAddressOnboardingModal
-        visible={addressModalVisible}
-        onClose={() => setAddressModalVisible(false)}
+      <HomeSetupModal
+        visible={homeSetupVisible}
+        onClose={() => setHomeSetupVisible(false)}
         hideSkip
       />
+
+      <HouseholdSharingModal
+        visible={householdVisible}
+        onClose={() => setHouseholdVisible(false)}
+      />
+
+      {emergencyVisible ? (
+        <EmergencyFactsModal
+          visible
+          onClose={() => setEmergencyVisible(false)}
+        />
+      ) : null}
     </HearthScreen>
   );
 }
@@ -510,9 +568,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: DesignSystem.spacing.md,
   },
+  optionTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
   optionText: {
     ...DesignSystem.typography.bodyMedium,
-    flex: 1,
     fontSize: 16,
+  },
+  optionSubtitle: {
+    ...DesignSystem.typography.caption,
+    marginTop: 2,
   },
 });

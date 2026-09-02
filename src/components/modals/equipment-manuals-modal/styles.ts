@@ -112,6 +112,40 @@ export const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
   },
 
+  hintRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: DesignSystem.spacing.sm,
+    overflow: "hidden",
+  },
+
+  hintCheckbox: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+
+  hintText: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  hintTitle: {
+    ...DesignSystem.typography.body,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+
+  hintMeta: {
+    ...DesignSystem.typography.footnote,
+  },
+
   equipmentRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -197,8 +231,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.xxxl,
+    width: "100%",
   },
 
   emptyIconCircle: {
@@ -221,12 +256,14 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
     maxWidth: 280,
+    alignSelf: "center",
   },
 
   emptyAction: {
     marginTop: DesignSystem.spacing.xl,
-    alignSelf: "stretch",
+    width: "100%",
     maxWidth: 280,
+    alignSelf: "center",
   },
 
   formScroll: {

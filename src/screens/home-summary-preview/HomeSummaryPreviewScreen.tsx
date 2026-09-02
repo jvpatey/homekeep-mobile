@@ -59,6 +59,9 @@ function TaskGroupRow({
           >
             {group.completions.length > 1 ? "· " : ""}
             {completion.completedDateLabel}
+            {completion.completedByLabel
+              ? ` · ${completion.completedByLabel}`
+              : ""}
           </Text>
           {completion.notes ? (
             <Text style={[styles.taskNotes, { color: colors.textSecondary }]}>

@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { getViewerHouseholdId } from "./householdScope";
 import {
   MaintenanceRoutine,
   CreateMaintenanceRoutineData,
@@ -29,9 +30,11 @@ export class MaintenanceRoutineService {
         throw new Error("User not authenticated");
       }
 
+      const householdId = await getViewerHouseholdId();
       const routineWithUserId = {
         ...routineData,
         user_id: user.id,
+        household_id: householdId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -81,9 +84,11 @@ export class MaintenanceRoutineService {
       }
 
       const now = new Date().toISOString();
+      const householdId = await getViewerHouseholdId();
       const rows = routinesData.map((routineData) => ({
         ...routineData,
         user_id: user.id,
+        household_id: householdId,
         created_at: now,
         updated_at: now,
       }));
@@ -118,10 +123,25 @@ export class MaintenanceRoutineService {
     }
 
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error("User not authenticated");
+      }
+
+      const householdId = await getViewerHouseholdId();
       let query = supabase
         .from("maintenance_routines")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (householdId) {
+        query = query.eq("household_id", householdId);
+      } else {
+        query = query.eq("user_id", user.id);
+      }
 
       // Apply filters
       if (filters?.category) {

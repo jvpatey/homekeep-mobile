@@ -95,8 +95,22 @@ interface OpenMeteoCurrent {
   is_day?: number;
 }
 
+export type ClimateAlertKind = "freeze" | "heat" | "storm";
+
+export interface ClimateAlert {
+  kind: ClimateAlertKind;
+  label: string;
+}
+
+interface OpenMeteoDaily {
+  temperature_2m_min?: number[];
+  temperature_2m_max?: number[];
+  weather_code?: number[];
+}
+
 interface OpenMeteoForecastResponse {
   current?: OpenMeteoCurrent;
+  daily?: OpenMeteoDaily;
 }
 
 const FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
@@ -242,6 +256,52 @@ export class WeatherService {
       return weather;
     } catch (error) {
       console.warn("Weather fetch failed", error);
+      return null;
+    }
+  }
+
+  static async getClimateAlert(
+    latitude: number,
+    longitude: number,
+    temperatureUnit: TemperatureUnit = "celsius"
+  ): Promise<ClimateAlert | null> {
+    const params = new URLSearchParams({
+      latitude: latitude.toFixed(4),
+      longitude: longitude.toFixed(4),
+      daily: "temperature_2m_min,temperature_2m_max,weather_code",
+      forecast_days: "2",
+      temperature_unit: temperatureUnit,
+    });
+    try {
+      const response = await fetch(`${FORECAST_ENDPOINT}?${params.toString()}`);
+      if (!response.ok) return null;
+      const payload = (await response.json()) as OpenMeteoForecastResponse;
+      const daily = payload.daily;
+      const min = daily?.temperature_2m_min?.[0];
+      const max = daily?.temperature_2m_max?.[0];
+      const code = daily?.weather_code?.[0];
+      const freezePoint = temperatureUnit === "fahrenheit" ? 32 : 0;
+      const heatPoint = temperatureUnit === "fahrenheit" ? 90 : 32;
+      if (typeof min === "number" && min <= freezePoint) {
+        return {
+          kind: "freeze",
+          label: "Frost tonight — disconnect hoses and protect outdoor taps",
+        };
+      }
+      if (code === 95 || code === 96 || code === 99) {
+        return {
+          kind: "storm",
+          label: "Storms in the forecast — glance at roof and gutters after",
+        };
+      }
+      if (typeof max === "number" && max >= heatPoint) {
+        return {
+          kind: "heat",
+          label: "Hot stretch — check cooling and indoor HVAC clearance",
+        };
+      }
+      return null;
+    } catch {
       return null;
     }
   }

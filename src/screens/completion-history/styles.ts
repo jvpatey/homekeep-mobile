@@ -59,6 +59,21 @@ export const completionHistoryStyles = StyleSheet.create({
     ...DesignSystem.typography.caption,
     marginBottom: DesignSystem.spacing.sm,
   },
+  legendRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  legendText: {
+    ...DesignSystem.typography.caption,
+    fontSize: 11,
+  },
   sectionHeader: {
     ...DesignSystem.typography.footnote,
     fontWeight: "600",
@@ -78,7 +93,16 @@ export const completionHistoryStyles = StyleSheet.create({
     alignItems: "flex-start",
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.md,
-    gap: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
+  },
+  rowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+    flexShrink: 0,
   },
   rowMain: {
     flex: 1,
@@ -90,6 +114,16 @@ export const completionHistoryStyles = StyleSheet.create({
   },
   rowMeta: {
     ...DesignSystem.typography.caption,
+  },
+  rowBy: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: DesignSystem.spacing.xs,
+  },
+  rowByName: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
   },
   rowNotes: {
     ...DesignSystem.typography.caption,

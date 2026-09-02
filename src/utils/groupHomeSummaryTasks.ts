@@ -14,6 +14,9 @@ function completionSortKey(task: MaintenanceTask): number {
 function mapCompletion(task: MaintenanceTask): HomeSummaryTaskCompletion {
   return {
     completedDateLabel: formatDateTime(task.completed_at || task.due_date),
+    completedByLabel:
+      task.completed_by_name?.trim() ||
+      (task.completed_by ? "Household member" : null),
     notes: task.notes?.trim() || null,
   };
 }

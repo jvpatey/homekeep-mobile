@@ -11,31 +11,14 @@ import {
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
-import { useGradients, useHaptics, useDevice } from "../../../hooks";
+import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { GlassCard } from "../glass-card";
 import { SheetGrabber } from "../sheet-grabber";
-
-const { height: screenHeight } = Dimensions.get("window");
-
-const SHEET_ENTER = {
-  duration: DesignSystem.motion.duration.base,
-  easing: DesignSystem.motion.easing.emphasized,
-};
-
-const SHEET_EXIT = {
-  duration: DesignSystem.motion.duration.fast,
-  easing: DesignSystem.motion.easing.standard,
-};
 
 export interface SearchableOption {
   /** Unique key for the option (e.g. ISO code or id). */
@@ -74,37 +57,14 @@ export function SearchableSelectModal({
   const { triggerLight } = useHaptics();
   const { getTabletSheetContainerStyle } = useDevice();
 
-  const [mounted, setMounted] = useState(visible);
   const [query, setQuery] = useState("");
-
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(screenHeight);
+  const { mounted, backdropStyle, sheetStyle } = useSheetMount(visible);
 
   useEffect(() => {
     if (visible) {
-      setMounted(true);
       setQuery("");
-      opacity.value = withTiming(1, SHEET_ENTER);
-      translateY.value = withTiming(0, SHEET_ENTER);
-    } else {
-      opacity.value = withTiming(0, SHEET_EXIT);
-      translateY.value = withTiming(
-        screenHeight,
-        SHEET_EXIT,
-        (finished) => {
-          if (finished) runOnJS(setMounted)(false);
-        }
-      );
     }
-  }, [visible, opacity, translateY]);
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: opacity.value,
-  }));
+  }, [visible]);
 
   const filtered = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -127,6 +87,8 @@ export function SearchableSelectModal({
     onSelect(option);
     onClose();
   };
+
+  if (!mounted) return null;
 
   return (
     <Modal
@@ -333,6 +295,8 @@ export function SearchableSelectModal({
     </Modal>
   );
 }
+
+const { height: screenHeight } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   backdrop: {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
@@ -20,7 +20,6 @@ import { Button, HearthScreen, HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { MaintenanceService } from "../../services/maintenanceService";
 import {
-  MAINTENANCE_PLANS,
   QUESTIONNAIRE_PLAN_IDS,
   MaintenancePlanDefinition,
   MaintenancePlanItemTemplate,
@@ -34,6 +33,9 @@ import {
   getPlanTagPillStyle,
   routineIdentityKey,
   recommendMaintenancePlanId,
+  getAppliedPlanIds,
+  getVisibleMaintenancePlans,
+  getMaintenancePlanById,
   answersForPlan,
   partialSpringAnswers,
   partialStarterAnswers,
@@ -100,7 +102,11 @@ export function MaintenancePlansScreen() {
   const { profile, updateHomeSystems } = useProfile();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const route = useRoute<RouteProp<AppStackParamList, "MaintenancePlans">>();
   const [phase, setPhase] = useState<FlowPhase>("list");
+  const [appliedPlanIds, setAppliedPlanIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [detailPlan, setDetailPlan] =
     useState<MaintenancePlanDefinition | null>(null);
   const [springAnswers, setSpringAnswers] =
@@ -188,6 +194,21 @@ export function MaintenancePlansScreen() {
     resolvedDetailItems,
   ]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadApplied = async () => {
+      const { data } = await MaintenanceService.getMaintenanceRoutines({
+        is_active: true,
+      });
+      if (cancelled) return;
+      setAppliedPlanIds(getAppliedPlanIds(data ?? []));
+    };
+    void loadApplied();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const selectedItems = useMemo(() => {
     return resolvedDetailItems.filter((_, i) => selectedMask[i]);
   }, [resolvedDetailItems, selectedMask]);
@@ -261,21 +282,33 @@ export function MaintenancePlansScreen() {
     [profile?.home_systems]
   );
 
+  const homeSetupComplete = Boolean(profile?.home_setup_set_at);
+
   const suggestedPlanId = useMemo(
     () =>
       recommendMaintenancePlanId({
         month: new Date().getMonth(),
         latitude: profile?.latitude,
         activeRoutineCount: stats.activeRoutines,
+        homeSetupComplete,
+        appliedPlanIds,
+        homeSystems: profile?.home_systems,
       }),
-    [profile?.latitude, stats.activeRoutines]
+    [
+      profile?.latitude,
+      profile?.home_systems,
+      stats.activeRoutines,
+      homeSetupComplete,
+      appliedPlanIds,
+    ]
   );
 
   const catalogPlans = useMemo(() => {
-    const suggested = MAINTENANCE_PLANS.find((plan) => plan.id === suggestedPlanId);
-    const rest = MAINTENANCE_PLANS.filter((plan) => plan.id !== suggestedPlanId);
-    return suggested ? [suggested, ...rest] : [...MAINTENANCE_PLANS];
-  }, [suggestedPlanId]);
+    const visible = getVisibleMaintenancePlans({ homeSetupComplete });
+    const suggested = visible.find((plan) => plan.id === suggestedPlanId);
+    const rest = visible.filter((plan) => plan.id !== suggestedPlanId);
+    return suggested ? [suggested, ...rest] : visible;
+  }, [homeSetupComplete, suggestedPlanId]);
 
   const openPlan = useCallback(
     (plan: MaintenancePlanDefinition) => {
@@ -307,6 +340,16 @@ export function MaintenancePlansScreen() {
     },
     [profile?.home_systems]
   );
+
+  const openedDeepLink = useRef<string | null>(null);
+  useEffect(() => {
+    const planId = route.params?.planId;
+    if (!planId || openedDeepLink.current === planId) return;
+    const plan = getMaintenancePlanById(planId);
+    if (!plan) return;
+    openedDeepLink.current = planId;
+    openPlan(plan);
+  }, [route.params?.planId, openPlan]);
 
   const toggleTaskAt = useCallback(
     (index: number) => {
@@ -362,6 +405,11 @@ export function MaintenancePlansScreen() {
               try {
                 const result = await applyMaintenancePlan(plan.id, items);
                 if (result.success) {
+                  setAppliedPlanIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(plan.id);
+                    return next;
+                  });
                   const added = result.addedCount ?? n;
                   const skipped = result.skippedCount ?? 0;
                   let message: string;
@@ -451,7 +499,7 @@ export function MaintenancePlansScreen() {
     if (phase === "pickTasks" && detailPlan) {
       return detailPlan.title;
     }
-    return "Maintenance plans";
+    return "Task library";
   };
 
   const renderPlanList = () => (
@@ -468,7 +516,9 @@ export function MaintenancePlansScreen() {
           { color: colors.textSecondary },
         ]}
       >
-        Choose a plan, answer a few questions, then pick what to add.
+        {homeSetupComplete
+          ? "Add more recurring tasks tailored to your home. Your home profile is already saved—we'll skip the questionnaire when we can."
+          : "Choose a bundle and pick what to add. For a full schedule at once, finish Set up your home on the dashboard."}
       </Text>
       {catalogPlans.map((plan) => {
         const theme = getPlanTheme(plan.id);
@@ -477,6 +527,8 @@ export function MaintenancePlansScreen() {
           : { backgroundColor: colors.fieldFill };
         const pill = theme ? getPlanTagPillStyle(theme, isDark) : null;
         const isSuggested = plan.id === suggestedPlanId;
+        const isApplied = appliedPlanIds.has(plan.id);
+        const usesHomeProfile = Boolean(answersForPlan(plan.id, profile?.home_systems));
 
         return (
           <HearthSurfaceCard
@@ -502,7 +554,7 @@ export function MaintenancePlansScreen() {
                 </View>
               ) : null}
               <View style={maintenancePlansStyles.planRowText}>
-                {isSuggested || (plan.tag && pill) ? (
+                {isSuggested || isApplied || (plan.tag && pill) ? (
                   <View style={maintenancePlansStyles.pillRow}>
                     {isSuggested ? (
                       <View
@@ -521,6 +573,26 @@ export function MaintenancePlansScreen() {
                           ]}
                         >
                           Suggested
+                        </Text>
+                      </View>
+                    ) : null}
+                    {isApplied ? (
+                      <View
+                        style={[
+                          maintenancePlansStyles.suggestedPill,
+                          {
+                            backgroundColor: colors.success + "18",
+                            borderColor: colors.success,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            maintenancePlansStyles.suggestedPillText,
+                            { color: colors.success },
+                          ]}
+                        >
+                          On your schedule
                         </Text>
                       </View>
                     ) : null}
@@ -569,11 +641,13 @@ export function MaintenancePlansScreen() {
                     { color: colors.primary },
                   ]}
                 >
-                  {QUESTIONNAIRE_PLAN_IDS.has(plan.id)
-                    ? "Questionnaire"
-                    : `${plan.items.length} recurring task${
-                        plan.items.length === 1 ? "" : "s"
-                      }`}
+                  {usesHomeProfile
+                    ? "Using your home profile"
+                    : QUESTIONNAIRE_PLAN_IDS.has(plan.id)
+                      ? "Questionnaire"
+                      : `${plan.items.length} recurring task${
+                          plan.items.length === 1 ? "" : "s"
+                        }`}
                 </Text>
               </View>
               <Ionicons

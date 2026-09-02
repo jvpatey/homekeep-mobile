@@ -14,6 +14,8 @@ import {
   filterNewRoutinePayloads,
   getMaintenancePlanById,
   MaintenancePlanItemTemplate,
+  ScheduledHomeItem,
+  scheduledItemsToPayloads,
 } from "../data/maintenancePlans";
 import { useAuth } from "../context/AuthContext";
 import { TimeRange } from "../context/TasksContext";
@@ -50,12 +52,35 @@ interface UseTasksReturn {
     addedCount?: number;
     skippedCount?: number;
   }>;
+  applyGeneratedHomeSchedule: (
+    items: ScheduledHomeItem[]
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    skippedCount?: number;
+  }>;
+  reconcileHomeSchedule: (input: {
+    toAdd: ScheduledHomeItem[];
+    pauseIds: string[];
+  }) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    pausedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
   completeTask: (
-    instanceId: string
+    instanceId: string,
+    extras?: {
+      notes?: string;
+      cost_amount?: number | null;
+      labor_type?: "diy" | "hired" | null;
+      photo_storage_path?: string | null;
+    }
   ) => Promise<{ success: boolean; error?: string }>;
   uncompleteTask: (
     instanceId: string
@@ -314,6 +339,109 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     [user, loadTasks]
   );
 
+  const applyGeneratedHomeSchedule = useCallback(
+    async (items: ScheduledHomeItem[]) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+      if (!items.length) {
+        return { success: true, addedCount: 0, skippedCount: 0 };
+      }
+
+      const payloads = scheduledItemsToPayloads(items);
+      try {
+        const existingResult = await MaintenanceService.getMaintenanceRoutines({
+          is_active: true,
+        });
+        if (existingResult.error) throw existingResult.error;
+
+        const { newPayloads, skippedCount } = filterNewRoutinePayloads(
+          payloads,
+          existingResult.data ?? []
+        );
+
+        if (newPayloads.length === 0) {
+          return { success: true, addedCount: 0, skippedCount };
+        }
+
+        const { error } =
+          await MaintenanceService.createMaintenanceRoutines(newPayloads);
+        if (error) throw error;
+        await loadTasks();
+        return {
+          success: true,
+          addedCount: newPayloads.length,
+          skippedCount,
+        };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          error: error.message || "Failed to apply home schedule",
+        };
+      }
+    },
+    [user, loadTasks]
+  );
+
+  const reconcileHomeSchedule = useCallback(
+    async ({
+      toAdd,
+      pauseIds,
+    }: {
+      toAdd: ScheduledHomeItem[];
+      pauseIds: string[];
+    }) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      try {
+        let addedCount = 0;
+        if (toAdd.length > 0) {
+          const payloads = scheduledItemsToPayloads(toAdd);
+          const existingResult = await MaintenanceService.getMaintenanceRoutines({
+            is_active: true,
+          });
+          if (existingResult.error) throw existingResult.error;
+          const { newPayloads } = filterNewRoutinePayloads(
+            payloads,
+            existingResult.data ?? []
+          );
+          if (newPayloads.length > 0) {
+            const { error } =
+              await MaintenanceService.createMaintenanceRoutines(newPayloads);
+            if (error) throw error;
+            addedCount = newPayloads.length;
+          }
+        }
+
+        let pausedCount = 0;
+        for (const id of pauseIds) {
+          const { error } = await MaintenanceService.updateMaintenanceRoutine(
+            id,
+            { is_active: false }
+          );
+          if (error) throw error;
+          pausedCount += 1;
+        }
+
+        if (addedCount > 0 || pausedCount > 0) {
+          await loadTasks();
+        }
+
+        return { success: true, addedCount, pausedCount };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          error: error.message || "Failed to update home schedule",
+        };
+      }
+    },
+    [user, loadTasks]
+  );
+
   // updateTask - update a maintenance routine
   const updateTask = useCallback(
     async (taskId: string, updates: UpdateMaintenanceRoutineData) => {
@@ -366,13 +494,24 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
 
   // completeTask - mark a routine instance as completed
   const completeTask = useCallback(
-    async (instanceId: string) => {
+    async (
+      instanceId: string,
+      extras?: {
+        notes?: string;
+        cost_amount?: number | null;
+        labor_type?: "diy" | "hired" | null;
+        photo_storage_path?: string | null;
+      }
+    ) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };
       }
 
       try {
-        const result = await MaintenanceService.completeInstance(instanceId);
+        const result = await MaintenanceService.completeInstance(
+          instanceId,
+          extras
+        );
 
         if (result.error) throw result.error;
 
@@ -624,6 +763,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     stats,
     createTask,
     applyMaintenancePlan,
+    applyGeneratedHomeSchedule,
+    reconcileHomeSchedule,
     updateTask,
     completeTask,
     uncompleteTask,

@@ -7,22 +7,16 @@ import {
   Switch,
   Modal,
   Pressable,
-  Dimensions,
   Alert,
   Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
-import { useGradients, useHaptics, useDevice } from "../../../hooks";
+import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { GlassCard, SheetGrabber } from "../../ui";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
@@ -33,18 +27,6 @@ import {
   getNotificationTypes,
 } from "../../../screens/notification-preferences/utils";
 import { styles } from "./styles";
-
-const { height: screenHeight } = Dimensions.get("window");
-
-const SHEET_ENTER = {
-  duration: DesignSystem.motion.duration.base,
-  easing: DesignSystem.motion.easing.emphasized,
-};
-
-const SHEET_EXIT = {
-  duration: DesignSystem.motion.duration.fast,
-  easing: DesignSystem.motion.easing.standard,
-};
 
 interface NotificationSettingsModalProps {
   visible: boolean;
@@ -70,36 +52,8 @@ export function NotificationSettingsModal({
     useDevice();
   const fontMultiplier = getFontMultiplier();
   const [expandedType, setExpandedType] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(visible);
-
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(screenHeight);
-
-  React.useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      opacity.value = withTiming(1, SHEET_ENTER);
-      translateY.value = withTiming(0, SHEET_ENTER);
-    } else {
-      opacity.value = withTiming(0, SHEET_EXIT);
-      translateY.value = withTiming(
-        screenHeight,
-        SHEET_EXIT,
-        (finished) => {
-          if (finished) runOnJS(setMounted)(false);
-        }
-      );
-    }
-  }, [visible]);
-
-  const animatedBackdropStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  const animatedSheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: opacity.value,
-  }));
+  const { mounted, backdropStyle: animatedBackdropStyle, sheetStyle: animatedSheetStyle } =
+    useSheetMount(visible);
 
   const handleClose = async () => {
     await triggerLight();
@@ -376,6 +330,8 @@ export function NotificationSettingsModal({
       </View>
     );
   };
+
+  if (!mounted) return null;
 
   return (
     <Modal

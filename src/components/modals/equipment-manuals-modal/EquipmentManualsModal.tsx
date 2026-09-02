@@ -11,19 +11,13 @@ import {
   Alert,
   Modal,
   Pressable,
-  Dimensions,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, {
@@ -35,46 +29,51 @@ import * as WebBrowser from "expo-web-browser";
 import { format, parseISO } from "date-fns";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
-import { useGradients, useHaptics, useDevice } from "../../../hooks";
+import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { Button, HearthSurfaceCard, SheetGrabber } from "../../ui";
 import { FormField } from "../../Dashboard/modals/create-task-modal/FormField";
 import { EquipmentManual } from "../../../types/equipmentManual";
 import { EquipmentManualService } from "../../../services/EquipmentManualService";
+import { MaintenanceService } from "../../../services/maintenanceService";
+import { useTasks } from "../../../context/TasksContext";
+import {
+  hintsForEquipmentName,
+  partitionEquipmentHints,
+} from "../../../data/equipmentTaskHints";
+import {
+  buildRoutinePayloadsFromItems,
+  MaintenancePlanItemTemplate,
+} from "../../../data/maintenancePlans";
 import { styles } from "./styles";
 
-const { height: screenHeight } = Dimensions.get("window");
-
-const SHEET_ENTER = {
-  duration: DesignSystem.motion.duration.base,
-  easing: DesignSystem.motion.easing.emphasized,
-};
-
-const SHEET_EXIT = {
-  duration: DesignSystem.motion.duration.fast,
-  easing: DesignSystem.motion.easing.standard,
-};
-
-type ScreenMode = "list" | "form";
+type ScreenMode = "list" | "form" | "hints";
 
 interface EquipmentManualsModalProps {
   visible: boolean;
   onClose: () => void;
+  onAddRecurringTask?: (equipmentId: string) => void;
 }
 
 export function EquipmentManualsModal({
   visible,
   onClose,
+  onAddRecurringTask,
 }: EquipmentManualsModalProps) {
   const { colors, isDark } = useTheme();
   const { isConfigured } = useAuth();
   const { authAtmosphere } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
+  const { createTask, updateTask } = useTasks();
   const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
     useDevice();
   const fontMultiplier = getFontMultiplier();
 
-  const [mounted, setMounted] = useState(visible);
+  const {
+    mounted,
+    backdropStyle: animatedBackdropStyle,
+    sheetStyle: animatedSheetStyle,
+  } = useSheetMount(visible);
   const [screenMode, setScreenMode] = useState<ScreenMode>("list");
   const [items, setItems] = useState<EquipmentManual[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,8 +100,14 @@ export function EquipmentManualsModal({
     string | null
   >(null);
 
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(screenHeight);
+  const [hintEquipmentId, setHintEquipmentId] = useState<string | null>(null);
+  const [hintEquipmentName, setHintEquipmentName] = useState("");
+  const [hintCreate, setHintCreate] = useState<MaintenancePlanItemTemplate[]>(
+    []
+  );
+  const [hintLinkIds, setHintLinkIds] = useState<string[]>([]);
+  const [hintMask, setHintMask] = useState<boolean[]>([]);
+  const [hintLinkTitles, setHintLinkTitles] = useState<string[]>([]);
 
   const loadItems = useCallback(async () => {
     if (!isConfigured) return;
@@ -124,32 +129,18 @@ export function EquipmentManualsModal({
 
   useEffect(() => {
     if (visible) {
-      setMounted(true);
       loadItems();
     }
   }, [visible, loadItems]);
 
   useEffect(() => {
-    if (visible) {
-      opacity.value = withTiming(1, SHEET_ENTER);
-      translateY.value = withTiming(0, SHEET_ENTER);
-    } else {
-      opacity.value = withTiming(0, SHEET_EXIT);
-      translateY.value = withTiming(
-        screenHeight,
-        SHEET_EXIT,
-        (finished) => {
-          if (finished) runOnJS(setMounted)(false);
-        }
-      );
-    }
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible && mounted === false) {
+    if (!visible && !mounted) {
       setScreenMode("list");
       setEditing(null);
       resetForm();
+      setHintEquipmentId(null);
+      setHintCreate([]);
+      setHintLinkIds([]);
     }
   }, [visible, mounted]);
 
@@ -165,15 +156,6 @@ export function EquipmentManualsModal({
     setPendingReceiptMime(null);
     setPendingReceiptFileName(null);
   };
-
-  const animatedBackdropStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  const animatedSheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: opacity.value,
-  }));
 
   const handleClose = async () => {
     await triggerLight();
@@ -571,12 +553,92 @@ export function EquipmentManualsModal({
 
       await loadItems();
       await triggerLight();
-      setScreenMode("list");
+
+      const wasCreate = !editing;
       resetForm();
       setEditing(null);
+
+      if (wasCreate && equipmentId) {
+        const hints = hintsForEquipmentName(trimmed);
+        if (hints.length > 0) {
+          const { data: routines } =
+            await MaintenanceService.getMaintenanceRoutines({
+              is_active: true,
+            });
+          const { toLink, toCreate } = partitionEquipmentHints(
+            hints,
+            routines ?? []
+          );
+          if (toLink.length > 0 || toCreate.length > 0) {
+            setHintEquipmentId(equipmentId);
+            setHintEquipmentName(trimmed);
+            setHintCreate(toCreate);
+            setHintLinkIds(toLink.map((row) => row.id));
+            setHintLinkTitles(toLink.map((row) => row.title));
+            setHintMask([
+              ...toCreate.map(() => true),
+              ...toLink.map(() => true),
+            ]);
+            setScreenMode("hints");
+            return;
+          }
+        }
+        if (onAddRecurringTask) {
+          Alert.alert(
+            "Equipment saved",
+            "Add a recurring reminder for this equipment?",
+            [
+              { text: "Not now", style: "cancel" },
+              {
+                text: "Add a task",
+                onPress: () => onAddRecurringTask(equipmentId),
+              },
+            ]
+          );
+        }
+      }
+
+      setScreenMode("list");
     } catch (e) {
       Alert.alert(
         "Save failed",
+        e instanceof Error ? e.message : "Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const applyEquipmentHints = async () => {
+    if (!hintEquipmentId) return;
+    setSaving(true);
+    try {
+      const selectedCreate = hintCreate.filter((_, index) => hintMask[index]);
+      const selectedLink = hintLinkIds.filter(
+        (_, index) => hintMask[hintCreate.length + index]
+      );
+      for (const item of selectedCreate) {
+        const [payload] = buildRoutinePayloadsFromItems([item]);
+        const result = await createTask({
+          ...payload,
+          equipment_id: hintEquipmentId,
+        });
+        if (!result.success) {
+          throw new Error(result.error ?? "Could not add reminder");
+        }
+      }
+      for (const id of selectedLink) {
+        const result = await updateTask(id, { equipment_id: hintEquipmentId });
+        if (!result.success) {
+          throw new Error(result.error ?? "Could not link reminder");
+        }
+      }
+      await triggerLight();
+      setScreenMode("list");
+      setHintEquipmentId(null);
+    } catch (e) {
+      Alert.alert(
+        "Could not add reminders",
         e instanceof Error ? e.message : "Please try again."
       );
     } finally {
@@ -629,6 +691,49 @@ export function EquipmentManualsModal({
       return iso;
     }
   };
+
+  const renderHintRow = ({
+    key,
+    title,
+    meta,
+    checked,
+    onToggle,
+  }: {
+    key: string;
+    title: string;
+    meta: string;
+    checked: boolean;
+    onToggle: () => void;
+  }) => (
+    <TouchableOpacity
+      key={key}
+      onPress={onToggle}
+      style={[
+        styles.hintRow,
+        {
+          borderColor: checked ? colors.primary : colors.border,
+          backgroundColor: checked ? colors.primary + "12" : colors.fieldFill,
+        },
+      ]}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={title}
+    >
+      <View style={styles.hintCheckbox}>
+        <Ionicons
+          name={checked ? "checkbox" : "square-outline"}
+          size={24}
+          color={checked ? colors.primary : colors.textSecondary}
+        />
+      </View>
+      <View style={styles.hintText}>
+        <Text style={[styles.hintTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.hintMeta, { color: colors.textSecondary }]}>
+          {meta}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   const listSubtitle =
     items.length === 0
@@ -1126,7 +1231,47 @@ export function EquipmentManualsModal({
             <SafeAreaView edges={["bottom"]} style={styles.sheetSafeArea}>
               <SheetGrabber />
 
-              {screenMode === "form" ? (
+              {screenMode === "hints" ? (
+                <>
+                  <View style={styles.formNavRow}>
+                    <TouchableOpacity
+                      style={styles.navButton}
+                      onPress={async () => {
+                        await triggerLight();
+                        setScreenMode("list");
+                        setHintEquipmentId(null);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Skip reminders"
+                    >
+                      <Ionicons
+                        name="chevron-back"
+                        size={24}
+                        color={colors.text}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.navButton}
+                      onPress={handleClose}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close"
+                    >
+                      <Ionicons name="close" size={24} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.formTitleBlock} accessibilityRole="header">
+                    <Text style={[styles.formTitle, { color: colors.text }]}>
+                      Add reminders for {hintEquipmentName}?
+                    </Text>
+                    <Text
+                      style={[styles.formSubtitle, { color: colors.textSecondary }]}
+                    >
+                      We’ll attach these to this equipment. Uncheck anything you
+                      don’t want.
+                    </Text>
+                  </View>
+                </>
+              ) : screenMode === "form" ? (
                 <>
                   <View style={styles.formNavRow}>
                     <TouchableOpacity
@@ -1214,6 +1359,54 @@ export function EquipmentManualsModal({
                     Connect Supabase in your environment to sync manuals.
                   </Text>
                 </View>
+              ) : screenMode === "hints" ? (
+                <ScrollView
+                  style={styles.list}
+                  contentContainerStyle={styles.listContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {hintCreate.map((item, index) =>
+                    renderHintRow({
+                      key: `create-${item.title}`,
+                      title: item.title,
+                      meta: "New reminder",
+                      checked: !!hintMask[index],
+                      onToggle: () =>
+                        setHintMask((prev) => {
+                          const next = [...prev];
+                          next[index] = !next[index];
+                          return next;
+                        }),
+                    })
+                  )}
+                  {hintLinkTitles.map((title, index) => {
+                    const maskIndex = hintCreate.length + index;
+                    return renderHintRow({
+                      key: `link-${hintLinkIds[index]}`,
+                      title,
+                      meta: "Already on your schedule — link to this equipment",
+                      checked: !!hintMask[maskIndex],
+                      onToggle: () =>
+                        setHintMask((prev) => {
+                          const next = [...prev];
+                          next[maskIndex] = !next[maskIndex];
+                          return next;
+                        }),
+                    });
+                  })}
+                  <Button
+                    label={saving ? "Adding…" : "Add selected"}
+                    onPress={() => void applyEquipmentHints()}
+                    disabled={saving}
+                  />
+                  {onAddRecurringTask && hintEquipmentId ? (
+                    <Button
+                      label="Add a different task"
+                      onPress={() => onAddRecurringTask(hintEquipmentId)}
+                      variant="ghost"
+                    />
+                  ) : null}
+                </ScrollView>
               ) : screenMode === "list" ? (
                 loading ? (
                   <View style={styles.emptyState}>
