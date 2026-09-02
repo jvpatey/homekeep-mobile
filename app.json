@@ -11,16 +11,20 @@
     "splash": {
       "image": "./assets/splash/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F4EFE6"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.homekeep.mobile",
-      "icon": "./assets/icon.png",
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      },
       "splash": {
         "image": "./assets/splash/splash.png",
         "resizeMode": "contain",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F4EFE6"
       },
       "infoPlist": {
         "CFBundleURLTypes": [
@@ -50,7 +54,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F4EFE6"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.homekeep.mobile",

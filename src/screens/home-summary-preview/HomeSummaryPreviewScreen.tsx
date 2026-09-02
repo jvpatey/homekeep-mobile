@@ -15,9 +15,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useAuth } from "../../context/AuthContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
-import { HearthScreen } from "../../components/ui";
+import { HearthScreen, HomeKeepBrand } from "../../components/ui";
 import { AppStackParamList } from "../../navigation/types";
-import { HomeKeepBrand } from "../../components/ui/HomeKeepBrand";
 import {
   HomeSummaryService,
   homeSummaryHasContent,
@@ -25,7 +24,6 @@ import {
 } from "../../services/HomeSummaryService";
 import { formatHomeSummaryHistoryMeta } from "../../utils/groupHomeSummaryTasks";
 import { HomeSummaryTaskGroup } from "../../types/homeSummary";
-import { getHomekeepLogoDataUri } from "../../utils/homekeepLogoDataUri";
 import { HomeSummaryPdfService } from "../../services/HomeSummaryPdfService";
 import { HomeSummaryReportData } from "../../types/homeSummary";
 import { homeSummaryPreviewStyles as styles } from "./styles";
@@ -112,7 +110,6 @@ export function HomeSummaryPreviewScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadReport();
-      void getHomekeepLogoDataUri();
     }, [loadReport])
   );
 

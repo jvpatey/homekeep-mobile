@@ -3,7 +3,6 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { HomeSummaryReportData } from "../types/homeSummary";
 import { buildHomeSummaryReportHtml } from "../templates/homeSummaryReportHtml";
-import { getHomekeepLogoDataUri } from "../utils/homekeepLogoDataUri";
 
 export interface HomeSummaryPdfResult {
   success: boolean;
@@ -15,8 +14,7 @@ export class HomeSummaryPdfService {
     data: HomeSummaryReportData
   ): Promise<HomeSummaryPdfResult> {
     try {
-      const logoDataUri = await getHomekeepLogoDataUri();
-      const html = buildHomeSummaryReportHtml(data, { logoDataUri });
+      const html = buildHomeSummaryReportHtml(data);
       const { uri } = await Print.printToFileAsync({
         html,
         margins: {

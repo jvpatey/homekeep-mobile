@@ -20,16 +20,6 @@ export const styles = StyleSheet.create({
     maxWidth: 280,
     alignSelf: "center",
   },
-  logo: {
-    width: 380,
-    height: 190,
-    resizeMode: "contain",
-  },
-  logoCompact: {
-    width: 140,
-    height: 70,
-    resizeMode: "contain",
-  },
   logoText: {
     textAlign: "center",
     marginTop: 0,

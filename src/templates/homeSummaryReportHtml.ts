@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { HomeSummaryReportData, HomeSummaryTaskGroup } from "../types/homeSummary";
 import { formatHomeSummaryHistoryMeta } from "../utils/groupHomeSummaryTasks";
+import { buildHouseMarkSvg } from "../utils/houseMarkSvg";
 
 function escapeHtml(value: string): string {
   return value
@@ -10,15 +11,13 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-const PRIMARY = "#2EC4B6";
-const ACCENT = "#FF9F1C";
-const TEXT = "#222222";
-const TEXT_SECONDARY = "#4A4A4A";
-const BORDER = "#E0E0E0";
-
-export interface HomeSummaryReportHtmlOptions {
-  logoDataUri?: string | null;
-}
+const PRIMARY = "#C45C26";
+const ACCENT = "#C45C26";
+const SAGE = "#2F5D50";
+const TEXT = "#1A1612";
+const TEXT_SECONDARY = "#6B645C";
+const BORDER = "#E5DDD2";
+const SURFACE = "#F4EFE6";
 
 function completionLine(completion: HomeSummaryTaskGroup["completions"][number]): string {
   const who = completion.completedByLabel
@@ -47,19 +46,19 @@ function renderCompletionsCell(group: HomeSummaryTaskGroup): string {
 }
 
 export function buildHomeSummaryReportHtml(
-  data: HomeSummaryReportData,
-  options?: HomeSummaryReportHtmlOptions
+  data: HomeSummaryReportData
 ): string {
   const generatedLabel = format(data.generatedAt, "MMMM d, yyyy");
   const ownerBlock = data.ownerName
     ? `<p class="meta">Prepared for ${escapeHtml(data.ownerName)}</p>`
     : "";
 
-  const logoImg = options?.logoDataUri
-    ? `<img class="brand-logo" src="${options.logoDataUri}" alt="" />`
-    : "";
-
-  const brandRow = `<div class="brand-row">${logoImg}<span class="brand-wordmark"><span class="brand-home">Home</span><span class="brand-keep">Keep</span></span></div>`;
+  const brandMark = buildHouseMarkSvg({
+    sage: SAGE,
+    copper: PRIMARY,
+    ink: TEXT,
+  });
+  const brandRow = `<div class="brand-row">${brandMark}<span class="brand-wordmark"><span class="brand-home">Home</span><span class="brand-keep">Keep</span></span></div>`;
 
   const addressBlock = data.hasAddress
     ? `<div class="address">${data.addressLines
@@ -137,10 +136,8 @@ export function buildHomeSummaryReportHtml(
       vertical-align: middle;
       width: 20pt;
       height: 20pt;
-      margin: 0 4pt 0 0;
+      margin: 0 6pt 0 0;
       padding: 0;
-      object-fit: contain;
-      object-position: left center;
     }
     .brand-wordmark {
       display: inline-block;
@@ -193,7 +190,7 @@ export function buildHomeSummaryReportHtml(
       text-align: left;
       vertical-align: top;
     }
-    th { background: #f4f7f8; font-weight: 600; }
+    th { background: ${SURFACE}; font-weight: 600; }
     tr { page-break-inside: avoid; }
     .empty, .empty-cell {
       color: ${TEXT_SECONDARY};

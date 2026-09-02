@@ -192,14 +192,14 @@ export const DesignSystem = {
       elevation: 8,
     },
     glass: {
-      shadowColor: "#2EC4B6",
+      shadowColor: "#C45C26",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 12,
       elevation: 3,
     },
     glassStrong: {
-      shadowColor: "#2EC4B6",
+      shadowColor: "#C45C26",
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.15,
       shadowRadius: 20,
