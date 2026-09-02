@@ -34,8 +34,6 @@ interface DashboardHeaderProps {
   animatedStyle?: object;
   /** Season only — e.g. "Warm season". Locality lives in the context line. */
   seasonLabel?: string | null;
-  campaignLabel?: string | null;
-  onOpenCampaign?: () => void;
 }
 
 export function DashboardHeader({
@@ -49,8 +47,6 @@ export function DashboardHeader({
   onScrollToSection,
   animatedStyle,
   seasonLabel,
-  campaignLabel,
-  onOpenCampaign,
 }: DashboardHeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -106,7 +102,7 @@ export function DashboardHeader({
     };
   }, [weather, hasCoords, unitSymbol, locality, seasonLabel]);
 
-  // Prefer a single actionable chip: overdue > due today > campaign.
+  // Status chip is only overdue or due today — not seasonal plan campaigns.
   const statusChip = useMemo(() => {
     if (overdueCount > 0) {
       return {
@@ -126,21 +122,10 @@ export function DashboardHeader({
         onPress: () => onScrollToSection?.("__today__"),
       };
     }
-    if (campaignLabel && onOpenCampaign) {
-      return {
-        key: "campaign",
-        label: campaignLabel,
-        accessibilityLabel: campaignLabel,
-        color: colors.primary,
-        onPress: onOpenCampaign,
-      };
-    }
     return null;
   }, [
     overdueCount,
     dueTodayCount,
-    campaignLabel,
-    onOpenCampaign,
     onScrollToSection,
     colors.error,
     colors.primary,

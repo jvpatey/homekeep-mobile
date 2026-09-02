@@ -8,9 +8,19 @@ import {
   startOfDay,
   subDays,
 } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
 import { MaintenanceTask } from "../../types/maintenance";
 
 export type HistoryLookback = 30 | 90 | "all";
+
+export type CompletionHistoryStatus = "completed" | "completed_late";
+
+export interface CompletionHistoryStatusMeta {
+  status: CompletionHistoryStatus;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  colorKey: "success" | "warning";
+}
 
 export interface CompletionDaySection {
   key: string;
@@ -52,6 +62,42 @@ function daySectionTitle(key: string, referenceDate: Date): string {
   if (isYesterday(date)) return "Yesterday";
   return format(date, historyDatePattern(date, referenceDate));
 }
+
+/** Classify a finished instance for history rows. Skipped/missed are not stored yet. */
+export function getCompletionHistoryStatus(
+  task: MaintenanceTask
+): CompletionHistoryStatus {
+  const due = startOfDay(toLocalDate(task.due_date));
+  const completedAt = startOfDay(
+    toLocalDate(task.completed_at || task.due_date)
+  );
+  if (!isValid(due) || !isValid(completedAt)) return "completed";
+  return completedAt > due ? "completed_late" : "completed";
+}
+
+export function completionHistoryStatusMeta(
+  status: CompletionHistoryStatus
+): CompletionHistoryStatusMeta {
+  if (status === "completed_late") {
+    return {
+      status,
+      label: "Completed late",
+      icon: "time-outline",
+      colorKey: "warning",
+    };
+  }
+  return {
+    status,
+    label: "Completed",
+    icon: "checkmark-circle-outline",
+    colorKey: "success",
+  };
+}
+
+export const COMPLETION_HISTORY_LEGEND: CompletionHistoryStatusMeta[] = [
+  completionHistoryStatusMeta("completed"),
+  completionHistoryStatusMeta("completed_late"),
+];
 
 export function filterCompletionsByLookback(
   tasks: MaintenanceTask[],

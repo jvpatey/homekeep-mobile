@@ -175,6 +175,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   type SettingsOption = {
     id: string;
     title: string;
+    subtitle?: string;
     icon: string;
     onPress: () => void;
     type: "navigation" | "destructive";
@@ -232,7 +233,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     },
     {
       id: "maintenance-plans",
-      title: "Maintenance Plans",
+      title: "Task library",
+      subtitle: "Seasonal and specialty bundles",
       icon: "layers-outline",
       onPress: () => {
         void triggerLight();
@@ -308,7 +310,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         activeOpacity={0.7}
         disabled={Boolean(option.disabled)}
         accessibilityRole="button"
-        accessibilityLabel={option.title}
+        accessibilityLabel={
+          option.subtitle
+            ? `${option.title}. ${option.subtitle}`
+            : option.title
+        }
         accessibilityState={{ disabled: Boolean(option.disabled) }}
       >
         <View
@@ -323,9 +329,18 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             color={getIconColor()}
           />
         </View>
-        <Text style={[styles.optionText, { color: getTextColor() }]}>
-          {option.title}
-        </Text>
+        <View style={styles.optionTextBlock}>
+          <Text style={[styles.optionText, { color: getTextColor() }]}>
+            {option.title}
+          </Text>
+          {option.subtitle ? (
+            <Text
+              style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+            >
+              {option.subtitle}
+            </Text>
+          ) : null}
+        </View>
         {option.type === "navigation" ? (
           <Ionicons
             name="chevron-forward"
@@ -551,9 +566,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: DesignSystem.spacing.md,
   },
+  optionTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
   optionText: {
     ...DesignSystem.typography.bodyMedium,
-    flex: 1,
     fontSize: 16,
+  },
+  optionSubtitle: {
+    ...DesignSystem.typography.caption,
+    marginTop: 2,
   },
 });

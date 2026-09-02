@@ -73,7 +73,7 @@ interface NewDashboardProps {
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
-  onBrowseMaintenancePlans?: () => void;
+  onBrowseMaintenancePlans?: (planId?: string) => void;
   onSkipTaskOccurrence?: (
     task: MaintenanceTask
   ) => Promise<{ success: boolean; error?: string }>;
@@ -242,16 +242,6 @@ export function NewDashboard({
   );
 
   const inSeasonPlanId = recommendInSeasonPlanId(month, profile?.latitude);
-  const campaignLabel = useMemo(() => {
-    if (!inSeasonPlanId) return null;
-    const hasPlan = [...seasonalTasks, ...seasonalOverdue].some(
-      (t) => t.source_plan_id === inSeasonPlanId
-    );
-    if (hasPlan) return null;
-    return inSeasonPlanId === "spring-refresh"
-      ? "Spring refresh"
-      : "Cold-weather prep";
-  }, [inSeasonPlanId, seasonalTasks, seasonalOverdue]);
 
   const seasonLabel = useMemo(
     () => homeSeasonLabel(month, profile?.latitude),
@@ -407,8 +397,6 @@ export function NewDashboard({
         onScrollToSection={handleScrollToSection}
         animatedStyle={headerAnimatedStyle}
         seasonLabel={seasonLabel}
-        campaignLabel={campaignLabel}
-        onOpenCampaign={onBrowseMaintenancePlans}
       />
       <HomeSystemMap
         overdueTasks={seasonalOverdue}

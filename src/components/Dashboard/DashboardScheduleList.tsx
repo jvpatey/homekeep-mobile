@@ -41,7 +41,7 @@ interface DashboardScheduleListProps {
     closeSwipe: () => void
   ) => void | Promise<void>;
   onAddTask?: () => void;
-  onBrowseMaintenancePlans?: () => void;
+  onBrowseMaintenancePlans?: (planId?: string) => void;
   onSetupHome?: () => void;
   homeSetupIncomplete?: boolean;
   contentPaddingBottom: number;
@@ -234,7 +234,7 @@ export const DashboardScheduleList = forwardRef<
       >
         {homeSetupIncomplete
           ? "Tell us about this house and we'll build a maintenance schedule that matches it."
-          : "Add a task or browse a maintenance plan to get started."}
+          : "Add a task or pick more from the task library."}
       </Text>
 
       {homeSetupIncomplete && onSetupHome ? (
@@ -251,10 +251,10 @@ export const DashboardScheduleList = forwardRef<
         </View>
       ) : null}
 
-      {onBrowseMaintenancePlans ? (
+      {!homeSetupIncomplete && onBrowseMaintenancePlans ? (
         <TextLink
           prefix=""
-          linkText="Browse maintenance plans"
+          linkText="Browse task library"
           onPress={onBrowseMaintenancePlans}
         />
       ) : null}

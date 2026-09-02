@@ -27,6 +27,9 @@ import {
   filterCompletionsByLookback,
   formatCompletionTime,
   groupCompletionsByDay,
+  getCompletionHistoryStatus,
+  completionHistoryStatusMeta,
+  COMPLETION_HISTORY_LEGEND,
 } from "./utils";
 
 const LOOKBACK_OPTIONS: { value: HistoryLookback; label: string }[] = [
@@ -155,7 +158,11 @@ export function CompletionHistoryScreen() {
     const timeLabel = formatCompletionTime(
       task.completed_at || task.due_date
     );
-    const meta = `${categoryLabel(task.category)} · ${timeLabel}`;
+    const statusMeta = completionHistoryStatusMeta(
+      getCompletionHistoryStatus(task)
+    );
+    const statusColor = colors[statusMeta.colorKey];
+    const meta = `${statusMeta.label} · ${categoryLabel(task.category)} · ${timeLabel}`;
 
     return (
       <View
@@ -168,6 +175,16 @@ export function CompletionHistoryScreen() {
           },
         ]}
       >
+        <View
+          style={[
+            completionHistoryStyles.rowIcon,
+            { backgroundColor: statusColor + "22" },
+          ]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Ionicons name={statusMeta.icon} size={18} color={statusColor} />
+        </View>
         <View style={completionHistoryStyles.rowMain}>
           <Text
             style={[
@@ -213,7 +230,7 @@ export function CompletionHistoryScreen() {
           onPress={() => void handleUndo(task)}
           disabled={undoing}
           accessibilityRole="button"
-          accessibilityLabel={`Undo completion of ${task.title}`}
+          accessibilityLabel={`Undo ${statusMeta.label.toLowerCase()} of ${task.title}`}
           accessibilityState={{ disabled: undoing }}
         >
           <Text
@@ -308,6 +325,27 @@ export function CompletionHistoryScreen() {
                 filteredTasks.length === 1 ? "" : "s"
               }`}
         </Text>
+      ) : null}
+      {filteredTasks.length > 0 ? (
+        <View style={completionHistoryStyles.legendRow}>
+          {COMPLETION_HISTORY_LEGEND.map((item) => (
+            <View key={item.status} style={completionHistoryStyles.legendItem}>
+              <Ionicons
+                name={item.icon}
+                size={14}
+                color={colors[item.colorKey]}
+              />
+              <Text
+                style={[
+                  completionHistoryStyles.legendText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {item.label}
+              </Text>
+            </View>
+          ))}
+        </View>
       ) : null}
       {completedTasks.length >= TASK_LIST_LIMIT ? (
         <Text

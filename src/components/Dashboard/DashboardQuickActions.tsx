@@ -79,14 +79,14 @@ export function DashboardQuickActions({
           onPress={onBrowseMaintenancePlans}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Browse maintenance plans"
+          accessibilityLabel="Browse task library"
         >
           <Ionicons name="library-outline" size={22} color={colors.primary} />
           <Text
             style={[styles.btnLabel, { color: colors.text }]}
             numberOfLines={1}
           >
-            Maintenance plans
+            Task library
           </Text>
         </TouchableOpacity>
       ) : null}

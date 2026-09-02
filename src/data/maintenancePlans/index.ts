@@ -78,6 +78,13 @@ export {
 } from "./homeSystems";
 export { recommendMaintenancePlanId } from "./recommendPlan";
 export {
+  STARTER_PLAN_ID,
+  POOL_SPA_PLAN_ID,
+  SAFETY_PLAN_ID,
+  getAppliedPlanIds,
+  getVisibleMaintenancePlans,
+} from "./planCatalog";
+export {
   type ScheduledHomeItem,
   generateHomeScheduleItems,
   scheduledItemsToPayloads,
