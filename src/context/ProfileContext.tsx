@@ -63,6 +63,9 @@ export interface AddressCoords {
 interface ProfileContextValue {
   profile: UserProfile | null;
   loading: boolean;
+  /** Owner can edit address/systems/emergency; members see the owner's home. */
+  canEditHome: boolean;
+  householdRole: "owner" | "member" | null;
   /** True when the user has neither saved nor explicitly skipped the address onboarding. */
   addressNeeded: boolean;
   /** True when home systems have not been completed or skipped. */
@@ -97,6 +100,65 @@ const ProfileContext = createContext<ProfileContextValue | undefined>(undefined)
 const PROFILE_SELECT = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at, home_systems, avatar_style, home_setup_set_at, home_emergency, household_id`;
 const PROFILE_SELECT_LEGACY = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at`;
 
+function applyOwnerHomeFields(
+  own: UserProfile,
+  owner: UserProfile
+): UserProfile {
+  return {
+    ...own,
+    address_line1: owner.address_line1,
+    address_line2: owner.address_line2,
+    city: owner.city,
+    region: owner.region,
+    postal_code: owner.postal_code,
+    country: owner.country,
+    latitude: owner.latitude,
+    longitude: owner.longitude,
+    address_set_at: owner.address_set_at,
+    home_systems: owner.home_systems,
+    home_setup_set_at: owner.home_setup_set_at,
+    home_emergency: owner.home_emergency,
+  };
+}
+
+async function overlayHouseholdHome(
+  own: UserProfile
+): Promise<{
+  profile: UserProfile;
+  canEditHome: boolean;
+  householdRole: "owner" | "member" | null;
+}> {
+  if (!supabase || !own.household_id) {
+    return { profile: own, canEditHome: true, householdRole: null };
+  }
+  const { data: household } = await supabase
+    .from("households")
+    .select("created_by")
+    .eq("id", own.household_id)
+    .maybeSingle();
+  const ownerId =
+    typeof household?.created_by === "string" ? household.created_by : null;
+  if (!ownerId) {
+    return { profile: own, canEditHome: true, householdRole: null };
+  }
+  if (ownerId === own.id) {
+    return { profile: own, canEditHome: true, householdRole: "owner" };
+  }
+  const { data: ownerRow } = await supabase
+    .from("profiles")
+    .select(PROFILE_SELECT)
+    .eq("id", ownerId)
+    .maybeSingle();
+  if (!ownerRow) {
+    return { profile: own, canEditHome: false, householdRole: "member" };
+  }
+  return {
+    profile: applyOwnerHomeFields(own, normalizeProfile(ownerRow, ownerId)),
+    canEditHome: false,
+    householdRole: "member",
+  };
+}
+
 function normalizeProfile(data: unknown, fallbackId: string): UserProfile {
   if (!data || typeof data !== "object") {
     return { id: fallbackId };
@@ -124,6 +186,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [canEditHome, setCanEditHome] = useState(true);
+  const [householdRole, setHouseholdRole] = useState<
+    "owner" | "member" | null
+  >(null);
   const userIdRef = useRef<string | null>(null);
 
   const loadProfile = useCallback(async () => {
@@ -152,14 +218,26 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           .eq("id", user.id)
           .maybeSingle();
         if (fallback.data) {
-          setProfile(normalizeProfile(fallback.data, user.id));
+          const overlaid = await overlayHouseholdHome(
+            normalizeProfile(fallback.data, user.id)
+          );
+          setProfile(overlaid.profile);
+          setCanEditHome(overlaid.canEditHome);
+          setHouseholdRole(overlaid.householdRole);
           return;
         }
         setProfile({ id: user.id, home_systems: {} });
+        setCanEditHome(true);
+        setHouseholdRole(null);
         return;
       }
 
-      setProfile(normalizeProfile(data, user.id));
+      const overlaid = await overlayHouseholdHome(
+        normalizeProfile(data, user.id)
+      );
+      setProfile(overlaid.profile);
+      setCanEditHome(overlaid.canEditHome);
+      setHouseholdRole(overlaid.householdRole);
     } catch (err) {
       console.warn("Profile load threw", err);
       setProfile({ id: user.id, home_systems: {} });
@@ -185,6 +263,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     ): Promise<UpdateAddressResult> => {
       if (!supabase || !user) {
         return { success: false, error: "Not signed in", geocoded: false };
+      }
+      if (!canEditHome) {
+        return {
+          success: false,
+          error: "Only the household owner can edit this home.",
+          geocoded: false,
+        };
       }
 
       // Prefer caller-supplied coords (e.g. from Mapbox autocomplete) — only
@@ -236,7 +321,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
       return { success: true, geocoded: !!resolvedCoords };
     },
-    [user]
+    [user, canEditHome]
   );
 
   const skipAddressOnboarding = useCallback(async () => {
@@ -268,6 +353,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     async (
       patch: HomeSystems
     ): Promise<{ success: boolean; error?: string }> => {
+      if (!canEditHome) {
+        return {
+          success: false,
+          error: "Only the household owner can edit this home.",
+        };
+      }
       const merged = mergeHomeSystems(profile?.home_systems, patch);
       setProfile((prev) =>
         prev
@@ -307,7 +398,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
       return { success: true };
     },
-    [profile?.home_systems, user]
+    [profile?.home_systems, user, canEditHome]
   );
 
   const markHomeSetupDone = useCallback(async () => {
@@ -341,6 +432,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     async (
       facts: HomeEmergencyFacts
     ): Promise<{ success: boolean; error?: string }> => {
+      if (!canEditHome) {
+        return {
+          success: false,
+          error: "Only the household owner can edit this home.",
+        };
+      }
       setProfile((prev) =>
         prev ? { ...prev, home_emergency: facts } : prev
       );
@@ -368,7 +465,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
       return { success: true };
     },
-    [user]
+    [user, canEditHome]
   );
 
   const updateAvatarStyle = useCallback(
@@ -437,6 +534,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     () => ({
       profile,
       loading,
+      canEditHome,
+      householdRole,
       addressNeeded,
       homeSetupNeeded,
       refresh: loadProfile,
@@ -450,6 +549,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     [
       profile,
       loading,
+      canEditHome,
+      householdRole,
       addressNeeded,
       homeSetupNeeded,
       loadProfile,

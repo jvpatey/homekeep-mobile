@@ -24,6 +24,7 @@ import { FloatingActionButton } from "./FloatingActionButton";
 import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
 import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeSetupModal } from "../modals/home-setup";
+import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdSharingModal";
 import { useProfile } from "../../context/ProfileContext";
 import { isHomeSystemsComplete } from "../../data/maintenancePlans";
 import { DesignSystem } from "../../theme/designSystem";
@@ -112,6 +113,7 @@ export function NewDashboard({
   >(new Set());
   const completingRef = useRef<Set<string>>(new Set());
   const [showHomeSetupModal, setShowHomeSetupModal] = useState(false);
+  const [showHouseholdModal, setShowHouseholdModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
   );
@@ -121,6 +123,9 @@ export function NewDashboard({
     useState<MaintenanceTask | null>(null);
   const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
     useState(false);
+  const [createEquipmentId, setCreateEquipmentId] = useState<string | null>(
+    null
+  );
   const [selectedZoneId, setSelectedZoneId] = useState<HomeMapZoneId | null>(
     null
   );
@@ -369,6 +374,7 @@ export function NewDashboard({
 
   const openCreateModal = () => {
     setEditTaskInitial(null);
+    setCreateEquipmentId(null);
     setShowCreateModal(true);
   };
 
@@ -507,6 +513,7 @@ export function NewDashboard({
           onClose={() => {
             setShowCreateModal(false);
             setEditTaskInitial(null);
+            setCreateEquipmentId(null);
           }}
           onTaskCreated={handleTaskCreated}
           initialValues={
@@ -523,7 +530,9 @@ export function NewDashboard({
                   description: editTaskInitial.description,
                   equipment_id: editTaskInitial.equipment_id,
                 }
-              : undefined
+              : createEquipmentId
+                ? { equipment_id: createEquipmentId }
+                : undefined
           }
           isEdit={!!editTaskInitial}
         />
@@ -538,15 +547,25 @@ export function NewDashboard({
         <EquipmentManualsModal
           visible
           onClose={() => setShowEquipmentManualsModal(false)}
+          onAddRecurringTask={(equipmentId) => {
+            setShowEquipmentManualsModal(false);
+            setCreateEquipmentId(equipmentId);
+            setEditTaskInitial(null);
+            setShowCreateModal(true);
+          }}
         />
       ) : null}
 
-      {showHomeSetupModal ? (
-        <HomeSetupModal
-          visible
-          onClose={() => setShowHomeSetupModal(false)}
-        />
-      ) : null}
+      <HomeSetupModal
+        visible={showHomeSetupModal}
+        onClose={() => setShowHomeSetupModal(false)}
+        onJoinHousehold={() => setShowHouseholdModal(true)}
+      />
+
+      <HouseholdSharingModal
+        visible={showHouseholdModal}
+        onClose={() => setShowHouseholdModal(false)}
+      />
 
       {completeTarget ? (
         <CompleteTaskSheet

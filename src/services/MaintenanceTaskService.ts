@@ -10,6 +10,7 @@ import {
   RoutineInstanceResponse,
 } from "../types/maintenance";
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
+import { enrichTasksWithCompleters } from "./enrichCompleters";
 import { addDays, startOfDay } from "date-fns";
 
 /** Max rows per task list query; pagination is out of scope for now. */
@@ -266,6 +267,8 @@ export class MaintenanceTaskService {
         .select(
           `
           *,
+          completed_by,
+          completed_by_name,
           routine:maintenance_routines(
             id,
             user_id,
@@ -307,7 +310,9 @@ export class MaintenanceTaskService {
 
       if (error) throw error;
 
-      const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
+      const mappedTasks = await enrichTasksWithCompleters(
+        MaintenanceDataMapper.mapInstancesToTasks(data)
+      );
       return { data: mappedTasks, error: null };
     } catch (error) {
       console.error("Error fetching completed tasks:", error);

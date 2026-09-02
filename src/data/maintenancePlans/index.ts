@@ -89,3 +89,9 @@ export {
   generateHomeScheduleItems,
   scheduledItemsToPayloads,
 } from "./generateHomeSchedule";
+export {
+  type ExistingRoutineForDiff,
+  type PauseCandidate,
+  type HomeScheduleDiff,
+  diffHomeSchedule,
+} from "./diffHomeSchedule";

@@ -30,6 +30,8 @@ export interface RoutineInstance {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  completed_by?: string | null;
+  completed_by_name?: string | null;
   created_at: string;
 }
 
@@ -58,6 +60,9 @@ export interface MaintenanceTask {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  completed_by?: string | null;
+  completed_by_name?: string | null;
+  completed_by_avatar_style?: string | null;
 }
 
 export type MaintenanceCategory =
@@ -117,6 +122,8 @@ export interface UpdateRoutineInstanceData {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  completed_by?: string | null;
+  completed_by_name?: string | null;
 }
 
 export interface CreateRoutineInstanceData {
@@ -354,5 +361,8 @@ export interface InstanceWithRoutine {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  completed_by?: string | null;
+  completed_by_name?: string | null;
+  completed_by_avatar_style?: string | null;
   created_at: string;
 }

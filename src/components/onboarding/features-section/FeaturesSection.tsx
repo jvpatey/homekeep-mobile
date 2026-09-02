@@ -124,25 +124,25 @@ export function FeaturesSection() {
 
   const features = [
     {
-      icon: "list-outline",
-      text: "Organize",
-      subtitle: "Manage all tasks in one place",
+      icon: "home-outline",
+      text: "Your home",
+      subtitle: "Address, systems, and shutoffs in one place",
       description:
-        "Create, organize, and manage all your home maintenance tasks in one place. Set priorities, due dates, and categories to keep everything organized.",
+        "Tell us about this house once — lawn, heat, pool, and the rest. HomeKeep builds a maintenance schedule that matches what you actually own.",
     },
     {
-      icon: "time-outline",
-      text: "Schedule",
-      subtitle: "Never miss important maintenance",
+      icon: "calendar-outline",
+      text: "What it needs",
+      subtitle: "A schedule from the house, not a blank list",
       description:
-        "Never forget when to clean your gutters, change filters, or service your HVAC again. Get automatic reminders for all your home maintenance needs.",
+        "Reminders come from your home profile and the season. When something in the house changes, the schedule can change with it.",
     },
     {
-      icon: "trophy-outline",
-      text: "Track",
-      subtitle: "See your maintenance progress",
+      icon: "book-outline",
+      text: "A record",
+      subtitle: "History of what you kept up with",
       description:
-        "Celebrate your achievements and track your home maintenance progress. Build a complete history of completed tasks and maintenance milestones.",
+        "Completions, notes, and equipment manuals stay with the home so you have a record of how it has been cared for.",
     },
   ];
 

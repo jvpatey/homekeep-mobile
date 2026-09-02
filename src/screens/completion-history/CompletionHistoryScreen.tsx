@@ -13,10 +13,17 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/types";
 import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
+import {
+  completerDisplayName,
+  completerInitial,
+} from "../../utils/completerLabel";
 import { TasksLoadErrorBanner } from "../../components/Dashboard/TasksLoadErrorBanner";
 import { useHaptics, useScreenInsets } from "../../hooks";
-import { HearthScreen, HearthSurfaceCard } from "../../components/ui";
+import { HearthScreen, HearthSurfaceCard, TintedGlassAvatar } from "../../components/ui";
+import { useProfile } from "../../context/ProfileContext";
+import { useUserPreferences, resolveGradientPreset } from "../../context/UserPreferencesContext";
 import { completionHistoryStyles } from "./styles";
 import { DesignSystem } from "../../theme/designSystem";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
@@ -48,6 +55,9 @@ function categoryLabel(category: MaintenanceTask["category"]): string {
 
 export function CompletionHistoryScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  const { selectedGradient } = useUserPreferences();
   const {
     completedTasks,
     uncompleteTask,
@@ -162,6 +172,25 @@ export function CompletionHistoryScreen() {
       getCompletionHistoryStatus(task)
     );
     const statusColor = colors[statusMeta.colorKey];
+    const who = completerDisplayName({
+      completedBy: task.completed_by,
+      completedByName: task.completed_by_name,
+      currentUserId: user?.id,
+    });
+    const isSelf = Boolean(user?.id && task.completed_by === user.id);
+    const selfName =
+      (typeof user?.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name
+        : null) ||
+      profile?.full_name ||
+      user?.email ||
+      "You";
+    const avatarGradient = isSelf
+      ? selectedGradient
+      : resolveGradientPreset(task.completed_by_avatar_style);
+    const avatarInitial = completerInitial(
+      isSelf ? selfName : task.completed_by_name || who
+    );
     const meta = `${statusMeta.label} · ${categoryLabel(task.category)} · ${timeLabel}`;
 
     return (
@@ -174,6 +203,9 @@ export function CompletionHistoryScreen() {
             borderBottomColor: colors.border,
           },
         ]}
+        accessibilityLabel={
+          who ? `${task.title}. ${meta}. ${who}` : `${task.title}. ${meta}`
+        }
       >
         <View
           style={[
@@ -203,6 +235,26 @@ export function CompletionHistoryScreen() {
           >
             {meta}
           </Text>
+          {who ? (
+            <View style={completionHistoryStyles.rowBy}>
+              <TintedGlassAvatar
+                size={22}
+                gradient={avatarGradient}
+                initial={avatarInitial}
+                pressable={false}
+                accessibilityLabel={who}
+              />
+              <Text
+                style={[
+                  completionHistoryStyles.rowByName,
+                  { color: colors.text },
+                ]}
+                numberOfLines={1}
+              >
+                {who}
+              </Text>
+            </View>
+          ) : null}
           {notes ? (
             <Text
               style={[

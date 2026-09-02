@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
+import { useProfile } from "../../context/ProfileContext";
 import { useUserPreferences } from "../../context/UserPreferencesContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
 import { HearthScreen } from "../../components/ui";
@@ -27,6 +28,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
   const { user, signOut, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
+  const { canEditHome } = useProfile();
   const { selectedGradient } = useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
   const { scrollPaddingBottom } = useScreenInsets();
@@ -74,12 +76,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const handleDeleteAllTasks = async () => {
     await triggerMedium();
     Alert.alert(
-      "Delete All Tasks",
-      "This will permanently delete all of your tasks and their history. This action cannot be undone.",
+      "Reset this home's schedule",
+      "This permanently deletes every reminder and its history for this home. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete All",
+          text: "Reset schedule",
           style: "destructive",
           onPress: async () => {
             const { success, error } = await deleteAllTasks();
@@ -87,8 +89,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               Alert.alert("Error", error || "Failed to delete all tasks");
             } else {
               Alert.alert(
-                "Deleted",
-                "All tasks and history have been deleted."
+                "Schedule reset",
+                "This home's reminders and history have been deleted."
               );
             }
           },
@@ -200,9 +202,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     {
       id: "edit-home",
       title: "Your home",
+      subtitle: canEditHome
+        ? undefined
+        : "The household owner manages this home",
       icon: "home-outline",
       onPress: handleEditHome,
       type: "navigation",
+      disabled: !canEditHome,
     },
     {
       id: "emergency-map",
@@ -244,7 +250,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     },
     {
       id: "delete-tasks",
-      title: "Delete All Tasks",
+      title: "Reset this home's schedule",
       icon: "trash-bin-outline",
       onPress: handleDeleteAllTasks,
       type: "destructive",
@@ -456,20 +462,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         />
       ) : null}
 
-      {homeSetupVisible ? (
-        <HomeSetupModal
-          visible
-          onClose={() => setHomeSetupVisible(false)}
-          hideSkip
-        />
-      ) : null}
+      <HomeSetupModal
+        visible={homeSetupVisible}
+        onClose={() => setHomeSetupVisible(false)}
+        hideSkip
+      />
 
-      {householdVisible ? (
-        <HouseholdSharingModal
-          visible
-          onClose={() => setHouseholdVisible(false)}
-        />
-      ) : null}
+      <HouseholdSharingModal
+        visible={householdVisible}
+        onClose={() => setHouseholdVisible(false)}
+      />
 
       {emergencyVisible ? (
         <EmergencyFactsModal

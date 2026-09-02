@@ -17,7 +17,10 @@ import {
   homeHeatSources,
   HOME_HEAT_SOURCE_OPTIONS,
   isHeatPumpFamily,
+  diffHomeSchedule,
+  HomeScheduleDiff,
 } from "../../../data/maintenancePlans";
+import { MaintenanceService } from "../../../services/maintenanceService";
 import {
   CategoryKey,
   HOME_MAINTENANCE_CATEGORIES,
@@ -40,6 +43,8 @@ interface HomeSetupModalProps {
   onClose: () => void;
   /** Settings edit — hide skip, still offer to add missing tasks. */
   hideSkip?: boolean;
+  /** After first-run dismiss, open household join (Dashboard). */
+  onJoinHousehold?: () => void;
 }
 
 function formatIntervalDays(days: number): string {
@@ -67,13 +72,16 @@ export function HomeSetupModal({
   visible,
   onClose,
   hideSkip = false,
+  onJoinHousehold,
 }: HomeSetupModalProps) {
   const { colors } = useTheme();
   const { profile, updateHomeSystems, markHomeSetupDone, skipAddressOnboarding } =
     useProfile();
-  const { applyGeneratedHomeSchedule } = useTasks();
+  const { applyGeneratedHomeSchedule, reconcileHomeSchedule } = useTasks();
   const addressRef = useRef<HomeAddressFieldsHandle>(null);
   const [addressCanSubmit, setAddressCanSubmit] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(visible);
+  const joinAfterDismissRef = useRef(false);
 
   const [phase, setPhase] = useState<Phase>("address");
   const [hasLawn, setHasLawn] = useState<boolean | null>(null);
@@ -97,9 +105,23 @@ export function HomeSetupModal({
     boolean | null
   >(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
+  const [addMask, setAddMask] = useState<boolean[]>([]);
+  const [pauseMask, setPauseMask] = useState<boolean[]>([]);
+  const [reconcileDiff, setReconcileDiff] = useState<HomeScheduleDiff | null>(
+    null
+  );
+  const [confirmMode, setConfirmMode] = useState<"generate" | "reconcile">(
+    "generate"
+  );
   const [saving, setSaving] = useState(false);
+  const systemsBeforeEdit = useRef<HomeSystems | null>(null);
 
   const home = profile?.home_systems;
+  const isReconcile = confirmMode === "reconcile";
+
+  useEffect(() => {
+    setSheetVisible(visible);
+  }, [visible]);
 
   // Hydrate once per open. Saving the address updates the profile and must
   // not snap the wizard back to step 1.
@@ -107,6 +129,11 @@ export function HomeSetupModal({
     if (!visible) {
       setPhase("address");
       setSaving(false);
+      setReconcileDiff(null);
+      setConfirmMode("generate");
+      setAddMask([]);
+      setPauseMask([]);
+      systemsBeforeEdit.current = null;
       return;
     }
     setHasLawn(home?.hasLawn ?? null);
@@ -252,16 +279,49 @@ export function HomeSetupModal({
   }, [phase, generatedItems]);
 
   const selectedItems = generatedItems.filter((_, i) => selectedMask[i]);
+  const selectedAdds = (reconcileDiff?.toAdd ?? []).filter(
+    (_, i) => addMask[i]
+  );
+  const selectedPauses = (reconcileDiff?.toPause ?? []).filter(
+    (_, i) => pauseMask[i]
+  );
+
+  const persistFirstRunSkip = async () => {
+    if (phase === "address") {
+      await skipAddressOnboarding();
+    }
+    await markHomeSetupDone();
+  };
+
+  const closeSheet = () => setSheetVisible(false);
 
   const handleSkip = async () => {
     if (saving) return;
     setSaving(true);
     try {
-      if (phase === "address") {
-        await skipAddressOnboarding();
-      }
-      await markHomeSetupDone();
-      onClose();
+      await persistFirstRunSkip();
+      closeSheet();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRequestClose = () => {
+    if (saving) return;
+    if (hideSkip) {
+      closeSheet();
+      return;
+    }
+    void handleSkip();
+  };
+
+  const handleJoinHousehold = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      joinAfterDismissRef.current = true;
+      await persistFirstRunSkip();
+      closeSheet();
     } finally {
       setSaving(false);
     }
@@ -280,11 +340,48 @@ export function HomeSetupModal({
 
   const handleContinueToConfirm = async () => {
     if (!draftSystems) return;
+    systemsBeforeEdit.current = profile?.home_systems ?? {};
     const result = await updateHomeSystems(draftSystems);
     if (!result.success) {
       Alert.alert("Couldn't save", result.error ?? "Please try again.");
       return;
     }
+
+    const { data, error } = await MaintenanceService.getMaintenanceRoutines({
+      is_active: true,
+    });
+    if (error) {
+      Alert.alert("Couldn't load schedule", error.message);
+      return;
+    }
+    const existing = data ?? [];
+
+    // Empty schedule (e.g. after reset) → full generated picker, not a
+    // systems-only diff that would say "already matches" and add nothing.
+    if (existing.length === 0) {
+      setReconcileDiff(null);
+      setConfirmMode("generate");
+      setPhase("confirm");
+      return;
+    }
+
+    const diff = diffHomeSchedule({
+      oldHome: systemsBeforeEdit.current,
+      newHome: draftSystems,
+      existingRoutines: existing,
+      month: new Date().getMonth(),
+      latitude: profile?.latitude,
+    });
+    if (diff.toAdd.length === 0 && diff.toPause.length === 0) {
+      await markHomeSetupDone();
+      Alert.alert("You're set", "Your schedule already matches this home.");
+      closeSheet();
+      return;
+    }
+    setReconcileDiff(diff);
+    setAddMask(diff.toAdd.map(() => true));
+    setPauseMask(diff.toPause.map(() => true));
+    setConfirmMode("reconcile");
     setPhase("confirm");
   };
 
@@ -292,6 +389,39 @@ export function HomeSetupModal({
     if (saving) return;
     setSaving(true);
     try {
+      if (isReconcile) {
+        const result = await reconcileHomeSchedule({
+          toAdd: selectedAdds,
+          pauseIds: selectedPauses.map((row) => row.id),
+        });
+        if (!result.success) {
+          Alert.alert(
+            "Couldn't update schedule",
+            result.error ?? "Please try again."
+          );
+          return;
+        }
+        await markHomeSetupDone();
+        const added = result.addedCount ?? 0;
+        const paused = result.pausedCount ?? 0;
+        if (added > 0 || paused > 0) {
+          const parts: string[] = [];
+          if (added > 0) {
+            parts.push(
+              `Added ${added} task${added === 1 ? "" : "s"}`
+            );
+          }
+          if (paused > 0) {
+            parts.push(
+              `paused ${paused} reminder${paused === 1 ? "" : "s"}`
+            );
+          }
+          Alert.alert("Home updated", `${parts.join(", ")}.`);
+        }
+        closeSheet();
+        return;
+      }
+
       const result = await applyGeneratedHomeSchedule(selectedItems);
       if (!result.success) {
         Alert.alert("Couldn't add tasks", result.error ?? "Please try again.");
@@ -313,7 +443,7 @@ export function HomeSetupModal({
             : `Added ${added} tasks for this home.`
         );
       }
-      onClose();
+      closeSheet();
     } finally {
       setSaving(false);
     }
@@ -322,14 +452,23 @@ export function HomeSetupModal({
   const questionCount = 10 + (saltNeeded ? 1 : 0);
 
   const skipOrCancel = hideSkip ? (
-    <Button label="Cancel" onPress={onClose} variant="ghost" />
+    <Button label="Cancel" onPress={handleRequestClose} variant="ghost" />
   ) : (
-    <Button
-      label="Skip for now"
-      onPress={() => void handleSkip()}
-      variant="ghost"
-      disabled={saving}
-    />
+    <>
+      <Button
+        label="Join a household instead"
+        onPress={() => void handleJoinHousehold()}
+        variant="ghost"
+        disabled={saving}
+        accessibilityLabel="Skip setup and join someone else's household"
+      />
+      <Button
+        label="Skip for now"
+        onPress={() => void handleSkip()}
+        variant="ghost"
+        disabled={saving}
+      />
+    </>
   );
 
   const footer =
@@ -364,14 +503,24 @@ export function HomeSetupModal({
         <Button
           label={
             saving
-              ? "Adding…"
-              : selectedItems.length === 0
-                ? "Save home without tasks"
-                : `Add ${selectedItems.length} tasks`
+              ? isReconcile
+                ? "Updating…"
+                : "Adding…"
+              : isReconcile
+                ? selectedAdds.length === 0 && selectedPauses.length === 0
+                  ? "Save without changing tasks"
+                  : "Update schedule"
+                : selectedItems.length === 0
+                  ? "Save home without tasks"
+                  : `Add ${selectedItems.length} tasks`
           }
           onPress={() => void handleApply()}
           disabled={saving}
-          accessibilityLabel="Apply generated schedule"
+          accessibilityLabel={
+            isReconcile
+              ? "Update schedule for this home"
+              : "Apply generated schedule"
+          }
         />
         <Button
           label="Back"
@@ -383,12 +532,23 @@ export function HomeSetupModal({
     );
 
   const sheetTitle =
-    phase === "confirm" ? "Here's what this house needs" : "Set up your home";
+    phase === "confirm"
+      ? isReconcile
+        ? "What changed"
+        : "Here's what this house needs"
+      : "Set up your home";
 
   return (
     <HearthSheet
-      visible={visible}
-      onClose={onClose}
+      visible={sheetVisible}
+      onClose={handleRequestClose}
+      onDismissed={() => {
+        onClose();
+        if (joinAfterDismissRef.current) {
+          joinAfterDismissRef.current = false;
+          onJoinHousehold?.();
+        }
+      }}
       title={sheetTitle}
       fillMaxHeight
       footer={footer}
@@ -404,11 +564,12 @@ export function HomeSetupModal({
           </Text>
           <Text style={[styles.intro, { color: colors.textSecondary }]}>
             Start with where you live. We'll use this for weather, seasons, and
-            your schedule.
+            your schedule. If someone already set up this home, join their
+            household instead.
           </Text>
           <HomeAddressFields
             ref={addressRef}
-            active={visible && phase === "address"}
+            active={sheetVisible && phase === "address"}
             onCanSubmitChange={setAddressCanSubmit}
           />
         </ScrollView>
@@ -611,6 +772,152 @@ export function HomeSetupModal({
           <Text style={[styles.progress, { color: colors.textSecondary }]}>
             3 of 3 · Schedule
           </Text>
+          {isReconcile && reconcileDiff ? (
+            <>
+              <Text style={[styles.intro, { color: colors.textSecondary }]}>
+                Because this home changed, add new reminders or pause ones that
+                no longer apply.
+              </Text>
+              {reconcileDiff.toAdd.length > 0 ? (
+                <View style={styles.sectionBlock}>
+                  <Text
+                    style={[
+                      styles.sectionHeading,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Add
+                  </Text>
+                  {reconcileDiff.toAdd.map((item, index) => {
+                    const selected = !!addMask[index];
+                    return (
+                      <TouchableOpacity
+                        key={`add-${item.source_plan_id}-${item.title}-${index}`}
+                        style={[
+                          styles.taskRow,
+                          {
+                            borderColor: selected
+                              ? colors.primary
+                              : colors.border,
+                            backgroundColor: selected
+                              ? colors.primary + "12"
+                              : "transparent",
+                          },
+                        ]}
+                        onPress={() => {
+                          setAddMask((prev) => {
+                            const next = [...prev];
+                            next[index] = !next[index];
+                            return next;
+                          });
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={`Add ${item.title}`}
+                      >
+                        <View style={styles.taskText}>
+                          <Text
+                            style={[styles.taskTitle, { color: colors.text }]}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.taskMeta,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {formatIntervalDays(item.interval_days)}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={
+                            selected ? "checkmark-circle" : "ellipse-outline"
+                          }
+                          size={22}
+                          color={
+                            selected ? colors.primary : colors.textSecondary
+                          }
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null}
+              {reconcileDiff.toPause.length > 0 ? (
+                <View style={styles.sectionBlock}>
+                  <Text
+                    style={[
+                      styles.sectionHeading,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    No longer applies
+                  </Text>
+                  <Text
+                    style={[styles.pauseHint, { color: colors.textSecondary }]}
+                  >
+                    Pause these reminders. History stays in completion history.
+                  </Text>
+                  {reconcileDiff.toPause.map((item, index) => {
+                    const selected = !!pauseMask[index];
+                    return (
+                      <TouchableOpacity
+                        key={`pause-${item.id}`}
+                        style={[
+                          styles.taskRow,
+                          {
+                            borderColor: selected
+                              ? colors.warning
+                              : colors.border,
+                            backgroundColor: selected
+                              ? colors.warning + "14"
+                              : "transparent",
+                          },
+                        ]}
+                        onPress={() => {
+                          setPauseMask((prev) => {
+                            const next = [...prev];
+                            next[index] = !next[index];
+                            return next;
+                          });
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={`Pause ${item.title}`}
+                      >
+                        <View style={styles.taskText}>
+                          <Text
+                            style={[styles.taskTitle, { color: colors.text }]}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.taskMeta,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {formatIntervalDays(item.interval_days)}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={
+                            selected ? "pause-circle" : "ellipse-outline"
+                          }
+                          size={22}
+                          color={
+                            selected ? colors.warning : colors.textSecondary
+                          }
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <>
           <Text style={[styles.intro, { color: colors.textSecondary }]}>
             We'll add these as recurring tasks. Uncheck anything that does not
             apply.
@@ -670,6 +977,8 @@ export function HomeSetupModal({
               })}
             </View>
           ))}
+            </>
+          )}
         </ScrollView>
       )}
     </HearthSheet>
@@ -697,6 +1006,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.4,
     textTransform: "uppercase",
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  pauseHint: {
+    ...DesignSystem.typography.footnote,
+    lineHeight: 18,
     marginBottom: DesignSystem.spacing.sm,
   },
   footerInner: {

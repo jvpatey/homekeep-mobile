@@ -115,6 +115,16 @@ export const completionHistoryStyles = StyleSheet.create({
   rowMeta: {
     ...DesignSystem.typography.caption,
   },
+  rowBy: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: DesignSystem.spacing.xs,
+  },
+  rowByName: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+  },
   rowNotes: {
     ...DesignSystem.typography.caption,
     lineHeight: 18,

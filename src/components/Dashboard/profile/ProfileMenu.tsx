@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useProfile } from "../../../context/ProfileContext";
 import { useTasks } from "../../../context/TasksContext";
 import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
 import { useUserPreferences } from "../../../context/UserPreferencesContext";
@@ -21,6 +22,12 @@ import { SheetGrabber, TintedGlassAvatar, HearthSurfaceCard } from "../../ui";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
 import { AllTasksModal } from "../../modals/all-tasks-modal";
+import { HouseholdSharingModal } from "../../modals/household-sharing/HouseholdSharingModal";
+import {
+  HouseholdMemberView,
+  HouseholdService,
+  formatHouseholdPeople,
+} from "../../../services/HouseholdService";
 
 interface ProfileMenuProps {
   onRefresh?: () => void;
@@ -28,15 +35,12 @@ interface ProfileMenuProps {
 }
 
 /**
- * Bottom-sheet profile menu opened from the dashboard avatar. Three rows:
- * Total Tasks (opens the all-tasks modal), Settings (navigates to the
- * SettingsScreen — the single source of truth for destructive/account
- * actions), and Sign Out. Avatar styling uses TintedGlassAvatar so the
- * presentation matches the rest of the 2026 glass chrome.
+ * Bottom-sheet profile menu opened from the dashboard avatar.
  */
 export function ProfileMenu({ navigation }: ProfileMenuProps) {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
+  const { profile, householdRole } = useProfile();
   const { stats } = useTasks();
   const { authAtmosphere } = useGradients();
   const { selectedGradient, loading: preferencesLoading } =
@@ -52,7 +56,38 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [allTasksModalVisible, setAllTasksModalVisible] = useState(false);
+  const [householdVisible, setHouseholdVisible] = useState(false);
+  const [members, setMembers] = useState<HouseholdMemberView[]>([]);
   const { mounted, backdropStyle, sheetStyle } = useSheetMount(menuVisible);
+
+  const selfInfo = useMemo(
+    () => ({
+      id: user?.id ?? "",
+      fullName:
+        (user?.user_metadata?.full_name as string | undefined) ??
+        profile?.full_name ??
+        null,
+      email: user?.email ?? profile?.email ?? null,
+    }),
+    [user?.id, user?.user_metadata?.full_name, user?.email, profile?.full_name, profile?.email]
+  );
+
+  useEffect(() => {
+    const householdId = profile?.household_id;
+    if (!householdId) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    void HouseholdService.listMembersDetailed(householdId, selfInfo).then(
+      (result) => {
+        if (!cancelled) setMembers(result.data);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.household_id, selfInfo, menuVisible, householdVisible]);
 
   const getUserInitial = () => {
     const fullName = user?.user_metadata?.full_name;
@@ -124,6 +159,28 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
       setAllTasksModalVisible(true);
     }, DesignSystem.motion.duration.fast + 50);
   };
+
+  const handleHousehold = async () => {
+    await triggerLight();
+    hideMenu();
+    setTimeout(() => {
+      setHouseholdVisible(true);
+    }, DesignSystem.motion.duration.fast + 50);
+  };
+
+  const householdId = profile?.household_id;
+  const householdPeople = formatHouseholdPeople(members, user?.id);
+  const householdShared = members.length > 1;
+  const householdTitle = householdShared ? "Shared household" : "Household";
+  const householdSubtitle = householdShared
+    ? householdPeople
+    : householdPeople
+      ? "Just you — invite someone to share this home"
+      : householdRole === "member"
+        ? "You're a member of this home"
+        : "Invite someone to share this home";
+  const visibleAvatars = members.slice(0, 4);
+  const extraCount = Math.max(0, members.length - visibleAvatars.length);
 
   return (
     <>
@@ -210,6 +267,92 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                   </View>
                 </View>
 
+                {householdId ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.householdCard,
+                      {
+                        backgroundColor: colors.fieldFill,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => void handleHousehold()}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${householdTitle}. ${householdSubtitle}. Open household sharing`}
+                  >
+                    <View style={styles.householdCardTop}>
+                      {visibleAvatars.length > 0 ? (
+                        <View style={styles.householdAvatars}>
+                          {visibleAvatars.map((member, index) => (
+                            <View
+                              key={member.user_id}
+                              style={[
+                                styles.householdAvatar,
+                                {
+                                  backgroundColor: colors.primary + "18",
+                                  borderColor: colors.surface,
+                                  marginLeft: index === 0 ? 0 : -8,
+                                  zIndex: visibleAvatars.length - index,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.householdAvatarLetter,
+                                  { color: colors.primary },
+                                ]}
+                              >
+                                {member.initial}
+                              </Text>
+                            </View>
+                          ))}
+                          {extraCount > 0 ? (
+                            <Text
+                              style={[
+                                styles.householdOverflow,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              +{extraCount}
+                            </Text>
+                          ) : null}
+                        </View>
+                      ) : (
+                        <Ionicons
+                          name="people-outline"
+                          size={18}
+                          color={colors.primary}
+                        />
+                      )}
+                      <View style={styles.householdCardText}>
+                        <Text
+                          style={[
+                            styles.householdTitle,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {householdTitle}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.householdPeople,
+                            { color: colors.text },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {householdSubtitle}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={colors.textSecondary}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ) : null}
+
                 <View
                   style={[
                     styles.menuDivider,
@@ -218,7 +361,48 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                 />
 
                 <View style={styles.actions}>
-                  {/* Total Tasks */}
+                  {/* Home summary */}
+                  <TouchableOpacity
+                    style={[
+                      styles.menuActionButton,
+                      { backgroundColor: colors.fieldFill },
+                    ]}
+                    onPress={async () => {
+                      await triggerLight();
+                      hideMenu();
+                      setTimeout(() => {
+                        navigation.navigate("HomeSummaryPreview");
+                      }, DesignSystem.motion.duration.fast + 50);
+                    }}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open home maintenance summary"
+                  >
+                    <View
+                      style={[
+                        styles.menuActionIconContainer,
+                        { backgroundColor: colors.primary + "15" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="document-text-outline"
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <Text
+                      style={[styles.menuActionText, { color: colors.text }]}
+                    >
+                      Home summary
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+
+                  {/* All reminders */}
                   <TouchableOpacity
                     style={[
                       styles.menuActionButton,
@@ -227,7 +411,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                     onPress={handleAllTasks}
                     activeOpacity={0.75}
                     accessibilityRole="button"
-                    accessibilityLabel="View all tasks"
+                    accessibilityLabel="View all reminders"
                   >
                     <View
                       style={[
@@ -257,7 +441,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                         },
                       ]}
                     >
-                      Total Tasks
+                      All reminders
                     </Text>
                     <View style={styles.menuActionRight}>
                       <View
@@ -338,47 +522,6 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                     <Ionicons
                       name="chevron-forward"
                       size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Home summary */}
-                  <TouchableOpacity
-                    style={[
-                      styles.menuActionButton,
-                      { backgroundColor: colors.fieldFill },
-                    ]}
-                    onPress={async () => {
-                      await triggerLight();
-                      hideMenu();
-                      setTimeout(() => {
-                        navigation.navigate("HomeSummaryPreview");
-                      }, DesignSystem.motion.duration.fast + 50);
-                    }}
-                    activeOpacity={0.75}
-                    accessibilityRole="button"
-                    accessibilityLabel="Open home maintenance summary"
-                  >
-                    <View
-                      style={[
-                        styles.menuActionIconContainer,
-                        { backgroundColor: colors.primary + "15" },
-                      ]}
-                    >
-                      <Ionicons
-                        name="document-text-outline"
-                        size={20}
-                        color={colors.primary}
-                      />
-                    </View>
-                    <Text
-                      style={[styles.menuActionText, { color: colors.text }]}
-                    >
-                      Home summary
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
                       color={colors.textSecondary}
                     />
                   </TouchableOpacity>
@@ -487,6 +630,11 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
       <AllTasksModal
         visible={allTasksModalVisible}
         onClose={() => setAllTasksModalVisible(false)}
+      />
+
+      <HouseholdSharingModal
+        visible={householdVisible}
+        onClose={() => setHouseholdVisible(false)}
       />
     </>
   );

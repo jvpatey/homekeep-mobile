@@ -50,6 +50,15 @@ interface UseTasksReturn {
     addedCount?: number;
     skippedCount?: number;
   }>;
+  reconcileHomeSchedule: (input: {
+    toAdd: ScheduledHomeItem[];
+    pauseIds: string[];
+  }) => Promise<{
+    success: boolean;
+    error?: string;
+    addedCount?: number;
+    pausedCount?: number;
+  }>;
   updateTask: (
     taskId: string,
     updates: UpdateMaintenanceRoutineData

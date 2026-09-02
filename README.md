@@ -1,6 +1,6 @@
 # HomeKeep Mobile App
 
-A React Native mobile application built with Expo and TypeScript, featuring Supabase authentication, comprehensive home maintenance task management, guided seasonal maintenance plans, optional equipment manual storage, home-address capture with optional autocomplete, and current weather on the dashboard—plus a modern UI for tracking and organizing household maintenance activities.
+A React Native mobile application built with Expo and TypeScript. HomeKeep treats **the home** as the product: you set up address and systems once, then the app builds a maintenance schedule that matches that house—plus weather, a home map, emergency shutoffs, equipment manuals, and a task library for seasonal or specialty adds.
 
 ## 🚀 Features
 
@@ -20,29 +20,21 @@ A React Native mobile application built with Expo and TypeScript, featuring Supa
 - **Recurring Tasks** - Set up maintenance routines with custom intervals
 - **Task Completion** - Mark tasks as complete with timestamps
 
-### 🎯 Dashboard & Organization
+### 🏠 Home as the product
 
-- **Hero Carousel** - Featured tasks with swipe navigation
-- **Timeline View** - Visual task scheduling and organization
-- **Task Statistics** - Track completion rates, overdue counts, and maintenance history
-- **Priority Filtering** - Filter tasks by priority level
-- **Category Filtering** - Organize tasks by maintenance category
-- **Date Range Filtering** - View tasks within specific time periods
-- **Current Weather** - Local conditions on the dashboard when a home address is saved (Open-Meteo; no extra API key)
-- **Home Address** - Store and edit your address from Settings; used for weather and location context
-- **Equipment Manuals** - Open the manuals library from the dashboard to list PDFs and attach new ones
+- **Home setup** — Combined address + systems wizard builds the first schedule
+- **Home map** — Zone tiles (roof, HVAC, water, safety, …) filter the schedule
+- **Emergency shutoffs** — Water, panel, and gas spots with notes and photos
+- **Weather & season** — Local conditions and season on the dashboard (Open-Meteo)
+- **Equipment manuals** — Store PDFs and receipts; adding equipment can suggest linked reminders
+- **Task library** — Seasonal and specialty bundles (Settings → Task library) after setup
 
-### 🧭 Guided Maintenance Plans
+### 🎯 Dashboard & schedule
 
-Seasonal and starter **maintenance plans** walk through short questionnaires (where applicable), let you pick which suggested routines to add, and batch-apply them to your task list:
-
-- **Spring refresh** — Lawn, exterior, and HVAC tasks tailored to your home
-- **Cold-weather prep** — Fall exterior, freeze protection, and heating-specific items
-- **Year-round safety** — Smoke/CO, electrical, dryer vent, HVAC clearance, and related checks (pick what applies)
-- **Pool & spa care** — Water testing, filtration, and seasonal routines based on what you own
-- **New homeowner starter** — First-owner chores filtered by equipment (HRV/ERV, softener, septic, etc.)
-
-Access plans from **Settings → Maintenance plans**.
+- **Do this next** — One recommended task from the current house and season
+- **Upcoming / overdue** — Recurring reminders generated from the home profile
+- **Completion history** — A journal of what you have kept up with
+- **Household sharing** — Invite others to see the same home (owner’s profile is source of truth)
 
 ### 🎨 Modern UI/UX
 

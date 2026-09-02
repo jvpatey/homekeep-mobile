@@ -32,13 +32,28 @@ export class MaintenanceDataMapper {
       cost_amount: instance.cost_amount ?? null,
       labor_type: instance.labor_type ?? null,
       photo_storage_path: instance.photo_storage_path ?? null,
+      completed_by: instance.completed_by ?? null,
+      completed_by_name: instance.completed_by_name ?? null,
+      completed_by_avatar_style: instance.completed_by_avatar_style ?? null,
     };
   }
 
   // Maps multiple instances to tasks
   static mapInstancesToTasks(
-    instances: InstanceWithRoutine[]
+    instances: Array<InstanceWithRoutine | { routine?: MaintenanceRoutine | null }>
   ): MaintenanceTask[] {
-    return (instances || []).map(this.mapInstanceToTask);
+    return (instances || []).filter(this.hasRoutine).map((instance) =>
+      this.mapInstanceToTask(instance)
+    );
+  }
+
+  /**
+   * PostgREST embed filters like `routine.is_active=eq.true` leave the parent
+   * instance row with `routine: null` instead of omitting it. Skip those.
+   */
+  private static hasRoutine(
+    instance: InstanceWithRoutine | { routine?: MaintenanceRoutine | null }
+  ): instance is InstanceWithRoutine {
+    return instance.routine != null && instance.routine.id != null;
   }
 }

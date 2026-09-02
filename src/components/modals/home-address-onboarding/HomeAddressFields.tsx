@@ -107,6 +107,9 @@ export const HomeAddressFields = forwardRef<
   useEffect(() => {
     if (!active) {
       didPrefillRef.current = false;
+      setCountryPickerOpen(false);
+      setRegionPickerOpen(false);
+      setShowSuggestions(false);
       return;
     }
     if (didPrefillRef.current) return;

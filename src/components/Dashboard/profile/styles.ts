@@ -57,6 +57,55 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.85,
   },
+  householdCard: {
+    marginTop: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: DesignSystem.spacing.sm,
+  },
+  householdCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+  },
+  householdCardText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  householdTitle: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  householdPeople: {
+    ...DesignSystem.typography.footnote,
+    marginTop: 2,
+  },
+  householdAvatars: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  householdAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+  },
+  householdAvatarLetter: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  householdOverflow: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
 
   menuDivider: {
     height: StyleSheet.hairlineWidth,

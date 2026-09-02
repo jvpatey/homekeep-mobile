@@ -20,13 +20,20 @@ export interface HomeSummaryReportHtmlOptions {
   logoDataUri?: string | null;
 }
 
+function completionLine(completion: HomeSummaryTaskGroup["completions"][number]): string {
+  const who = completion.completedByLabel
+    ? ` · ${completion.completedByLabel}`
+    : "";
+  return `${completion.completedDateLabel}${who}`;
+}
+
 function renderCompletionsCell(group: HomeSummaryTaskGroup): string {
   if (group.completions.length === 1) {
     const completion = group.completions[0];
     const notesBlock = completion.notes
       ? `<div class="notes">${escapeHtml(completion.notes)}</div>`
       : "";
-    return `${escapeHtml(completion.completedDateLabel)}${notesBlock}`;
+    return `${escapeHtml(completionLine(completion))}${notesBlock}`;
   }
 
   return `<ul class="completion-list">${group.completions
@@ -34,7 +41,7 @@ function renderCompletionsCell(group: HomeSummaryTaskGroup): string {
       const notesBlock = completion.notes
         ? `<div class="notes">${escapeHtml(completion.notes)}</div>`
         : "";
-      return `<li class="completion-item">${escapeHtml(completion.completedDateLabel)}${notesBlock}</li>`;
+      return `<li class="completion-item">${escapeHtml(completionLine(completion))}${notesBlock}</li>`;
     })
     .join("")}</ul>`;
 }
