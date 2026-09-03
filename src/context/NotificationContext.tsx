@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
@@ -19,7 +26,6 @@ import {
   MAINTENANCE_CATEGORY_COUNT,
 } from "../utils/notificationDefaults";
 
-// Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () =>
     ({
@@ -31,30 +37,40 @@ Notifications.setNotificationHandler({
     } as Notifications.NotificationBehavior),
 });
 
-// NotificationContextType is a type for the notification context
+export type NotificationOpenTarget = {
+  action: "view" | "household";
+  instanceId?: string;
+};
+
 interface NotificationContextType {
   notification: Notifications.Notification | null;
   permissionStatus: NotificationPermissionStatus;
   notificationSettings: NotificationSettings;
+  pendingOpen: NotificationOpenTarget | null;
+  clearPendingOpen: () => void;
   requestPermissions: () => Promise<NotificationPermissionStatus>;
   updateNotificationPreferences: (
     category: MaintenanceCategory,
     preferences: Partial<NotificationPreferences>
   ) => Promise<void>;
+  updateNotificationTypeForAllCategories: (
+    type: keyof NotificationPreferences,
+    enabled: boolean
+  ) => Promise<void>;
   updateGlobalNotificationSettings: (enabled: boolean) => Promise<void>;
   registerForPushNotifications: () => Promise<ExpoPushToken | null>;
   savePushToken: (token: string) => Promise<void>;
+  /** Refresh Expo token if OS permission is already granted. Does not prompt. */
+  refreshPushTokenIfGranted: () => Promise<boolean>;
   /** Request permission, obtain Expo push token, and persist it to Supabase. */
   syncPushToken: () => Promise<boolean>;
   pushTokenError: string | null;
 }
 
-// NotificationContext context for the notification context
 const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined
 );
 
-// useNotifications hook for the useNotifications on the home screen
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -65,12 +81,44 @@ export function useNotifications() {
   return context;
 }
 
-// NotificationProviderProps type for the notification provider props
 interface NotificationProviderProps {
   children: React.ReactNode;
 }
 
-// NotificationProvider provider for the notification context
+function permissionFromExpo(
+  status: Notifications.PermissionStatus,
+  canAskAgain: boolean
+): NotificationPermissionStatus {
+  const normalized: NotificationPermissionStatus["status"] =
+    status === "granted" || status === "denied" || status === "undetermined"
+      ? status
+      : "denied";
+  return {
+    granted: normalized === "granted",
+    canAskAgain,
+    status: normalized,
+  };
+}
+
+function parseOpenTarget(
+  data: Record<string, unknown> | undefined | null
+): NotificationOpenTarget | null {
+  if (!data) return null;
+  if (data.action === "household") {
+    return { action: "household" };
+  }
+  const instanceId =
+    typeof data.instance_id === "string" && data.instance_id
+      ? data.instance_id
+      : undefined;
+  const instanceIds = Array.isArray(data.instance_ids)
+    ? data.instance_ids.filter((id): id is string => typeof id === "string")
+    : [];
+  const single = instanceId ?? (instanceIds.length === 1 ? instanceIds[0] : undefined);
+  if (single) return { action: "view", instanceId: single };
+  return { action: "view" };
+}
+
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const { user, supabase } = useAuth();
   const [, setExpoPushToken] = useState<ExpoPushToken | null>(null);
@@ -88,124 +136,138 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       categories: {} as Record<MaintenanceCategory, NotificationPreferences>,
     });
   const [pushTokenError, setPushTokenError] = useState<string | null>(null);
+  const [pendingOpen, setPendingOpen] = useState<NotificationOpenTarget | null>(
+    null
+  );
+  const handledResponseIds = useRef<Set<string>>(new Set());
 
-  // initializeDefaultPreferences function for the initializeDefaultPreferences on the home screen
-  const initializeDefaultPreferences = (): Record<
+  const initializeDefaultPreferences = useCallback((): Record<
     MaintenanceCategory,
     NotificationPreferences
   > => {
-    const defaultPrefs: Record<MaintenanceCategory, NotificationPreferences> =
-      {} as Record<MaintenanceCategory, NotificationPreferences>;
+    const rows = buildDefaultNotificationPreferences(user?.id || "");
+    return rows.reduce(
+      (acc, row) => {
+        acc[row.category] = row;
+        return acc;
+      },
+      {} as Record<MaintenanceCategory, NotificationPreferences>
+    );
+  }, [user?.id]);
 
-    Object.keys(HOME_MAINTENANCE_CATEGORIES).forEach((category) => {
-      defaultPrefs[category as MaintenanceCategory] = {
-        user_id: user?.id || "",
-        category: category as MaintenanceCategory,
-        enabled: true,
-        due_soon_reminder: true,
-        overdue_reminder: true,
-        daily_digest: false,
-        weekly_summary: false,
-        reminder_hours_before: 24,
-      };
-    });
-
-    return defaultPrefs;
-  };
-
-  // checkPermissionStatus function for the checkPermissionStatus on the home screen
-  const checkPermissionStatus = async () => {
+  const checkPermissionStatus = useCallback(async () => {
     const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+    const next = permissionFromExpo(status, canAskAgain);
+    setPermissionStatus(next);
+    return next;
+  }, []);
 
-    setPermissionStatus({
-      granted: status === "granted",
-      canAskAgain,
-      status,
-    });
+  const ensureAndroidChannel = useCallback(async () => {
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+  }, []);
 
-    return { status, canAskAgain };
-  };
-
-  // requestPermissions function for the requestPermissions on the home screen
   const requestPermissions =
-    async (): Promise<NotificationPermissionStatus> => {
+    useCallback(async (): Promise<NotificationPermissionStatus> => {
       if (Device.isDevice) {
-        const { status: existingStatus } =
-          await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
+        const existing = await Notifications.getPermissionsAsync();
+        let status = existing.status;
+        let canAskAgain = existing.canAskAgain;
 
-        if (existingStatus !== "granted") {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
+        if (status !== "granted") {
+          const requested = await Notifications.requestPermissionsAsync();
+          status = requested.status;
+          canAskAgain = requested.canAskAgain;
         }
 
-        if (finalStatus !== "granted") {
-          console.log("Failed to get push token for push notification!");
-          return {
-            granted: false,
-            canAskAgain: finalStatus === "denied",
-            status: finalStatus,
-          };
+        if (status !== "granted") {
+          const next = permissionFromExpo(status, canAskAgain);
+          setPermissionStatus(next);
+          return next;
         }
       } else {
         console.log("Must use physical device for Push Notifications");
       }
 
-      if (Platform.OS === "android") {
-        Notifications.setNotificationChannelAsync("default", {
-          name: "default",
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#FF231F7C",
-        });
+      await ensureAndroidChannel();
+      return checkPermissionStatus();
+    }, [checkPermissionStatus, ensureAndroidChannel]);
+
+  const savePushToken = useCallback(
+    async (token: string) => {
+      if (!user || !supabase) {
+        return;
       }
 
-      const { status, canAskAgain } = await checkPermissionStatus();
-      return {
-        granted: status === "granted",
-        canAskAgain,
-        status,
-      };
-    };
-
-  // registerForPushNotifications function for the registerForPushNotifications on the home screen
-  const registerForPushNotifications =
-    async (): Promise<ExpoPushToken | null> => {
       try {
-        const permissionResult = await requestPermissions();
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            push_token: token,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
 
-        if (!permissionResult.granted) {
-          console.log("Notification permissions not granted");
-          return null;
+        if (error) {
+          console.error("Error saving push token to database:", error);
+          setPushTokenError(error.message);
+        } else {
+          setPushTokenError(null);
         }
-
-        // Get the project ID from app.json
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-        if (!projectId) {
-          console.error(
-            "No project ID found in app.json - push notifications will not work"
-          );
-          return null;
-        }
-
-        // Get the push token with the project ID
-        const token = await Notifications.getExpoPushTokenAsync({
-          projectId: projectId,
-        });
-
-        setExpoPushToken(token);
-        setPushTokenError(null);
-        return token;
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown registration error";
-        console.error("Error registering for push notifications:", error);
-        setPushTokenError(message);
+        console.error("Error saving push token:", error);
+        setPushTokenError(
+          error instanceof Error ? error.message : "Failed to save push token"
+        );
+      }
+    },
+    [supabase, user]
+  );
+
+  const fetchAndSaveToken = useCallback(async (): Promise<ExpoPushToken | null> => {
+    try {
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        console.error(
+          "No project ID found in app.json - push notifications will not work"
+        );
         return null;
       }
-    };
 
-  const seedNotificationPreferences = async () => {
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+
+      setExpoPushToken(token);
+      setPushTokenError(null);
+      await savePushToken(token.data);
+      return token;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown registration error";
+      console.error("Error registering for push notifications:", error);
+      setPushTokenError(message);
+      return null;
+    }
+  }, [savePushToken]);
+
+  const registerForPushNotifications =
+    useCallback(async (): Promise<ExpoPushToken | null> => {
+      const permissionResult = await requestPermissions();
+      if (!permissionResult.granted) {
+        console.log("Notification permissions not granted");
+        return null;
+      }
+      return fetchAndSaveToken();
+    }, [fetchAndSaveToken, requestPermissions]);
+
+  const seedNotificationPreferences = useCallback(async () => {
     if (!user || !supabase) return;
 
     try {
@@ -234,101 +296,112 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     } catch (error) {
       console.error("Error seeding notification preferences:", error);
     }
-  };
+  }, [supabase, user]);
 
-  const syncPushToken = async (): Promise<boolean> => {
+  const refreshPushTokenIfGranted = useCallback(async (): Promise<boolean> => {
+    const status = await checkPermissionStatus();
+    if (!status.granted) return false;
+    await ensureAndroidChannel();
+    const token = await fetchAndSaveToken();
+    if (!token) return false;
+    await seedNotificationPreferences();
+    return true;
+  }, [
+    checkPermissionStatus,
+    ensureAndroidChannel,
+    fetchAndSaveToken,
+    seedNotificationPreferences,
+  ]);
+
+  const syncPushToken = useCallback(async (): Promise<boolean> => {
     const token = await registerForPushNotifications();
     if (!token) {
       return false;
     }
-    await savePushToken(token.data);
     await seedNotificationPreferences();
     return true;
-  };
+  }, [registerForPushNotifications, seedNotificationPreferences]);
 
-  // savePushToken function for the savePushToken on the home screen
-  const savePushToken = async (token: string) => {
-    if (!user || !supabase) {
-      return;
-    }
+  const updateNotificationPreferences = useCallback(
+    async (
+      category: MaintenanceCategory,
+      preferences: Partial<NotificationPreferences>
+    ) => {
+      if (!user || !supabase) return;
 
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          push_token: token,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+      try {
+        let updatedPrefs: NotificationPreferences | null = null;
+        setNotificationSettings((prev) => {
+          updatedPrefs = {
+            ...prev.categories[category],
+            ...preferences,
+            user_id: user.id,
+            category,
+            updated_at: new Date().toISOString(),
+          };
+          const categories = {
+            ...prev.categories,
+            [category]: updatedPrefs,
+          };
+          return {
+            ...prev,
+            categories,
+            globalEnabled: Object.values(categories).some(
+              (pref) => pref?.enabled
+            ),
+          };
+        });
 
-      if (error) {
-        console.error("Error saving push token to database:", error);
-        setPushTokenError(error.message);
-      } else {
-        setPushTokenError(null);
-      }
-    } catch (error) {
-      console.error("Error saving push token:", error);
-      setPushTokenError(
-        error instanceof Error ? error.message : "Failed to save push token"
-      );
-    }
-  };
+        if (!updatedPrefs) return;
 
-  // updateNotificationPreferences function for the updateNotificationPreferences on the home screen
-  const updateNotificationPreferences = async (
-    category: MaintenanceCategory,
-    preferences: Partial<NotificationPreferences>
-  ) => {
-    if (!user || !supabase) return;
+        const { error } = await supabase
+          .from("notification_preferences")
+          .upsert(updatedPrefs, { onConflict: "user_id,category" });
 
-    try {
-      const updatedPrefs = {
-        ...notificationSettings.categories[category],
-        ...preferences,
-        user_id: user.id,
-        updated_at: new Date().toISOString(),
-      };
-
-      // update local state
-      setNotificationSettings((prev) => ({
-        ...prev,
-        categories: {
-          ...prev.categories,
-          [category]: updatedPrefs,
-        },
-      }));
-
-      // Save to database (merge on unique key user_id+category)
-      const { error } = await supabase
-        .from("notification_preferences")
-        .upsert(updatedPrefs, { onConflict: "user_id,category" });
-
-      if (error) {
+        if (error) {
+          console.error("Error updating notification preferences:", error);
+        }
+      } catch (error) {
         console.error("Error updating notification preferences:", error);
       }
-    } catch (error) {
-      console.error("Error updating notification preferences:", error);
-    }
-  };
+    },
+    [supabase, user]
+  );
 
-  // Update global notification settings
-  const updateGlobalNotificationSettings = async (enabled: boolean) => {
-    setNotificationSettings((prev) => ({
-      ...prev,
-      globalEnabled: enabled,
-    }));
+  const updateNotificationTypeForAllCategories = useCallback(
+    async (type: keyof NotificationPreferences, enabled: boolean) => {
+      const categories = Object.keys(
+        notificationSettings.categories
+      ) as MaintenanceCategory[];
+      await Promise.all(
+        categories.map((category) =>
+          updateNotificationPreferences(category, { [type]: enabled })
+        )
+      );
+    },
+    [notificationSettings.categories, updateNotificationPreferences]
+  );
 
-    // Update all categories to match global setting
-    Object.keys(notificationSettings.categories).forEach((category) => {
-      updateNotificationPreferences(category as MaintenanceCategory, {
-        enabled,
-      });
-    });
-  };
+  const updateGlobalNotificationSettings = useCallback(
+    async (enabled: boolean) => {
+      setNotificationSettings((prev) => ({
+        ...prev,
+        globalEnabled: enabled,
+      }));
 
-  // Load notification preferences from database
-  const loadNotificationPreferences = async () => {
+      const categories = Object.keys(
+        HOME_MAINTENANCE_CATEGORIES
+      ) as MaintenanceCategory[];
+      await Promise.all(
+        categories.map((category) =>
+          updateNotificationPreferences(category, { enabled })
+        )
+      );
+    },
+    [updateNotificationPreferences]
+  );
+
+  const loadNotificationPreferences = useCallback(async () => {
     if (!user || !supabase) return;
 
     try {
@@ -352,8 +425,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           categoryPrefs[pref.category] = pref;
         });
 
+        const globalEnabled = data.some(
+          (pref: NotificationPreferences) => pref.enabled
+        );
+
         setNotificationSettings((prev) => ({
           ...prev,
+          globalEnabled,
           categories: {
             ...prev.categories,
             ...categoryPrefs,
@@ -363,27 +441,46 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     } catch (error) {
       console.error("Error loading notification preferences:", error);
     }
-  };
+  }, [supabase, user]);
+
+  const clearPendingOpen = useCallback(() => {
+    setPendingOpen(null);
+  }, []);
+
+  const consumeResponse = useCallback(
+    (response: Notifications.NotificationResponse) => {
+      const id = response.notification.request.identifier;
+      if (handledResponseIds.current.has(id)) return;
+      handledResponseIds.current.add(id);
+      const data = response.notification.request.content.data as
+        | Record<string, unknown>
+        | undefined;
+      const target = parseOpenTarget(data);
+      if (target) setPendingOpen(target);
+    },
+    []
+  );
 
   useEffect(() => {
     const notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        setNotification(notification);
+      (received) => {
+        setNotification(received);
       }
     );
 
     const responseListener =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        // handle notification tap - navigate to dashboard
-      });
+      Notifications.addNotificationResponseReceivedListener(consumeResponse);
+
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) consumeResponse(response);
+    });
 
     return () => {
       notificationListener.remove();
       responseListener.remove();
     };
-  }, []);
+  }, [consumeResponse]);
 
-  // Initialize when user changes
   useEffect(() => {
     if (!user) return;
 
@@ -395,35 +492,43 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       await seedNotificationPreferences();
       await loadNotificationPreferences();
-      await checkPermissionStatus();
-      await syncPushToken();
+      await refreshPushTokenIfGranted();
     };
 
     void init();
-  }, [user]);
+  }, [
+    initializeDefaultPreferences,
+    loadNotificationPreferences,
+    refreshPushTokenIfGranted,
+    seedNotificationPreferences,
+    user,
+  ]);
 
-  // Re-sync when returning from iOS Settings (e.g. user enabled notifications)
   useEffect(() => {
     if (!user) return;
 
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
-        void checkPermissionStatus().then(() => syncPushToken());
+        void refreshPushTokenIfGranted();
       }
     });
 
     return () => subscription.remove();
-  }, [user]);
+  }, [refreshPushTokenIfGranted, user]);
 
   const value: NotificationContextType = {
     notification,
     permissionStatus,
     notificationSettings,
+    pendingOpen,
+    clearPendingOpen,
     requestPermissions,
     updateNotificationPreferences,
+    updateNotificationTypeForAllCategories,
     updateGlobalNotificationSettings,
     registerForPushNotifications,
     savePushToken,
+    refreshPushTokenIfGranted,
     syncPushToken,
     pushTokenError,
   };
@@ -435,7 +540,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   );
 }
 
-// useNotification hook for the notification context
 export function useNotification() {
   const context = useContext(NotificationContext);
   if (context === undefined) {

@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { releaseDelivery, tryRecordDelivery } from "./dedupe.ts";
 
 export interface PushPayload {
   title: string;
@@ -82,4 +83,32 @@ export async function sendPush(
   if (logError) console.error("Error logging notification:", logError);
 
   return { success: true, expoResult };
+}
+
+export async function sendDeduped(
+  supabase: any,
+  userId: string,
+  dedupeKey: string,
+  notificationType: string,
+  notification: PushPayload
+): Promise<boolean> {
+  const shouldSend = await tryRecordDelivery(
+    supabase,
+    userId,
+    dedupeKey,
+    notificationType
+  );
+  if (!shouldSend) return false;
+
+  const result = await sendPush(supabase, userId, notification);
+  if (!result.success) {
+    console.warn("Push failed after dedupe record", {
+      userId,
+      dedupeKey,
+      error: result.error,
+    });
+    await releaseDelivery(supabase, userId, dedupeKey);
+    return false;
+  }
+  return true;
 }

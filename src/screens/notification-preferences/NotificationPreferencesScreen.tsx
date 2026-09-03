@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -9,13 +9,11 @@ import {
   Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
 import { HearthScreen } from "../../components/ui";
-import { HOME_MAINTENANCE_CATEGORIES } from "../../types/maintenance";
-import { MaintenanceCategory } from "../../types/maintenance";
+import { NotificationPreferences } from "../../types/notifications";
 import { notificationPreferencesStyles } from "./styles";
 import {
   NotificationPreferencesScreenProps,
@@ -24,46 +22,34 @@ import {
   getNotificationTypes,
 } from "./utils";
 
-// NotificationPreferencesScreen for the NotificationPreferencesScreen on the home screen
 export function NotificationPreferencesScreen({
   navigation,
 }: NotificationPreferencesScreenProps) {
   const { colors } = useTheme();
   const {
     notificationSettings,
-    updateNotificationPreferences,
+    updateNotificationTypeForAllCategories,
     updateGlobalNotificationSettings,
     permissionStatus,
     syncPushToken,
   } = useNotifications();
   const { triggerLight } = useHaptics();
   const { scrollPaddingBottom } = useScreenInsets();
-  const [expandedType, setExpandedType] = useState<string | null>(null);
 
-  // handleGlobalToggle for the handleGlobalToggle on the home screen
   const handleGlobalToggle = async (enabled: boolean) => {
     await triggerLight();
     await updateGlobalNotificationSettings(enabled);
   };
 
-  // handleNotificationTypeToggle for the handleNotificationTypeToggle on the home screen
   const handleNotificationTypeToggle = async (
     type: string,
     enabled: boolean
   ) => {
     await triggerLight();
-
-    // Update all categories for this notification type
-    Object.keys(notificationSettings.categories).forEach((category) => {
-      updateNotificationPreferences(category as MaintenanceCategory, {
-        [type]: enabled,
-      });
-    });
-  };
-
-  // toggleTypeExpansion for the toggleTypeExpansion on the home screen
-  const toggleTypeExpansion = (type: string) => {
-    setExpandedType(expandedType === type ? null : type);
+    await updateNotificationTypeForAllCategories(
+      type as keyof NotificationPreferences,
+      enabled
+    );
   };
 
   const handleEnablePermissions = async () => {
@@ -81,14 +67,11 @@ export function NotificationPreferencesScreen({
     await Linking.openSettings();
   };
 
-  // renderNotificationTypeSection for the renderNotificationTypeSection on the home screen
   const renderNotificationTypeSection = (type: string) => {
     const config = getNotificationTypeConfig(type, colors);
     if (!config) return null;
 
-    // Check if this type is enabled for any category
     const isEnabled = isNotificationTypeEnabled(type, notificationSettings);
-    const isExpanded = expandedType === type;
 
     return (
       <View
@@ -98,10 +81,7 @@ export function NotificationPreferencesScreen({
           { backgroundColor: colors.surface },
         ]}
       >
-        <TouchableOpacity
-          style={notificationPreferencesStyles.notificationTypeHeader}
-          onPress={() => toggleTypeExpansion(type)}
-        >
+        <View style={notificationPreferencesStyles.notificationTypeHeader}>
           <View
             style={notificationPreferencesStyles.notificationTypeHeaderLeft}
           >
@@ -112,7 +92,7 @@ export function NotificationPreferencesScreen({
               ]}
             >
               <Ionicons
-                name={config.icon as any}
+                name={config.icon as keyof typeof Ionicons.glyphMap}
                 size={20}
                 color={config.color}
               />
@@ -136,111 +116,19 @@ export function NotificationPreferencesScreen({
               </Text>
             </View>
           </View>
-          <View
-            style={notificationPreferencesStyles.notificationTypeHeaderRight}
-          >
-            <Switch
-              value={isEnabled}
-              onValueChange={(value) =>
-                handleNotificationTypeToggle(type, value)
-              }
-              trackColor={{ false: colors.border, true: colors.primary + "40" }}
-              thumbColor={isEnabled ? colors.primary : colors.textSecondary}
-            />
-            <Ionicons
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={colors.textSecondary}
-              style={notificationPreferencesStyles.expandIcon}
-            />
-          </View>
-        </TouchableOpacity>
-
-        {isExpanded && (
-          <View style={notificationPreferencesStyles.categoriesContainer}>
-            <Text
-              style={[
-                notificationPreferencesStyles.categoriesTitle,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Categories
-            </Text>
-            <Text
-              style={[
-                notificationPreferencesStyles.categoriesDescription,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Choose which maintenance categories receive{" "}
-              {config.title.toLowerCase()}
-            </Text>
-
-            {Object.keys(HOME_MAINTENANCE_CATEGORIES).map((category) => {
-              const categoryData =
-                HOME_MAINTENANCE_CATEGORIES[category as MaintenanceCategory];
-              const preferences =
-                notificationSettings.categories[
-                  category as MaintenanceCategory
-                ];
-
-              if (!preferences) return null;
-
-              return (
-                <View
-                  key={category}
-                  style={notificationPreferencesStyles.categoryRow}
-                >
-                  <View style={notificationPreferencesStyles.categoryRowLeft}>
-                    <LinearGradient
-                      colors={categoryData.gradient}
-                      style={notificationPreferencesStyles.categoryRowIcon}
-                    >
-                      <Ionicons
-                        name={categoryData.icon as any}
-                        size={16}
-                        color="white"
-                      />
-                    </LinearGradient>
-                    <Text
-                      style={[
-                        notificationPreferencesStyles.categoryRowName,
-                        { color: colors.text },
-                      ]}
-                    >
-                      {categoryData.displayName}
-                    </Text>
-                  </View>
-                  <Switch
-                    value={
-                      preferences[type as keyof typeof preferences] as boolean
-                    }
-                    onValueChange={(value) =>
-                      updateNotificationPreferences(
-                        category as MaintenanceCategory,
-                        { [type]: value }
-                      )
-                    }
-                    trackColor={{
-                      false: colors.border,
-                      true: colors.primary + "40",
-                    }}
-                    thumbColor={
-                      (preferences[type as keyof typeof preferences] as boolean)
-                        ? colors.primary
-                        : colors.textSecondary
-                    }
-                  />
-                </View>
-              );
-            })}
-          </View>
-        )}
+          <Switch
+            value={isEnabled}
+            onValueChange={(value) =>
+              handleNotificationTypeToggle(type, value)
+            }
+            trackColor={{ false: colors.border, true: colors.primary + "40" }}
+            thumbColor={isEnabled ? colors.primary : colors.textSecondary}
+          />
+        </View>
       </View>
     );
   };
 
-  // return the NotificationPreferencesScreen on the home screen
   return (
     <HearthScreen style={notificationPreferencesStyles.container}>
       <View
@@ -274,7 +162,6 @@ export function NotificationPreferencesScreen({
         contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Global Settings */}
         <View
           style={[
             notificationPreferencesStyles.globalSection,
@@ -327,7 +214,6 @@ export function NotificationPreferencesScreen({
           </View>
         </View>
 
-        {/* Permission Status */}
         {!permissionStatus.granted && (
           <View
             style={[
@@ -348,25 +234,26 @@ export function NotificationPreferencesScreen({
                   : "Notifications are blocked. Please enable them in device settings."}
               </Text>
             </View>
-            {permissionStatus.canAskAgain && (
-              <TouchableOpacity
-                style={[
-                  notificationPreferencesStyles.permissionButton,
-                  { backgroundColor: colors.error },
-                ]}
-                onPress={handleEnablePermissions}
+            <TouchableOpacity
+              style={[
+                notificationPreferencesStyles.permissionButton,
+                { backgroundColor: colors.error },
+              ]}
+              onPress={() =>
+                permissionStatus.canAskAgain
+                  ? void handleEnablePermissions()
+                  : void Linking.openSettings()
+              }
+            >
+              <Text
+                style={notificationPreferencesStyles.permissionButtonText}
               >
-                <Text
-                  style={notificationPreferencesStyles.permissionButtonText}
-                >
-                  Enable
-                </Text>
-              </TouchableOpacity>
-            )}
+                {permissionStatus.canAskAgain ? "Enable" : "Open Settings"}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Notification Type Settings - Only show when notifications are enabled */}
         {notificationSettings.globalEnabled && (
           <>
             <Text
@@ -383,7 +270,7 @@ export function NotificationPreferencesScreen({
                 { color: colors.textSecondary },
               ]}
             >
-              Configure which types of notifications you want to receive
+              Choose which reminders you want
             </Text>
 
             {getNotificationTypes().map((type) =>
@@ -391,7 +278,6 @@ export function NotificationPreferencesScreen({
             )}
           </>
         )}
-
       </ScrollView>
     </HearthScreen>
   );

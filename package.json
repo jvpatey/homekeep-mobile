@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "build:ios": "expo build:ios",
     "submit:ios": "expo submit --platform ios",
-    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications"
+    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

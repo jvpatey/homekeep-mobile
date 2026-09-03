@@ -231,6 +231,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           ) {
             void client.auth.refreshSession();
           }
+          if (session?.user) {
+            void upsertUserTimezone(session.user);
+          }
         });
       } else {
         client.auth.stopAutoRefresh();

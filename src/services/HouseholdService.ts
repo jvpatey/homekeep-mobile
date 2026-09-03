@@ -120,7 +120,17 @@ export class HouseholdService {
     if (error) {
       return { data: null, error: { message: error.message } };
     }
-    return { data: data as string, error: null };
+    const householdId = data as string;
+    if (householdId) {
+      try {
+        await supabase.functions.invoke("notify-household-event", {
+          body: { event: "join", householdId },
+        });
+      } catch (notifyError) {
+        console.warn("Household join notify failed", notifyError);
+      }
+    }
+    return { data: householdId, error: null };
   }
 
   static async getHousehold(householdId: string) {
@@ -249,11 +259,29 @@ export class HouseholdService {
 
   static async leaveHousehold(userId: string) {
     if (!supabase) return { error: { message: "Not configured" } };
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("household_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const householdId =
+      typeof profile?.household_id === "string" ? profile.household_id : null;
+
     await supabase.from("household_members").delete().eq("user_id", userId);
     await supabase
       .from("profiles")
       .update({ household_id: null, updated_at: new Date().toISOString() })
       .eq("id", userId);
+
+    if (householdId) {
+      try {
+        await supabase.functions.invoke("notify-household-event", {
+          body: { event: "leave", householdId },
+        });
+      } catch (notifyError) {
+        console.warn("Household leave notify failed", notifyError);
+      }
+    }
     return { error: null };
   }
 }

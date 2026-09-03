@@ -1,20 +1,11 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
-  Linking,
-} from "react-native";
+import React from "react";
+import { View, Text, ScrollView, Switch, Alert, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
 import { useHaptics } from "../../../hooks";
 import { Button, HearthSheet, HearthSurfaceCard } from "../../ui";
-import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
-import { MaintenanceCategory } from "../../../types/maintenance";
+import { NotificationPreferences } from "../../../types/notifications";
 import {
   getNotificationTypeConfig,
   isNotificationTypeEnabled,
@@ -36,14 +27,13 @@ export function NotificationSettingsModal({
   const { colors } = useTheme();
   const {
     notificationSettings,
-    updateNotificationPreferences,
+    updateNotificationTypeForAllCategories,
     updateGlobalNotificationSettings,
     permissionStatus,
     syncPushToken,
     pushTokenError,
   } = useNotifications();
   const { triggerLight } = useHaptics();
-  const [expandedType, setExpandedType] = useState<string | null>(null);
 
   const handleClose = async () => {
     await triggerLight();
@@ -60,15 +50,10 @@ export function NotificationSettingsModal({
     enabled: boolean
   ) => {
     await triggerLight();
-    Object.keys(notificationSettings.categories).forEach((category) => {
-      updateNotificationPreferences(category as MaintenanceCategory, {
-        [type]: enabled,
-      });
-    });
-  };
-
-  const toggleTypeExpansion = (type: string) => {
-    setExpandedType(expandedType === type ? null : type);
+    await updateNotificationTypeForAllCategories(
+      type as keyof NotificationPreferences,
+      enabled
+    );
   };
 
   const handleEnablePermissions = async () => {
@@ -91,22 +76,10 @@ export function NotificationSettingsModal({
     if (!config) return null;
 
     const isEnabled = isNotificationTypeEnabled(type, notificationSettings);
-    const isExpanded = expandedType === type;
 
     return (
-      <HearthSurfaceCard
-        key={type}
-        containerStyle={styles.typeCard}
-      >
-        <TouchableOpacity
-          style={styles.typeHeader}
-          onPress={() => toggleTypeExpansion(type)}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isExpanded }}
-          accessibilityLabel={`${config.title}, ${
-            isExpanded ? "expanded" : "collapsed"
-          }`}
-        >
+      <HearthSurfaceCard key={type} containerStyle={styles.typeCard}>
+        <View style={styles.typeHeader}>
           <View style={styles.typeHeaderLeft}>
             <View
               style={[
@@ -131,104 +104,15 @@ export function NotificationSettingsModal({
               </Text>
             </View>
           </View>
-          <View style={styles.typeHeaderRight}>
-            <Switch
-              value={isEnabled}
-              onValueChange={(value) =>
-                handleNotificationTypeToggle(type, value)
-              }
-              trackColor={{ false: colors.border, true: colors.primary + "40" }}
-              thumbColor={isEnabled ? colors.primary : colors.textSecondary}
-            />
-            <Ionicons
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={colors.textSecondary}
-            />
-          </View>
-        </TouchableOpacity>
-
-        {isExpanded ? (
-          <View
-            style={[styles.categories, { borderTopColor: colors.border }]}
-          >
-            <Text style={[styles.categoriesTitle, { color: colors.text }]}>
-              Categories
-            </Text>
-            <Text
-              style={[
-                styles.categoriesDescription,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Choose which maintenance categories receive{" "}
-              {config.title.toLowerCase()}
-            </Text>
-
-            {Object.keys(HOME_MAINTENANCE_CATEGORIES).map((category) => {
-              const categoryData =
-                HOME_MAINTENANCE_CATEGORIES[category as MaintenanceCategory];
-              const preferences =
-                notificationSettings.categories[
-                  category as MaintenanceCategory
-                ];
-
-              if (!preferences) return null;
-
-              const categoryOn = preferences[
-                type as keyof typeof preferences
-              ] as boolean;
-
-              return (
-                <View
-                  key={category}
-                  style={[
-                    styles.categoryRow,
-                    { borderBottomColor: colors.border },
-                  ]}
-                >
-                  <View style={styles.categoryRowLeft}>
-                    <View
-                      style={[
-                        styles.categoryIcon,
-                        { backgroundColor: colors.primary + "14" },
-                      ]}
-                    >
-                      <Ionicons
-                        name={
-                          categoryData.icon as keyof typeof Ionicons.glyphMap
-                        }
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </View>
-                    <Text
-                      style={[styles.categoryName, { color: colors.text }]}
-                    >
-                      {categoryData.displayName}
-                    </Text>
-                  </View>
-                  <Switch
-                    value={categoryOn}
-                    onValueChange={(value) =>
-                      updateNotificationPreferences(
-                        category as MaintenanceCategory,
-                        { [type]: value }
-                      )
-                    }
-                    trackColor={{
-                      false: colors.border,
-                      true: colors.primary + "40",
-                    }}
-                    thumbColor={
-                      categoryOn ? colors.primary : colors.textSecondary
-                    }
-                  />
-                </View>
-              );
-            })}
-          </View>
-        ) : null}
+          <Switch
+            value={isEnabled}
+            onValueChange={(value) =>
+              handleNotificationTypeToggle(type, value)
+            }
+            trackColor={{ false: colors.border, true: colors.primary + "40" }}
+            thumbColor={isEnabled ? colors.primary : colors.textSecondary}
+          />
+        </View>
       </HearthSurfaceCard>
     );
   };
@@ -336,7 +220,7 @@ export function NotificationSettingsModal({
             <Text
               style={[styles.sectionDescription, { color: colors.textSecondary }]}
             >
-              Choose which reminders you want, and for which systems.
+              Choose which reminders you want.
             </Text>
             {getNotificationTypes().map((type) =>
               renderNotificationTypeSection(type)
