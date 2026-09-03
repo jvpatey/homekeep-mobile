@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { AvatarStorageService } from "./AvatarStorageService";
 
 export interface HouseholdMember {
   user_id: string;
@@ -10,6 +11,9 @@ export type HouseholdMemberView = HouseholdMember & {
   displayName: string;
   email: string | null;
   initial: string;
+  avatarStyle: string | null;
+  avatarStoragePath: string | null;
+  avatarUrl: string | null;
 };
 
 export function householdInviteMessage(code: string): string {
@@ -152,21 +156,47 @@ export class HouseholdService {
     const ids = rows.map((row) => row.user_id);
     const labels = new Map<
       string,
-      { fullName: string | null; email: string | null }
+      {
+        fullName: string | null;
+        email: string | null;
+        avatarStyle: string | null;
+        avatarStoragePath: string | null;
+      }
     >();
 
     if (supabase && ids.length > 0) {
-      const { data, error } = await supabase
+      type MemberProfileRow = {
+        id: string;
+        full_name?: string | null;
+        email?: string | null;
+        avatar_style?: string | null;
+        avatar_storage_path?: string | null;
+      };
+      let rows: MemberProfileRow[] = [];
+      const full = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, email, avatar_style, avatar_storage_path")
         .in("id", ids);
-      if (!error) {
-        for (const row of data ?? []) {
-          labels.set(row.id, {
-            fullName: typeof row.full_name === "string" ? row.full_name : null,
-            email: typeof row.email === "string" ? row.email : null,
-          });
-        }
+      if (!full.error && full.data) {
+        rows = full.data;
+      } else {
+        const fallback = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", ids);
+        rows = fallback.data ?? [];
+      }
+      for (const row of rows) {
+        labels.set(row.id, {
+          fullName: typeof row.full_name === "string" ? row.full_name : null,
+          email: typeof row.email === "string" ? row.email : null,
+          avatarStyle:
+            typeof row.avatar_style === "string" ? row.avatar_style : null,
+          avatarStoragePath:
+            typeof row.avatar_storage_path === "string"
+              ? row.avatar_storage_path
+              : null,
+        });
       }
     }
 
@@ -175,8 +205,16 @@ export class HouseholdService {
       labels.set(self.id, {
         fullName: existing?.fullName || self.fullName || null,
         email: existing?.email || self.email || null,
+        avatarStyle: existing?.avatarStyle ?? null,
+        avatarStoragePath: existing?.avatarStoragePath ?? null,
       });
     }
+
+    const signedUrls = await AvatarStorageService.createSignedUrls(
+      [...labels.values()]
+        .map((info) => info.avatarStoragePath)
+        .filter((path): path is string => Boolean(path))
+    );
 
     const views: HouseholdMemberView[] = rows.map((row) => {
       const isSelf = row.user_id === self?.id;
@@ -186,11 +224,17 @@ export class HouseholdService {
         email: info?.email,
         isSelf,
       });
+      const avatarStoragePath = info?.avatarStoragePath ?? null;
       return {
         ...row,
         displayName,
         email: info?.email ?? null,
         initial: memberInitial(displayName),
+        avatarStyle: info?.avatarStyle ?? null,
+        avatarStoragePath,
+        avatarUrl: avatarStoragePath
+          ? signedUrls.get(avatarStoragePath) ?? null
+          : null,
       };
     });
 

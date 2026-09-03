@@ -16,7 +16,10 @@ import { useAuth } from "../../../context/AuthContext";
 import { useProfile } from "../../../context/ProfileContext";
 import { useTasks } from "../../../context/TasksContext";
 import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
-import { useUserPreferences } from "../../../context/UserPreferencesContext";
+import {
+  resolveGradientPreset,
+  useUserPreferences,
+} from "../../../context/UserPreferencesContext";
 import { DesignSystem } from "../../../theme/designSystem";
 import { SheetGrabber, TintedGlassAvatar, HearthSurfaceCard } from "../../ui";
 import { styles } from "./styles";
@@ -40,7 +43,7 @@ interface ProfileMenuProps {
 export function ProfileMenu({ navigation }: ProfileMenuProps) {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
-  const { profile, householdRole } = useProfile();
+  const { profile, householdRole, avatarUrl } = useProfile();
   const { stats } = useTasks();
   const { authAtmosphere } = useGradients();
   const { selectedGradient, loading: preferencesLoading } =
@@ -188,6 +191,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
         size={headerAvatarSize}
         gradient={selectedGradient}
         initial={getUserInitial()}
+        imageUri={avatarUrl}
         onPress={showMenu}
         accessibilityLabel="Open profile menu"
       />
@@ -228,6 +232,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                     size={sheetAvatarSize}
                     gradient={selectedGradient}
                     initial={getUserInitial()}
+                    imageUri={avatarUrl}
                     pressable={false}
                   />
                   <View style={styles.profileInfo}>
@@ -290,21 +295,29 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
                               style={[
                                 styles.householdAvatar,
                                 {
-                                  backgroundColor: colors.primary + "18",
                                   borderColor: colors.surface,
                                   marginLeft: index === 0 ? 0 : -8,
                                   zIndex: visibleAvatars.length - index,
                                 },
                               ]}
                             >
-                              <Text
-                                style={[
-                                  styles.householdAvatarLetter,
-                                  { color: colors.primary },
-                                ]}
-                              >
-                                {member.initial}
-                              </Text>
+                              <TintedGlassAvatar
+                                size={26}
+                                gradient={
+                                  member.user_id === user?.id
+                                    ? selectedGradient
+                                    : resolveGradientPreset(member.avatarStyle)
+                                }
+                                initial={member.initial}
+                                imageUri={
+                                  member.user_id === user?.id
+                                    ? avatarUrl ?? member.avatarUrl
+                                    : member.avatarUrl
+                                }
+                                pressable={false}
+                                ringWidth={1.5}
+                                accessibilityLabel={member.displayName}
+                              />
                             </View>
                           ))}
                           {extraCount > 0 ? (

@@ -56,7 +56,7 @@ function categoryLabel(category: MaintenanceTask["category"]): string {
 export function CompletionHistoryScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, avatarUrl } = useProfile();
   const { selectedGradient } = useUserPreferences();
   const {
     completedTasks,
@@ -241,6 +241,11 @@ export function CompletionHistoryScreen() {
                 size={22}
                 gradient={avatarGradient}
                 initial={avatarInitial}
+                imageUri={
+                  isSelf
+                    ? avatarUrl ?? task.completed_by_avatar_url
+                    : task.completed_by_avatar_url
+                }
                 pressable={false}
                 accessibilityLabel={who}
               />

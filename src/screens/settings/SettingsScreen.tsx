@@ -28,7 +28,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors, isDark } = useTheme();
   const { user, signOut, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
-  const { canEditHome } = useProfile();
+  const { canEditHome, avatarUrl } = useProfile();
   const { selectedGradient } = useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
   const { scrollPaddingBottom } = useScreenInsets();
@@ -403,6 +403,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               size={64}
               gradient={selectedGradient}
               initial={getUserInitial()}
+              imageUri={avatarUrl}
               pressable={false}
             />
             <View style={styles.accountInfo}>

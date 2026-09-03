@@ -17,6 +17,10 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: DesignSystem.spacing.xs,
   },
+  photoAction: {
+    marginTop: DesignSystem.spacing.md,
+    minWidth: 180,
+  },
   footerRow: {
     flexDirection: "row",
     gap: DesignSystem.spacing.sm,

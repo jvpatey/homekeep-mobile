@@ -89,17 +89,8 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   householdAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 14,
     borderWidth: 1.5,
-  },
-  householdAvatarLetter: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "700",
-    fontSize: 11,
   },
   householdOverflow: {
     ...DesignSystem.typography.caption,

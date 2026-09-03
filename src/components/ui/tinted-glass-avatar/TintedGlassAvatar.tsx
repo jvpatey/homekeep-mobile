@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   Pressable,
+  Image,
   StyleProp,
   ViewStyle,
   AccessibilityRole,
@@ -24,6 +25,8 @@ interface TintedGlassAvatarProps {
   size: number;
   gradient: GradientPreset;
   initial: string;
+  /** Signed or local photo URI. Falls back to the initial if missing or unloadable. */
+  imageUri?: string | null;
   pressable?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
@@ -42,6 +45,7 @@ export function TintedGlassAvatar({
   size,
   gradient,
   initial,
+  imageUri,
   pressable = true,
   onPress,
   accessibilityLabel = "Open profile menu",
@@ -50,6 +54,13 @@ export function TintedGlassAvatar({
 }: TintedGlassAvatarProps) {
   const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUri]);
+
+  const showPhoto = Boolean(imageUri) && !imageFailed;
 
   const ring = ringWidth ?? Math.max(1.5, Math.round(size * 0.04));
   const radius = size / 2;
@@ -116,24 +127,42 @@ export function TintedGlassAvatar({
             },
           ]}
         >
-          <LinearGradient
-            colors={[
-              hexWithAlpha(gradient.colors[0], tintAlpha),
-              hexWithAlpha(gradient.colors[1], tintAlpha),
-            ]}
-            start={gradient.start}
-            end={gradient.end}
-            style={styles.tint}
-          />
-          <Text
-            style={[
-              styles.initial,
-              { color: initialColor, fontSize: initialFontSize },
-            ]}
-            allowFontScaling={false}
-          >
-            {initial}
-          </Text>
+          {showPhoto ? (
+            <Image
+              source={{ uri: imageUri as string }}
+              style={[
+                styles.photo,
+                {
+                  width: innerSize,
+                  height: innerSize,
+                  borderRadius: innerRadius,
+                },
+              ]}
+              onError={() => setImageFailed(true)}
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <>
+              <LinearGradient
+                colors={[
+                  hexWithAlpha(gradient.colors[0], tintAlpha),
+                  hexWithAlpha(gradient.colors[1], tintAlpha),
+                ]}
+                start={gradient.start}
+                end={gradient.end}
+                style={styles.tint}
+              />
+              <Text
+                style={[
+                  styles.initial,
+                  { color: initialColor, fontSize: initialFontSize },
+                ]}
+                allowFontScaling={false}
+              >
+                {initial}
+              </Text>
+            </>
+          )}
         </View>
       </LinearGradient>
     </Animated.View>
