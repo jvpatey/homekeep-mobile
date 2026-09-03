@@ -5,20 +5,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Modal,
-  Pressable,
   Alert,
   Linking,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
-import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hooks";
-import { DesignSystem } from "../../../theme/designSystem";
-import { GlassCard, SheetGrabber } from "../../ui";
+import { useHaptics } from "../../../hooks";
+import { Button, HearthSheet, HearthSurfaceCard } from "../../ui";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
 import { MaintenanceCategory } from "../../../types/maintenance";
 import {
@@ -37,7 +31,7 @@ export function NotificationSettingsModal({
   visible,
   onClose,
 }: NotificationSettingsModalProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const {
     notificationSettings,
     updateNotificationPreferences,
@@ -46,14 +40,8 @@ export function NotificationSettingsModal({
     syncPushToken,
     pushTokenError,
   } = useNotifications();
-  const { haloGradient } = useGradients();
   const { triggerLight } = useHaptics();
-  const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
-    useDevice();
-  const fontMultiplier = getFontMultiplier();
   const [expandedType, setExpandedType] = useState<string | null>(null);
-  const { mounted, backdropStyle: animatedBackdropStyle, sheetStyle: animatedSheetStyle } =
-    useSheetMount(visible);
 
   const handleClose = async () => {
     await triggerLight();
@@ -104,27 +92,12 @@ export function NotificationSettingsModal({
     const isExpanded = expandedType === type;
 
     return (
-      <View
+      <HearthSurfaceCard
         key={type}
-        style={[
-          styles.notificationTypeSection,
-          {
-            backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.02)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.05)",
-          },
-          isTablet && {
-            borderRadius: getResponsiveValue(16, 20, 24),
-            padding: getResponsiveValue(16, 20, 24),
-            marginBottom: getResponsiveValue(12, 16, 20),
-          },
-        ]}
+        containerStyle={styles.typeCard}
       >
         <TouchableOpacity
-          style={styles.notificationTypeHeader}
+          style={styles.typeHeader}
           onPress={() => toggleTypeExpansion(type)}
           accessibilityRole="button"
           accessibilityState={{ expanded: isExpanded }}
@@ -132,63 +105,31 @@ export function NotificationSettingsModal({
             isExpanded ? "expanded" : "collapsed"
           }`}
         >
-          <View style={styles.notificationTypeHeaderLeft}>
+          <View style={styles.typeHeaderLeft}>
             <View
               style={[
-                styles.notificationTypeIcon,
-                { backgroundColor: config.color + "15" },
-                isTablet && {
-                  width: getResponsiveValue(40, 48, 52),
-                  height: getResponsiveValue(40, 48, 52),
-                  borderRadius: getResponsiveValue(20, 24, 26),
-                  marginRight: getResponsiveValue(12, 16, 20),
-                },
+                styles.iconWell,
+                { backgroundColor: config.color + "18" },
               ]}
             >
               <Ionicons
-                name={config.icon as any}
-                size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+                name={config.icon as keyof typeof Ionicons.glyphMap}
+                size={20}
                 color={config.color}
               />
             </View>
-            <View style={styles.notificationTypeInfo}>
-              <Text
-                style={[
-                  styles.notificationTypeName,
-                  { color: colors.text },
-                  isTablet && {
-                    fontSize:
-                      (styles.notificationTypeName.fontSize || 16) *
-                      fontMultiplier,
-                    lineHeight:
-                      (styles.notificationTypeName.fontSize || 16) *
-                      fontMultiplier *
-                      1.2,
-                  },
-                ]}
-              >
+            <View style={styles.typeInfo}>
+              <Text style={[styles.typeName, { color: colors.text }]}>
                 {config.title}
               </Text>
               <Text
-                style={[
-                  styles.notificationTypeDescription,
-                  { color: colors.textSecondary },
-                  isTablet && {
-                    fontSize:
-                      (styles.notificationTypeDescription.fontSize || 13) *
-                      fontMultiplier,
-                    lineHeight:
-                      (styles.notificationTypeDescription.fontSize || 13) *
-                      fontMultiplier *
-                      1.4,
-                  },
-                ]}
+                style={[styles.typeDescription, { color: colors.textSecondary }]}
               >
                 {config.description}
               </Text>
             </View>
           </View>
-          <View style={styles.notificationTypeHeaderRight}>
+          <View style={styles.typeHeaderRight}>
             <Switch
               value={isEnabled}
               onValueChange={(value) =>
@@ -199,49 +140,23 @@ export function NotificationSettingsModal({
             />
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
+              size={20}
               color={colors.textSecondary}
-              style={styles.expandIcon}
             />
           </View>
         </TouchableOpacity>
 
         {isExpanded ? (
           <View
-            style={[
-              styles.categoriesContainer,
-              {
-                borderTopColor: isDark
-                  ? "rgba(255, 255, 255, 0.08)"
-                  : "rgba(0, 0, 0, 0.06)",
-              },
-            ]}
+            style={[styles.categories, { borderTopColor: colors.border }]}
           >
-            <Text
-              style={[
-                styles.categoriesTitle,
-                { color: colors.textSecondary },
-                isTablet && {
-                  fontSize:
-                    (styles.categoriesTitle.fontSize || 14) * fontMultiplier,
-                },
-              ]}
-            >
+            <Text style={[styles.categoriesTitle, { color: colors.text }]}>
               Categories
             </Text>
             <Text
               style={[
                 styles.categoriesDescription,
                 { color: colors.textSecondary },
-                isTablet && {
-                  fontSize:
-                    (styles.categoriesDescription.fontSize || 13) *
-                    fontMultiplier,
-                  lineHeight:
-                    (styles.categoriesDescription.fontSize || 13) *
-                    fontMultiplier *
-                    1.4,
-                },
               ]}
             >
               Choose which maintenance categories receive{" "}
@@ -258,54 +173,41 @@ export function NotificationSettingsModal({
 
               if (!preferences) return null;
 
+              const categoryOn = preferences[
+                type as keyof typeof preferences
+              ] as boolean;
+
               return (
                 <View
                   key={category}
                   style={[
                     styles.categoryRow,
-                    {
-                      borderBottomColor: isDark
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.05)",
-                    },
+                    { borderBottomColor: colors.border },
                   ]}
                 >
                   <View style={styles.categoryRowLeft}>
-                    <LinearGradient
-                      colors={categoryData.gradient}
+                    <View
                       style={[
-                        styles.categoryRowIcon,
-                        isTablet && {
-                          width: getResponsiveValue(32, 40, 44),
-                          height: getResponsiveValue(32, 40, 44),
-                          borderRadius: getResponsiveValue(16, 20, 22),
-                        },
+                        styles.categoryIcon,
+                        { backgroundColor: colors.primary + "14" },
                       ]}
                     >
                       <Ionicons
-                        name={categoryData.icon as any}
-                        size={isTablet ? getResponsiveValue(16, 20, 22) : 16}
-                        color="white"
+                        name={
+                          categoryData.icon as keyof typeof Ionicons.glyphMap
+                        }
+                        size={16}
+                        color={colors.primary}
                       />
-                    </LinearGradient>
+                    </View>
                     <Text
-                      style={[
-                        styles.categoryRowName,
-                        { color: colors.text },
-                        isTablet && {
-                          fontSize:
-                            (styles.categoryRowName.fontSize || 14) *
-                            fontMultiplier,
-                        },
-                      ]}
+                      style={[styles.categoryName, { color: colors.text }]}
                     >
                       {categoryData.displayName}
                     </Text>
                   </View>
                   <Switch
-                    value={
-                      preferences[type as keyof typeof preferences] as boolean
-                    }
+                    value={categoryOn}
                     onValueChange={(value) =>
                       updateNotificationPreferences(
                         category as MaintenanceCategory,
@@ -317,9 +219,7 @@ export function NotificationSettingsModal({
                       true: colors.primary + "40",
                     }}
                     thumbColor={
-                      (preferences[type as keyof typeof preferences] as boolean)
-                        ? colors.primary
-                        : colors.textSecondary
+                      categoryOn ? colors.primary : colors.textSecondary
                     }
                   />
                 </View>
@@ -327,361 +227,120 @@ export function NotificationSettingsModal({
             })}
           </View>
         ) : null}
-      </View>
+      </HearthSurfaceCard>
     );
   };
 
-  if (!mounted) return null;
-
   return (
-    <Modal
-      visible={mounted}
-      transparent
-      animationType="none"
-      onRequestClose={handleClose}
-      statusBarTranslucent
+    <HearthSheet
+      visible={visible}
+      onClose={() => void handleClose()}
+      title="Notifications"
+      fillMaxHeight
+      keyboardAvoiding={false}
+      contentStyle={styles.sheetContent}
     >
-      <Animated.View style={[styles.backdrop, animatedBackdropStyle]}>
-        <Pressable
-          style={styles.backdropPressable}
-          onPress={handleClose}
-          accessibilityLabel="Dismiss"
-        />
-        <Animated.View
-          style={[
-            styles.sheetContainer,
-            getTabletSheetContainerStyle(),
-            animatedSheetStyle,
-          ]}
-          pointerEvents="auto"
-        >
-          <GlassCard
-            material="thick"
-            radius={DesignSystem.borders.radius.glass}
-            containerStyle={styles.glassOuter}
-            style={styles.glassInner}
-          >
-            <LinearGradient
-              colors={[...haloGradient]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.haloFill}
-              pointerEvents="none"
-            />
-
-            <SafeAreaView edges={["bottom"]} style={styles.sheetSafeArea}>
-              <SheetGrabber />
-
-              {/* Header */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <HearthSurfaceCard containerStyle={styles.globalCard}>
+          <View style={styles.globalRow}>
+            <View style={styles.globalLeft}>
               <View
                 style={[
-                  styles.header,
-                  {
-                    borderBottomColor: isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.08)",
-                  },
+                  styles.iconWellLarge,
+                  { backgroundColor: colors.primary + "14" },
                 ]}
               >
+                <Ionicons
+                  name="notifications-outline"
+                  size={22}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={styles.globalInfo}>
+                <Text style={[styles.globalTitle, { color: colors.text }]}>
+                  All notifications
+                </Text>
                 <Text
                   style={[
-                    styles.headerTitle,
-                    { color: colors.text },
-                    isTablet && {
-                      fontSize:
-                        (styles.headerTitle.fontSize || 20) * fontMultiplier,
-                      lineHeight:
-                        (styles.headerTitle.fontSize || 20) *
-                        fontMultiplier *
-                        1.2,
-                    },
+                    styles.globalDescription,
+                    { color: colors.textSecondary },
                   ]}
                 >
-                  Notification Settings
+                  Master switch for reminders
                 </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.closeButton,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(35, 37, 38, 0.55)"
-                        : "rgba(255, 255, 255, 0.45)",
-                      borderWidth: DesignSystem.borders.hairline,
-                      borderColor: colors.glassStroke,
-                    },
-                    isTablet && {
-                      width: getResponsiveValue(36, 44, 48),
-                      height: getResponsiveValue(36, 44, 48),
-                      borderRadius: getResponsiveValue(18, 22, 24),
-                    },
-                  ]}
-                  onPress={handleClose}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                >
-                  <Ionicons
-                    name="close"
-                    size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
               </View>
+            </View>
+            <Switch
+              value={notificationSettings.globalEnabled}
+              onValueChange={handleGlobalToggle}
+              trackColor={{
+                false: colors.border,
+                true: colors.primary + "40",
+              }}
+              thumbColor={
+                notificationSettings.globalEnabled
+                  ? colors.primary
+                  : colors.textSecondary
+              }
+            />
+          </View>
+        </HearthSurfaceCard>
 
-              {/* Body */}
-              <ScrollView
-                style={styles.scroll}
-                contentContainerStyle={[
-                  styles.scrollContent,
-                  isTablet && {
-                    paddingHorizontal: getResponsiveValue(20, 28, 32),
-                  },
-                ]}
-                showsVerticalScrollIndicator
+        {!permissionStatus.granted ? (
+          <HearthSurfaceCard containerStyle={styles.permissionCard}>
+            <View style={styles.permissionCopy}>
+              <Ionicons
+                name="warning-outline"
+                size={20}
+                color={colors.error}
+              />
+              <Text
+                style={[styles.permissionText, { color: colors.textSecondary }]}
               >
-                {/* Global Settings */}
-                <View
-                  style={[
-                    styles.globalSection,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.02)",
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.05)",
-                    },
-                    isTablet && {
-                      marginTop: getResponsiveValue(20, 28, 32),
-                      padding: getResponsiveValue(20, 28, 32),
-                      marginBottom: getResponsiveValue(20, 28, 32),
-                      borderRadius: getResponsiveValue(16, 20, 24),
-                    },
-                  ]}
-                >
-                  <View style={styles.globalHeader}>
-                    <View style={styles.globalHeaderLeft}>
-                      <View
-                        style={[
-                          styles.globalIcon,
-                          { backgroundColor: colors.primary + "15" },
-                          isTablet && {
-                            width: getResponsiveValue(48, 56, 64),
-                            height: getResponsiveValue(48, 56, 64),
-                            borderRadius: getResponsiveValue(24, 28, 32),
-                            marginRight: getResponsiveValue(16, 20, 24),
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name="notifications"
-                          size={isTablet ? getResponsiveValue(24, 28, 32) : 24}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <View style={styles.globalInfo}>
-                        <Text
-                          style={[
-                            styles.globalTitle,
-                            { color: colors.text },
-                            isTablet && {
-                              fontSize:
-                                (styles.globalTitle.fontSize || 18) *
-                                fontMultiplier,
-                              lineHeight:
-                                (styles.globalTitle.fontSize || 18) *
-                                fontMultiplier *
-                                1.2,
-                            },
-                          ]}
-                        >
-                          All Notifications
-                        </Text>
-                        <Text
-                          style={[
-                            styles.globalDescription,
-                            { color: colors.textSecondary },
-                            isTablet && {
-                              fontSize:
-                                (styles.globalDescription.fontSize || 14) *
-                                fontMultiplier,
-                              lineHeight:
-                                (styles.globalDescription.fontSize || 14) *
-                                fontMultiplier *
-                                1.4,
-                            },
-                          ]}
-                        >
-                          Enable or disable all notifications
-                        </Text>
-                      </View>
-                    </View>
-                    <Switch
-                      value={notificationSettings.globalEnabled}
-                      onValueChange={handleGlobalToggle}
-                      trackColor={{
-                        false: colors.border,
-                        true: colors.primary + "40",
-                      }}
-                      thumbColor={
-                        notificationSettings.globalEnabled
-                          ? colors.primary
-                          : colors.textSecondary
-                      }
-                    />
-                  </View>
-                </View>
+                {permissionStatus.canAskAgain
+                  ? "Notifications are off. Enable them to get task reminders."
+                  : "Notifications are blocked. Turn them on in device settings."}
+              </Text>
+            </View>
+            <View style={styles.permissionButton}>
+              <Button
+                label={permissionStatus.canAskAgain ? "Enable" : "Open Settings"}
+                onPress={() =>
+                  permissionStatus.canAskAgain
+                    ? void handleEnablePermissions()
+                    : void Linking.openSettings()
+                }
+              />
+            </View>
+          </HearthSurfaceCard>
+        ) : null}
 
-                {/* Permission Status */}
-                {!permissionStatus.granted ? (
-                  <View
-                    style={[
-                      styles.permissionSection,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255, 107, 107, 0.1)"
-                          : "rgba(255, 107, 107, 0.05)",
-                        borderColor: isDark
-                          ? "rgba(255, 107, 107, 0.2)"
-                          : "rgba(235, 87, 87, 0.2)",
-                      },
-                    ]}
-                  >
-                    <View style={styles.permissionContent}>
-                      <Ionicons
-                        name="warning"
-                        size={isTablet ? getResponsiveValue(20, 24, 26) : 20}
-                        color={colors.error}
-                      />
-                      <Text
-                        style={[
-                          styles.permissionText,
-                          { color: colors.error },
-                          isTablet && {
-                            fontSize:
-                              (styles.permissionText.fontSize || 14) *
-                              fontMultiplier,
-                            lineHeight:
-                              (styles.permissionText.fontSize || 14) *
-                              fontMultiplier *
-                              1.4,
-                            marginLeft: getResponsiveValue(12, 16, 20),
-                          },
-                        ]}
-                      >
-                        {permissionStatus.canAskAgain
-                          ? "Notifications are disabled. Enable them to receive task reminders."
-                          : "Notifications are blocked. Please enable them in device settings."}
-                      </Text>
-                    </View>
-                    {permissionStatus.canAskAgain ? (
-                      <TouchableOpacity
-                        style={[
-                          styles.permissionButton,
-                          { backgroundColor: colors.error },
-                          isTablet && {
-                            paddingHorizontal: getResponsiveValue(16, 20, 24),
-                            paddingVertical: getResponsiveValue(8, 10, 12),
-                            borderRadius: getResponsiveValue(8, 10, 12),
-                          },
-                        ]}
-                        onPress={handleEnablePermissions}
-                      >
-                        <Text
-                          style={[
-                            styles.permissionButtonText,
-                            isTablet && {
-                              fontSize:
-                                (styles.permissionButtonText.fontSize || 14) *
-                                fontMultiplier,
-                            },
-                          ]}
-                        >
-                          Enable
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={[
-                          styles.permissionButton,
-                          { backgroundColor: colors.error },
-                        ]}
-                        onPress={() => Linking.openSettings()}
-                      >
-                        <Text style={styles.permissionButtonText}>
-                          Open Settings
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ) : null}
+        {permissionStatus.granted && pushTokenError ? (
+          <Text style={[styles.tokenError, { color: colors.error }]}>
+            Token save error: {pushTokenError}
+          </Text>
+        ) : null}
 
-                {permissionStatus.granted && pushTokenError ? (
-                  <View style={styles.permissionSection}>
-                    <Text
-                      style={[
-                        styles.permissionText,
-                        { color: colors.error, marginTop: 8 },
-                      ]}
-                    >
-                      Token save error: {pushTokenError}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {/* Notification Types */}
-                {notificationSettings.globalEnabled ? (
-                  <>
-                    <Text
-                      style={[
-                        styles.sectionTitle,
-                        { color: colors.text },
-                        isTablet && {
-                          fontSize:
-                            (styles.sectionTitle.fontSize || 18) *
-                            fontMultiplier,
-                          lineHeight:
-                            (styles.sectionTitle.fontSize || 18) *
-                            fontMultiplier *
-                            1.2,
-                          marginBottom: getResponsiveValue(8, 12, 16),
-                          marginTop: getResponsiveValue(20, 28, 32),
-                        },
-                      ]}
-                    >
-                      Notification Types
-                    </Text>
-                    <Text
-                      style={[
-                        styles.sectionDescription,
-                        { color: colors.textSecondary },
-                        isTablet && {
-                          fontSize:
-                            (styles.sectionDescription.fontSize || 14) *
-                            fontMultiplier,
-                          lineHeight:
-                            (styles.sectionDescription.fontSize || 14) *
-                            fontMultiplier *
-                            1.4,
-                          marginBottom: getResponsiveValue(20, 28, 32),
-                        },
-                      ]}
-                    >
-                      Configure which types of notifications you want to receive
-                    </Text>
-
-                    {getNotificationTypes().map((type) =>
-                      renderNotificationTypeSection(type)
-                    )}
-                  </>
-                ) : null}
-
-                <View style={styles.bottomSpacer} />
-              </ScrollView>
-            </SafeAreaView>
-          </GlassCard>
-        </Animated.View>
-      </Animated.View>
-    </Modal>
+        {notificationSettings.globalEnabled ? (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Notification types
+            </Text>
+            <Text
+              style={[styles.sectionDescription, { color: colors.textSecondary }]}
+            >
+              Choose which reminders you want, and for which systems.
+            </Text>
+            {getNotificationTypes().map((type) =>
+              renderNotificationTypeSection(type)
+            )}
+          </>
+        ) : null}
+      </ScrollView>
+    </HearthSheet>
   );
 }

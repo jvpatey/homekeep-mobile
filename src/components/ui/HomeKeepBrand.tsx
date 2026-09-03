@@ -1,8 +1,7 @@
 import React from "react";
-import { Image, Text, View, StyleProp, ViewStyle } from "react-native";
+import { Text, View, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
-
-const LOGO = require("../../../assets/images/homekeep-logo.png");
+import { HouseMark } from "./HouseMark";
 
 interface HomeKeepBrandProps {
   size?: "sm" | "md" | "lg";
@@ -14,7 +13,7 @@ const FONT_SIZE = { sm: 16, md: 18, lg: 20 } as const;
 export function HomeKeepBrand({ size = "md", style }: HomeKeepBrandProps) {
   const { colors } = useTheme();
   const fontSize = FONT_SIZE[size];
-  const logoSize = fontSize + 2;
+  const markSize = fontSize + 2;
 
   return (
     <View
@@ -27,19 +26,7 @@ export function HomeKeepBrand({ size = "md", style }: HomeKeepBrandProps) {
         style,
       ]}
     >
-      <Image
-        source={LOGO}
-        style={{
-          width: logoSize,
-          height: logoSize,
-          marginRight: 6,
-        }}
-        resizeMode="contain"
-        accessibilityIgnoresInvertColors
-        accessible
-        accessibilityRole="image"
-        accessibilityLabel="HomeKeep"
-      />
+      <HouseMark size={markSize} inline style={{ marginRight: 6 }} />
       <Text
         style={{
           color: colors.text,

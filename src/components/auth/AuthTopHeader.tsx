@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, Image, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useDevice, useDynamicSpacing, useScalePress } from "../../hooks";
 import { GlassCard } from "../ui/glass-card";
+import { HouseMark } from "../ui/HouseMark";
 import { DesignSystem } from "../../theme/designSystem";
 
 interface AuthTopHeaderProps {
@@ -119,14 +120,7 @@ export function AuthTopHeader({
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Image
-                source={require("../../../assets/images/homekeep-logo.png")}
-                style={{
-                  width: brandLogoSize,
-                  height: brandLogoSize,
-                }}
-                resizeMode="contain"
-              />
+              <HouseMark size={brandLogoSize} inline />
               <Text
                 style={
                   isTablet
