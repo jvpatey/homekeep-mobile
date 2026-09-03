@@ -1,26 +1,54 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import {
   View,
   Text,
   Modal,
   Pressable,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   Dimensions,
   StyleProp,
   ViewStyle,
+  Keyboard,
+  KeyboardEvent,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useGradients, useDevice, useSheetMount } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import { SheetGrabber } from "./sheet-grabber";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+function useSheetKeyboardInset(enabled: boolean) {
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) {
+      setHeight(0);
+      return;
+    }
+
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e: KeyboardEvent) => setHeight(e.endCoordinates.height)
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setHeight(0)
+    );
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [enabled]);
+
+  return height;
+}
 
 interface HearthSheetProps {
   visible: boolean;
@@ -31,6 +59,13 @@ interface HearthSheetProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** Optional control to the left of the close button. */
+  headerRight?: ReactNode;
+  /**
+   * Render sheet chrome without an RN Modal. Use for stack
+   * `transparentModal` routes so sheets can stack without nested Modals.
+   */
+  embedded?: boolean;
   /** Max height as fraction of screen (0–1). Default 0.92 */
   maxHeightRatio?: number;
   /**
@@ -51,6 +86,8 @@ export function HearthSheet({
   title,
   children,
   footer,
+  headerRight,
+  embedded = false,
   maxHeightRatio = 0.92,
   fillMaxHeight = false,
   keyboardAvoiding = true,
@@ -60,6 +97,8 @@ export function HearthSheet({
   const { colors } = useTheme();
   const { authAtmosphere } = useGradients();
   const { getTabletSheetContainerStyle } = useDevice();
+  const insets = useSafeAreaInsets();
+  const keyboardInset = useSheetKeyboardInset(keyboardAvoiding && visible);
   const { mounted, backdropStyle, sheetStyle } = useSheetMount(
     visible,
     onDismissed
@@ -71,12 +110,21 @@ export function HearthSheet({
 
   if (!mounted) return null;
 
-  const maxHeight = SCREEN_HEIGHT * maxHeightRatio;
+  const maxHeight = Math.min(
+    SCREEN_HEIGHT * maxHeightRatio,
+    SCREEN_HEIGHT - insets.top - keyboardInset
+  );
 
   const sheetInterior = (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.safeArea, fillMaxHeight && styles.safeAreaFill]}
+    <View
+      style={[
+        styles.safeArea,
+        fillMaxHeight && styles.safeAreaFill,
+        {
+          paddingBottom:
+            keyboardInset > 0 ? DesignSystem.spacing.sm : insets.bottom,
+        },
+      ]}
     >
       <SheetGrabber />
 
@@ -88,6 +136,9 @@ export function HearthSheet({
         >
           {title}
         </Text>
+        {headerRight ? (
+          <View style={styles.headerRight}>{headerRight}</View>
+        ) : null}
         <Pressable
           onPress={dismiss}
           hitSlop={8}
@@ -99,50 +150,81 @@ export function HearthSheet({
         </Pressable>
       </View>
 
-      {keyboardAvoiding ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <View
+        style={[
+          styles.body,
+          fillMaxHeight && styles.bodyFill,
+        ]}
+      >
+        <View
           style={[
-            styles.keyboardAvoiding,
-            fillMaxHeight && styles.keyboardAvoidingFill,
+            styles.content,
+            fillMaxHeight && styles.contentFill,
+            contentStyle,
           ]}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
-          <View
-            style={[
-              styles.content,
-              fillMaxHeight && styles.contentFill,
-              contentStyle,
-            ]}
-          >
-            {children}
+          {children}
+        </View>
+        {footer ? (
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
+            {footer}
           </View>
-          {footer ? (
-            <View style={[styles.footer, { borderTopColor: colors.border }]}>
-              {footer}
-            </View>
-          ) : null}
-        </KeyboardAvoidingView>
-      ) : (
-        <>
-          <View
-            style={[
-              styles.content,
-              fillMaxHeight && styles.contentFill,
-              contentStyle,
-            ]}
-          >
-            {children}
-          </View>
-          {footer ? (
-            <View style={[styles.footer, { borderTopColor: colors.border }]}>
-              {footer}
-            </View>
-          ) : null}
-        </>
-      )}
-    </SafeAreaView>
+        ) : null}
+      </View>
+    </View>
   );
+
+  const sheetLayer = (
+    <View
+      style={[
+        styles.keyboardRoot,
+        keyboardInset > 0 && { paddingBottom: keyboardInset },
+      ]}
+    >
+      <Animated.View style={[styles.backdrop, backdropStyle]}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={dismiss}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel ?? "Close"}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          styles.sheetContainer,
+          getTabletSheetContainerStyle(),
+          fillMaxHeight ? { height: maxHeight } : { maxHeight },
+          sheetStyle,
+        ]}
+      >
+        <View
+          style={[
+            styles.sheetSurface,
+            fillMaxHeight && styles.sheetSurfaceFill,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+            DesignSystem.shadows.softKey,
+          ]}
+        >
+          <LinearGradient
+            colors={authAtmosphere}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.35 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {sheetInterior}
+        </View>
+      </Animated.View>
+    </View>
+  );
+
+  if (embedded) {
+    return <View style={styles.embeddedHost}>{sheetLayer}</View>;
+  }
 
   return (
     <Modal
@@ -153,51 +235,16 @@ export function HearthSheet({
       statusBarTranslucent
       accessibilityViewIsModal
     >
-      <View style={styles.keyboardRoot}>
-        <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={dismiss}
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel ?? "Close"}
-          />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.sheetContainer,
-            getTabletSheetContainerStyle(),
-            fillMaxHeight ? { height: maxHeight } : { maxHeight },
-            sheetStyle,
-          ]}
-        >
-          <View
-            style={[
-              styles.sheetSurface,
-              fillMaxHeight && styles.sheetSurfaceFill,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-              DesignSystem.shadows.softKey,
-            ]}
-          >
-            <LinearGradient
-              colors={authAtmosphere}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 0.35 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            {sheetInterior}
-          </View>
-        </Animated.View>
-      </View>
+      {sheetLayer}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  embeddedHost: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
   keyboardRoot: {
     flex: 1,
     justifyContent: "flex-end",
@@ -224,10 +271,10 @@ const styles = StyleSheet.create({
   safeAreaFill: {
     flex: 1,
   },
-  keyboardAvoiding: {
+  body: {
     flexShrink: 1,
   },
-  keyboardAvoidingFill: {
+  bodyFill: {
     flex: 1,
     minHeight: 0,
   },
@@ -242,6 +289,13 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.title2,
     flex: 1,
     paddingRight: DesignSystem.spacing.md,
+  },
+  headerRight: {
+    marginRight: DesignSystem.spacing.xs,
+    minWidth: DesignSystem.components.minTouchTarget,
+    minHeight: DesignSystem.components.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
   },
   closeHit: {
     minWidth: DesignSystem.components.minTouchTarget,

@@ -2,32 +2,13 @@ import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../theme/designSystem";
 
 export const completionHistoryStyles = StyleSheet.create({
-  container: {
+  sheetContent: {
+    paddingHorizontal: 0,
     flex: 1,
+    minHeight: 0,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.md,
-  },
-  backButton: {
-    padding: DesignSystem.spacing.sm,
-    marginLeft: -DesignSystem.spacing.sm,
-    zIndex: 1,
-  },
-  headerTitle: {
-    ...DesignSystem.typography.title2,
+  list: {
     flex: 1,
-    textAlign: "center",
-  },
-  headerAction: {
-    padding: DesignSystem.spacing.sm,
-    marginRight: -DesignSystem.spacing.sm,
-    zIndex: 1,
-    width: 40,
-    alignItems: "flex-end",
   },
   listContent: {
     paddingHorizontal: DesignSystem.spacing.lg,

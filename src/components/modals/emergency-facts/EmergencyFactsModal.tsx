@@ -33,6 +33,7 @@ import { useTasks } from "../../../context/TasksContext";
 interface EmergencyFactsModalProps {
   visible: boolean;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 type SpotKey = keyof HomeEmergencyFacts;
@@ -188,6 +189,7 @@ function SpotCard({
 export function EmergencyFactsModal({
   visible,
   onClose,
+  embedded = false,
 }: EmergencyFactsModalProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -366,6 +368,7 @@ export function EmergencyFactsModal({
       maxHeightRatio={0.92}
       keyboardAvoiding={Platform.OS === "ios"}
       contentStyle={{ paddingHorizontal: 0 }}
+      embedded={embedded}
       footer={
         <Button
           label={saving ? "Saving…" : "Save"}

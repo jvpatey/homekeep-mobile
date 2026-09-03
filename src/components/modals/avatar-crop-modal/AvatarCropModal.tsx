@@ -8,7 +8,7 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, Mask, Rect } from "react-native-svg";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../ui";
 import { AvatarCrop } from "../../../types/avatar";
 import {
@@ -19,6 +19,7 @@ import {
   transformToAvatarCrop,
 } from "../../../utils/avatarCrop";
 import { getImageSize } from "../../../services/AvatarStorageService";
+import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 
 interface AvatarCropModalProps {
@@ -60,6 +61,7 @@ export function AvatarCropModal({
   onConfirm,
 }: AvatarCropModalProps) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [measuredSize, setMeasuredSize] = useState<{
     width: number;
     height: number;
@@ -290,7 +292,12 @@ export function AvatarCropModal({
           </Svg>
         </View>
 
-        <SafeAreaView edges={["bottom"]} style={styles.chrome}>
+        <View
+          style={[
+            styles.chrome,
+            { paddingBottom: insets.bottom + DesignSystem.spacing.sm },
+          ]}
+        >
           <Text
             style={styles.hint}
             accessibilityRole="text"
@@ -311,7 +318,7 @@ export function AvatarCropModal({
               />
             </View>
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     </Modal>
   );

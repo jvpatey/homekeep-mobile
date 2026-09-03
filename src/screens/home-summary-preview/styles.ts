@@ -2,43 +2,17 @@ import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../theme/designSystem";
 
 export const homeSummaryPreviewStyles = StyleSheet.create({
-  container: {
+  sheetContent: {
+    paddingHorizontal: 0,
     flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.md,
-    borderBottomWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  backButton: {
-    padding: DesignSystem.spacing.sm,
-    marginLeft: -DesignSystem.spacing.sm,
-    zIndex: 1,
-  },
-  headerTitleBlock: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.sm,
-  },
-  headerTitle: {
-    ...DesignSystem.typography.h3,
-    textAlign: "center",
+    minHeight: 0,
   },
   headerSubtitle: {
     ...DesignSystem.typography.small,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.xs,
+    marginBottom: DesignSystem.spacing.md,
   },
-  headerRightSpacer: {
-    width: 40,
-    zIndex: 1,
+  scroll: {
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: DesignSystem.spacing.lg,
@@ -132,12 +106,6 @@ export const homeSummaryPreviewStyles = StyleSheet.create({
     ...DesignSystem.typography.caption,
     marginTop: DesignSystem.spacing.md,
     lineHeight: 18,
-  },
-  footer: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.lg,
-    borderTopWidth: 1,
   },
   exportButton: {
     flexDirection: "row",

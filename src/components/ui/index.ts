@@ -14,6 +14,7 @@ export { HearthScreen } from "./HearthScreen";
 export { HearthSheet } from "./HearthSheet";
 export { HearthCanvas } from "./HearthCanvas";
 export { HearthSurfaceCard } from "./HearthSurfaceCard";
+export { SheetActionRow } from "./sheet-action-row";
 export { PriorityMark, getPriorityColor } from "./PriorityMark";
 export {
   SearchableSelectModal,

@@ -13,6 +13,7 @@ import { Button, GradientPicker, HearthSheet, TintedGlassAvatar } from "../../ui
 import { AvatarCropModal } from "../avatar-crop-modal";
 import { AvatarStorageService } from "../../../services/AvatarStorageService";
 import { AvatarCrop } from "../../../types/avatar";
+import { accountInitial } from "../../../utils/displayName";
 import { styles } from "./styles";
 
 interface AvatarCustomizationModalProps {
@@ -68,11 +69,12 @@ export function AvatarCustomizationModal({
     wasVisibleRef.current = visible;
   }, [visible, selectedGradient]);
 
-  const getUserInitial = () => {
-    const fullName = user?.user_metadata?.full_name;
-    if (fullName) return fullName.split(" ")[0].charAt(0).toUpperCase();
-    return user?.email?.charAt(0).toUpperCase() || "U";
-  };
+  const getUserInitial = () =>
+    accountInitial({
+      authFullName: user?.user_metadata?.full_name as string | undefined,
+      profileFullName: profile?.full_name,
+      email: user?.email ?? profile?.email ?? null,
+    });
 
   const shownPhotoUri = removedPhoto ? null : previewUri ?? avatarUrl;
   const hasPhoto = Boolean(shownPhotoUri || profile?.avatar_storage_path);

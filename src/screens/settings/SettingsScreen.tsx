@@ -1,76 +1,53 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
-import { useUserPreferences } from "../../context/UserPreferencesContext";
-import { useHaptics, useScreenInsets } from "../../hooks";
-import { HearthScreen } from "../../components/ui";
-import { AvatarCustomizationModal } from "../../components/modals/avatar-customization-modal";
+import { useHaptics } from "../../hooks";
+import {
+  HearthSheet,
+  HearthSurfaceCard,
+  SheetActionRow,
+} from "../../components/ui";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
-import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
 import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
-import { GlassCard, TintedGlassAvatar } from "../../components/ui";
+import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
+import { accountDisplayName, hasAccountName } from "../../utils/displayName";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
-  const { colors, isDark } = useTheme();
-  const { user, signOut, deleteAccount } = useAuth();
+  const { colors } = useTheme();
+  const { user, deleteAccount } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
-  const { canEditHome, avatarUrl } = useProfile();
-  const { selectedGradient } = useUserPreferences();
+  const { canEditHome, profile } = useProfile();
   const { triggerLight, triggerMedium } = useHaptics();
-  const { scrollPaddingBottom } = useScreenInsets();
-  const [customizationModalVisible, setCustomizationModalVisible] =
-    useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
-  const [householdVisible, setHouseholdVisible] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
+  const [nameEditorVisible, setNameEditorVisible] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(true);
 
-  const getUserInitial = () => {
-    const fullName = user?.user_metadata?.full_name;
-    if (fullName) return fullName.split(" ")[0].charAt(0).toUpperCase();
-    return user?.email?.charAt(0).toUpperCase() || "U";
+  const nameInput = {
+    authFullName: user?.user_metadata?.full_name as string | undefined,
+    profileFullName: profile?.full_name,
+    email: user?.email ?? profile?.email ?? null,
   };
+  const displayName = accountDisplayName(nameInput);
+  const named = hasAccountName(nameInput);
+  const email = user?.email ?? profile?.email ?? "";
 
-  const getUserName = () => {
-    const fullName = user?.user_metadata?.full_name;
-    return fullName || "User";
-  };
-
-  const getUserEmail = () => user?.email || "";
-
-  const handleCustomizeAvatar = async () => {
-    await triggerMedium();
-    setCustomizationModalVisible(true);
-  };
-
-  const handleNotificationSettings = async () => {
-    await triggerLight();
-    setNotificationModalVisible(true);
+  const closeSheet = () => {
+    setSheetVisible(false);
+    navigation.goBack();
   };
 
   const handleEditHome = async () => {
     await triggerLight();
     setHomeSetupVisible(true);
-  };
-
-  const handleHomeSummary = async () => {
-    await triggerLight();
-    navigation.navigate("HomeSummaryPreview");
   };
 
   const handleDeleteAllTasks = async () => {
@@ -99,25 +76,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     );
   };
 
-  const handleSignOut = async () => {
-    await triggerMedium();
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await signOut();
-          } catch (error) {
-            console.error("Sign out error from Settings:", error);
-            Alert.alert("Error", "Failed to sign out. Please try again.");
-          }
-        },
-      },
-    ]);
-  };
-
   const handleDeleteAccount = async () => {
     await triggerMedium();
     Alert.alert(
@@ -131,7 +89,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           onPress: async () => {
             Alert.alert(
               "Final Confirmation",
-              "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.\n\nType 'DELETE' to confirm account deletion.",
+              "This is your last chance to cancel. Your account and all data will be permanently deleted and cannot be recovered.",
               [
                 { text: "Cancel", style: "cancel" },
                 {
@@ -143,7 +101,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                       if (result.success) {
                         Alert.alert(
                           "Account Deleted",
-                          "All your data has been permanently deleted and you will be signed out. Your account is now effectively deleted.",
+                          "All your data has been permanently deleted and you will be signed out.",
                           [{ text: "OK" }]
                         );
                       } else {
@@ -154,7 +112,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                           [{ text: "OK" }]
                         );
                       }
-                    } catch (error) {
+                    } catch {
                       Alert.alert(
                         "Error",
                         "An unexpected error occurred. Please try again or contact support.",
@@ -171,294 +129,139 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     );
   };
 
-  // Disable destructive delete-all when there are no tasks/instances
   const hasAnyTasks = (stats?.totalInstances || 0) > 0;
 
-  type SettingsOption = {
-    id: string;
-    title: string;
-    subtitle?: string;
-    icon: string;
-    onPress: () => void;
-    type: "navigation" | "destructive";
-    disabled?: boolean;
-  };
-
-  const settingsOptions: SettingsOption[] = [
+  const homeRows = [
     {
-      id: "customize-avatar",
-      title: "Customize Avatar",
-      icon: "color-palette-outline",
-      onPress: handleCustomizeAvatar,
-      type: "navigation",
-    },
-    {
-      id: "notifications",
-      title: "Notification Settings",
-      icon: "notifications-outline",
-      onPress: handleNotificationSettings,
-      type: "navigation",
-    },
-    {
-      id: "edit-home",
+      icon: "home-outline" as const,
       title: "Your home",
       subtitle: canEditHome
         ? undefined
         : "The household owner manages this home",
-      icon: "home-outline",
       onPress: handleEditHome,
-      type: "navigation",
       disabled: !canEditHome,
     },
     {
-      id: "emergency-map",
+      icon: "warning-outline" as const,
       title: "Emergency map",
-      icon: "warning-outline",
       onPress: () => {
         void triggerLight();
         setEmergencyVisible(true);
       },
-      type: "navigation",
     },
     {
-      id: "household",
-      title: "Household sharing",
-      icon: "people-outline",
-      onPress: () => {
-        void triggerLight();
-        setHouseholdVisible(true);
-      },
-      type: "navigation",
-    },
-    {
-      id: "home-summary",
-      title: "Home Maintenance Summary",
-      icon: "document-text-outline",
-      onPress: handleHomeSummary,
-      type: "navigation",
-    },
-    {
-      id: "maintenance-plans",
+      icon: "layers-outline" as const,
       title: "Task library",
       subtitle: "Seasonal and specialty bundles",
-      icon: "layers-outline",
       onPress: () => {
         void triggerLight();
         navigation.navigate("MaintenancePlans");
       },
-      type: "navigation",
-    },
-    {
-      id: "delete-tasks",
-      title: "Reset this home's schedule",
-      icon: "trash-bin-outline",
-      onPress: handleDeleteAllTasks,
-      type: "destructive",
-      disabled: !hasAnyTasks,
-    },
-    {
-      id: "delete-account",
-      title: "Delete Account",
-      icon: "person-remove-outline",
-      onPress: handleDeleteAccount,
-      type: "destructive",
-    },
-    {
-      id: "sign-out",
-      title: "Sign Out",
-      icon: "log-out-outline",
-      onPress: handleSignOut,
-      type: "destructive",
     },
   ];
 
-  const renderSettingsOption = (
-    option: SettingsOption,
-    index: number,
-    total: number
-  ) => {
-    const getIconColor = () => {
-      if (option.type === "destructive") {
-        return option.disabled ? colors.textSecondary : colors.error;
-      }
-      return option.disabled ? colors.textSecondary : colors.primary;
-    };
-
-    const getTextColor = () => {
-      if (option.type === "destructive") {
-        return option.disabled ? colors.textSecondary : colors.error;
-      }
-      return option.disabled ? colors.textSecondary : colors.text;
-    };
-
-    const getIconBackgroundColor = () => {
-      if (option.type === "destructive") {
-        return (option.disabled ? colors.border : colors.error) + "15";
-      }
-      return (option.disabled ? colors.border : colors.primary) + "15";
-    };
-
-    const isLast = index === total - 1;
-
-    return (
-      <TouchableOpacity
-        key={option.id}
-        style={[
-          styles.optionButton,
-          !isLast && {
-            borderBottomColor: isDark
-              ? "rgba(255, 255, 255, 0.08)"
-              : "rgba(0, 0, 0, 0.06)",
-            borderBottomWidth: StyleSheet.hairlineWidth,
-          },
-        ]}
-        onPress={option.disabled ? undefined : option.onPress}
-        activeOpacity={0.7}
-        disabled={Boolean(option.disabled)}
-        accessibilityRole="button"
-        accessibilityLabel={
-          option.subtitle
-            ? `${option.title}. ${option.subtitle}`
-            : option.title
-        }
-        accessibilityState={{ disabled: Boolean(option.disabled) }}
-      >
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: getIconBackgroundColor() },
-          ]}
-        >
-          <Ionicons
-            name={option.icon as any}
-            size={20}
-            color={getIconColor()}
-          />
-        </View>
-        <View style={styles.optionTextBlock}>
-          <Text style={[styles.optionText, { color: getTextColor() }]}>
-            {option.title}
-          </Text>
-          {option.subtitle ? (
-            <Text
-              style={[styles.optionSubtitle, { color: colors.textSecondary }]}
-            >
-              {option.subtitle}
-            </Text>
-          ) : null}
-        </View>
-        {option.type === "navigation" ? (
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={colors.textSecondary}
-          />
-        ) : null}
-      </TouchableOpacity>
-    );
-  };
-
   return (
-    <HearthScreen style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Settings
-        </Text>
-        <View style={styles.headerRightSpacer} />
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={[
-          styles.contentInner,
-          { paddingBottom: scrollPaddingBottom },
-        ]}
-        showsVerticalScrollIndicator={false}
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <HearthSheet
+        visible={sheetVisible}
+        onClose={closeSheet}
+        title="Settings"
+        embedded
+        keyboardAvoiding={false}
+        fillMaxHeight
+        maxHeightRatio={0.92}
+        contentStyle={styles.sheetContent}
       >
-        {/* Account card */}
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
-          containerStyle={styles.cardContainer}
-          style={styles.cardSurface}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollInner}
         >
-          <TouchableOpacity
-            style={styles.accountCard}
-            onPress={handleCustomizeAvatar}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Customize avatar"
-          >
-            <TintedGlassAvatar
-              size={64}
-              gradient={selectedGradient}
-              initial={getUserInitial()}
-              imageUri={avatarUrl}
-              pressable={false}
+          <View style={styles.identity}>
+            <Text style={[styles.identityName, { color: colors.text }]}>
+              {displayName}
+            </Text>
+            {email ? (
+              <Text
+                style={[styles.identityEmail, { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {email}
+              </Text>
+            ) : null}
+          </View>
+
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Account
+          </Text>
+          <HearthSurfaceCard style={styles.groupSurface}>
+            <SheetActionRow
+              icon="person-outline"
+              title="Name"
+              subtitle={
+                named ? displayName : "Add your first and last name"
+              }
+              onPress={() => {
+                void triggerLight();
+                setNameEditorVisible(true);
+              }}
             />
-            <View style={styles.accountInfo}>
-              <Text
-                style={[styles.accountName, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {getUserName()}
-              </Text>
-              <Text
-                style={[styles.accountEmail, { color: colors.textSecondary }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {getUserEmail()}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.editIconContainer,
-                { backgroundColor: colors.primary + "15" },
-              ]}
-            >
-              <Ionicons
-                name="color-palette-outline"
-                size={20}
-                color={colors.primary}
+          </HearthSurfaceCard>
+
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Home
+          </Text>
+          <HearthSurfaceCard style={styles.groupSurface}>
+            {homeRows.map((row, index) => (
+              <SheetActionRow
+                key={row.title}
+                {...row}
+                showDivider={index < homeRows.length - 1}
               />
-            </View>
-          </TouchableOpacity>
-        </GlassCard>
+            ))}
+          </HearthSurfaceCard>
 
-        {/* Options list */}
-        <GlassCard
-          material="regular"
-          radius={DesignSystem.borders.radius.glass}
-          containerStyle={styles.cardContainer}
-          style={[styles.cardSurface, styles.optionsSurface]}
-        >
-          {settingsOptions.map((option, index) =>
-            renderSettingsOption(option, index, settingsOptions.length)
-          )}
-        </GlassCard>
-      </ScrollView>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Notifications
+          </Text>
+          <HearthSurfaceCard style={styles.groupSurface}>
+            <SheetActionRow
+              icon="notifications-outline"
+              title="Notification settings"
+              onPress={() => {
+                void triggerLight();
+                setNotificationModalVisible(true);
+              }}
+            />
+          </HearthSurfaceCard>
 
-      {customizationModalVisible ? (
-        <AvatarCustomizationModal
-          visible
-          onClose={() => setCustomizationModalVisible(false)}
-        />
-      ) : null}
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Data
+          </Text>
+          <HearthSurfaceCard style={styles.groupSurface}>
+            <SheetActionRow
+              icon="trash-bin-outline"
+              title="Reset this home's schedule"
+              onPress={() => void handleDeleteAllTasks()}
+              destructive
+              disabled={!hasAnyTasks}
+              showChevron={false}
+              showDivider
+            />
+            <SheetActionRow
+              icon="person-remove-outline"
+              title="Delete account"
+              onPress={() => void handleDeleteAccount()}
+              destructive
+              showChevron={false}
+            />
+          </HearthSurfaceCard>
+        </ScrollView>
+      </HearthSheet>
 
       {notificationModalVisible ? (
         <NotificationSettingsModal
           visible
+          embedded
           onClose={() => setNotificationModalVisible(false)}
         />
       ) : null}
@@ -467,118 +270,60 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         visible={homeSetupVisible}
         onClose={() => setHomeSetupVisible(false)}
         hideSkip
-      />
-
-      <HouseholdSharingModal
-        visible={householdVisible}
-        onClose={() => setHouseholdVisible(false)}
+        embedded
       />
 
       {emergencyVisible ? (
         <EmergencyFactsModal
           visible
+          embedded
           onClose={() => setEmergencyVisible(false)}
         />
       ) : null}
-    </HearthScreen>
+
+      {nameEditorVisible ? (
+        <EditNameModal
+          visible
+          onClose={() => setNameEditorVisible(false)}
+        />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  sheetContent: {
+    paddingHorizontal: 0,
     flex: 1,
+    minHeight: 0,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  scrollInner: {
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
   },
-  backButton: {
-    padding: DesignSystem.spacing.sm,
-    marginLeft: -DesignSystem.spacing.sm,
-    zIndex: 1,
+  identity: {
+    paddingBottom: DesignSystem.spacing.md,
   },
-  headerTitle: {
-    ...DesignSystem.typography.h3,
-    fontSize: 20,
-    flex: 1,
-    textAlign: "center",
-  },
-  headerRightSpacer: {
-    width: 40,
-    zIndex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  contentInner: {
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.xxxl,
-    gap: DesignSystem.spacing.md,
-  },
-  cardContainer: {
-    width: "100%",
-  },
-  cardSurface: {
-    overflow: "hidden",
-  },
-  optionsSurface: {
-    paddingVertical: DesignSystem.spacing.xs,
-  },
-  accountCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: DesignSystem.spacing.lg,
-    gap: DesignSystem.spacing.md,
-  },
-  accountInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  accountName: {
+  identityName: {
     ...DesignSystem.typography.h4,
     fontSize: 18,
-    marginBottom: 2,
   },
-  accountEmail: {
+  identityEmail: {
     ...DesignSystem.typography.small,
     fontSize: 14,
+    marginTop: 2,
     opacity: 0.85,
   },
-  editIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  optionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.md,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: DesignSystem.spacing.md,
-  },
-  optionTextBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  optionText: {
-    ...DesignSystem.typography.bodyMedium,
-    fontSize: 16,
-  },
-  optionSubtitle: {
+  sectionLabel: {
     ...DesignSystem.typography.caption,
-    marginTop: 2,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  groupSurface: {
+    overflow: "hidden",
+    paddingVertical: DesignSystem.spacing.xs,
   },
 });

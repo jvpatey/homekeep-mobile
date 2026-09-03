@@ -36,6 +36,28 @@ export const styles = StyleSheet.create({
     paddingBottom: DesignSystem.spacing.md,
   },
 
+  avatarEditWrap: {
+    position: "relative",
+  },
+  editBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  actionsCard: {
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  actionsSurface: {
+    overflow: "hidden",
+    paddingVertical: DesignSystem.spacing.xs,
+  },
   // User identity row
   profileSection: {
     flexDirection: "row",

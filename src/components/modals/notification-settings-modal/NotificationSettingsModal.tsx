@@ -25,11 +25,13 @@ import { styles } from "./styles";
 interface NotificationSettingsModalProps {
   visible: boolean;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 export function NotificationSettingsModal({
   visible,
   onClose,
+  embedded = false,
 }: NotificationSettingsModalProps) {
   const { colors } = useTheme();
   const {
@@ -239,6 +241,7 @@ export function NotificationSettingsModal({
       fillMaxHeight
       keyboardAvoiding={false}
       contentStyle={styles.sheetContent}
+      embedded={embedded}
     >
       <ScrollView
         style={styles.scroll}

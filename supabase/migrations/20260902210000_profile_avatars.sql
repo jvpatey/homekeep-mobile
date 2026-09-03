@@ -1,5 +1,6 @@
 -- Profile photos: cropped display JPEG plus original for repositioning.
 -- Household members can read each other's avatars; only the owner can write.
+-- Leave any existing profiles.avatar_url column untouched (older schema).
 
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS avatar_storage_path text;
