@@ -1,252 +1,139 @@
-import { StyleSheet, Dimensions } from "react-native";
+import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../../theme/designSystem";
 
-const { height: screenHeight } = Dimensions.get("window");
-
 export const styles = StyleSheet.create({
-  backdrop: {
+  sheetContent: {
+    paddingHorizontal: 0,
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
+    minHeight: 0,
   },
-
-  backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
-  },
-
-  sheetContainer: {
-    width: "100%",
-    height: screenHeight * 0.85,
-  },
-
-  glassOuter: {
-    flex: 1,
-    width: "100%",
-    borderTopLeftRadius: DesignSystem.borders.radius.glass,
-    borderTopRightRadius: DesignSystem.borders.radius.glass,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    overflow: "hidden",
-  },
-
-  glassInner: {
-    flex: 1,
-    borderTopLeftRadius: DesignSystem.borders.radius.glass,
-    borderTopRightRadius: DesignSystem.borders.radius.glass,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-
-  haloFill: {
-    ...StyleSheet.absoluteFillObject,
-  },
-
-  sheetSafeArea: {
-    flex: 1,
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.sm,
-    paddingBottom: DesignSystem.spacing.md,
-    borderBottomWidth: 1,
-  },
-
-  headerTitle: {
-    ...DesignSystem.typography.h3,
-    fontSize: 20,
-    flex: 1,
-    marginRight: DesignSystem.spacing.md,
-  },
-
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
   scroll: {
     flex: 1,
   },
-
   scrollContent: {
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.md,
-    paddingBottom: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.xl,
   },
-
-  globalSection: {
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.lg,
-    borderWidth: 1,
+  globalCard: {
+    marginBottom: DesignSystem.spacing.md,
   },
-
-  globalHeader: {
+  globalRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    padding: DesignSystem.spacing.md,
   },
-
-  globalHeaderLeft: {
+  globalLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    marginRight: DesignSystem.spacing.sm,
   },
-
-  globalIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: DesignSystem.spacing.md,
-  },
-
   globalInfo: {
     flex: 1,
   },
-
   globalTitle: {
-    ...DesignSystem.typography.h4,
-    fontSize: 18,
-    marginBottom: 4,
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
   },
-
   globalDescription: {
-    ...DesignSystem.typography.small,
-    fontSize: 14,
-    lineHeight: 20,
+    ...DesignSystem.typography.footnote,
+    marginTop: 2,
   },
-
-  permissionSection: {
-    marginBottom: DesignSystem.spacing.lg,
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-  },
-
-  permissionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-
-  permissionText: {
-    ...DesignSystem.typography.small,
-    fontSize: 14,
-    marginLeft: DesignSystem.spacing.sm,
-    flex: 1,
-    lineHeight: 20,
-  },
-
-  permissionButton: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.small,
-  },
-
-  permissionButtonText: {
-    ...DesignSystem.typography.smallSemiBold,
-    color: "white",
-    fontSize: 14,
-  },
-
-  sectionTitle: {
-    ...DesignSystem.typography.h4,
-    fontSize: 18,
-    marginBottom: DesignSystem.spacing.sm,
-    marginTop: DesignSystem.spacing.lg,
-  },
-
-  sectionDescription: {
-    ...DesignSystem.typography.small,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: DesignSystem.spacing.lg,
-  },
-
-  notificationTypeSection: {
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.md,
-    borderWidth: 1,
-  },
-
-  notificationTypeHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  notificationTypeHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-
-  notificationTypeIcon: {
+  iconWell: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginRight: DesignSystem.spacing.md,
   },
-
-  notificationTypeInfo: {
-    flex: 1,
-  },
-
-  notificationTypeName: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 16,
-    marginBottom: 2,
-  },
-
-  notificationTypeDescription: {
-    ...DesignSystem.typography.caption,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-
-  notificationTypeHeaderRight: {
-    flexDirection: "row",
+  iconWellLarge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
-    gap: DesignSystem.spacing.sm,
+    justifyContent: "center",
+    marginRight: DesignSystem.spacing.md,
   },
-
-  expandIcon: {
-    marginLeft: DesignSystem.spacing.xs,
-  },
-
-  categoriesContainer: {
-    marginTop: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.md,
-    borderTopWidth: 1,
-  },
-
-  categoriesTitle: {
-    ...DesignSystem.typography.smallSemiBold,
-    fontSize: 14,
-    marginBottom: 4,
-  },
-
-  categoriesDescription: {
-    ...DesignSystem.typography.caption,
-    fontSize: 13,
-    lineHeight: 18,
+  permissionCard: {
     marginBottom: DesignSystem.spacing.md,
   },
-
+  permissionCopy: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: DesignSystem.spacing.sm,
+    padding: DesignSystem.spacing.md,
+    paddingBottom: 0,
+  },
+  permissionText: {
+    ...DesignSystem.typography.footnote,
+    flex: 1,
+  },
+  permissionButton: {
+    padding: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.sm,
+  },
+  tokenError: {
+    ...DesignSystem.typography.footnote,
+    marginBottom: DesignSystem.spacing.md,
+  },
+  sectionTitle: {
+    ...DesignSystem.typography.title2,
+    fontSize: 20,
+    marginTop: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.xs,
+  },
+  sectionDescription: {
+    ...DesignSystem.typography.footnote,
+    marginBottom: DesignSystem.spacing.md,
+  },
+  typeCard: {
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  typeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: DesignSystem.spacing.md,
+  },
+  typeHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: DesignSystem.spacing.sm,
+  },
+  typeInfo: {
+    flex: 1,
+  },
+  typeName: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
+  },
+  typeDescription: {
+    ...DesignSystem.typography.footnote,
+    marginTop: 2,
+  },
+  typeHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+  },
+  categories: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  categoriesTitle: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
+    marginTop: DesignSystem.spacing.md,
+  },
+  categoriesDescription: {
+    ...DesignSystem.typography.footnote,
+    marginTop: 2,
+    marginBottom: DesignSystem.spacing.sm,
+  },
   categoryRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -254,28 +141,20 @@ export const styles = StyleSheet.create({
     paddingVertical: DesignSystem.spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-
   categoryRowLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
     gap: DesignSystem.spacing.sm,
   },
-
-  categoryRowIcon: {
+  categoryIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  categoryRowName: {
-    ...DesignSystem.typography.smallMedium,
-    fontSize: 14,
-  },
-
-  bottomSpacer: {
-    height: DesignSystem.spacing.lg,
+  categoryName: {
+    ...DesignSystem.typography.callout,
   },
 });
