@@ -9,22 +9,22 @@ const YEAR_ROUND_SAFETY_CATALOG: SafetyItemDefinition[] = [
     key: "smoke_co",
     title: "Test smoke & CO alarms",
     description:
-      "Press test buttons; replace batteries or units per manufacturer.",
+      "Press test buttons monthly (NFPA). Replace batteries or units per manufacturer.",
     category: "SAFETY",
     priority: "high",
     estimated_duration_minutes: 20,
-    interval_days: 90,
+    interval_days: 30,
     start_offset_days: 0,
   },
   {
     key: "extinguisher",
     title: "Check fire extinguisher(s)",
     description:
-      "Pressure gauge in green zone, accessible mount, not expired.",
+      "Monthly visual check: gauge in the green zone, pin intact, accessible mount, not expired.",
     category: "SAFETY",
     priority: "medium",
     estimated_duration_minutes: 15,
-    interval_days: 365,
+    interval_days: 30,
     start_offset_days: 3,
   },
   {
@@ -53,11 +53,11 @@ const YEAR_ROUND_SAFETY_CATALOG: SafetyItemDefinition[] = [
     key: "gfci",
     title: "Exercise GFCI outlets",
     description:
-      "Press TEST/RESET on kitchen, bath, garage, and outdoor GFCIs.",
+      "Press TEST/RESET monthly on kitchen, bath, garage, and outdoor GFCIs. Replace any that fail.",
     category: "ELECTRICAL",
     priority: "medium",
     estimated_duration_minutes: 20,
-    interval_days: 180,
+    interval_days: 30,
     start_offset_days: 17,
   },
 ];

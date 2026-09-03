@@ -23,7 +23,7 @@ const WATER_HEATER: MaintenancePlanItemTemplate = {
 const FURNACE: MaintenancePlanItemTemplate = {
   title: "Replace HVAC filter",
   description:
-    "Swap the furnace or air-handler filter so airflow stays clean.",
+    "Swap the furnace or air-handler filter every 1–3 months so airflow stays clean.",
   category: "HVAC",
   priority: "medium",
   estimated_duration_minutes: 15,
@@ -37,19 +37,19 @@ const DRYER: MaintenancePlanItemTemplate = {
     "Lint buildup is a fire risk. Clear the lint trap every load; deep-clean the duct on a schedule.",
   category: "SAFETY",
   priority: "high",
-  estimated_duration_minutes: 30,
+  estimated_duration_minutes: 60,
   interval_days: 365,
   start_offset_days: 6,
 };
 
 const AC: MaintenancePlanItemTemplate = {
-  title: "Replace HVAC filter before cooling season",
+  title: "Replace HVAC filter",
   description:
-    "Fresh filter before heavy AC use keeps coils cleaner and bills lower.",
+    "Swap the furnace or air-handler filter every 1–3 months so airflow stays clean.",
   category: "HVAC",
   priority: "medium",
   estimated_duration_minutes: 15,
-  interval_days: 180,
+  interval_days: 90,
   start_offset_days: 5,
 };
 
@@ -67,7 +67,7 @@ const SOFTENER: MaintenancePlanItemTemplate = {
 const HEAT_PUMP: MaintenancePlanItemTemplate = {
   title: "Clean heat pump filters",
   description:
-    "Wash or replace indoor air-handler filters per the manufacturer.",
+    "Wash or replace indoor air-handler filters—typically every 1–3 months, more often with pets or heavy use.",
   category: "HVAC",
   priority: "medium",
   estimated_duration_minutes: 25,
@@ -89,11 +89,11 @@ const MOWER: MaintenancePlanItemTemplate = {
 const DISHWASHER: MaintenancePlanItemTemplate = {
   title: "Clean dishwasher filter",
   description:
-    "Remove and rinse the trap at the bottom tub—many first-time owners miss it until dishes stop cleaning well.",
+    "Remove and rinse the trap at the bottom tub monthly—many first-time owners miss it until dishes stop cleaning well.",
   category: "APPLIANCES",
   priority: "medium",
   estimated_duration_minutes: 15,
-  interval_days: 90,
+  interval_days: 30,
   start_offset_days: 22,
 };
 
@@ -122,11 +122,11 @@ const FRIDGE_COILS: MaintenancePlanItemTemplate = {
 const RANGE_HOOD: MaintenancePlanItemTemplate = {
   title: "Clean kitchen vent hood grease filters",
   description:
-    "Pull the metal mesh filters. Degrease in hot soapy water or the dishwasher if allowed; swap charcoal filters if your hood uses them.",
+    "Pull the metal mesh filters monthly. Degrease in hot soapy water or the dishwasher if allowed; swap charcoal filters if your hood uses them.",
   category: "APPLIANCES",
   priority: "medium",
   estimated_duration_minutes: 20,
-  interval_days: 60,
+  interval_days: 30,
   start_offset_days: 23,
 };
 
