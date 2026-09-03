@@ -45,9 +45,9 @@ const COLD_WEATHER_PREP_CATALOG: FallItemDefinition[] = [
   {
     key: "gutters_fall",
     requiresHouseExterior: true,
-    title: "Clean gutters after leaf drop",
+    title: "Clean gutters & downspouts",
     description:
-      "Clear gutters and downspouts after trees shed so winter melt drains properly.",
+      "Clear gutters and downspouts after trees shed so winter melt drains properly. Typical cadence is twice a year (late spring and after leaf drop).",
     category: "EXTERIOR",
     priority: "high",
     estimated_duration_minutes: 90,
@@ -57,13 +57,13 @@ const COLD_WEATHER_PREP_CATALOG: FallItemDefinition[] = [
   {
     key: "roof_winter",
     requiresHouseExterior: true,
-    title: "Inspect roof before winter",
+    title: "Inspect roof and flashing",
     description:
-      "Look for damaged shingles, flashing, or leaks before snow and ice load.",
+      "Look for damaged shingles, flashing, or leaks before snow and ice load. Typical cadence is twice a year (spring and fall).",
     category: "EXTERIOR",
     priority: "high",
     estimated_duration_minutes: 45,
-    interval_days: 365,
+    interval_days: 180,
     start_offset_days: 3,
   },
   {

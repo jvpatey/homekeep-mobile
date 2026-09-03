@@ -53,11 +53,11 @@ const SPRING_REFRESH_CATALOG: SpringItemDefinition[] = [
     requiresLawn: true,
     title: "Fertilize lawn",
     description:
-      "Apply fertilizer during active growth for healthy turf.",
+      "Apply fertilizer 2–4 times during the growing season. Skip winter; fall has a separate winterizer feeding.",
     category: "LANDSCAPING",
     priority: "medium",
     estimated_duration_minutes: 45,
-    interval_days: 60,
+    interval_days: 90,
     start_offset_days: 2,
   },
   {
@@ -75,11 +75,12 @@ const SPRING_REFRESH_CATALOG: SpringItemDefinition[] = [
     key: "lime_lawn",
     requiresLawn: true,
     title: "Lime lawn",
-    description: "Apply lime if soil needs pH correction.",
+    description:
+      "Apply lime when a soil test shows pH needs correction—typically every 2–3 years, not every spring.",
     category: "LANDSCAPING",
     priority: "low",
     estimated_duration_minutes: 40,
-    interval_days: 365,
+    interval_days: 730,
     start_offset_days: 4,
   },
   {
@@ -98,11 +99,11 @@ const SPRING_REFRESH_CATALOG: SpringItemDefinition[] = [
     requiresHouseExterior: true,
     title: "Inspect roof and flashing",
     description:
-      "Check for loose shingles, cracks, and leaks.",
+      "Walk the ground with binoculars for loose shingles, cracks, and leaks—spring and fall, and after major storms.",
     category: "EXTERIOR",
     priority: "high",
     estimated_duration_minutes: 45,
-    interval_days: 365,
+    interval_days: 180,
     start_offset_days: 6,
   },
   {
@@ -110,7 +111,7 @@ const SPRING_REFRESH_CATALOG: SpringItemDefinition[] = [
     requiresHouseExterior: true,
     title: "Clean gutters & downspouts",
     description:
-      "Remove debris so water drains properly.",
+      "Remove debris so water drains properly. Typical cadence is twice a year (late spring and after leaf drop).",
     category: "EXTERIOR",
     priority: "high",
     estimated_duration_minutes: 90,

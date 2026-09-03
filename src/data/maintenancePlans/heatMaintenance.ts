@@ -5,18 +5,18 @@ import {
 } from "./heatSources";
 
 const CENTRAL_HP_FILTERS: MaintenancePlanItemTemplate = {
-  title: "Clean / replace central heat pump filters",
+  title: "Clean heat pump filters",
   description:
-    "Wash or replace air-handler filters — typically monthly during peak heating and cooling.",
+    "Wash or replace air-handler filters—typically every 1–3 months, more often with pets or heavy use.",
   category: "HVAC",
   priority: "medium",
   estimated_duration_minutes: 25,
-  interval_days: 30,
+  interval_days: 90,
   start_offset_days: 8,
 };
 
 const CENTRAL_HP_PRO: MaintenancePlanItemTemplate = {
-  title: "Professional central heat pump inspection",
+  title: "Professional heat pump inspection",
   description:
     "Annual technician visit for coils, refrigerant, defrost, and safe operation.",
   category: "HVAC",
@@ -27,9 +27,9 @@ const CENTRAL_HP_PRO: MaintenancePlanItemTemplate = {
 };
 
 const MINI_SPLIT_FILTERS: MaintenancePlanItemTemplate = {
-  title: "Clean mini-split indoor filters",
+    title: "Clean mini-split indoor filters",
   description:
-    "Pop off each head’s filter and rinse — often monthly in heavy use so coils stay efficient.",
+    "Pop off each head’s filter and rinse every 2–4 weeks in heavy use so coils stay efficient.",
   category: "HVAC",
   priority: "medium",
   estimated_duration_minutes: 20,
@@ -71,9 +71,9 @@ const GEO_PRO: MaintenancePlanItemTemplate = {
 };
 
 const GAS_FILTER_SPRING: MaintenancePlanItemTemplate = {
-  title: "Replace HVAC filter before cooling season",
+  title: "Replace HVAC filter",
   description:
-    "Fresh filter before you rely on central AC or air-handler airflow.",
+    "Swap the furnace or air-handler filter every 1–3 months so airflow stays clean.",
   category: "HVAC",
   priority: "medium",
   estimated_duration_minutes: 15,
@@ -164,7 +164,8 @@ export function heatItemsForSeason(
     pushUnique(out, GEO_PRO);
   }
   if (heatSourcesInclude(sources, "gas_furnace")) {
-    pushUnique(out, season === "spring" ? GAS_FILTER_SPRING : GAS_TUNE_FALL);
+    pushUnique(out, GAS_FILTER_SPRING);
+    pushUnique(out, GAS_TUNE_FALL);
   }
   if (heatSourcesInclude(sources, "oil")) {
     pushUnique(out, OIL_SERVICE);

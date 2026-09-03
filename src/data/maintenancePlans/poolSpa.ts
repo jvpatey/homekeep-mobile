@@ -46,11 +46,11 @@ const POOL_SPA_CATALOG: PoolSpaItemDefinition[] = [
     requiresPool: true,
     title: "Brush pool surfaces & vacuum",
     description:
-      "Brush walls and floor toward the main drain; vacuum or run the cleaner so algae cannot take hold.",
+      "Brush walls and floor toward the main drain weekly; vacuum or run the cleaner so algae cannot take hold.",
     category: "GENERAL",
     priority: "medium",
     estimated_duration_minutes: 45,
-    interval_days: 14,
+    interval_days: 7,
     start_offset_days: 2,
   },
   {
@@ -82,11 +82,11 @@ const POOL_SPA_CATALOG: PoolSpaItemDefinition[] = [
     requiresPool: true,
     title: "Inspect pool pump & strainer basket",
     description:
-      "Clear the pump basket, listen for unusual noise, and check for leaks at seals and unions.",
+      "Clear the pump basket monthly, listen for unusual noise, and check for leaks at seals and unions.",
     category: "PLUMBING",
     priority: "medium",
     estimated_duration_minutes: 20,
-    interval_days: 90,
+    interval_days: 30,
     start_offset_days: 5,
   },
   {
