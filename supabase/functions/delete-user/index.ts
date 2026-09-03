@@ -98,10 +98,20 @@ serve(async (req) => {
       .delete()
       .eq("user_id", userId);
 
-    // 6. Delete user profile
+    // 6. Delete profile photos
+    const { data: avatarFiles } = await supabaseAdmin.storage
+      .from("avatars")
+      .list(userId);
+    if (avatarFiles && avatarFiles.length > 0) {
+      await supabaseAdmin.storage.from("avatars").remove(
+        avatarFiles.map((file) => `${userId}/${file.name}`)
+      );
+    }
+
+    // 7. Delete user profile
     await supabaseAdmin.from("profiles").delete().eq("id", userId);
 
-    // 7. Delete the auth user completely
+    // 8. Delete the auth user completely
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
       userId
     );

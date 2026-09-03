@@ -45,6 +45,8 @@ interface HomeSetupModalProps {
   hideSkip?: boolean;
   /** After first-run dismiss, open household join (Dashboard). */
   onJoinHousehold?: () => void;
+  /** Overlay a parent sheet route instead of opening a nested RN Modal. */
+  embedded?: boolean;
 }
 
 function formatIntervalDays(days: number): string {
@@ -73,6 +75,7 @@ export function HomeSetupModal({
   onClose,
   hideSkip = false,
   onJoinHousehold,
+  embedded = false,
 }: HomeSetupModalProps) {
   const { colors } = useTheme();
   const { profile, updateHomeSystems, markHomeSetupDone, skipAddressOnboarding } =
@@ -551,6 +554,7 @@ export function HomeSetupModal({
       }}
       title={sheetTitle}
       fillMaxHeight
+      embedded={embedded}
       footer={footer}
     >
       {phase === "address" ? (

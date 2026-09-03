@@ -15,6 +15,10 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
+  photo: {
+    width: "100%",
+    height: "100%",
+  },
   tint: {
     ...StyleSheet.absoluteFillObject,
   },

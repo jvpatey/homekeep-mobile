@@ -50,7 +50,7 @@ A React Native mobile application built with Expo and TypeScript. HomeKeep treat
 - **Push Notifications** - Reminders for due tasks and maintenance alerts
 - **Notification Preferences** - Customizable notification settings by category
 - **Completion History** - Detailed history of completed maintenance tasks
-- **Avatar Customization** - Personalized user avatars
+- **Avatar Customization** - Profile photos with circular crop plus gradient initials
 - **Overdue from dashboard** - Header shows overdue count; tap to open a list and jump into task details
 - **Motivational Messages** - Encouraging messages based on progress
 - **Address Autocomplete (optional)** - Mapbox-powered suggestions when entering your home address; geocoding and weather use Open-Meteo and do not require separate keys
@@ -205,6 +205,7 @@ npm install
    - Get your project URL and anon key from the API settings
    - Create a `.env` file with your Supabase credentials
    - For equipment manuals, create a Supabase Storage bucket named **`equipment-manuals`** (see `EQUIPMENT_MANUALS_BUCKET` in `EquipmentManualService`) with policies that let authenticated users manage their own objects, and create an **`equipment_manuals`** table aligned with the app types (`types/equipmentManual.ts`) and service queries
+   - Profile photos use a private **`avatars`** bucket created by the `profile_avatars` migration (household members can read each other's display photos)
    - For **push reminders**, deploy Edge Functions and schedule the worker as described in [`PUSH_NOTIFICATIONS_SETUP.md`](PUSH_NOTIFICATIONS_SETUP.md) (repo includes [`supabase/config.toml`](supabase/config.toml) for CLI defaults).
 
 4. **Start the development server:**

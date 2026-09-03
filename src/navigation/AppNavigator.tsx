@@ -12,6 +12,13 @@ import { AppStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
+const sheetScreenOptions = {
+  presentation: "transparentModal" as const,
+  animation: "none" as const,
+  headerShown: false,
+  contentStyle: { backgroundColor: "transparent" },
+};
+
 /**
  * AppNavigator - Main navigation stack for authenticated users
  * Contains all screens that require user authentication.
@@ -32,12 +39,17 @@ export function AppNavigator() {
         <Stack.Screen
           name="CompletionHistory"
           component={CompletionHistoryScreen}
+          options={sheetScreenOptions}
         />
         <Stack.Screen
           name="NotificationPreferences"
           component={NotificationPreferencesScreen}
         />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={sheetScreenOptions}
+        />
         <Stack.Screen name="AllTasks" component={AllTasksScreen} />
         <Stack.Screen
           name="MaintenancePlans"
@@ -46,6 +58,7 @@ export function AppNavigator() {
         <Stack.Screen
           name="HomeSummaryPreview"
           component={HomeSummaryPreviewScreen}
+          options={sheetScreenOptions}
         />
       </Stack.Navigator>
     </TasksProvider>

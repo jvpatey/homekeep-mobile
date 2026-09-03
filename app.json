@@ -91,8 +91,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow HomeKeep to attach manual photos from your library.",
-          "cameraPermission": "Allow HomeKeep to photograph manuals with the camera."
+          "photosPermission": "Allow HomeKeep to choose photos for your profile and home records.",
+          "cameraPermission": "Allow HomeKeep to take photos for your profile and home records."
         }
       ],
       "expo-font",

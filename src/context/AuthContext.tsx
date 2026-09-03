@@ -42,6 +42,9 @@ interface AuthContextType {
     success: boolean;
     error?: string;
   }>;
+  updateUserFullName: (
+    fullName: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -440,6 +443,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const updateUserFullName = useCallback(
+    async (
+      fullName: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      if (!supabase) {
+        return { success: false, error: "Not signed in" };
+      }
+      const { data, error } = await supabase.auth.updateUser({
+        data: { full_name: fullName },
+      });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      if (data.user) setUser(data.user);
+      return { success: true };
+    },
+    []
+  );
+
   const value = {
     user,
     session,
@@ -452,6 +474,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signInWithApple,
     signOut,
     deleteAccount,
+    updateUserFullName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

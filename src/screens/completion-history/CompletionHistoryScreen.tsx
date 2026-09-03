@@ -20,8 +20,8 @@ import {
   completerInitial,
 } from "../../utils/completerLabel";
 import { TasksLoadErrorBanner } from "../../components/Dashboard/TasksLoadErrorBanner";
-import { useHaptics, useScreenInsets } from "../../hooks";
-import { HearthScreen, HearthSurfaceCard, TintedGlassAvatar } from "../../components/ui";
+import { useHaptics } from "../../hooks";
+import { HearthSheet, HearthSurfaceCard, TintedGlassAvatar } from "../../components/ui";
 import { useProfile } from "../../context/ProfileContext";
 import { useUserPreferences, resolveGradientPreset } from "../../context/UserPreferencesContext";
 import { completionHistoryStyles } from "./styles";
@@ -56,7 +56,7 @@ function categoryLabel(category: MaintenanceTask["category"]): string {
 export function CompletionHistoryScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, avatarUrl } = useProfile();
   const { selectedGradient } = useUserPreferences();
   const {
     completedTasks,
@@ -67,8 +67,8 @@ export function CompletionHistoryScreen() {
   const { triggerLight, triggerMedium } = useHaptics();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const { scrollPaddingBottom } = useScreenInsets();
 
+  const [sheetVisible, setSheetVisible] = useState(true);
   const [lookback, setLookback] = useState<HistoryLookback>("all");
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -241,6 +241,11 @@ export function CompletionHistoryScreen() {
                 size={22}
                 gradient={avatarGradient}
                 initial={avatarInitial}
+                imageUri={
+                  isSelf
+                    ? avatarUrl ?? task.completed_by_avatar_url
+                    : task.completed_by_avatar_url
+                }
                 pressable={false}
                 accessibilityLabel={who}
               />
@@ -463,26 +468,24 @@ export function CompletionHistoryScreen() {
     );
   };
 
+  const closeSheet = () => {
+    setSheetVisible(false);
+    navigation.goBack();
+  };
+
   return (
-    <HearthScreen style={completionHistoryStyles.container}>
-      <View style={completionHistoryStyles.header}>
+    <HearthSheet
+      visible={sheetVisible}
+      onClose={closeSheet}
+      title="Completion history"
+      embedded
+      keyboardAvoiding={false}
+      fillMaxHeight
+      contentStyle={completionHistoryStyles.sheetContent}
+      headerRight={
         <TouchableOpacity
-          style={completionHistoryStyles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text
-          style={[completionHistoryStyles.headerTitle, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          Completion history
-        </Text>
-        <TouchableOpacity
-          style={completionHistoryStyles.headerAction}
           onPress={() => navigation.navigate("HomeSummaryPreview")}
+          hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel="Export home maintenance summary"
         >
@@ -492,13 +495,14 @@ export function CompletionHistoryScreen() {
             color={colors.primary}
           />
         </TouchableOpacity>
-      </View>
-
+      }
+    >
       {tasksError ? (
         <TasksLoadErrorBanner message={tasksError} onRetry={refreshTasks} />
       ) : null}
 
       <FlatList
+        style={completionHistoryStyles.list}
         data={sections}
         keyExtractor={(item) => item.key}
         renderItem={renderSection}
@@ -507,7 +511,7 @@ export function CompletionHistoryScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           completionHistoryStyles.listContent,
-          { paddingBottom: scrollPaddingBottom },
+          { paddingBottom: DesignSystem.spacing.lg },
         ]}
         refreshControl={
           <RefreshControl
@@ -518,6 +522,6 @@ export function CompletionHistoryScreen() {
           />
         }
       />
-    </HearthScreen>
+    </HearthSheet>
   );
 }

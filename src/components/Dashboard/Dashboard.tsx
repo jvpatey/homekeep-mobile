@@ -28,7 +28,8 @@ import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdShar
 import { useProfile } from "../../context/ProfileContext";
 import { isHomeSystemsComplete } from "../../data/maintenancePlans";
 import { DesignSystem } from "../../theme/designSystem";
-import { getGreeting, getUserName } from "./utils";
+import { getGreeting } from "./utils";
+import { accountFirstName } from "../../utils/displayName";
 import {
   buildDashboardSections,
   countDueToday,
@@ -393,7 +394,11 @@ export function NewDashboard({
   const listHeader = (
     <>
       <DashboardHeader
-        userName={getUserName(user?.user_metadata?.full_name, user?.email)}
+        userName={accountFirstName({
+          authFullName: user?.user_metadata?.full_name as string | undefined,
+          profileFullName: profile?.full_name,
+          email: user?.email ?? profile?.email ?? null,
+        })}
         greeting={getGreeting()}
         overdueCount={seasonalOverdue.length}
         dueTodayCount={dueTodayCount}

@@ -63,6 +63,7 @@ export interface MaintenanceTask {
   completed_by?: string | null;
   completed_by_name?: string | null;
   completed_by_avatar_style?: string | null;
+  completed_by_avatar_url?: string | null;
 }
 
 export type MaintenanceCategory =

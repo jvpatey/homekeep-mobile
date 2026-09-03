@@ -18,7 +18,8 @@ import { useTasks } from "../../../context/TasksContext";
 import { useHaptics } from "../../../hooks";
 import { HearthSheet } from "../../ui/HearthSheet";
 import { Button } from "../../ui/Button";
-import { HearthSurfaceCard } from "../../ui";
+import { HearthSurfaceCard, TintedGlassAvatar } from "../../ui";
+import { useUserPreferences, resolveGradientPreset } from "../../../context/UserPreferencesContext";
 import { DesignSystem } from "../../../theme/designSystem";
 import {
   HouseholdMemberView,
@@ -43,7 +44,8 @@ export function HouseholdSharingModal({
 }: HouseholdSharingModalProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { profile, refresh, householdRole } = useProfile();
+  const { profile, refresh, householdRole, avatarUrl } = useProfile();
+  const { selectedGradient } = useUserPreferences();
   const { stats } = useTasks();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
   const [code, setCode] = useState("");
@@ -240,16 +242,22 @@ export function HouseholdSharingModal({
 
   const renderMember = (member: HouseholdMemberView) => (
     <View key={member.user_id} style={styles.memberRow}>
-      <View
-        style={[
-          styles.avatar,
-          { backgroundColor: colors.primary + "18" },
-        ]}
-      >
-        <Text style={[styles.avatarLetter, { color: colors.primary }]}>
-          {member.initial}
-        </Text>
-      </View>
+      <TintedGlassAvatar
+        size={36}
+        gradient={
+          member.user_id === user?.id
+            ? selectedGradient
+            : resolveGradientPreset(member.avatarStyle)
+        }
+        initial={member.initial}
+        imageUri={
+          member.user_id === user?.id
+            ? avatarUrl ?? member.avatarUrl
+            : member.avatarUrl
+        }
+        pressable={false}
+        accessibilityLabel={member.displayName}
+      />
       <View style={styles.memberText}>
         <Text style={[styles.memberName, { color: colors.text }]} numberOfLines={1}>
           {member.displayName}
@@ -543,17 +551,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.sm + 2,
     gap: DesignSystem.spacing.sm,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: {
-    ...DesignSystem.typography.callout,
-    fontWeight: "700",
   },
   memberText: {
     flex: 1,

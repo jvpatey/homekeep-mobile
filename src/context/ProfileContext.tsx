@@ -19,6 +19,8 @@ import {
   HomeEmergencyFacts,
   parseHomeEmergency,
 } from "../types/homeEmergency";
+import { AvatarCrop, parseAvatarCrop } from "../types/avatar";
+import { AvatarStorageService } from "../services/AvatarStorageService";
 
 export interface UserProfile {
   id: string;
@@ -35,6 +37,9 @@ export interface UserProfile {
   address_set_at?: string | null;
   home_systems?: HomeSystems | null;
   avatar_style?: string | null;
+  avatar_storage_path?: string | null;
+  avatar_original_path?: string | null;
+  avatar_crop?: AvatarCrop | null;
   home_setup_set_at?: string | null;
   home_emergency?: HomeEmergencyFacts | null;
   household_id?: string | null;
@@ -62,6 +67,8 @@ export interface AddressCoords {
 
 interface ProfileContextValue {
   profile: UserProfile | null;
+  /** Signed or local URI for the current user's display photo. */
+  avatarUrl: string | null;
   loading: boolean;
   /** Owner can edit address/systems/emergency; members see the owner's home. */
   canEditHome: boolean;
@@ -93,11 +100,21 @@ interface ProfileContextValue {
   updateAvatarStyle: (
     avatarStyle: string
   ) => Promise<{ success: boolean; error?: string }>;
+  updateAvatarPhoto: (input: {
+    displayUri: string;
+    originalUri?: string;
+    crop: AvatarCrop;
+  }) => Promise<{ success: boolean; error?: string }>;
+  removeAvatarPhoto: () => Promise<{ success: boolean; error?: string }>;
+  updateDisplayName: (
+    fullName: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
 
-const PROFILE_SELECT = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at, home_systems, avatar_style, home_setup_set_at, home_emergency, household_id`;
+const PROFILE_SELECT_BASE = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at, home_systems, avatar_style, home_setup_set_at, home_emergency, household_id`;
+const PROFILE_SELECT = `${PROFILE_SELECT_BASE}, avatar_storage_path, avatar_original_path, avatar_crop`;
 const PROFILE_SELECT_LEGACY = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at`;
 
 function applyOwnerHomeFields(
@@ -144,11 +161,20 @@ async function overlayHouseholdHome(
   if (ownerId === own.id) {
     return { profile: own, canEditHome: true, householdRole: "owner" };
   }
-  const { data: ownerRow } = await supabase
+  const ownerQuery = await supabase
     .from("profiles")
     .select(PROFILE_SELECT)
     .eq("id", ownerId)
     .maybeSingle();
+  const ownerRow =
+    ownerQuery.data ??
+    (
+      await supabase
+        .from("profiles")
+        .select(PROFILE_SELECT_BASE)
+        .eq("id", ownerId)
+        .maybeSingle()
+    ).data;
   if (!ownerRow) {
     return { profile: own, canEditHome: false, householdRole: "member" };
   }
@@ -174,6 +200,15 @@ function normalizeProfile(data: unknown, fallbackId: string): UserProfile {
     home_systems: parseHomeSystems(row.home_systems),
     avatar_style:
       typeof row.avatar_style === "string" ? row.avatar_style : null,
+    avatar_storage_path:
+      typeof row.avatar_storage_path === "string"
+        ? row.avatar_storage_path
+        : null,
+    avatar_original_path:
+      typeof row.avatar_original_path === "string"
+        ? row.avatar_original_path
+        : null,
+    avatar_crop: parseAvatarCrop(row.avatar_crop),
     home_setup_set_at:
       typeof row.home_setup_set_at === "string" ? row.home_setup_set_at : null,
     home_emergency: parseHomeEmergency(row.home_emergency),
@@ -183,8 +218,9 @@ function normalizeProfile(data: unknown, fallbackId: string): UserProfile {
 }
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, updateUserFullName } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [canEditHome, setCanEditHome] = useState(true);
   const [householdRole, setHouseholdRole] = useState<
@@ -201,11 +237,30 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     try {
-      let { data, error } = await supabase
+      let row: unknown = null;
+      const full = await supabase
         .from("profiles")
         .select(PROFILE_SELECT)
         .eq("id", user.id)
         .maybeSingle();
+      let error = full.error;
+      row = full.data;
+
+      if (error) {
+        console.warn(
+          "Failed to load profile (photo columns may be missing); retrying without them",
+          error
+        );
+        const withoutPhoto = await supabase
+          .from("profiles")
+          .select(PROFILE_SELECT_BASE)
+          .eq("id", user.id)
+          .maybeSingle();
+        if (withoutPhoto.data) {
+          row = withoutPhoto.data;
+          error = null;
+        }
+      }
 
       if (error) {
         console.warn(
@@ -224,23 +279,34 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           setProfile(overlaid.profile);
           setCanEditHome(overlaid.canEditHome);
           setHouseholdRole(overlaid.householdRole);
+          setAvatarUrl(null);
           return;
         }
         setProfile({ id: user.id, home_systems: {} });
         setCanEditHome(true);
         setHouseholdRole(null);
+        setAvatarUrl(null);
         return;
       }
 
       const overlaid = await overlayHouseholdHome(
-        normalizeProfile(data, user.id)
+        normalizeProfile(row, user.id)
       );
       setProfile(overlaid.profile);
       setCanEditHome(overlaid.canEditHome);
       setHouseholdRole(overlaid.householdRole);
+      if (overlaid.profile.avatar_storage_path) {
+        const signed = await AvatarStorageService.createSignedUrl(
+          overlaid.profile.avatar_storage_path
+        );
+        setAvatarUrl(signed.data);
+      } else {
+        setAvatarUrl(null);
+      }
     } catch (err) {
       console.warn("Profile load threw", err);
       setProfile({ id: user.id, home_systems: {} });
+      setAvatarUrl(null);
     } finally {
       setLoading(false);
     }
@@ -252,6 +318,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       void loadProfile();
     } else if (!user) {
       setProfile(null);
+      setAvatarUrl(null);
       setLoading(false);
     }
   }, [user, loadProfile]);
@@ -308,7 +375,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from("profiles")
         .upsert(payload, { onConflict: "id" })
-        .select(PROFILE_SELECT)
+        .select(PROFILE_SELECT_BASE)
         .maybeSingle();
 
       if (error) {
@@ -337,8 +404,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         },
         { onConflict: "id" }
       )
-      .select(PROFILE_SELECT)
-      .maybeSingle();
+        .select(PROFILE_SELECT_BASE)
+        .maybeSingle();
 
     if (error) {
       console.warn("Failed to mark address onboarding as skipped", error);
@@ -382,7 +449,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           },
           { onConflict: "id" }
         )
-        .select(PROFILE_SELECT)
+        .select(PROFILE_SELECT_BASE)
         .maybeSingle();
 
       if (error) {
@@ -417,7 +484,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         },
         { onConflict: "id" }
       )
-      .select(PROFILE_SELECT)
+      .select(PROFILE_SELECT_BASE)
       .maybeSingle();
     if (error) {
       console.warn("Failed to persist home_setup_set_at", error);
@@ -454,7 +521,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           },
           { onConflict: "id" }
         )
-        .select(PROFILE_SELECT)
+        .select(PROFILE_SELECT_BASE)
         .maybeSingle();
       if (error) {
         console.warn("Failed to persist home_emergency", error);
@@ -494,7 +561,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           },
           { onConflict: "id" }
         )
-        .select(PROFILE_SELECT)
+        .select(PROFILE_SELECT_BASE)
         .maybeSingle();
 
       if (error) {
@@ -512,6 +579,263 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     },
     [user]
   );
+
+  const updateDisplayName = useCallback(
+    async (
+      fullName: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = fullName.trim();
+      if (!trimmed) {
+        return { success: false, error: "Enter a first or last name" };
+      }
+      if (!supabase || !user) {
+        return { success: false, error: "Not signed in" };
+      }
+
+      setProfile((prev) =>
+        prev
+          ? { ...prev, full_name: trimmed }
+          : { id: user.id, full_name: trimmed }
+      );
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            full_name: trimmed,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select(PROFILE_SELECT_BASE)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Failed to persist display name", error);
+        return { success: false, error: error.message };
+      }
+
+      if (data) {
+        setProfile((prev) =>
+          prev
+            ? { ...prev, full_name: normalizeProfile(data, user.id).full_name }
+            : normalizeProfile(data, user.id)
+        );
+      }
+
+      const authResult = await updateUserFullName(trimmed);
+      if (!authResult.success) {
+        return {
+          success: false,
+          error: authResult.error ?? "Couldn't update your name",
+        };
+      }
+      return { success: true };
+    },
+    [updateUserFullName, user]
+  );
+
+  const mergeAvatarFields = useCallback(
+    (next: UserProfile) => {
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              avatar_style: next.avatar_style,
+              avatar_storage_path: next.avatar_storage_path,
+              avatar_original_path: next.avatar_original_path,
+              avatar_crop: next.avatar_crop,
+            }
+          : next
+      );
+    },
+    []
+  );
+
+  const updateAvatarPhoto = useCallback(
+    async ({
+      displayUri,
+      originalUri,
+      crop,
+    }: {
+      displayUri: string;
+      originalUri?: string;
+      crop: AvatarCrop;
+    }): Promise<{ success: boolean; error?: string }> => {
+      if (!supabase || !user) {
+        return { success: false, error: "Not signed in" };
+      }
+
+      const previousUrl = avatarUrl;
+      setAvatarUrl(displayUri);
+
+      const uploaded = await AvatarStorageService.uploadAvatar({
+        userId: user.id,
+        displayUri,
+        originalUri,
+      });
+      if (uploaded.error || !uploaded.displayPath) {
+        setAvatarUrl(previousUrl);
+        return {
+          success: false,
+          error: uploaded.error?.message ?? "Couldn't upload photo",
+        };
+      }
+
+      const originalPath =
+        uploaded.originalPath ??
+        profile?.avatar_original_path ??
+        AvatarStorageService.originalPath(user.id);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            avatar_storage_path: uploaded.displayPath,
+            avatar_original_path: originalPath,
+            avatar_crop: crop,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select(PROFILE_SELECT)
+        .maybeSingle();
+
+      if (error) {
+        const retry = await supabase
+          .from("profiles")
+          .upsert(
+            {
+              id: user.id,
+              avatar_storage_path: uploaded.displayPath,
+              avatar_original_path: originalPath,
+              avatar_crop: crop,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          )
+          .select(PROFILE_SELECT_BASE)
+          .maybeSingle();
+        if (!retry.error && retry.data) {
+          mergeAvatarFields({
+            ...normalizeProfile(retry.data, user.id),
+            avatar_storage_path: uploaded.displayPath,
+            avatar_original_path: originalPath,
+            avatar_crop: crop,
+          });
+          const signed = await AvatarStorageService.createSignedUrl(
+            uploaded.displayPath
+          );
+          if (signed.data) setAvatarUrl(signed.data);
+          return { success: true };
+        }
+        console.warn("Failed to persist avatar photo", error);
+        setAvatarUrl(previousUrl);
+        return { success: false, error: error.message };
+      }
+
+      if (data) {
+        mergeAvatarFields(normalizeProfile(data, user.id));
+      } else {
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                avatar_storage_path: uploaded.displayPath,
+                avatar_original_path: originalPath,
+                avatar_crop: crop,
+              }
+            : {
+                id: user.id,
+                avatar_storage_path: uploaded.displayPath,
+                avatar_original_path: originalPath,
+                avatar_crop: crop,
+              }
+        );
+      }
+
+      const signed = await AvatarStorageService.createSignedUrl(
+        uploaded.displayPath
+      );
+      if (signed.data) setAvatarUrl(signed.data);
+      return { success: true };
+    },
+    [avatarUrl, mergeAvatarFields, profile?.avatar_original_path, user]
+  );
+
+  const removeAvatarPhoto = useCallback(async (): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    if (!supabase || !user) {
+      return { success: false, error: "Not signed in" };
+    }
+
+    const previousUrl = avatarUrl;
+    const previousPath = profile?.avatar_storage_path;
+    const previousOriginal = profile?.avatar_original_path;
+    const previousCrop = profile?.avatar_crop;
+    setAvatarUrl(null);
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            avatar_storage_path: null,
+            avatar_original_path: null,
+            avatar_crop: null,
+          }
+        : prev
+    );
+
+    const removed = await AvatarStorageService.removeAvatar(user.id);
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          avatar_storage_path: null,
+          avatar_original_path: null,
+          avatar_crop: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      )
+      .select(PROFILE_SELECT)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("Failed to clear avatar photo", error);
+      setAvatarUrl(previousUrl);
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              avatar_storage_path: previousPath,
+              avatar_original_path: previousOriginal,
+              avatar_crop: previousCrop ?? null,
+            }
+          : prev
+      );
+      return { success: false, error: error.message };
+    }
+
+    if (data) {
+      mergeAvatarFields(normalizeProfile(data, user.id));
+    }
+    if (removed.error) {
+      console.warn("Avatar files may still exist", removed.error);
+    }
+    return { success: true };
+  }, [
+    avatarUrl,
+    mergeAvatarFields,
+    profile?.avatar_crop,
+    profile?.avatar_original_path,
+    profile?.avatar_storage_path,
+    user,
+  ]);
 
   const addressNeeded = useMemo(() => {
     if (!user) return false;
@@ -533,6 +857,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ProfileContextValue>(
     () => ({
       profile,
+      avatarUrl,
       loading,
       canEditHome,
       householdRole,
@@ -545,9 +870,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       markHomeSetupDone,
       updateHomeEmergency,
       updateAvatarStyle,
+      updateAvatarPhoto,
+      removeAvatarPhoto,
+      updateDisplayName,
     }),
     [
       profile,
+      avatarUrl,
       loading,
       canEditHome,
       householdRole,
@@ -560,6 +889,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       markHomeSetupDone,
       updateHomeEmergency,
       updateAvatarStyle,
+      updateAvatarPhoto,
+      removeAvatarPhoto,
+      updateDisplayName,
     ]
   );
 

@@ -60,17 +60,15 @@ export const getGreeting = () => {
 };
 
 export const getUserName = (fullName?: string, email?: string) => {
-  // Get user's first name from full name, or use email, or fallback to "User"
   if (fullName) {
     const firstName = fullName.split(" ")[0];
     return firstName;
   }
-  // If no full name, use email prefix
   if (email) {
     const emailPrefix = email.split("@")[0];
     return emailPrefix;
   }
-  return "User";
+  return "Your account";
 };
 
 export const getMotivationalMessage = (upcomingTasks: MaintenanceTask[]) => {
