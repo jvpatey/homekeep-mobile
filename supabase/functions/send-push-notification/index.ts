@@ -1,6 +1,6 @@
 /**
  * Self-contained so Dashboard deploy works (no ../_shared imports).
- * notification-worker / process-scheduled-notifications use _shared via CLI deploy.
+ * Sends a test push only to the authenticated caller.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -24,21 +24,43 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser();
+    if (!user) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const { userId, title, body, data } = await req.json();
+
+    if (!title || !body) {
+      return jsonResponse({ error: "Missing required fields" }, 400);
+    }
+
+    const targetUserId = userId || user.id;
+    if (targetUserId !== user.id) {
+      return jsonResponse({ error: "Forbidden" }, 403);
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { userId, title, body, data } = await req.json();
-
-    if (!userId || !title || !body) {
-      return jsonResponse({ error: "Missing required fields" }, 400);
-    }
-
     const { data: userProfile, error: profileError } = await supabase
       .from("profiles")
       .select("push_token")
-      .eq("id", userId)
+      .eq("id", user.id)
       .single();
 
     if (profileError || !userProfile?.push_token) {
@@ -77,11 +99,11 @@ serve(async (req) => {
       await supabase
         .from("profiles")
         .update({ push_token: null, updated_at: new Date().toISOString() })
-        .eq("id", userId);
+        .eq("id", user.id);
     }
 
     const { error: logError } = await supabase.from("push_notifications").insert({
-      user_id: userId,
+      user_id: user.id,
       title,
       body,
       data: data || {},

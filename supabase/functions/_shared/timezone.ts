@@ -44,6 +44,7 @@ export function getLocalParts(now: Date, timeZone: string): LocalParts {
       timeZone,
       hour: "numeric",
       hour12: false,
+      hourCycle: "h23",
     }).format(now),
     10
   );

@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getLocalParts } from "./timezone.ts";
+import { jsonResponse } from "./cors.ts";
 import {
   emptyResults,
   getUserTimezoneMap,
@@ -20,23 +21,19 @@ function activeTypesForLocalHour(
   local: ReturnType<typeof getLocalParts>
 ): Set<NotificationType> {
   const types = new Set<NotificationType>();
-
-  if (local.hour === 8) types.add("daily");
-  if (local.hour === 18) types.add("due_soon");
-  if (local.hour === 9) {
-    types.add("overdue");
-    if (local.weekday === 1) types.add("weekly");
-  }
-
+  if (local.hour === 8) types.add("morning");
+  if (local.hour === 18) types.add("upcoming");
   return types;
 }
 
 function parseForceType(forceType: string): Set<NotificationType> | null {
   const map: Record<string, NotificationType> = {
-    daily: "daily",
-    due_soon: "due_soon",
-    overdue: "overdue",
+    upcoming: "upcoming",
+    morning: "morning",
     weekly: "weekly",
+    due_soon: "upcoming",
+    daily: "morning",
+    overdue: "morning",
   };
   const t = map[forceType];
   if (!t) return null;
@@ -45,7 +42,7 @@ function parseForceType(forceType: string): Set<NotificationType> | null {
 
 function parseLegacyType(legacyType: string): Set<NotificationType> {
   if (legacyType === "all") {
-    return new Set(["daily", "due_soon", "overdue", "weekly"]);
+    return new Set(["upcoming", "morning", "weekly"]);
   }
   const forced = parseForceType(legacyType);
   return forced ?? new Set();
@@ -77,6 +74,7 @@ export async function runNotificationJob(
 
   const users = profiles || [];
   let usersProcessed = 0;
+  const scheduled = !options.forceType && !options.bypassHourCheck;
 
   for (const profile of users) {
     if (!profile.push_token) continue;
@@ -106,7 +104,8 @@ export async function runNotificationJob(
       profile.id,
       tz,
       activeTypes,
-      results
+      results,
+      { scheduled }
     );
     usersProcessed++;
   }
@@ -124,12 +123,7 @@ export function createServiceClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export async function resolveUserIdFromAuth(
-  req: Request,
-  explicitUserId: string | null
-): Promise<string | null> {
-  if (explicitUserId) return explicitUserId;
-
+export async function resolveJwtUserId(req: Request): Promise<string | null> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return null;
 
@@ -144,20 +138,58 @@ export async function resolveUserIdFromAuth(
   return user?.id ?? null;
 }
 
-/** Optional guard when CRON_SECRET is configured. */
+export function isPrivilegedRequest(req: Request): boolean {
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const header = req.headers.get("x-cron-secret");
+  if (cronSecret && header === cronSecret) return true;
+
+  const auth = req.headers.get("Authorization");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (auth && serviceKey && auth.includes(serviceKey)) return true;
+
+  return false;
+}
+
+export async function authorizeWorkerRequest(
+  req: Request,
+  explicitUserId: string | null
+): Promise<{ userId: string | null; error: Response | null }> {
+  if (isPrivilegedRequest(req)) {
+    return { userId: explicitUserId, error: null };
+  }
+
+  const jwtUserId = await resolveJwtUserId(req);
+  if (!jwtUserId) {
+    return {
+      userId: null,
+      error: jsonResponse({ error: "Unauthorized" }, 401),
+    };
+  }
+
+  if (explicitUserId && explicitUserId !== jwtUserId) {
+    return {
+      userId: null,
+      error: jsonResponse({ error: "Forbidden" }, 403),
+    };
+  }
+
+  return { userId: jwtUserId, error: null };
+}
+
+/** @deprecated Use authorizeWorkerRequest. Kept for call-site compatibility. */
 export function assertAuthorized(req: Request): Response | null {
   const cronSecret = Deno.env.get("CRON_SECRET");
   if (!cronSecret) return null;
 
-  const header = req.headers.get("x-cron-secret");
-  if (header === cronSecret) return null;
+  if (isPrivilegedRequest(req)) return null;
 
-  const auth = req.headers.get("Authorization");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (auth && serviceKey && auth.includes(serviceKey)) return null;
+  return jsonResponse({ error: "Unauthorized" }, 401);
+}
 
-  return new Response(JSON.stringify({ error: "Unauthorized" }), {
-    status: 401,
-    headers: { "Content-Type": "application/json" },
-  });
+export async function resolveUserIdFromAuth(
+  req: Request,
+  explicitUserId: string | null
+): Promise<string | null> {
+  if (explicitUserId) return explicitUserId;
+  return resolveJwtUserId(req);
 }

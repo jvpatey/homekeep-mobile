@@ -5,38 +5,30 @@ import {
   NotificationPreference,
 } from "../../types/navigation";
 
-// NotificationPreferencesScreenProps for the NotificationPreferencesScreenProps on the home screen
 export interface NotificationPreferencesScreenProps {
   navigation: NotificationPreferencesNavigationProps["navigation"];
 }
 
-// Notification type configuration
 export const getNotificationTypeConfig = (
   type: string,
   colors: ThemeColors
 ) => {
   const typeConfig = {
     due_soon_reminder: {
-      title: "Due Soon Reminders",
-      description: "Get notified 1 day before tasks are due",
+      title: "Upcoming reminders",
+      description: "The evening before something is due",
       icon: "time-outline",
       color: colors.success,
     },
     overdue_reminder: {
-      title: "Overdue Reminders",
-      description: "Get notified when tasks are overdue",
+      title: "Overdue and due today",
+      description: "A morning nudge when work is waiting",
       icon: "warning-outline",
       color: colors.error,
     },
-    daily_digest: {
-      title: "Daily Digest",
-      description: "Receive daily summary of tasks",
-      icon: "calendar-outline",
-      color: colors.secondary,
-    },
     weekly_summary: {
-      title: "Weekly Summary",
-      description: "Receive weekly summary of tasks",
+      title: "Weekly summary",
+      description: "Saturday morning look at the week ahead",
       icon: "stats-chart-outline",
       color: colors.accent,
     },
@@ -45,7 +37,6 @@ export const getNotificationTypeConfig = (
   return typeConfig[type as keyof typeof typeConfig];
 };
 
-// Check if a notification type is enabled for any category
 export const isNotificationTypeEnabled = (
   type: string,
   notificationSettings: NotificationSettings
@@ -56,10 +47,8 @@ export const isNotificationTypeEnabled = (
   );
 };
 
-// Get notification types array
 export const getNotificationTypes = () => [
   "due_soon_reminder",
   "overdue_reminder",
-  "daily_digest",
   "weekly_summary",
 ];

@@ -1,13 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
-import {
-  dedupeKeyDailyDigest,
-  dedupeKeyDueSoon,
-  dedupeKeyOverdue,
-  dedupeKeyWeeklySummary,
-  tryRecordDelivery,
-} from "./dedupe.ts";
-import { sendPush, type PushPayload } from "./expo-push.ts";
-import { shouldSendNotification } from "./preferences.ts";
+import { dedupeKeyMorning, dedupeKeyUpcoming } from "./dedupe.ts";
+import { sendDeduped } from "./expo-push.ts";
+import { isTypeEnabled } from "./preferences.ts";
 import {
   addUtcDays,
   getLocalParts,
@@ -18,47 +12,178 @@ import {
 } from "./timezone.ts";
 
 export interface NotificationResults {
-  dueSoonNotifications: number;
-  overdueNotifications: number;
-  dailyDigests: number;
+  upcomingNotifications: number;
+  morningNotifications: number;
   weeklySummaries: number;
   errors: number;
 }
 
 export function emptyResults(): NotificationResults {
   return {
-    dueSoonNotifications: 0,
-    overdueNotifications: 0,
-    dailyDigests: 0,
+    upcomingNotifications: 0,
+    morningNotifications: 0,
     weeklySummaries: 0,
     errors: 0,
   };
 }
 
-async function sendDeduped(
-  supabase: any,
-  userId: string,
-  dedupeKey: string,
-  notificationType: string,
-  notification: PushPayload
-): Promise<boolean> {
-  const shouldSend = await tryRecordDelivery(
-    supabase,
-    userId,
-    dedupeKey,
-    notificationType
-  );
-  if (!shouldSend) return false;
+interface VisibleRoutine {
+  id: string;
+  title: string;
+  category: string;
+  priority: string;
+  estimated_duration_minutes: number;
+}
 
-  const result = await sendPush(supabase, userId, notification);
-  if (!result.success) {
-    console.warn("Push failed after dedupe record", {
-      userId,
-      dedupeKey,
-      error: result.error,
-    });
+interface VisibleTask {
+  id: string;
+  due_date: string;
+  routine: VisibleRoutine | null;
+}
+
+async function getViewerHouseholdId(
+  supabase: any,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("household_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) {
+    console.warn("Failed to load household_id", error);
+    return null;
   }
-  return result.success;
+  return typeof data?.household_id === "string" ? data.household_id : null;
+}
+
+async function loadVisibleIncompleteTasks(
+  supabase: any,
+  userId: string
+): Promise<VisibleTask[]> {
+  const householdId = await getViewerHouseholdId(supabase, userId);
+
+  let query = supabase
+    .from("routine_instances")
+    .select(
+      `
+        id,
+        due_date,
+        is_completed,
+        routine:maintenance_routines!inner(
+          id,
+          user_id,
+          household_id,
+          title,
+          category,
+          priority,
+          estimated_duration_minutes,
+          is_active
+        )
+      `
+    )
+    .eq("is_completed", false)
+    .eq("routine.is_active", true);
+
+  query = householdId
+    ? query.eq("routine.household_id", householdId)
+    : query.eq("routine.user_id", userId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return ((data || []) as VisibleTask[]).filter((task) => task.routine);
+}
+
+function sortByDueDate(tasks: VisibleTask[]): VisibleTask[] {
+  return [...tasks].sort(
+    (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+  );
+}
+
+function bucketTasks(tasks: VisibleTask[], now: Date, tz: string) {
+  const todayStart = tzStartOfDay(now, tz);
+  const tomorrowStart = addUtcDays(todayStart, 1);
+  const nextDayStart = addUtcDays(todayStart, 2);
+  const nextWeekStart = addUtcDays(todayStart, 7);
+  const twoWeeksStart = addUtcDays(todayStart, 14);
+  const lookbackStart = addUtcDays(todayStart, -OVERDUE_LOOKBACK_DAYS);
+
+  const dueToday: VisibleTask[] = [];
+  const dueTomorrow: VisibleTask[] = [];
+  const thisWeek: VisibleTask[] = [];
+  const nextWeek: VisibleTask[] = [];
+  const overdue: VisibleTask[] = [];
+
+  for (const task of tasks) {
+    const dueStart = tzStartOfDay(new Date(task.due_date), tz);
+    if (dueStart < todayStart && dueStart >= lookbackStart) {
+      overdue.push(task);
+    }
+    if (isBetweenDaysInTz(task.due_date, todayStart, tomorrowStart, tz)) {
+      dueToday.push(task);
+    }
+    if (isBetweenDaysInTz(task.due_date, tomorrowStart, nextDayStart, tz)) {
+      dueTomorrow.push(task);
+    }
+    if (isBetweenDaysInTz(task.due_date, todayStart, nextWeekStart, tz)) {
+      thisWeek.push(task);
+    }
+    if (isBetweenDaysInTz(task.due_date, nextWeekStart, twoWeeksStart, tz)) {
+      nextWeek.push(task);
+    }
+  }
+
+  return {
+    dueToday: sortByDueDate(dueToday),
+    dueTomorrow: sortByDueDate(dueTomorrow),
+    thisWeek: sortByDueDate(thisWeek),
+    nextWeek: sortByDueDate(nextWeek),
+    overdue: sortByDueDate(overdue),
+  };
+}
+
+function upcomingBody(tasks: VisibleTask[]): string {
+  const title = tasks[0]?.routine?.title ?? "A task";
+  if (tasks.length === 1) return `${title} is due tomorrow.`;
+  return `${tasks.length} things due tomorrow, including ${title}.`;
+}
+
+function morningBody(dueToday: VisibleTask[], overdue: VisibleTask[]): string {
+  if (dueToday.length === 1 && overdue.length === 0) {
+    return `${dueToday[0].routine?.title ?? "A task"} is due today.`;
+  }
+  if (overdue.length === 1 && dueToday.length === 0) {
+    return `${overdue[0].routine?.title ?? "A task"} is overdue.`;
+  }
+  const parts: string[] = [];
+  if (overdue.length) {
+    parts.push(
+      `${overdue.length} overdue`
+    );
+  }
+  if (dueToday.length) {
+    parts.push(`${dueToday.length} due today`);
+  }
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}.`;
+  return `${parts[0]}.`;
+}
+
+function weeklyBody(
+  thisWeek: number,
+  nextWeek: number,
+  overdue: number
+): string {
+  return `This week: ${thisWeek} due, ${nextWeek} next week, ${overdue} overdue.`;
+}
+
+function viewPayload(tasks: VisibleTask[]) {
+  const instanceIds = tasks.map((task) => task.id);
+  return {
+    action: "view" as const,
+    instance_ids: instanceIds,
+    instance_id: instanceIds.length === 1 ? instanceIds[0] : undefined,
+  };
 }
 
 export async function getUserTimezoneMap(
@@ -77,7 +202,7 @@ export async function getUserTimezoneMap(
   return map;
 }
 
-export async function processDueSoonNotifications(
+export async function processUpcoming(
   supabase: any,
   now: Date,
   results: NotificationResults,
@@ -86,276 +211,121 @@ export async function processDueSoonNotifications(
   local: LocalParts
 ) {
   try {
-    const { data: tasks, error } = await supabase
-      .from("routine_instances")
-      .select(`
-        id,
-        due_date,
-        is_completed,
-        routine:maintenance_routines(
-          id,
-          user_id,
-          title,
-          category,
-          priority,
-          estimated_duration_minutes,
-          is_active
-        )
-      `)
-      .eq("is_completed", false)
-      .eq("routine.is_active", true)
-      .eq("routine.user_id", userId);
+    const enabled = await isTypeEnabled(supabase, userId, "due_soon_reminder");
+    if (!enabled) return;
 
-    if (error) throw error;
+    const tasks = await loadVisibleIncompleteTasks(supabase, userId);
+    const { dueTomorrow } = bucketTasks(tasks, now, tz);
+    if (dueTomorrow.length === 0) return;
 
-    const todayStart = tzStartOfDay(now, tz);
-    const tomorrowStart = addUtcDays(todayStart, 1);
-    const nextDayStart = addUtcDays(todayStart, 2);
-
-    for (const task of tasks || []) {
-      if (!task.routine) continue;
-
-      const isDueTomorrow = isBetweenDaysInTz(
-        task.due_date,
-        tomorrowStart,
-        nextDayStart,
-        tz
-      );
-      if (!isDueTomorrow) continue;
-
-      const ok = await shouldSendNotification(
-        supabase,
-        task.routine.user_id,
-        task.routine.category,
-        "due_soon_reminder"
-      );
-      if (!ok) continue;
-
-      const sent = await sendDeduped(
-        supabase,
-        task.routine.user_id,
-        dedupeKeyDueSoon(task.id, local.localDate),
-        "due_soon",
-        {
-          title: "HomeKeep",
-          body: `${task.routine.title} is due tomorrow. Estimated time: ${task.routine.estimated_duration_minutes} minutes.`,
-          data: {
-            task_id: task.routine.id,
-            instance_id: task.id,
-            category: task.routine.category,
-            priority: task.routine.priority,
-            due_date: task.due_date,
-            action: "view",
-          },
-        }
-      );
-      if (sent) results.dueSoonNotifications++;
-    }
+    const sent = await sendDeduped(
+      supabase,
+      userId,
+      dedupeKeyUpcoming(userId, local.localDate),
+      "upcoming",
+      {
+        title: "HomeKeep",
+        body: upcomingBody(dueTomorrow),
+        data: viewPayload(dueTomorrow),
+      }
+    );
+    if (sent) results.upcomingNotifications++;
   } catch (error) {
-    console.error("Error processing due soon notifications:", error);
+    console.error("Error processing upcoming notifications:", error);
     results.errors++;
   }
 }
 
-export async function processOverdueNotifications(
+async function sendWeeklySummary(
   supabase: any,
   now: Date,
   results: NotificationResults,
   userId: string,
   tz: string,
   local: LocalParts
-) {
-  try {
-    const { data: tasks, error } = await supabase
-      .from("routine_instances")
-      .select(`
-        id,
-        due_date,
-        is_completed,
-        routine:maintenance_routines(
-          id,
-          user_id,
-          title,
-          category,
-          priority,
-          estimated_duration_minutes,
-          is_active
-        )
-      `)
-      .eq("is_completed", false)
-      .eq("routine.is_active", true)
-      .eq("routine.user_id", userId);
+): Promise<boolean> {
+  const tasks = await loadVisibleIncompleteTasks(supabase, userId);
+  const { thisWeek, nextWeek, overdue } = bucketTasks(tasks, now, tz);
+  const total = thisWeek.length + nextWeek.length + overdue.length;
+  if (total === 0) return false;
 
-    if (error) throw error;
-
-    const todayStart = tzStartOfDay(now, tz);
-    const lookbackStart = addUtcDays(todayStart, -OVERDUE_LOOKBACK_DAYS);
-
-    for (const task of tasks || []) {
-      if (!task.routine) continue;
-
-      const dueStart = tzStartOfDay(new Date(task.due_date), tz);
-      const isOverdue = dueStart < todayStart;
-      const withinLookback = dueStart >= lookbackStart;
-      if (!(isOverdue && withinLookback)) continue;
-
-      const ok = await shouldSendNotification(
-        supabase,
-        task.routine.user_id,
-        task.routine.category,
-        "overdue_reminder"
-      );
-      if (!ok) continue;
-
-      const sent = await sendDeduped(
-        supabase,
-        task.routine.user_id,
-        dedupeKeyOverdue(task.id, local.localDate),
-        "overdue",
-        {
-          title: "HomeKeep",
-          body: `${task.routine.title} is overdue. Please complete it soon.`,
-          data: {
-            task_id: task.routine.id,
-            instance_id: task.id,
-            category: task.routine.category,
-            priority: task.routine.priority,
-            due_date: task.due_date,
-            action: "complete",
-          },
-        }
-      );
-      if (sent) results.overdueNotifications++;
-    }
-  } catch (error) {
-    console.error("Error processing overdue notifications:", error);
-    results.errors++;
-  }
-}
-
-async function generateDigestCountsWithSql(
-  supabase: any,
-  userId: string,
-  categories: string[],
-  todayStart: Date,
-  tomorrowStart: Date,
-  nextDayStart: Date,
-  lookbackStart: Date,
-  tz: string
-) {
-  if (!categories || categories.length === 0) {
-    return { dueToday: 0, dueTomorrow: 0, overdue: 0, totalTasks: 0 };
-  }
-
-  const base = supabase
-    .from("routine_instances")
-    .select("id, due_date, routine:maintenance_routines(category, is_active)")
-    .eq("routine.user_id", userId)
-    .in("routine.category", categories)
-    .eq("is_completed", false)
-    .eq("routine.is_active", true);
-
-  const { data: dueTodayRows, error: e1 } = await base
-    .gte("due_date", todayStart.toISOString())
-    .lt("due_date", tomorrowStart.toISOString());
-  if (e1) throw e1;
-
-  const { data: dueTomorrowRows, error: e2 } = await base
-    .gte("due_date", tomorrowStart.toISOString())
-    .lt("due_date", nextDayStart.toISOString());
-  if (e2) throw e2;
-
-  const { data: overdueRows, error: e3 } = await base
-    .gte("due_date", lookbackStart.toISOString())
-    .lt("due_date", todayStart.toISOString());
-  if (e3) throw e3;
-
-  console.log("digest overdue details", {
+  const sent = await sendDeduped(
+    supabase,
     userId,
-    tz,
-    todayStart: todayStart.toISOString(),
-    lookbackStart: lookbackStart.toISOString(),
-    overdueIds: (overdueRows || []).map((r: any) => r.id),
-  });
-
-  const dueToday = dueTodayRows?.length || 0;
-  const dueTomorrow = dueTomorrowRows?.length || 0;
-  const overdue = overdueRows?.length || 0;
-
-  return {
-    dueToday,
-    dueTomorrow,
-    overdue,
-    totalTasks: dueToday + dueTomorrow + overdue,
-  };
+    dedupeKeyMorning(userId, local.localDate),
+    "weekly_summary",
+    {
+      title: "HomeKeep",
+      body: weeklyBody(thisWeek.length, nextWeek.length, overdue.length),
+      data: {
+        action: "view",
+        summary: {
+          thisWeek: thisWeek.length,
+          nextWeek: nextWeek.length,
+          overdue: overdue.length,
+        },
+        instance_ids: [...overdue, ...thisWeek].map((task) => task.id),
+      },
+    }
+  );
+  if (sent) results.weeklySummaries++;
+  return sent;
 }
 
-export async function processDailyDigests(
+export async function processMorning(
   supabase: any,
   now: Date,
   results: NotificationResults,
   userId: string,
   tz: string,
-  local: LocalParts
+  local: LocalParts,
+  options?: { preferWeeklyOnSaturday?: boolean }
 ) {
   try {
-    const { data: preferences, error } = await supabase
-      .from("notification_preferences")
-      .select("user_id, category")
-      .eq("daily_digest", true)
-      .eq("user_id", userId);
+    const preferWeekly =
+      options?.preferWeeklyOnSaturday !== false && local.weekday === 6;
+    if (preferWeekly) {
+      const weeklyOn = await isTypeEnabled(supabase, userId, "weekly_summary");
+      if (weeklyOn) {
+        const sentWeekly = await sendWeeklySummary(
+          supabase,
+          now,
+          results,
+          userId,
+          tz,
+          local
+        );
+        if (sentWeekly) return;
+      }
+    }
 
-    if (error) throw error;
+    const enabled = await isTypeEnabled(supabase, userId, "overdue_reminder");
+    if (!enabled) return;
 
-    const categories = (preferences || []).map((p: any) => p.category);
-    if (categories.length === 0) return;
+    const tasks = await loadVisibleIncompleteTasks(supabase, userId);
+    const { dueToday, overdue } = bucketTasks(tasks, now, tz);
+    if (dueToday.length === 0 && overdue.length === 0) return;
 
-    const todayStart = tzStartOfDay(now, tz);
-    const tomorrowStart = addUtcDays(todayStart, 1);
-    const nextDayStart = addUtcDays(todayStart, 2);
-    const lookbackStart = addUtcDays(todayStart, -OVERDUE_LOOKBACK_DAYS);
-
-    const digest = await generateDigestCountsWithSql(
-      supabase,
-      userId,
-      categories,
-      todayStart,
-      tomorrowStart,
-      nextDayStart,
-      lookbackStart,
-      tz
-    );
-
-    const hasDailyItems = digest.dueToday + digest.dueTomorrow > 0;
-    if (!hasDailyItems) return;
-
-    console.log("daily digest counts", { userId, tz, digest });
-
+    const combined = [...overdue, ...dueToday];
     const sent = await sendDeduped(
       supabase,
       userId,
-      dedupeKeyDailyDigest(userId, local.localDate),
-      "daily_digest",
+      dedupeKeyMorning(userId, local.localDate),
+      "morning",
       {
         title: "HomeKeep",
-        body: `You have ${digest.dueToday} tasks due today and ${digest.dueTomorrow} due tomorrow.`,
-        data: {
-          action: "view",
-          digest: {
-            dueToday: digest.dueToday,
-            dueTomorrow: digest.dueTomorrow,
-          },
-        },
+        body: morningBody(dueToday, overdue),
+        data: viewPayload(combined),
       }
     );
-    if (sent) results.dailyDigests++;
+    if (sent) results.morningNotifications++;
   } catch (error) {
-    console.error("Error processing daily digests:", error);
+    console.error("Error processing morning notifications:", error);
     results.errors++;
   }
 }
 
-export async function processWeeklySummaries(
+export async function processWeekly(
   supabase: any,
   now: Date,
   results: NotificationResults,
@@ -364,64 +334,16 @@ export async function processWeeklySummaries(
   local: LocalParts
 ) {
   try {
-    if (local.weekday !== 1) return;
-
-    const { data: preferences, error } = await supabase
-      .from("notification_preferences")
-      .select("user_id, category")
-      .eq("weekly_summary", true)
-      .eq("user_id", userId);
-
-    if (error) throw error;
-
-    const categories = (preferences || []).map((p: any) => p.category);
-    if (categories.length === 0) return;
-
-    const todayStart = tzStartOfDay(now, tz);
-    const nextWeekStart = addUtcDays(todayStart, 7);
-    const twoWeeksStart = addUtcDays(todayStart, 14);
-    const lookbackStart = addUtcDays(todayStart, -OVERDUE_LOOKBACK_DAYS);
-
-    const weekly = await generateDigestCountsWithSql(
-      supabase,
-      userId,
-      categories,
-      todayStart,
-      nextWeekStart,
-      twoWeeksStart,
-      lookbackStart,
-      tz
-    );
-
-    const summary = {
-      thisWeek: weekly.dueToday,
-      nextWeek: weekly.dueTomorrow,
-      overdue: weekly.overdue,
-      totalTasks: weekly.dueToday + weekly.dueTomorrow + weekly.overdue,
-    };
-
-    console.log("weekly summary counts", { userId, tz, summary });
-    if (summary.totalTasks === 0) return;
-
-    const sent = await sendDeduped(
-      supabase,
-      userId,
-      dedupeKeyWeeklySummary(userId, local.weekStart),
-      "weekly_summary",
-      {
-        title: "HomeKeep",
-        body: `This week: ${summary.thisWeek} tasks due, ${summary.nextWeek} next week, ${summary.overdue} overdue.`,
-        data: { action: "view", summary },
-      }
-    );
-    if (sent) results.weeklySummaries++;
+    const enabled = await isTypeEnabled(supabase, userId, "weekly_summary");
+    if (!enabled) return;
+    await sendWeeklySummary(supabase, now, results, userId, tz, local);
   } catch (error) {
     console.error("Error processing weekly summaries:", error);
     results.errors++;
   }
 }
 
-export type NotificationType = "daily" | "due_soon" | "overdue" | "weekly";
+export type NotificationType = "upcoming" | "morning" | "weekly";
 
 export async function runProcessorsForUser(
   supabase: any,
@@ -429,20 +351,20 @@ export async function runProcessorsForUser(
   userId: string,
   tz: string,
   activeTypes: Set<NotificationType>,
-  results: NotificationResults
+  results: NotificationResults,
+  options?: { scheduled?: boolean }
 ) {
   const local = getLocalParts(now, tz);
 
-  if (activeTypes.has("daily")) {
-    await processDailyDigests(supabase, now, results, userId, tz, local);
+  if (activeTypes.has("upcoming")) {
+    await processUpcoming(supabase, now, results, userId, tz, local);
   }
-  if (activeTypes.has("due_soon")) {
-    await processDueSoonNotifications(supabase, now, results, userId, tz, local);
-  }
-  if (activeTypes.has("overdue")) {
-    await processOverdueNotifications(supabase, now, results, userId, tz, local);
-  }
-  if (activeTypes.has("weekly")) {
-    await processWeeklySummaries(supabase, now, results, userId, tz, local);
+  if (activeTypes.has("morning")) {
+    await processMorning(supabase, now, results, userId, tz, local, {
+      preferWeeklyOnSaturday:
+        !!options?.scheduled && !activeTypes.has("weekly"),
+    });
+  } else if (activeTypes.has("weekly")) {
+    await processWeekly(supabase, now, results, userId, tz, local);
   }
 }

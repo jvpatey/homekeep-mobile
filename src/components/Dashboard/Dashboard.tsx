@@ -14,6 +14,7 @@ import { AppStackParamList } from "../../navigation/types";
 import { MaintenanceTask } from "../../types/maintenance";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
 import { CompletionCelebration } from "./popups";
 import { NotificationPermissionRequest, HearthCanvas } from "../ui";
@@ -99,6 +100,7 @@ export function NewDashboard({
   onRetryTasks,
 }: NewDashboardProps) {
   const { user } = useAuth();
+  const { pendingOpen, clearPendingOpen } = useNotifications();
   const { colors } = useTheme();
   const { triggerMedium, triggerLight } = useHaptics();
   const reducedMotion = useReducedMotion();
@@ -362,6 +364,34 @@ export function NewDashboard({
     }
     onTaskPress?.(instanceId);
   };
+
+  useEffect(() => {
+    if (!pendingOpen) return;
+
+    if (pendingOpen.action === "household") {
+      setShowHouseholdModal(true);
+      clearPendingOpen();
+      return;
+    }
+
+    if (pendingOpen.instanceId) {
+      const task =
+        tasks.find((t) => t.instance_id === pendingOpen.instanceId) ??
+        overdueTasks.find((t) => t.instance_id === pendingOpen.instanceId);
+      if (task) {
+        setSelectedTask(task);
+        setShowTaskDetail(true);
+        clearPendingOpen();
+        return;
+      }
+      if (tasks.length > 0 || overdueTasks.length > 0) {
+        clearPendingOpen();
+      }
+      return;
+    }
+
+    clearPendingOpen();
+  }, [clearPendingOpen, overdueTasks, pendingOpen, tasks]);
 
   const handleCloseCelebration = () => {
     setShowCelebration(false);

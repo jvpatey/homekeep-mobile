@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleOptions, jsonResponse } from "@shared/cors.ts";
 import {
+  authorizeWorkerRequest,
   createServiceClient,
-  resolveUserIdFromAuth,
   runNotificationJob,
 } from "@shared/notification-runner.ts";
 
@@ -11,24 +11,25 @@ serve(async (req) => {
   if (optionsResponse) return optionsResponse;
 
   try {
-    const supabase = createServiceClient();
     const url = new URL(req.url);
-    const forceType = url.searchParams.get("force_type");
-    const userIdParam = await resolveUserIdFromAuth(
+    const authorized = await authorizeWorkerRequest(
       req,
       url.searchParams.get("user_id")
     );
+    if (authorized.error) return authorized.error;
 
+    const supabase = createServiceClient();
+    const forceType = url.searchParams.get("force_type");
     const now = new Date();
     console.log(
-      `notification-worker at ${now.toISOString()}, force_type=${forceType ?? "none"}, user_id=${userIdParam ?? "ALL"}`
+      `notification-worker at ${now.toISOString()}, force_type=${forceType ?? "none"}, user_id=${authorized.userId ?? "ALL"}`
     );
 
     const { results, usersProcessed, userId } = await runNotificationJob(
       supabase,
       now,
       {
-        userId: userIdParam,
+        userId: authorized.userId,
         forceType,
         bypassHourCheck: !!forceType,
       }

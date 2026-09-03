@@ -22,21 +22,39 @@ export async function tryRecordDelivery(
   return false;
 }
 
-export function dedupeKeyDueSoon(instanceId: string, localDate: string): string {
-  return `due_soon:${instanceId}:${localDate}`;
-}
-
-export function dedupeKeyOverdue(instanceId: string, localDate: string): string {
-  return `overdue:${instanceId}:${localDate}`;
-}
-
-export function dedupeKeyDailyDigest(userId: string, localDate: string): string {
-  return `daily_digest:${userId}:${localDate}`;
-}
-
-export function dedupeKeyWeeklySummary(
+export async function releaseDelivery(
+  supabase: any,
   userId: string,
-  weekStart: string
+  dedupeKey: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("notification_deliveries")
+    .delete()
+    .eq("user_id", userId)
+    .eq("dedupe_key", dedupeKey);
+  if (error) {
+    console.error("Dedupe release error:", error);
+  }
+}
+
+export function dedupeKeyUpcoming(userId: string, localDate: string): string {
+  return `upcoming:${userId}:${localDate}`;
+}
+
+export function dedupeKeyMorning(userId: string, localDate: string): string {
+  return `morning:${userId}:${localDate}`;
+}
+
+export function dedupeKeyHouseholdJoin(
+  householdId: string,
+  actorId: string
 ): string {
-  return `weekly_summary:${userId}:${weekStart}`;
+  return `household_join:${householdId}:${actorId}`;
+}
+
+export function dedupeKeyHouseholdLeave(
+  householdId: string,
+  actorId: string
+): string {
+  return `household_leave:${householdId}:${actorId}`;
 }
