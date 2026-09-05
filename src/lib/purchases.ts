@@ -42,7 +42,10 @@ export function getTermsUrl(): string {
 }
 
 export function isExpoGo(): boolean {
-  return Constants.appOwnership === "expo";
+  return (
+    Constants.appOwnership === "expo" ||
+    Constants.executionEnvironment === "storeClient"
+  );
 }
 
 export function isPurchasesError(error: unknown): error is PurchasesError {
@@ -105,16 +108,31 @@ export function monthlyEquivalentLabel(pkg: PurchasesPackage): string | null {
 }
 
 let configureStarted = false;
+let configureSucceeded = false;
 
 export function configurePurchases(): boolean {
-  const apiKey = getRcApiKey();
-  if (!apiKey || configureStarted) return configureStarted && Boolean(apiKey);
-  configureStarted = true;
-  if (__DEV__) {
-    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+  if (configureStarted) return configureSucceeded;
+  if (isExpoGo()) {
+    configureStarted = true;
+    configureSucceeded = false;
+    return false;
   }
-  Purchases.configure({ apiKey });
-  return true;
+  const apiKey = getRcApiKey();
+  if (!apiKey) return false;
+  configureStarted = true;
+  try {
+    if (__DEV__) {
+      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    }
+    Purchases.configure({ apiKey });
+    configureSucceeded = true;
+  } catch (error) {
+    configureSucceeded = false;
+    if (__DEV__) {
+      console.warn("Purchases.configure skipped", error);
+    }
+  }
+  return configureSucceeded;
 }
 
 export async function logOutPurchases(): Promise<void> {

@@ -1,12 +1,11 @@
 import React from "react";
-import { View, Text, Alert, Platform } from "react-native";
-import * as AppleAuthentication from "expo-apple-authentication";
+import { Text, Alert } from "react-native";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useHaptics } from "../../hooks";
-import { DesignSystem } from "../../theme/designSystem";
+import { useAppleAuthenticationAvailable, useHaptics } from "../../hooks";
 import { styles } from "./styles";
+import { AppleContinueButton } from "./AppleContinueButton";
 
 interface OAuthButtonsProps {
   onSuccess?: () => void;
@@ -19,9 +18,10 @@ export function OAuthButtons({
   disabled = false,
   animatedStyle,
 }: OAuthButtonsProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { signInWithApple } = useAuth();
   const { triggerMedium, triggerError, triggerSuccess } = useHaptics();
+  const appleAvailable = useAppleAuthenticationAvailable();
 
   const handleAppleSignIn = async () => {
     if (disabled) return;
@@ -47,7 +47,7 @@ export function OAuthButtons({
     }
   };
 
-  if (Platform.OS !== "ios") {
+  if (!appleAvailable) {
     return null;
   }
 
@@ -55,17 +55,7 @@ export function OAuthButtons({
     <Animated.View style={[styles.container, animatedStyle]}>
       <Text style={[styles.orText, { color: colors.textSecondary }]}>or</Text>
 
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-        buttonStyle={
-          isDark
-            ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-            : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-        }
-        cornerRadius={DesignSystem.borders.radius.round}
-        style={styles.appleButton}
-        onPress={handleAppleSignIn}
-      />
+      <AppleContinueButton onPress={handleAppleSignIn} />
     </Animated.View>
   );
 }
