@@ -231,7 +231,15 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 # Sign up at https://account.mapbox.com/ — public token starts with `pk.`
 # Free tier covers ~50k Search Box sessions/month.
 EXPO_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token_here
+
+# HomeKeep + (RevenueCat). Public SDK keys from the RC dashboard.
+EXPO_PUBLIC_RC_IOS_API_KEY=appl_your_ios_key
+EXPO_PUBLIC_RC_ANDROID_API_KEY=goog_your_android_key
+EXPO_PUBLIC_LEGAL_PRIVACY_URL=https://example.com/privacy
+EXPO_PUBLIC_LEGAL_TERMS_URL=https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
+
+The webhook secret `REVENUECAT_WEBHOOK_SECRET` is a Supabase function secret, not an Expo public var. Product ids: `homekeep_plus_monthly`, `homekeep_plus_yearly`. Entitlement id: `homekeep_plus` (display name **HomeKeep +**).
 
 ## 📊 Database Schema
 

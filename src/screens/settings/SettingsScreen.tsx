@@ -17,6 +17,17 @@ import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
 import { accountDisplayName, hasAccountName } from "../../utils/displayName";
+import { useRequirePlus } from "../../hooks/useRequirePlus";
+import { useSubscription } from "../../context/SubscriptionContext";
+import { PlusLockHint } from "../../components/plus";
+import {
+  FALLBACK_MONTHLY_PRICE,
+  FALLBACK_YEARLY_PRICE,
+  HOMEKEEP_PLUS_MONTHLY_ID,
+  HOMEKEEP_PLUS_NAME,
+  HOMEKEEP_PLUS_YEARLY_ID,
+  getPrivacyUrl,
+} from "../../lib/purchases";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors } = useTheme();
@@ -24,6 +35,20 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { deleteAllTasks, stats } = useTasks();
   const { canEditHome, profile } = useProfile();
   const { triggerLight, triggerMedium } = useHaptics();
+  const requirePlus = useRequirePlus();
+  const {
+    isPlus,
+    status,
+    daysRemaining,
+    expirationDate,
+    productId,
+    includedViaHousehold,
+    presentPaywall,
+    restore,
+    purchasing,
+    manageSubscription,
+    openLegal,
+  } = useSubscription();
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
@@ -47,7 +72,60 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
   const handleEditHome = async () => {
     await triggerLight();
+    if (!(await requirePlus())) return;
     setHomeSetupVisible(true);
+  };
+
+  const plusStatusSubtitle = (() => {
+    if (includedViaHousehold) return "Included with this home";
+    if (status === "trialing") {
+      return daysRemaining != null
+        ? `Free trial · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`
+        : "Free trial";
+    }
+    if (status === "promo") {
+      return daysRemaining != null
+        ? `Complimentary access · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`
+        : "Complimentary access";
+    }
+    if (status === "grace") return "Billing issue · access continues";
+    if (status === "active") {
+      const yearly =
+        productId === HOMEKEEP_PLUS_YEARLY_ID ||
+        productId?.includes("yearly") ||
+        productId?.includes("annual");
+      const monthly =
+        productId === HOMEKEEP_PLUS_MONTHLY_ID || productId?.includes("monthly");
+      const plan = yearly
+        ? "Yearly"
+        : monthly
+          ? "Monthly"
+          : HOMEKEEP_PLUS_NAME;
+      if (expirationDate) {
+        const when = expirationDate.toLocaleDateString();
+        return `${plan} · renews ${when}`;
+      }
+      return plan;
+    }
+    if (status === "expired") return "Expired";
+    return `Not subscribed · ${FALLBACK_YEARLY_PRICE}/year or ${FALLBACK_MONTHLY_PRICE}/month`;
+  })();
+
+  const handleRestorePurchases = async () => {
+    await triggerLight();
+    const result = await restore();
+    if (result.restored) {
+      Alert.alert("Restored", `${HOMEKEEP_PLUS_NAME} is active on this account.`);
+      return;
+    }
+    if (result.error) {
+      Alert.alert("Couldn't restore", result.error);
+      return;
+    }
+    Alert.alert(
+      "Nothing to restore",
+      "No subscription to restore on this Apple or Google account."
+    );
   };
 
   const handleDeleteAllTasks = async () => {
@@ -208,6 +286,64 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           </HearthSurfaceCard>
 
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            {HOMEKEEP_PLUS_NAME}
+          </Text>
+          <HearthSurfaceCard style={styles.groupSurface}>
+            <SheetActionRow
+              icon="sparkles-outline"
+              title={HOMEKEEP_PLUS_NAME}
+              subtitle={plusStatusSubtitle}
+              onPress={() => {
+                void triggerLight();
+                if (!isPlus) {
+                  void presentPaywall();
+                }
+              }}
+              showChevron={!isPlus}
+              showDivider
+            />
+            <SheetActionRow
+              icon="refresh-outline"
+              title="Restore purchases"
+              onPress={() => void handleRestorePurchases()}
+              disabled={purchasing}
+              showChevron={false}
+              showDivider
+            />
+            <SheetActionRow
+              icon="card-outline"
+              title="Manage subscription"
+              subtitle="Opens your store account"
+              onPress={() => {
+                void triggerLight();
+                void manageSubscription();
+              }}
+              showDivider
+            />
+            {getPrivacyUrl() ? (
+              <SheetActionRow
+                icon="document-text-outline"
+                title="Privacy Policy"
+                onPress={() => {
+                  void triggerLight();
+                  void openLegal("privacy");
+                }}
+                showDivider
+              />
+            ) : null}
+            <SheetActionRow
+              icon="reader-outline"
+              title="Terms of Use"
+              onPress={() => {
+                void triggerLight();
+                void openLegal("terms");
+              }}
+              showChevron
+              showDivider={false}
+            />
+          </HearthSurfaceCard>
+
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
             Home
           </Text>
           <HearthSurfaceCard style={styles.groupSurface}>
@@ -215,6 +351,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               <SheetActionRow
                 key={row.title}
                 {...row}
+                trailing={
+                  row.title === "Your home" && canEditHome && !isPlus ? (
+                    <PlusLockHint />
+                  ) : undefined
+                }
                 showDivider={index < homeRows.length - 1}
               />
             ))}

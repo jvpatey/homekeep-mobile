@@ -9,6 +9,8 @@ import { AuthProvider } from "./src/context/AuthContext";
 import { ProfileProvider } from "./src/context/ProfileContext";
 import { UserPreferencesProvider } from "./src/context/UserPreferencesContext";
 import { NotificationProvider } from "./src/context/NotificationContext";
+import { SubscriptionProvider } from "./src/context/SubscriptionContext";
+import { PlusPaywallHost } from "./src/components/plus";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -18,9 +20,12 @@ function AppContent() {
     <AuthProvider>
       <ProfileProvider>
         <UserPreferencesProvider>
-          <NotificationProvider>
-            <RootNavigator />
-          </NotificationProvider>
+          <SubscriptionProvider>
+            <NotificationProvider>
+              <RootNavigator />
+              <PlusPaywallHost />
+            </NotificationProvider>
+          </SubscriptionProvider>
         </UserPreferencesProvider>
       </ProfileProvider>
     </AuthProvider>

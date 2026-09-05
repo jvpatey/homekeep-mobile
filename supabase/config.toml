@@ -22,3 +22,6 @@ import_map = "./functions/deno.json"
 [functions.notify-household-event]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.revenuecat-webhook]
+verify_jwt = false

@@ -14,6 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useRequirePlus } from "../../../hooks/useRequirePlus";
 import { useProfile } from "../../../context/ProfileContext";
 import { HearthSheet } from "../../ui/HearthSheet";
 import { Button } from "../../ui/Button";
@@ -195,6 +196,7 @@ export function EmergencyFactsModal({
   const { user } = useAuth();
   const { profile, updateHomeEmergency } = useProfile();
   const { upcomingTasks, overdueTasks, completeTask } = useTasks();
+  const requirePlus = useRequirePlus();
   const hydratedForOpen = useRef(false);
 
   const [notes, setNotes] = useState<Record<SpotKey, string>>(emptyNotes);
@@ -283,6 +285,7 @@ export function EmergencyFactsModal({
   };
 
   const handleSave = async () => {
+    if (!(await requirePlus())) return;
     setSaving(true);
     try {
       const previous = profile?.home_emergency ?? {};

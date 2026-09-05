@@ -17,6 +17,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
   SESSION_EXPIRED_TITLE,
 } from "../utils/authSessionErrors";
+import { logOutPurchases } from "../lib/purchases";
 
 export { supabase } from "../lib/supabase";
 
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
     setUser(null);
     setSessionReady(true);
+    await logOutPurchases();
     if (!supabase) return;
     try {
       await supabase.auth.signOut({ scope: "local" });
@@ -383,6 +385,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         ]);
       }
 
+      await logOutPurchases();
+
       // Sign out from Supabase auth
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -418,6 +422,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await MaintenanceService.deleteUserAccount();
       if (result.success) {
         console.log("Account deleted successfully, signing out");
+        await logOutPurchases();
         // Sign out the user after successful deletion
         const { error } = await supabase.auth.signOut();
         if (error) {

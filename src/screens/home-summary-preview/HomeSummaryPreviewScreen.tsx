@@ -15,6 +15,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useAuth } from "../../context/AuthContext";
 import { useHaptics } from "../../hooks";
+import { useRequirePlus } from "../../hooks/useRequirePlus";
 import { HearthSheet, HomeKeepBrand } from "../../components/ui";
 import { AppStackParamList } from "../../navigation/types";
 import {
@@ -79,6 +80,7 @@ export function HomeSummaryPreviewScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { triggerLight, triggerMedium } = useHaptics();
+  const requirePlus = useRequirePlus();
 
   const [sheetVisible, setSheetVisible] = useState(true);
   const [report, setReport] = useState<HomeSummaryReportData | null>(null);
@@ -115,6 +117,7 @@ export function HomeSummaryPreviewScreen() {
 
   const handleExport = async () => {
     if (!report || !homeSummaryHasContent(report)) return;
+    if (!(await requirePlus())) return;
     await triggerMedium();
     setExporting(true);
     const result = await HomeSummaryPdfService.exportAndShare(report);

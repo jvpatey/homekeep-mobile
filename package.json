@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "build:ios": "expo build:ios",
     "submit:ios": "expo submit --platform ios",
-    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event"
+    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
@@ -31,6 +31,7 @@
     "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.17",
     "expo-crypto": "~57.0.2",
+    "expo-dev-client": "~57.0.18",
     "expo-device": "~57.0.1",
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.6",
@@ -50,6 +51,7 @@
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-paper": "^5.14.5",
+    "react-native-purchases": "^10.9.0",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
