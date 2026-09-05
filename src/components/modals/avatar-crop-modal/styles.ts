@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   chrome: {
     position: "absolute",

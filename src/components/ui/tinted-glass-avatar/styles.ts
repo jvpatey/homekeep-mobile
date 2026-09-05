@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
     height: "100%",
   },
   tint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   initial: {
     fontWeight: "700",

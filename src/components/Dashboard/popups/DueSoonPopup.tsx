@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     padding: DesignSystem.spacing.lg,
   },
   popupAtmosphere: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   closeButton: {
     position: "absolute",

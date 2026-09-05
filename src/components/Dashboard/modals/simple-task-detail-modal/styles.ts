@@ -9,7 +9,7 @@ export const sheetChromeStyles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheetContainer: {
     width: "100%",

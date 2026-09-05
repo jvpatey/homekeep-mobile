@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheetContainer: {
     width: "100%",
@@ -29,7 +29,7 @@ export const styles = StyleSheet.create({
     borderBottomRightRadius: 0,
   },
   haloFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheetSafeArea: {
     paddingHorizontal: DesignSystem.spacing.lg,
