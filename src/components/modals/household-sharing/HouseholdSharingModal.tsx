@@ -16,6 +16,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useProfile } from "../../../context/ProfileContext";
 import { useTasks } from "../../../context/TasksContext";
 import { useHaptics } from "../../../hooks";
+import { useRequirePlus } from "../../../hooks/useRequirePlus";
 import { HearthSheet } from "../../ui/HearthSheet";
 import { Button } from "../../ui/Button";
 import { HearthSurfaceCard, TintedGlassAvatar } from "../../ui";
@@ -48,6 +49,7 @@ export function HouseholdSharingModal({
   const { selectedGradient } = useUserPreferences();
   const { stats } = useTasks();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
+  const requirePlus = useRequirePlus();
   const [code, setCode] = useState("");
   const [invite, setInvite] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMemberView[]>([]);
@@ -113,6 +115,7 @@ export function HouseholdSharingModal({
 
   const copyInvite = async () => {
     if (!invite) return;
+    if (!(await requirePlus())) return;
     try {
       await Clipboard.setStringAsync(invite);
       setCopied(true);
@@ -126,6 +129,7 @@ export function HouseholdSharingModal({
 
   const shareInvite = async () => {
     if (!invite) return;
+    if (!(await requirePlus())) return;
     try {
       triggerLight();
       const result = await Share.share({
@@ -153,6 +157,7 @@ export function HouseholdSharingModal({
 
   const create = async () => {
     if (!user || busy) return;
+    if (!(await requirePlus())) return;
     setBusy(true);
     try {
       const result = await HouseholdService.createHousehold(user.id);
@@ -175,6 +180,7 @@ export function HouseholdSharingModal({
 
   const join = async () => {
     if (busy) return;
+    if (!(await requirePlus())) return;
     const normalized = normalizeInviteCode(code);
     if (normalized.length < 4) {
       Alert.alert("Check the code", "Invite codes are 6 letters or numbers.");

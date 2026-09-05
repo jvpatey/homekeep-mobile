@@ -1,4 +1,4 @@
-import { FadeIn } from "react-native-reanimated";
+import { FadeIn, FadeInDown } from "react-native-reanimated";
 import { DesignSystem } from "../theme/designSystem";
 import { useReducedMotion } from "./useReducedMotion";
 
@@ -33,7 +33,7 @@ function buildEntering(delay: number, translateY: number, reduced: boolean) {
       .easing(easing.standard);
   }
 
-  return FadeIn.duration(duration.base)
+  return FadeInDown.duration(duration.base)
     .delay(delay)
     .easing(easing.standard)
     .withInitialValues({

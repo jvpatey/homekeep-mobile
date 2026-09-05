@@ -73,11 +73,13 @@ export async function runNotificationJob(
   if (error) throw error;
 
   const users = profiles || [];
+  const entitledIds = await loadEntitledUserIds(supabase);
   let usersProcessed = 0;
   const scheduled = !options.forceType && !options.bypassHourCheck;
 
   for (const profile of users) {
     if (!profile.push_token) continue;
+    if (entitledIds && !entitledIds.has(profile.id)) continue;
 
     const tz = tzByUser[profile.id] || "UTC";
     const local = getLocalParts(now, tz);
@@ -115,6 +117,49 @@ export async function runNotificationJob(
     usersProcessed,
     userId: options.userId ?? null,
   };
+}
+
+const ACTIVE_PLUS = new Set(["trialing", "active", "grace", "promo"]);
+
+/** null = entitlements unavailable; skip the Plus filter (fail open). */
+async function loadEntitledUserIds(
+  supabase: any
+): Promise<Set<string> | null> {
+  const { data: rows, error } = await supabase
+    .from("entitlements")
+    .select("user_id, household_id, status, expires_at");
+  if (error) {
+    console.warn("entitlements lookup failed; sending without Plus filter", error);
+    return null;
+  }
+
+  const entitled = new Set<string>();
+  const households = new Set<string>();
+  const now = Date.now();
+  for (const row of rows ?? []) {
+    const active = ACTIVE_PLUS.has(row.status);
+    const unexpired =
+      !row.expires_at || new Date(row.expires_at).getTime() > now;
+    if (!active || !unexpired) continue;
+    entitled.add(row.user_id);
+    if (row.household_id) households.add(row.household_id);
+  }
+
+  if (households.size > 0) {
+    const { data: members, error: memberError } = await supabase
+      .from("household_members")
+      .select("user_id")
+      .in("household_id", [...households]);
+    if (memberError) {
+      console.warn("household member lookup failed", memberError);
+    } else {
+      for (const member of members ?? []) {
+        entitled.add(member.user_id);
+      }
+    }
+  }
+
+  return entitled;
 }
 
 export function createServiceClient() {

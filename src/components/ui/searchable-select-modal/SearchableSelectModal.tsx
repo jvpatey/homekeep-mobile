@@ -122,7 +122,7 @@ export function SearchableSelectModal({
               colors={[...haloGradient]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
 
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheetContainer: {
     width: "100%",

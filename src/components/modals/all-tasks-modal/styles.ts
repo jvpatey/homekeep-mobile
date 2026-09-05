@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
   },
 
   backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 
   sheetContainer: {
@@ -38,7 +38,7 @@ export const styles = StyleSheet.create({
   },
 
   haloFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 
   sheetSafeArea: {

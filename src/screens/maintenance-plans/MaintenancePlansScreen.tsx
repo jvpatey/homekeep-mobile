@@ -16,6 +16,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
+import { useRequirePlus } from "../../hooks/useRequirePlus";
 import { Button, HearthScreen, HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { MaintenanceService } from "../../services/maintenanceService";
@@ -98,6 +99,7 @@ export function MaintenancePlansScreen() {
   const { colors, isDark } = useTheme();
   const { scrollPaddingBottom, footerPaddingBottom } = useScreenInsets();
   const { triggerMedium, triggerLight } = useHaptics();
+  const requirePlus = useRequirePlus();
   const { applyMaintenancePlan, stats } = useTasks();
   const { profile, updateHomeSystems } = useProfile();
   const navigation =
@@ -378,7 +380,11 @@ export function MaintenancePlansScreen() {
   }, [triggerLight]);
 
   const handleApply = useCallback(
-    (plan: MaintenancePlanDefinition, items: MaintenancePlanItemTemplate[]) => {
+    async (
+      plan: MaintenancePlanDefinition,
+      items: MaintenancePlanItemTemplate[]
+    ) => {
+      if (!(await requirePlus())) return;
       const n = items.filter(
         (item) => !existingRoutineKeys.has(itemIdentityKey(item))
       ).length;
@@ -460,6 +466,7 @@ export function MaintenancePlansScreen() {
       applying,
       existingRoutineKeys,
       navigation,
+      requirePlus,
       resetToList,
     ]
   );

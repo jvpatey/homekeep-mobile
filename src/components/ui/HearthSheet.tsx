@@ -121,6 +121,7 @@ export function HearthSheet({
         styles.safeArea,
         fillMaxHeight && styles.safeAreaFill,
         {
+          paddingTop: !embedded && fillMaxHeight ? insets.top : 0,
           paddingBottom:
             keyboardInset > 0 ? DesignSystem.spacing.sm : insets.bottom,
         },
@@ -242,7 +243,7 @@ export function HearthSheet({
 
 const styles = StyleSheet.create({
   embeddedHost: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
   },
   keyboardRoot: {
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(26, 22, 18, 0.45)",
   },
   sheetContainer: {

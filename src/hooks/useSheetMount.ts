@@ -31,6 +31,7 @@ export const SHEET_UNMOUNT_SAFETY_MS = SHEET_EXIT.duration + 80;
 export function useSheetMount(visible: boolean, onDismissed?: () => void) {
   const reducedMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
   const wasOpenRef = useRef(false);
   const isClosingRef = useRef(false);
   const closeSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -55,6 +56,7 @@ export function useSheetMount(visible: boolean, onDismissed?: () => void) {
     wasOpenRef.current = false;
     opacity.value = 0;
     translateY.value = SCREEN_HEIGHT;
+    mountedRef.current = false;
     setMounted(false);
     onDismissedRef.current?.();
   }, [clearCloseSafety, opacity, translateY]);
@@ -81,13 +83,16 @@ export function useSheetMount(visible: boolean, onDismissed?: () => void) {
 
   useEffect(() => {
     if (visible) {
+      const needsEnter =
+        !wasOpenRef.current || isClosingRef.current || !mountedRef.current;
       clearCloseSafety();
       isClosingRef.current = false;
 
-      // Only mount + enter when opening; don't restart animation if other
-      // deps (e.g. reducedMotion) change while the sheet is already open.
-      if (!wasOpenRef.current) {
+      // Re-run enter after a close, or if a reopen arrived mid-dismiss.
+      // Skip only when already fully open (e.g. reducedMotion dep change).
+      if (needsEnter) {
         wasOpenRef.current = true;
+        mountedRef.current = true;
         setMounted(true);
         translateY.value = SCREEN_HEIGHT;
         if (reducedMotion) {

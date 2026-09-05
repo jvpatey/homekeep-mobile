@@ -26,6 +26,9 @@ import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
 import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeSetupModal } from "../modals/home-setup";
 import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdSharingModal";
+import { PlusStatusBanner } from "../plus";
+import { useRequirePlus } from "../../hooks/useRequirePlus";
+import { useSubscription } from "../../context/SubscriptionContext";
 import { useProfile } from "../../context/ProfileContext";
 import { isHomeSystemsComplete } from "../../data/maintenancePlans";
 import { DesignSystem } from "../../theme/designSystem";
@@ -105,6 +108,8 @@ export function NewDashboard({
   const { triggerMedium, triggerLight } = useHaptics();
   const reducedMotion = useReducedMotion();
   const { addressNeeded, homeSetupNeeded, profile } = useProfile();
+  const requirePlus = useRequirePlus();
+  const { isPlus, offerPaywallAfterSetup } = useSubscription();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
   const navigation =
@@ -274,6 +279,7 @@ export function NewDashboard({
       }
     ): Promise<boolean> => {
       if (completingRef.current.has(instanceId)) return false;
+      if (!(await requirePlus())) return false;
 
       completingRef.current.add(instanceId);
       setCompletingInstanceIds(new Set(completingRef.current));
@@ -304,7 +310,7 @@ export function NewDashboard({
         setCompletingInstanceIds(new Set(completingRef.current));
       }
     },
-    [onCompleteTask, triggerMedium]
+    [onCompleteTask, requirePlus, triggerMedium]
   );
 
   const handleSkipOccurrence = useCallback(
@@ -313,6 +319,10 @@ export function NewDashboard({
       closeSwipe?: () => void
     ): Promise<boolean> => {
       if (!onSkipTaskOccurrence) {
+        closeSwipe?.();
+        return false;
+      }
+      if (!(await requirePlus())) {
         closeSwipe?.();
         return false;
       }
@@ -347,6 +357,7 @@ export function NewDashboard({
     },
     [
       onSkipTaskOccurrence,
+      requirePlus,
       triggerMedium,
       triggerLight,
       selectedTask,
@@ -403,7 +414,8 @@ export function NewDashboard({
     onRefresh?.();
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = async () => {
+    if (!(await requirePlus())) return;
     setEditTaskInitial(null);
     setCreateEquipmentId(null);
     setShowCreateModal(true);
@@ -439,6 +451,7 @@ export function NewDashboard({
         animatedStyle={headerAnimatedStyle}
         seasonLabel={seasonLabel}
       />
+      <PlusStatusBanner />
       <HomeSystemMap
         overdueTasks={seasonalOverdue}
         upcomingTasks={seasonalTasks}
@@ -530,9 +543,12 @@ export function NewDashboard({
             setCompleteTarget(task);
           }}
           onEdit={(task) => {
-            setShowTaskDetail(false);
-            setEditTaskInitial(task);
-            setShowCreateModal(true);
+            void (async () => {
+              if (!(await requirePlus())) return;
+              setShowTaskDetail(false);
+              setEditTaskInitial(task);
+              setShowCreateModal(true);
+            })();
           }}
           onSkipOccurrence={
             onSkipTaskOccurrence
@@ -583,17 +599,25 @@ export function NewDashboard({
           visible
           onClose={() => setShowEquipmentManualsModal(false)}
           onAddRecurringTask={(equipmentId) => {
-            setShowEquipmentManualsModal(false);
-            setCreateEquipmentId(equipmentId);
-            setEditTaskInitial(null);
-            setShowCreateModal(true);
+            void (async () => {
+              if (!(await requirePlus())) return;
+              setShowEquipmentManualsModal(false);
+              setCreateEquipmentId(equipmentId);
+              setEditTaskInitial(null);
+              setShowCreateModal(true);
+            })();
           }}
         />
       ) : null}
 
       <HomeSetupModal
         visible={showHomeSetupModal}
-        onClose={() => setShowHomeSetupModal(false)}
+        onClose={() => {
+          setShowHomeSetupModal(false);
+          if (profile?.home_setup_set_at && !isPlus) {
+            offerPaywallAfterSetup();
+          }
+        }}
         onJoinHousehold={() => setShowHouseholdModal(true)}
       />
 

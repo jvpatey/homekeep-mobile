@@ -12,6 +12,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "types": ["react", "react-native", "expo"],
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@components/*": ["src/components/*"],

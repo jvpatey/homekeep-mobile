@@ -12,7 +12,6 @@ interface HearthScreenProps {
   style?: StyleProp<ViewStyle>;
   /** Safe area edges to respect. Default: top, left, right (bottom handled per-screen). */
   edges?: Edge[];
-  statusBarTranslucent?: boolean;
 }
 
 /**
@@ -23,7 +22,6 @@ export function HearthScreen({
   children,
   style,
   edges = ["top", "left", "right"],
-  statusBarTranslucent = false,
 }: HearthScreenProps) {
   const { colors, isDark } = useTheme();
 
@@ -32,10 +30,7 @@ export function HearthScreen({
       style={[{ flex: 1, backgroundColor: colors.background }, style]}
       edges={edges}
     >
-      <StatusBar
-        style={isDark ? "light" : "dark"}
-        translucent={statusBarTranslucent}
-      />
+      <StatusBar style={isDark ? "light" : "dark"} />
       {children}
     </SafeAreaView>
   );

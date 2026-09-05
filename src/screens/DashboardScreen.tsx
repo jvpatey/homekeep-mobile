@@ -37,7 +37,6 @@ export function DashboardScreen() {
   return (
     <HearthScreen
       edges={["left", "right"]}
-      statusBarTranslucent
       style={styles.screen}
     >
       <Dashboard

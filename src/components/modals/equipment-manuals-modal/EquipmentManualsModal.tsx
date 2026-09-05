@@ -37,6 +37,7 @@ import { EquipmentManual } from "../../../types/equipmentManual";
 import { EquipmentManualService } from "../../../services/EquipmentManualService";
 import { MaintenanceService } from "../../../services/maintenanceService";
 import { useTasks } from "../../../context/TasksContext";
+import { useRequirePlus } from "../../../hooks/useRequirePlus";
 import {
   hintsForEquipmentName,
   partitionEquipmentHints,
@@ -65,6 +66,7 @@ export function EquipmentManualsModal({
   const { authAtmosphere } = useGradients();
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
+  const requirePlus = useRequirePlus();
   const { isTablet, getFontMultiplier, getResponsiveValue, getTabletSheetContainerStyle } =
     useDevice();
   const fontMultiplier = getFontMultiplier();
@@ -164,6 +166,7 @@ export function EquipmentManualsModal({
 
   const openAdd = async () => {
     await triggerLight();
+    if (!(await requirePlus())) return;
     setEditing(null);
     resetForm();
     setScreenMode("form");
@@ -453,6 +456,7 @@ export function EquipmentManualsModal({
   };
 
   const handleSave = async () => {
+    if (!(await requirePlus())) return;
     const trimmed = name.trim();
     if (!trimmed) {
       Alert.alert("Name required", "Give this equipment a name.");

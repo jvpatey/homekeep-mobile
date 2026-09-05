@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   container: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.xl + 8,
   },
   popupAtmosphere: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   closeButton: {
     position: "absolute",
