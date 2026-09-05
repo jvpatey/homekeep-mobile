@@ -121,7 +121,6 @@ export function HearthSheet({
         styles.safeArea,
         fillMaxHeight && styles.safeAreaFill,
         {
-          paddingTop: !embedded && fillMaxHeight ? insets.top : 0,
           paddingBottom:
             keyboardInset > 0 ? DesignSystem.spacing.sm : insets.bottom,
         },

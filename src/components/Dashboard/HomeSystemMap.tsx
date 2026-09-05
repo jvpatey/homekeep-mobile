@@ -24,7 +24,7 @@ import {
   zoneTaskCounts,
   HomeMapZone,
 } from "../../data/homeMapZones";
-import { countFilledEmergencySpots } from "../../types/homeEmergency";
+import { emergencyProgressSubtitle } from "../../types/homeEmergency";
 
 interface HomeSystemMapProps {
   overdueTasks: MaintenanceTask[];
@@ -260,13 +260,10 @@ export function HomeSystemMap({
     zoneTaskCounts(zone, overdueTasks, upcomingTasks);
 
   const selectedZone = zones.find((z) => z.id === selectedZoneId);
-  const emergencyProgress = countFilledEmergencySpots(profile?.home_emergency);
-  const emergencySubtitle =
-    emergencyProgress.filled === 0
-      ? "Save where water, panel, and gas live"
-      : emergencyProgress.filled === emergencyProgress.total
-        ? "All 3 spots saved"
-        : `${emergencyProgress.filled} of ${emergencyProgress.total} spots saved`;
+  const emergencySubtitle = emergencyProgressSubtitle(
+    profile?.home_emergency,
+    home,
+  );
 
   const toggle = (id: HomeMapZoneId) => {
     onSelectZone(selectedZoneId === id ? null : id);
