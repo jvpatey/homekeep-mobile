@@ -25,7 +25,7 @@ export function PlusStatusBanner() {
     isPlus &&
     (status === "trialing" || status === "promo") &&
     daysRemaining != null &&
-    daysRemaining <= 7;
+    daysRemaining <= 2;
   const lapsed = setupDone && !isPlus && !loading;
 
   if (!trialEnding && !lapsed) return null;

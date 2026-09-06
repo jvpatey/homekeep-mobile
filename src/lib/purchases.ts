@@ -20,6 +20,74 @@ export const FALLBACK_MONTHLY_PRICE = "$5.99";
 export const FALLBACK_YEARLY_PRICE = "$39.99";
 export const FALLBACK_YEARLY_PER_MONTH = "$3.33";
 
+export type PlusPlanLabel = "Yearly" | "Monthly";
+
+export function plusPlanLabel(productId: string | null): PlusPlanLabel | null {
+  if (!productId) return null;
+  if (
+    productId === HOMEKEEP_PLUS_YEARLY_ID ||
+    productId.includes("yearly") ||
+    productId.includes("annual")
+  ) {
+    return "Yearly";
+  }
+  if (
+    productId === HOMEKEEP_PLUS_MONTHLY_ID ||
+    productId.includes("monthly")
+  ) {
+    return "Monthly";
+  }
+  return null;
+}
+
+export function plusStatusSubtitle({
+  status,
+  daysRemaining,
+  expirationDate,
+  productId,
+  includedViaHousehold,
+}: {
+  status: string;
+  daysRemaining: number | null;
+  expirationDate: Date | null;
+  productId: string | null;
+  includedViaHousehold: boolean;
+}): string {
+  if (includedViaHousehold) return "Included with this home";
+  const plan = plusPlanLabel(productId);
+  const days =
+    daysRemaining != null
+      ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`
+      : null;
+  const renews = expirationDate
+    ? `Renews ${expirationDate.toLocaleDateString()}`
+    : null;
+
+  if (status === "trialing") {
+    const trial = days ? `Free trial · ${days}` : "Free trial";
+    return plan ? `${plan} · ${trial}` : trial;
+  }
+  if (status === "promo") {
+    const promo = days ? `Complimentary · ${days}` : "Complimentary access";
+    return plan ? `${plan} · ${promo}` : promo;
+  }
+  if (status === "grace") {
+    return plan
+      ? `${plan} · Billing issue · access continues`
+      : "Billing issue · access continues";
+  }
+  if (status === "active") {
+    if (plan && renews) return `${plan} · ${renews}`;
+    if (plan) return plan;
+    if (renews) return renews;
+    return HOMEKEEP_PLUS_NAME;
+  }
+  if (status === "expired") {
+    return plan ? `${plan} · Expired` : "Expired";
+  }
+  return `Not subscribed · ${FALLBACK_YEARLY_PRICE}/year or ${FALLBACK_MONTHLY_PRICE}/month`;
+}
+
 const APPLE_STANDARD_EULA =
   "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 

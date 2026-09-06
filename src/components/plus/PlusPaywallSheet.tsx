@@ -1,21 +1,21 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   Pressable,
-  ScrollView,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { PurchasesPackage } from "react-native-purchases";
 import { useTheme } from "../../context/ThemeContext";
 import { useSubscription } from "../../context/SubscriptionContext";
 import { HearthSheet } from "../ui/HearthSheet";
 import { HearthSurfaceCard } from "../ui/HearthSurfaceCard";
-import { Button, TextLink } from "../ui/Button";
-import { HouseMark } from "../ui/HouseMark";
+import { Button } from "../ui/Button";
 import { DesignSystem } from "../../theme/designSystem";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import {
   FALLBACK_MONTHLY_PRICE,
   FALLBACK_YEARLY_PER_MONTH,
@@ -25,18 +25,23 @@ import {
   isExpoGo,
   monthlyEquivalentLabel,
   packageHasIntroTrial,
+  plusPlanLabel,
+  plusStatusSubtitle,
 } from "../../lib/purchases";
 
 type PlanKey = "yearly" | "monthly";
 
 const VALUE_LINES = [
-  "Personalized reminders for this home",
-  "Equipment manuals and a shared household",
-  "The next cycle of the schedule, automatically",
+  "Personalized reminders",
+  "Manuals and a shared household",
+  "The next cycle, automatically",
 ];
+
+const COLUMN_MAX = 480;
 
 export function PlusPaywallSheet() {
   const { colors } = useTheme();
+  const { isRegularWidth } = useDevice();
   const {
     paywallVisible,
     paywallEpoch,
@@ -51,25 +56,60 @@ export function PlusPaywallSheet() {
     purchasing,
     openLegal,
     storeAvailable,
+    isPlus,
+    status,
+    daysRemaining,
+    expirationDate,
+    productId,
+    includedViaHousehold,
+    manageSubscription,
   } = useSubscription();
   const { triggerLight, triggerSuccess } = useHaptics();
   const [plan, setPlan] = useState<PlanKey>("yearly");
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    const label = plusPlanLabel(productId);
+    if (label === "Monthly") setPlan("monthly");
+    if (label === "Yearly") setPlan("yearly");
+  }, [productId, paywallEpoch]);
+
   const selected: PurchasesPackage | null =
     plan === "yearly" ? yearlyPackage : monthlyPackage;
   const hasTrial = packageHasIntroTrial(selected);
   const canPurchase = Boolean(selected) && storeAvailable && !offeringsError;
+  const columnStyle = isRegularWidth ? styles.column : undefined;
 
-  const ctaLabel = !storeAvailable
-    ? "Requires a development build"
-    : hasTrial
-      ? "Start 7-day free trial"
-      : selected
-        ? `Subscribe for ${selected.product.priceString}`
-        : `Subscribe for ${plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE}`;
+  const currentStatus = plusStatusSubtitle({
+    status,
+    daysRemaining,
+    expirationDate,
+    productId,
+    includedViaHousehold,
+  });
+  const viewingOwnPlan = isPlus;
+  const ctaLabel = viewingOwnPlan
+    ? includedViaHousehold
+      ? "Close"
+      : "Change plan"
+    : !storeAvailable
+      ? "Requires a development build"
+      : hasTrial
+        ? "Start 7-day free trial"
+        : selected
+          ? `Subscribe for ${selected.product.priceString}`
+          : `Subscribe for ${plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE}`;
 
-  const handlePurchase = async () => {
+  const handlePrimary = async () => {
+    if (viewingOwnPlan) {
+      await triggerLight();
+      if (includedViaHousehold) {
+        closePaywall();
+        return;
+      }
+      await manageSubscription();
+      return;
+    }
     if (!selected || purchasing) return;
     await triggerLight();
     const result = await purchasePackage(selected);
@@ -110,6 +150,20 @@ export function PlusPaywallSheet() {
   const yearlyPerMonth = yearlyPackage
     ? monthlyEquivalentLabel(yearlyPackage) ?? FALLBACK_YEARLY_PER_MONTH
     : FALLBACK_YEARLY_PER_MONTH;
+  const afterTrialPrice =
+    selected?.product.priceString ??
+    (plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE);
+  const billingPeriod = plan === "yearly" ? "year" : "month";
+  const legalText = viewingOwnPlan
+    ? "Change or cancel in your Apple or Google account settings."
+    : hasTrial
+      ? `7-day free trial, then ${afterTrialPrice} per ${billingPeriod}. Renews automatically until you cancel in your Apple or Google account settings.`
+      : `${afterTrialPrice} per ${billingPeriod}. Renews automatically until you cancel in your Apple or Google account settings.`;
+
+  const notice = isExpoGo()
+    ? "Store purchases need a development build."
+    : offeringsError;
+  const showRetry = Boolean(offeringsError);
 
   return (
     <HearthSheet
@@ -119,12 +173,12 @@ export function PlusPaywallSheet() {
       title={HOMEKEEP_PLUS_NAME}
       keyboardAvoiding={false}
       fillMaxHeight
-      maxHeightRatio={0.92}
+      maxHeightRatio={isRegularWidth ? 0.72 : 0.86}
       contentStyle={styles.sheetContent}
       accessibilityLabel={HOMEKEEP_PLUS_NAME}
       footer={
-        <View style={styles.footer}>
-          {offeringsError ? (
+        <View style={[styles.footer, columnStyle]}>
+          {showRetry ? (
             <Button
               label="Retry"
               onPress={() => void reloadOfferings()}
@@ -134,132 +188,124 @@ export function PlusPaywallSheet() {
           ) : (
             <Button
               label={ctaLabel}
-              onPress={() => void handlePurchase()}
+              onPress={() => void handlePrimary()}
               loading={purchasing}
-              disabled={purchasing || !canPurchase || offeringsLoading}
+              disabled={
+                viewingOwnPlan
+                  ? purchasing
+                  : purchasing || !canPurchase || offeringsLoading
+              }
               accessibilityLabel={
-                hasTrial
-                  ? `Start 7-day free trial, then ${selected?.product.priceString ?? FALLBACK_YEARLY_PRICE} per year`
-                  : ctaLabel
+                viewingOwnPlan
+                  ? ctaLabel
+                  : hasTrial
+                    ? `Start 7-day free trial, then ${afterTrialPrice} per ${billingPeriod}`
+                    : ctaLabel
               }
             />
           )}
-          <Button
-            label="Restore purchases"
-            variant="ghost"
-            onPress={() => void handleRestore()}
-            disabled={purchasing}
-          />
-          <Button
-            label="Not now"
-            variant="ghost"
-            onPress={closePaywall}
-          />
+          <Text style={[styles.legal, { color: colors.textSecondary }]}>
+            {legalText}
+          </Text>
+          {restoreMessage ? (
+            <Text style={[styles.legal, { color: colors.textSecondary }]}>
+              {restoreMessage}
+            </Text>
+          ) : null}
+          <View style={styles.footerLinks}>
+            {getPrivacyUrl() ? (
+              <FooterLink
+                label="Privacy"
+                onPress={() => void openLegal("privacy")}
+              />
+            ) : null}
+            <FooterLink
+              label="Terms"
+              onPress={() => void openLegal("terms")}
+            />
+            <FooterLink
+              label="Restore"
+              onPress={() => void handleRestore()}
+            />
+          </View>
         </View>
       }
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        bounces={false}
+        contentContainerStyle={[styles.scroll, columnStyle]}
       >
         <View style={styles.hero}>
-          <HouseMark size={44} />
           <Text style={[styles.headline, { color: colors.text }]}>
-            Keep this home on schedule
+            {viewingOwnPlan ? "Your plan" : "Try everything for 7 days"}
           </Text>
           <Text style={[styles.subhead, { color: colors.textSecondary }]}>
-            One home, including anyone you invite. Cancel anytime.
+            {viewingOwnPlan
+              ? currentStatus
+              : "Reminders, household sharing, and the next cycle. Cancel anytime."}
           </Text>
         </View>
 
-        <View style={styles.values}>
-          {VALUE_LINES.map((line) => (
-            <Text
-              key={line}
-              style={[styles.valueLine, { color: colors.text }]}
-            >
-              {line}
-            </Text>
-          ))}
-        </View>
-
-        {isExpoGo() ? (
-          <Text style={[styles.notice, { color: colors.textSecondary }]}>
-            Store purchases need a development build. You can still preview this
-            sheet in Expo Go.
-          </Text>
-        ) : null}
-
-        {offeringsError ? (
-          <Text style={[styles.notice, { color: colors.textSecondary }]}>
-            {offeringsError}
-          </Text>
-        ) : (
-          <View style={styles.plans}>
-            <PlanCard
-              selected={plan === "yearly"}
-              title="Yearly"
-              price={yearlyPrice}
-              detail={`${yearlyPerMonth}/mo`}
-              badge="Best value"
-              trial={packageHasIntroTrial(yearlyPackage)}
-              disabled={purchasing}
-              onSelect={() => {
-                void triggerLight();
-                setPlan("yearly");
-              }}
-            />
-            <PlanCard
-              selected={plan === "monthly"}
-              title="Monthly"
-              price={monthlyPrice}
-              detail="Billed monthly"
-              trial={packageHasIntroTrial(monthlyPackage)}
-              disabled={purchasing}
-              onSelect={() => {
-                void triggerLight();
-                setPlan("monthly");
-              }}
-            />
+        {viewingOwnPlan ? null : (
+          <View style={styles.values}>
+            {VALUE_LINES.map((line) => (
+              <View key={line} style={styles.valueRow}>
+                <Ionicons name="checkmark" size={16} color={colors.primary} />
+                <Text style={[styles.valueLine, { color: colors.text }]}>
+                  {line}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
 
-        {restoreMessage ? (
+        {notice ? (
           <Text style={[styles.notice, { color: colors.textSecondary }]}>
-            {restoreMessage}
+            {notice}
           </Text>
         ) : null}
 
-        <Text style={[styles.legal, { color: colors.textSecondary }]}>
-          {HOMEKEEP_PLUS_NAME} renews automatically at the selected price until
-          you cancel. Payment is charged to your Apple ID or Google account.
-          Manage or cancel anytime in your store account settings.
-        </Text>
-        <View style={styles.legalLinks}>
-          {getPrivacyUrl() ? (
-            <TextLink
-              linkText="Privacy Policy"
-              onPress={() => void openLegal("privacy")}
-            />
-          ) : null}
-          <TextLink
-            linkText="Terms of Use"
-            onPress={() => void openLegal("terms")}
+        <HearthSurfaceCard style={styles.planGroup}>
+          <PlanRow
+            selected={plan === "yearly"}
+            title="Yearly"
+            price={yearlyPrice}
+            detail={`${yearlyPerMonth}/mo${packageHasIntroTrial(yearlyPackage) ? " · 7 days free" : ""}`}
+            badge="Best value"
+            disabled={purchasing}
+            showDivider
+            onSelect={() => {
+              void triggerLight();
+              setPlan("yearly");
+            }}
           />
-        </View>
+          <PlanRow
+            selected={plan === "monthly"}
+            title="Monthly"
+            price={monthlyPrice}
+            detail={`Billed monthly${packageHasIntroTrial(monthlyPackage) ? " · 7 days free" : ""}`}
+            disabled={purchasing}
+            showDivider={false}
+            onSelect={() => {
+              void triggerLight();
+              setPlan("monthly");
+            }}
+          />
+        </HearthSurfaceCard>
       </ScrollView>
     </HearthSheet>
   );
 }
 
-function PlanCard({
+function PlanRow({
   selected,
   title,
   price,
   detail,
   badge,
-  trial,
   disabled,
+  showDivider,
   onSelect,
 }: {
   selected: boolean;
@@ -267,19 +313,12 @@ function PlanCard({
   price: string;
   detail: string;
   badge?: string;
-  trial: boolean;
   disabled: boolean;
+  showDivider: boolean;
   onSelect: () => void;
 }) {
   const { colors } = useTheme();
-  const a11y = [
-    title,
-    price,
-    detail,
-    trial ? "7-day free trial" : null,
-    badge ?? null,
-    selected ? "selected" : null,
-  ]
+  const a11y = [title, price, detail, badge ?? null, selected ? "selected" : null]
     .filter(Boolean)
     .join(", ");
 
@@ -290,41 +329,60 @@ function PlanCard({
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={a11y}
+      style={[
+        styles.planRow,
+        showDivider && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
+        },
+      ]}
     >
-      <HearthSurfaceCard
+      <View
         style={[
-          styles.planCard,
-          selected && {
-            borderColor: colors.primary,
-            borderWidth: 2,
+          styles.radio,
+          {
+            borderColor: selected ? colors.primary : colors.border,
+            backgroundColor: selected ? colors.primary : "transparent",
           },
         ]}
-      >
-        <View style={styles.planTop}>
+      />
+      <View style={styles.planCopy}>
+        <View style={styles.planTitleRow}>
           <Text style={[styles.planTitle, { color: colors.text }]}>{title}</Text>
           {badge ? (
-            <View style={[styles.badge, { backgroundColor: `${colors.primary}18` }]}>
-              <Text style={[styles.badgeText, { color: colors.primary }]}>
-                {badge}
-              </Text>
-            </View>
+            <Text style={[styles.badgeText, { color: colors.primary }]}>
+              {badge}
+            </Text>
           ) : null}
         </View>
-        <Text style={[styles.planPrice, { color: colors.text }]}>{price}</Text>
         <Text style={[styles.planDetail, { color: colors.textSecondary }]}>
           {detail}
-          {trial ? " · 7 days free" : ""}
         </Text>
-        <View
-          style={[
-            styles.radio,
-            {
-              borderColor: selected ? colors.primary : colors.border,
-              backgroundColor: selected ? colors.primary : "transparent",
-            },
-          ]}
-        />
-      </HearthSurfaceCard>
+      </View>
+      <Text style={[styles.planPrice, { color: colors.text }]}>{price}</Text>
+    </Pressable>
+  );
+}
+
+function FooterLink({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      style={styles.footerLink}
+    >
+      <Text style={[styles.footerLinkText, { color: colors.primary }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -338,85 +396,96 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.lg,
+    flexGrow: 1,
+  },
+  column: {
+    width: "100%",
+    maxWidth: COLUMN_MAX,
+    alignSelf: "center",
   },
   hero: {
-    alignItems: "center",
-    paddingTop: DesignSystem.spacing.sm,
-    paddingBottom: DesignSystem.spacing.md,
-    gap: DesignSystem.spacing.sm,
+    gap: DesignSystem.spacing.xs,
   },
   headline: {
     ...DesignSystem.typography.title2,
-    textAlign: "center",
   },
   subhead: {
     ...DesignSystem.typography.callout,
-    textAlign: "center",
   },
   values: {
-    gap: DesignSystem.spacing.xs,
-    marginBottom: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.sm,
+  },
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
   },
   valueLine: {
     ...DesignSystem.typography.callout,
+    flex: 1,
   },
   notice: {
     ...DesignSystem.typography.footnote,
-    textAlign: "center",
-    marginBottom: DesignSystem.spacing.md,
   },
-  plans: {
-    gap: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.lg,
+  planGroup: {
+    overflow: "hidden",
+    paddingVertical: DesignSystem.spacing.xs,
   },
-  planCard: {
-    padding: DesignSystem.spacing.md,
-  },
-  planTop: {
+  planRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    minHeight: DesignSystem.components.minTouchTarget,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.md,
     gap: DesignSystem.spacing.sm,
   },
-  planTitle: {
-    ...DesignSystem.typography.smallSemiBold,
-  },
-  badge: {
-    paddingHorizontal: DesignSystem.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: DesignSystem.borders.radius.round,
-  },
-  badgeText: {
-    ...DesignSystem.typography.captionSemiBold,
-  },
-  planPrice: {
-    ...DesignSystem.typography.h3,
-    marginTop: DesignSystem.spacing.xs,
-  },
-  planDetail: {
-    ...DesignSystem.typography.footnote,
-    marginTop: 2,
-  },
   radio: {
-    position: "absolute",
-    right: DesignSystem.spacing.md,
-    bottom: DesignSystem.spacing.md,
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
   },
+  planCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  planTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+  },
+  planTitle: {
+    ...DesignSystem.typography.smallSemiBold,
+  },
+  badgeText: {
+    ...DesignSystem.typography.captionSemiBold,
+  },
+  planDetail: {
+    ...DesignSystem.typography.caption,
+  },
+  planPrice: {
+    ...DesignSystem.typography.bodySemiBold,
+  },
   legal: {
-    ...DesignSystem.typography.footnote,
+    ...DesignSystem.typography.caption,
     textAlign: "center",
   },
-  legalLinks: {
+  footer: {
+    gap: DesignSystem.spacing.sm,
+  },
+  footerLinks: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.xs,
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.lg,
   },
-  footer: {
-    gap: DesignSystem.spacing.xs,
+  footerLink: {
+    paddingVertical: DesignSystem.spacing.xs,
+  },
+  footerLinkText: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
   },
 });

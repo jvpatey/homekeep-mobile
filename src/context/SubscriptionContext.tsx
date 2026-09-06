@@ -72,7 +72,7 @@ interface SubscriptionContextValue {
   offeringsError: string | null;
   offeringsLoading: boolean;
   daysRemaining: number | null;
-  presentPaywall: () => Promise<boolean>;
+  presentPaywall: (options?: { force?: boolean }) => Promise<boolean>;
   closePaywall: () => void;
   offerPaywallAfterSetup: () => void;
   reloadOfferings: () => Promise<void>;
@@ -354,15 +354,18 @@ export function SubscriptionProvider({
     }
   }, []);
 
-  const presentPaywall = useCallback(async () => {
-    if (isPlusRef.current) return true;
-    setPaywallEpoch((n) => n + 1);
-    setPaywallVisible(true);
-    void reloadOfferings();
-    return new Promise<boolean>((resolve) => {
-      paywallResolverRef.current = resolve;
-    });
-  }, [reloadOfferings]);
+  const presentPaywall = useCallback(
+    async (options?: { force?: boolean }) => {
+      if (isPlusRef.current && !options?.force) return true;
+      setPaywallEpoch((n) => n + 1);
+      setPaywallVisible(true);
+      void reloadOfferings();
+      return new Promise<boolean>((resolve) => {
+        paywallResolverRef.current = resolve;
+      });
+    },
+    [reloadOfferings]
+  );
 
   const offerPaywallAfterSetup = useCallback(() => {
     if (isPlusRef.current || setupPaywallShownRef.current) return;

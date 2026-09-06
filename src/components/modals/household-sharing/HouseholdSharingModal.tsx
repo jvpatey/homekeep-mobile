@@ -180,7 +180,6 @@ export function HouseholdSharingModal({
 
   const join = async () => {
     if (busy) return;
-    if (!(await requirePlus())) return;
     const normalized = normalizeInviteCode(code);
     if (normalized.length < 4) {
       Alert.alert("Check the code", "Invite codes are 6 letters or numbers.");

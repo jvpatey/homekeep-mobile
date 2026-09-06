@@ -17,16 +17,11 @@ import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
 import { accountDisplayName, hasAccountName } from "../../utils/displayName";
-import { useRequirePlus } from "../../hooks/useRequirePlus";
 import { useSubscription } from "../../context/SubscriptionContext";
-import { PlusLockHint } from "../../components/plus";
 import {
-  FALLBACK_MONTHLY_PRICE,
-  FALLBACK_YEARLY_PRICE,
-  HOMEKEEP_PLUS_MONTHLY_ID,
   HOMEKEEP_PLUS_NAME,
-  HOMEKEEP_PLUS_YEARLY_ID,
   getPrivacyUrl,
+  plusStatusSubtitle,
 } from "../../lib/purchases";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
@@ -35,9 +30,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { deleteAllTasks, stats } = useTasks();
   const { canEditHome, profile } = useProfile();
   const { triggerLight, triggerMedium } = useHaptics();
-  const requirePlus = useRequirePlus();
   const {
-    isPlus,
     status,
     daysRemaining,
     expirationDate,
@@ -72,44 +65,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
   const handleEditHome = async () => {
     await triggerLight();
-    if (!(await requirePlus())) return;
     setHomeSetupVisible(true);
   };
 
-  const plusStatusSubtitle = (() => {
-    if (includedViaHousehold) return "Included with this home";
-    if (status === "trialing") {
-      return daysRemaining != null
-        ? `Free trial · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`
-        : "Free trial";
-    }
-    if (status === "promo") {
-      return daysRemaining != null
-        ? `Complimentary access · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`
-        : "Complimentary access";
-    }
-    if (status === "grace") return "Billing issue · access continues";
-    if (status === "active") {
-      const yearly =
-        productId === HOMEKEEP_PLUS_YEARLY_ID ||
-        productId?.includes("yearly") ||
-        productId?.includes("annual");
-      const monthly =
-        productId === HOMEKEEP_PLUS_MONTHLY_ID || productId?.includes("monthly");
-      const plan = yearly
-        ? "Yearly"
-        : monthly
-          ? "Monthly"
-          : HOMEKEEP_PLUS_NAME;
-      if (expirationDate) {
-        const when = expirationDate.toLocaleDateString();
-        return `${plan} · renews ${when}`;
-      }
-      return plan;
-    }
-    if (status === "expired") return "Expired";
-    return `Not subscribed · ${FALLBACK_YEARLY_PRICE}/year or ${FALLBACK_MONTHLY_PRICE}/month`;
-  })();
+  const plusSubtitle = plusStatusSubtitle({
+    status,
+    daysRemaining,
+    expirationDate,
+    productId,
+    includedViaHousehold,
+  });
 
   const handleRestorePurchases = async () => {
     await triggerLight();
@@ -291,15 +256,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           <HearthSurfaceCard style={styles.groupSurface}>
             <SheetActionRow
               icon="sparkles-outline"
-              title={HOMEKEEP_PLUS_NAME}
-              subtitle={plusStatusSubtitle}
+              title="Plan"
+              subtitle={plusSubtitle}
               onPress={() => {
                 void triggerLight();
-                if (!isPlus) {
-                  void presentPaywall();
-                }
+                void presentPaywall({ force: true });
               }}
-              showChevron={!isPlus}
               showDivider
             />
             <SheetActionRow
@@ -351,11 +313,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               <SheetActionRow
                 key={row.title}
                 {...row}
-                trailing={
-                  row.title === "Your home" && canEditHome && !isPlus ? (
-                    <PlusLockHint />
-                  ) : undefined
-                }
                 showDivider={index < homeRows.length - 1}
               />
             ))}
