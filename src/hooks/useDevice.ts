@@ -1,27 +1,34 @@
-import { useState, useEffect } from "react";
 import { Platform, useWindowDimensions } from "react-native";
 import * as Device from "expo-device";
+
+const REGULAR_WIDTH = 768;
+const AUTH_FORM_WIDTH = 440;
+const AUTH_FORM_WIDTH_PRO = 480;
+const AUTH_WELCOME_WIDTH = 520;
+const AUTH_WELCOME_WIDTH_PRO = 560;
+
+export type AuthContentVariant = "form" | "welcome";
+
+function isKnownDeviceType(
+  deviceType: Device.DeviceType | null,
+): deviceType is Device.DeviceType {
+  return (
+    deviceType != null && deviceType !== Device.DeviceType.UNKNOWN
+  );
+}
 
 /**
  * Hook to detect device type and provide responsive sizing for iPad optimization
  */
 export function useDevice() {
   const { width, height } = useWindowDimensions();
-  const [isTablet, setIsTablet] = useState(false);
-  const [isIPad, setIsIPad] = useState(false);
 
-  useEffect(() => {
-    // Check if device is tablet using expo-device
-    if (Device.deviceType) {
-      setIsTablet(Device.deviceType === Device.DeviceType.TABLET);
-      setIsIPad(Platform.OS === "ios" && Device.deviceType === Device.DeviceType.TABLET);
-    } else {
-      // Fallback: use screen dimensions (iPad typically has width >= 768)
-      const isTabletSize = Math.min(width, height) >= 768;
-      setIsTablet(isTabletSize);
-      setIsIPad(Platform.OS === "ios" && isTabletSize);
-    }
-  }, [width, height]);
+  const isTablet = isKnownDeviceType(Device.deviceType)
+    ? Device.deviceType === Device.DeviceType.TABLET
+    : Math.min(width, height) >= REGULAR_WIDTH;
+  const isIPad = Platform.OS === "ios" && isTablet;
+  const isRegularWidth = width >= REGULAR_WIDTH;
+  const isLargeTablet = Math.max(width, height) > 1300;
 
   // Calculate responsive values based on device type
   const getResponsiveValue = (
@@ -31,7 +38,7 @@ export function useDevice() {
   ) => {
     if (isTablet) {
       // Check if it's a large iPad (iPad Pro 12.9")
-      if (largeTablet && Math.max(width, height) > 1300) {
+      if (largeTablet && isLargeTablet) {
         return largeTablet;
       }
       return tablet;
@@ -43,7 +50,7 @@ export function useDevice() {
   const getFontMultiplier = () => {
     if (isTablet) {
       // Larger iPads get slightly larger text
-      if (Math.max(width, height) > 1300) {
+      if (isLargeTablet) {
         return 1.25;
       }
       return 1.15;
@@ -61,11 +68,24 @@ export function useDevice() {
     return Math.round(Math.min(Math.max(candidate, 560), cap));
   };
 
+  /**
+   * Readable measure for welcome / auth columns. Compact widths (phone or
+   * Split View) stay full-bleed; regular widths get a centered form or
+   * slightly wider welcome cap.
+   */
+  const getAuthContentWidth = (variant: AuthContentVariant = "form") => {
+    if (!isRegularWidth) return undefined;
+    if (variant === "welcome") {
+      return isLargeTablet ? AUTH_WELCOME_WIDTH_PRO : AUTH_WELCOME_WIDTH;
+    }
+    return isLargeTablet ? AUTH_FORM_WIDTH_PRO : AUTH_FORM_WIDTH;
+  };
+
   // Get responsive gradient fade height
   const getGradientFadeHeight = () => {
     if (isTablet) {
       // Taller fade for larger screens (iPad Pro 13-inch has height ~1366)
-      if (Math.max(width, height) > 1300) {
+      if (isLargeTablet) {
         return 380; // Much taller fade for iPad Pro 13-inch
       }
       return 200;
@@ -189,11 +209,13 @@ export function useDevice() {
   return {
     isTablet,
     isIPad,
+    isRegularWidth,
     width,
     height,
     getResponsiveValue,
     getFontMultiplier,
     getMaxContentWidth,
+    getAuthContentWidth,
     getGradientFadeHeight,
     getGradientFadeLocations,
     getGradientFadeColors,
@@ -202,4 +224,3 @@ export function useDevice() {
     getTabletSheetContainerStyle,
   };
 }
-

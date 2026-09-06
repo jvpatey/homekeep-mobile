@@ -111,12 +111,14 @@ const styles = StyleSheet.create({
   },
   boxRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     gap: DesignSystem.spacing.sm,
   },
   box: {
-    flex: 1,
+    width: BOX_SIZE,
     maxWidth: BOX_SIZE,
+    flexGrow: 0,
+    flexShrink: 1,
     height: BOX_SIZE + 8,
     borderRadius: DesignSystem.borders.radius.large,
     borderWidth: 1.5,

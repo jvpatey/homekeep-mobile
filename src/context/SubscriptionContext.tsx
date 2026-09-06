@@ -72,7 +72,7 @@ interface SubscriptionContextValue {
   offeringsError: string | null;
   offeringsLoading: boolean;
   daysRemaining: number | null;
-  presentPaywall: () => Promise<boolean>;
+  presentPaywall: (options?: { force?: boolean }) => Promise<boolean>;
   closePaywall: () => void;
   offerPaywallAfterSetup: () => void;
   reloadOfferings: () => Promise<void>;
@@ -81,6 +81,8 @@ interface SubscriptionContextValue {
   refresh: () => Promise<void>;
   manageSubscription: () => Promise<void>;
   openLegal: (kind: "privacy" | "terms") => Promise<void>;
+  paywallEmbeds: number;
+  registerPaywallEmbed: () => () => void;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(
@@ -140,6 +142,12 @@ export function SubscriptionProvider({
   const setupPaywallShownRef = useRef(false);
   const purchasingRef = useRef(false);
   const isPlusRef = useRef(false);
+  const [paywallEmbeds, setPaywallEmbeds] = useState(0);
+
+  const registerPaywallEmbed = useCallback(() => {
+    setPaywallEmbeds((n) => n + 1);
+    return () => setPaywallEmbeds((n) => Math.max(0, n - 1));
+  }, []);
 
   const storeAvailable = Boolean(getRcApiKey()) && !isExpoGo();
 
@@ -354,15 +362,18 @@ export function SubscriptionProvider({
     }
   }, []);
 
-  const presentPaywall = useCallback(async () => {
-    if (isPlusRef.current) return true;
-    setPaywallEpoch((n) => n + 1);
-    setPaywallVisible(true);
-    void reloadOfferings();
-    return new Promise<boolean>((resolve) => {
-      paywallResolverRef.current = resolve;
-    });
-  }, [reloadOfferings]);
+  const presentPaywall = useCallback(
+    async (options?: { force?: boolean }) => {
+      if (isPlusRef.current && !options?.force) return true;
+      setPaywallEpoch((n) => n + 1);
+      setPaywallVisible(true);
+      void reloadOfferings();
+      return new Promise<boolean>((resolve) => {
+        paywallResolverRef.current = resolve;
+      });
+    },
+    [reloadOfferings]
+  );
 
   const offerPaywallAfterSetup = useCallback(() => {
     if (isPlusRef.current || setupPaywallShownRef.current) return;
@@ -474,6 +485,8 @@ export function SubscriptionProvider({
       refresh,
       manageSubscription: openManageSubscriptions,
       openLegal: openLegalUrl,
+      paywallEmbeds,
+      registerPaywallEmbed,
     }),
     [
       closePaywall,
@@ -485,8 +498,10 @@ export function SubscriptionProvider({
       offering,
       offeringsError,
       offeringsLoading,
+      paywallEmbeds,
       paywallEpoch,
       paywallVisible,
+      registerPaywallEmbed,
       presentPaywall,
       productId,
       purchasePackage,

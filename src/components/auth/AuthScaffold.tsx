@@ -1,6 +1,7 @@
 import React, { ReactNode } from "react";
 import {
   View,
+  Text,
   ScrollView,
   KeyboardAvoidingView,
   Keyboard,
@@ -14,8 +15,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useGradients } from "../../hooks";
+import { useDevice, useGradients } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
+import { HearthSurfaceCard, HouseMark } from "../ui";
 import { AuthHeader } from "./AuthHeader";
 
 interface AuthScaffoldProps {
@@ -40,13 +42,88 @@ export function AuthScaffold({
   const { colors, isDark } = useTheme();
   const { authAtmosphere } = useGradients();
   const insets = useSafeAreaInsets();
+  const { isRegularWidth, getAuthContentWidth, getMaxContentWidth, getResponsiveValue } =
+    useDevice();
 
-  const body = (
+  const formWidth = getAuthContentWidth("form");
+  const splitWidth = getMaxContentWidth();
+  const gutter = isRegularWidth
+    ? DesignSystem.spacing.xl
+    : DesignSystem.spacing.lg;
+  const cardPadding = isRegularWidth
+    ? getResponsiveValue(
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl,
+      )
+    : DesignSystem.spacing.lg;
+  const brandMarkSize = getResponsiveValue(72, 88, 108);
+  const brandTitleSize = getResponsiveValue(36, 40, 46);
+  const brandTitleLine = getResponsiveValue(42, 46, 52);
+  const edgePadding = {
+    paddingTop: insets.top + DesignSystem.spacing.sm,
+    paddingBottom: insets.bottom + DesignSystem.spacing.lg,
+    paddingHorizontal: gutter,
+  };
+
+  const form = (
     <>
-      <AuthHeader title={title} subtitle={subtitle} onBack={onBack} />
-      <View style={[styles.form, contentStyle]}>{children}</View>
+      <View style={[!isRegularWidth && styles.formGrow, contentStyle]}>
+        {children}
+      </View>
       {footer}
     </>
+  );
+
+  const body = isRegularWidth ? (
+    <View
+      style={[
+        styles.split,
+        splitWidth != null && { maxWidth: splitWidth },
+      ]}
+    >
+      <AuthHeader onBack={onBack} />
+      <View style={styles.splitRow}>
+        <View style={styles.brand}>
+          <HouseMark size={brandMarkSize} />
+          <Text
+            style={[
+              styles.brandTitle,
+              {
+                color: colors.text,
+                fontSize: brandTitleSize,
+                lineHeight: brandTitleLine,
+              },
+            ]}
+            maxFontSizeMultiplier={1.3}
+          >
+            {title}
+          </Text>
+          {!!subtitle && (
+            <Text
+              style={[styles.brandSubtitle, { color: colors.textSecondary }]}
+              maxFontSizeMultiplier={1.4}
+            >
+              {subtitle}
+            </Text>
+          )}
+        </View>
+        <HearthSurfaceCard
+          containerStyle={[
+            styles.cardContainer,
+            formWidth != null && { maxWidth: formWidth },
+          ]}
+          style={[styles.card, { padding: cardPadding, width: "100%" }]}
+        >
+          {form}
+        </HearthSurfaceCard>
+      </View>
+    </View>
+  ) : (
+    <View style={styles.column}>
+      <AuthHeader title={title} subtitle={subtitle} onBack={onBack} />
+      {form}
+    </View>
   );
 
   return (
@@ -72,10 +149,8 @@ export function AuthScaffold({
               style={styles.scroll}
               contentContainerStyle={[
                 styles.scrollContent,
-                {
-                  paddingTop: insets.top + DesignSystem.spacing.sm,
-                  paddingBottom: insets.bottom + DesignSystem.spacing.lg,
-                },
+                edgePadding,
+                isRegularWidth && styles.regularAlign,
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -86,10 +161,8 @@ export function AuthScaffold({
             <View
               style={[
                 styles.staticContent,
-                {
-                  paddingTop: insets.top + DesignSystem.spacing.sm,
-                  paddingBottom: insets.bottom + DesignSystem.spacing.lg,
-                },
+                edgePadding,
+                isRegularWidth && styles.regularAlign,
               ]}
             >
               {body}
@@ -110,13 +183,47 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: DesignSystem.spacing.lg,
   },
   staticContent: {
     flex: 1,
-    paddingHorizontal: DesignSystem.spacing.lg,
   },
-  form: {
+  regularAlign: {
+    justifyContent: "center",
+  },
+  column: {
+    width: "100%",
+    flexGrow: 1,
+  },
+  split: {
+    width: "100%",
+    alignSelf: "center",
+  },
+  splitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xl,
+  },
+  brand: {
+    flex: 1,
+    paddingRight: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.md,
+  },
+  brandTitle: {
+    ...DesignSystem.typography.display,
+    letterSpacing: -1,
+  },
+  brandSubtitle: {
+    ...DesignSystem.typography.callout,
+  },
+  cardContainer: {
+    flex: 1.15,
+    minWidth: 320,
+    width: "100%",
+  },
+  card: {
+    overflow: "visible",
+  },
+  formGrow: {
     flex: 1,
   },
 });

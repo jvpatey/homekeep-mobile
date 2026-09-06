@@ -235,7 +235,8 @@ EXPO_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token_here
 # HomeKeep + (RevenueCat). Public SDK keys from the RC dashboard.
 EXPO_PUBLIC_RC_IOS_API_KEY=appl_your_ios_key
 EXPO_PUBLIC_RC_ANDROID_API_KEY=goog_your_android_key
-EXPO_PUBLIC_LEGAL_PRIVACY_URL=https://example.com/privacy
+# Host legal/privacy.html on HTTPS, then set the same URL here and in App Store Connect.
+EXPO_PUBLIC_LEGAL_PRIVACY_URL=https://your-domain/privacy.html
 EXPO_PUBLIC_LEGAL_TERMS_URL=https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 

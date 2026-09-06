@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Platform,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,11 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeIn } from "react-native-reanimated";
-import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import { useGradients, useHaptics, useReducedMotion } from "../hooks";
-import { HouseMark, Button, TextLink } from "../components/ui";
+import { useDevice, useGradients, useHaptics, useReducedMotion } from "../hooks";
+import { HouseMark, Button, TextLink, HearthSurfaceCard } from "../components/ui";
+import { AppleContinueButton } from "../components/auth";
 import { AuthStackParamList } from "../navigation/types";
 import { DesignSystem } from "../theme/designSystem";
 
@@ -34,7 +33,55 @@ export function HomeScreen() {
   const navigation = useNavigation<WelcomeNavigation>();
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
+  const {
+    isRegularWidth,
+    getAuthContentWidth,
+    getMaxContentWidth,
+    getResponsiveValue,
+  } = useDevice();
   const [appleLoading, setAppleLoading] = useState(false);
+
+  const splitWidth = getMaxContentWidth();
+  const phoneColumnWidth = getAuthContentWidth("welcome");
+  const ctaCardWidth = isRegularWidth
+    ? getResponsiveValue(320, 360, 400)
+    : undefined;
+  const gutter = isRegularWidth
+    ? DesignSystem.spacing.xl
+    : DesignSystem.spacing.lg;
+  const wordmarkSize = isRegularWidth ? getResponsiveValue(20, 22, 24) : 20;
+  const heroSize = isRegularWidth ? getResponsiveValue(120, 160, 200) : 120;
+  const headlineFontSize = isRegularWidth
+    ? getResponsiveValue(38, 44, 52)
+    : 38;
+  const headlineLineHeight = isRegularWidth
+    ? getResponsiveValue(44, 50, 58)
+    : 44;
+  const supportFontSize = isRegularWidth ? getResponsiveValue(16, 17, 18) : 16;
+  const supportLineHeight = isRegularWidth
+    ? getResponsiveValue(22, 24, 26)
+    : 22;
+  const heroMarkMarginTop = isRegularWidth
+    ? getResponsiveValue(
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl,
+        DesignSystem.spacing.xxl,
+      )
+    : DesignSystem.spacing.xxxl;
+  const heroMarkMarginBottom = isRegularWidth
+    ? getResponsiveValue(
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xl,
+      )
+    : DesignSystem.spacing.xl;
+  const cardPadding = isRegularWidth
+    ? getResponsiveValue(
+        DesignSystem.spacing.lg,
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xl,
+      )
+    : DesignSystem.spacing.lg;
 
   const entering = reducedMotion
     ? undefined
@@ -74,6 +121,115 @@ export function HomeScreen() {
     }
   };
 
+  const copy = (
+    <>
+      <Animated.View
+        {...(entering
+          ? {
+              entering: FadeIn.delay(60).duration(
+                DesignSystem.motion.duration.base,
+              ),
+            }
+          : {})}
+        style={[
+          styles.heroMarkContainer,
+          {
+            marginTop: heroMarkMarginTop,
+            marginBottom: heroMarkMarginBottom,
+          },
+        ]}
+      >
+        <HouseMark size={heroSize} />
+      </Animated.View>
+
+      <Animated.View
+        {...(entering
+          ? {
+              entering: FadeIn.delay(120).duration(
+                DesignSystem.motion.duration.base,
+              ),
+            }
+          : {})}
+        style={styles.copyBlock}
+      >
+        <View style={styles.headlineBlock}>
+          <Text
+            style={[
+              styles.headline,
+              {
+                color: colors.text,
+                fontSize: headlineFontSize,
+                lineHeight: headlineLineHeight,
+              },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+            maxFontSizeMultiplier={1.25}
+          >
+            Home maintenance,
+          </Text>
+          <Text
+            style={[
+              styles.headline,
+              {
+                color: colors.text,
+                fontSize: headlineFontSize,
+                lineHeight: headlineLineHeight,
+              },
+            ]}
+            maxFontSizeMultiplier={1.25}
+          >
+            handled.
+          </Text>
+        </View>
+        <Text
+          style={[
+            styles.support,
+            {
+              color: colors.textSecondary,
+              fontSize: supportFontSize,
+              lineHeight: supportLineHeight,
+            },
+          ]}
+          maxFontSizeMultiplier={1.4}
+        >
+          Reminders, history, and a plan — without the mental load.
+        </Text>
+        <Text style={[styles.proofs, { color: colors.textSecondary }]}>
+          {PROOFS.join("  ·  ")}
+        </Text>
+      </Animated.View>
+    </>
+  );
+
+  const dock = (
+    <Animated.View
+      {...(entering
+        ? {
+            entering: FadeIn.delay(180).duration(
+              DesignSystem.motion.duration.base,
+            ),
+          }
+        : {})}
+      style={styles.dock}
+    >
+      <Button
+        label="Create account"
+        onPress={handleCreateAccount}
+        variant="primary"
+      />
+
+      <AppleContinueButton onPress={handleAppleSignIn} />
+
+      <TextLink
+        prefix="Already have an account?"
+        linkText="Sign in"
+        onPress={handleSignIn}
+      />
+    </Animated.View>
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -100,102 +256,64 @@ export function HomeScreen() {
           {
             paddingTop: insets.top + DesignSystem.spacing.md,
             paddingBottom: insets.bottom + DesignSystem.spacing.lg,
+            paddingHorizontal: gutter,
           },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Top wordmark */}
-        <Animated.View
-          {...(entering ? { entering } : {})}
-          style={styles.wordmarkRow}
+        <View
+          style={[
+            styles.column,
+            isRegularWidth && splitWidth != null && { maxWidth: splitWidth },
+            !isRegularWidth &&
+              phoneColumnWidth != null && { maxWidth: phoneColumnWidth },
+          ]}
         >
-          <View style={styles.wordmarkMark}>
-            <HouseMark size={20} inline />
-          </View>
-          <Text style={[styles.wordmark, { color: colors.text }]}>
-            HomeKeep
-          </Text>
-        </Animated.View>
-
-        {/* Hero mark */}
-        <Animated.View
-          {...(entering ? { entering: FadeIn.delay(60).duration(DesignSystem.motion.duration.base) } : {})}
-          style={styles.heroMarkContainer}
-        >
-          <HouseMark size={120} />
-        </Animated.View>
-
-        {/* Copy */}
-        <Animated.View
-          {...(entering ? { entering: FadeIn.delay(120).duration(DesignSystem.motion.duration.base) } : {})}
-          style={styles.copyBlock}
-        >
-          <View style={styles.headlineBlock}>
-            <Text
-              style={[styles.headline, { color: colors.text }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.78}
-              maxFontSizeMultiplier={1.25}
-            >
-              Home maintenance,
-            </Text>
-            <Text
-              style={[styles.headline, { color: colors.text }]}
-              maxFontSizeMultiplier={1.25}
-            >
-              handled.
-            </Text>
-          </View>
-          <Text
-            style={[styles.support, { color: colors.textSecondary }]}
-            maxFontSizeMultiplier={1.4}
+          <Animated.View
+            {...(entering ? { entering } : {})}
+            style={styles.wordmarkRow}
           >
-            Reminders, history, and a plan — without the mental load.
-          </Text>
-          <Text style={[styles.proofs, { color: colors.textSecondary }]}>
-            {PROOFS.join("  ·  ")}
-          </Text>
-        </Animated.View>
-
-        <View style={styles.spacer} />
-
-        {/* Bottom dock */}
-        <Animated.View
-          {...(entering ? { entering: FadeIn.delay(180).duration(DesignSystem.motion.duration.base) } : {})}
-          style={styles.dock}
-        >
-          <Button
-            label="Create account"
-            onPress={handleCreateAccount}
-            variant="primary"
-          />
-
-          {Platform.OS === "ios" && (
-            <View style={styles.appleWrapper}>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={
-                  AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-                }
-                buttonStyle={
-                  isDark
-                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-                }
-                cornerRadius={DesignSystem.borders.radius.round}
-                style={styles.appleButton}
-                onPress={handleAppleSignIn}
-              />
+            <View style={[styles.wordmarkMark, { height: wordmarkSize }]}>
+              <HouseMark size={wordmarkSize} inline />
             </View>
-          )}
+            <Text
+              style={[
+                styles.wordmark,
+                {
+                  color: colors.text,
+                  fontSize: isRegularWidth
+                    ? getResponsiveValue(17, 18, 19)
+                    : 17,
+                  lineHeight: wordmarkSize,
+                },
+              ]}
+            >
+              HomeKeep
+            </Text>
+          </Animated.View>
 
-          <TextLink
-            prefix="Already have an account?"
-            linkText="Sign in"
-            onPress={handleSignIn}
-          />
-        </Animated.View>
+          {isRegularWidth ? (
+            <View style={styles.splitRow}>
+              <View style={styles.brand}>{copy}</View>
+              <HearthSurfaceCard
+                containerStyle={[
+                  styles.ctaCardContainer,
+                  ctaCardWidth != null && { maxWidth: ctaCardWidth },
+                ]}
+                style={[styles.ctaCard, { padding: cardPadding, width: "100%" }]}
+              >
+                {dock}
+              </HearthSurfaceCard>
+            </View>
+          ) : (
+            <>
+              {copy}
+              <View style={styles.spacer} />
+              {dock}
+            </>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -210,7 +328,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: DesignSystem.spacing.lg,
+  },
+  column: {
+    width: "100%",
+    flexGrow: 1,
+    alignSelf: "center",
+  },
+  splitRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xl,
+  },
+  brand: {
+    flex: 1.2,
+    minWidth: 0,
+  },
+  ctaCardContainer: {
+    flex: 1,
+    minWidth: 280,
+    width: "100%",
+  },
+  ctaCard: {
+    overflow: "visible",
   },
   wordmarkRow: {
     flexDirection: "row",
@@ -230,8 +370,6 @@ const styles = StyleSheet.create({
   },
   heroMarkContainer: {
     alignItems: "flex-start",
-    marginTop: DesignSystem.spacing.xxxl,
-    marginBottom: DesignSystem.spacing.xl,
   },
   copyBlock: {
     alignItems: "flex-start",
@@ -260,13 +398,5 @@ const styles = StyleSheet.create({
   },
   dock: {
     gap: DesignSystem.spacing.sm,
-    paddingTop: DesignSystem.spacing.lg,
-  },
-  appleWrapper: {
-    marginTop: DesignSystem.spacing.xs,
-  },
-  appleButton: {
-    width: "100%",
-    height: DesignSystem.components.buttonLarge,
   },
 });

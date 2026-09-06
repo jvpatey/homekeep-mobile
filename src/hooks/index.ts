@@ -28,6 +28,7 @@ export { useScreenInsets } from "./useScreenInsets";
 
 // Device detection hooks
 export { useDevice } from "./useDevice";
+export { useAppleAuthenticationAvailable } from "./useAppleAuthenticationAvailable";
 
 // Auth-specific hooks
 export * from "../screens/auth/hooks";
