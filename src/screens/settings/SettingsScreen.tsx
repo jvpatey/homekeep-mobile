@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
@@ -13,6 +14,7 @@ import {
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
 import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
+import { PlusPaywallSheet } from "../../components/plus";
 import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
@@ -41,7 +43,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     purchasing,
     manageSubscription,
     openLegal,
+    registerPaywallEmbed,
   } = useSubscription();
+
+  useFocusEffect(
+    useCallback(() => registerPaywallEmbed(), [registerPaywallEmbed])
+  );
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
@@ -385,6 +392,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           onClose={() => setNameEditorVisible(false)}
         />
       ) : null}
+
+      <PlusPaywallSheet embedded />
     </View>
   );
 }

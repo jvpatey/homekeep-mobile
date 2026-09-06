@@ -16,9 +16,37 @@ export const HOMEKEEP_PLUS_ENTITLEMENT = "homekeep_plus";
 export const HOMEKEEP_PLUS_MONTHLY_ID = "homekeep_plus_monthly";
 export const HOMEKEEP_PLUS_YEARLY_ID = "homekeep_plus_yearly";
 
-export const FALLBACK_MONTHLY_PRICE = "$5.99";
-export const FALLBACK_YEARLY_PRICE = "$39.99";
-export const FALLBACK_YEARLY_PER_MONTH = "$3.33";
+/** Fallbacks when the store has not returned a localized price yet. CAD. */
+export const FALLBACK_MONTHLY_PRICE = "CA$5.99";
+export const FALLBACK_YEARLY_PRICE = "CA$29.99";
+export const FALLBACK_YEARLY_PER_MONTH = "CA$2.50";
+const STORE_CURRENCY = "CAD";
+
+/** Show CAD explicitly so a bare "$" is not read as USD. */
+export function displayPrice(
+  priceString: string | null | undefined,
+  currencyCode?: string | null
+): string {
+  const raw = (priceString ?? "").trim();
+  const code = (currencyCode ?? STORE_CURRENCY).toUpperCase();
+  if (!raw) return FALLBACK_YEARLY_PRICE;
+  if (code === "CAD") {
+    if (/CA\$|CAD/i.test(raw)) return raw;
+    if (raw.startsWith("C$")) return `CA$${raw.slice(2)}`;
+    if (raw.startsWith("$")) return `CA${raw}`;
+    return `${raw} CAD`;
+  }
+  if (raw.includes(code)) return raw;
+  return `${raw} ${code}`;
+}
+
+export function packagePriceLabel(
+  pkg: PurchasesPackage | null,
+  fallback: string
+): string {
+  if (!pkg) return displayPrice(fallback, STORE_CURRENCY);
+  return displayPrice(pkg.product.priceString, pkg.product.currencyCode);
+}
 
 export type PlusPlanLabel = "Yearly" | "Monthly";
 
@@ -164,14 +192,19 @@ export function monthlyEquivalentLabel(pkg: PurchasesPackage): string | null {
   const price = pkg.product.price;
   if (!price || price <= 0) return null;
   const perMonth = price / 12;
+  const code = pkg.product.currencyCode || STORE_CURRENCY;
   try {
-    return new Intl.NumberFormat(undefined, {
+    const formatted = new Intl.NumberFormat("en-CA", {
       style: "currency",
-      currency: pkg.product.currencyCode,
+      currency: code,
       maximumFractionDigits: 2,
     }).format(perMonth);
+    return displayPrice(formatted, code);
   } catch {
-    return `$${(Math.round(perMonth * 100) / 100).toFixed(2)}`;
+    return displayPrice(
+      `$${(Math.round(perMonth * 100) / 100).toFixed(2)}`,
+      code
+    );
   }
 }
 

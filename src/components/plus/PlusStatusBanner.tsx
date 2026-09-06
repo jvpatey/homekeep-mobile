@@ -36,14 +36,14 @@ export function PlusStatusBanner() {
       : `${daysRemaining} days left on us`
     : `${HOMEKEEP_PLUS_NAME} is paused`;
   const subtitle = trialEnding
-    ? `Subscribe to keep this home on schedule.`
+    ? "View your plan and billing."
     : "Viewing only — subscribe to complete tasks, reminders, and sharing.";
 
   return (
     <Pressable
       onPress={() => {
         void triggerLight();
-        void presentPaywall();
+        void presentPaywall({ force: true });
       }}
       style={[
         styles.banner,

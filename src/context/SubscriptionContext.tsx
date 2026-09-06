@@ -81,6 +81,8 @@ interface SubscriptionContextValue {
   refresh: () => Promise<void>;
   manageSubscription: () => Promise<void>;
   openLegal: (kind: "privacy" | "terms") => Promise<void>;
+  paywallEmbeds: number;
+  registerPaywallEmbed: () => () => void;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(
@@ -140,6 +142,12 @@ export function SubscriptionProvider({
   const setupPaywallShownRef = useRef(false);
   const purchasingRef = useRef(false);
   const isPlusRef = useRef(false);
+  const [paywallEmbeds, setPaywallEmbeds] = useState(0);
+
+  const registerPaywallEmbed = useCallback(() => {
+    setPaywallEmbeds((n) => n + 1);
+    return () => setPaywallEmbeds((n) => Math.max(0, n - 1));
+  }, []);
 
   const storeAvailable = Boolean(getRcApiKey()) && !isExpoGo();
 
@@ -477,6 +485,8 @@ export function SubscriptionProvider({
       refresh,
       manageSubscription: openManageSubscriptions,
       openLegal: openLegalUrl,
+      paywallEmbeds,
+      registerPaywallEmbed,
     }),
     [
       closePaywall,
@@ -488,8 +498,10 @@ export function SubscriptionProvider({
       offering,
       offeringsError,
       offeringsLoading,
+      paywallEmbeds,
       paywallEpoch,
       paywallVisible,
+      registerPaywallEmbed,
       presentPaywall,
       productId,
       purchasePackage,

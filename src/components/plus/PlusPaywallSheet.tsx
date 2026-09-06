@@ -25,6 +25,7 @@ import {
   isExpoGo,
   monthlyEquivalentLabel,
   packageHasIntroTrial,
+  packagePriceLabel,
   plusPlanLabel,
   plusStatusSubtitle,
 } from "../../lib/purchases";
@@ -39,7 +40,11 @@ const VALUE_LINES = [
 
 const COLUMN_MAX = 480;
 
-export function PlusPaywallSheet() {
+export function PlusPaywallSheet({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const { colors } = useTheme();
   const { isRegularWidth } = useDevice();
   const {
@@ -88,6 +93,16 @@ export function PlusPaywallSheet() {
     includedViaHousehold,
   });
   const viewingOwnPlan = isPlus;
+  const planNote =
+    viewingOwnPlan && status === "trialing" && expirationDate
+      ? `This is a free trial on your ${plusPlanLabel(productId) ?? "HomeKeep +"} plan. Billing starts ${expirationDate.toLocaleDateString()} unless you cancel.`
+      : viewingOwnPlan && status === "active" && expirationDate
+        ? `Renews ${expirationDate.toLocaleDateString()}. Cancel anytime in your store account.`
+        : viewingOwnPlan && status === "grace"
+          ? "There's a billing issue. Access continues while you update payment in your store account."
+          : viewingOwnPlan && includedViaHousehold
+            ? "This home includes HomeKeep + for everyone in the household."
+            : null;
   const ctaLabel = viewingOwnPlan
     ? includedViaHousehold
       ? "Close"
@@ -96,9 +111,10 @@ export function PlusPaywallSheet() {
       ? "Requires a development build"
       : hasTrial
         ? "Start 7-day free trial"
-        : selected
-          ? `Subscribe for ${selected.product.priceString}`
-          : `Subscribe for ${plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE}`;
+        : `Subscribe for ${packagePriceLabel(
+            selected,
+            plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE
+          )}`;
 
   const handlePrimary = async () => {
     if (viewingOwnPlan) {
@@ -144,15 +160,18 @@ export function PlusPaywallSheet() {
     );
   };
 
-  const yearlyPrice = yearlyPackage?.product.priceString ?? FALLBACK_YEARLY_PRICE;
-  const monthlyPrice =
-    monthlyPackage?.product.priceString ?? FALLBACK_MONTHLY_PRICE;
+  const yearlyPrice = packagePriceLabel(yearlyPackage, FALLBACK_YEARLY_PRICE);
+  const monthlyPrice = packagePriceLabel(
+    monthlyPackage,
+    FALLBACK_MONTHLY_PRICE
+  );
   const yearlyPerMonth = yearlyPackage
     ? monthlyEquivalentLabel(yearlyPackage) ?? FALLBACK_YEARLY_PER_MONTH
     : FALLBACK_YEARLY_PER_MONTH;
-  const afterTrialPrice =
-    selected?.product.priceString ??
-    (plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE);
+  const afterTrialPrice = packagePriceLabel(
+    selected,
+    plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE
+  );
   const billingPeriod = plan === "yearly" ? "year" : "month";
   const legalText = viewingOwnPlan
     ? "Change or cancel in your Apple or Google account settings."
@@ -171,6 +190,7 @@ export function PlusPaywallSheet() {
       visible={paywallVisible}
       onClose={closePaywall}
       title={HOMEKEEP_PLUS_NAME}
+      embedded={embedded}
       keyboardAvoiding={false}
       fillMaxHeight
       maxHeightRatio={isRegularWidth ? 0.72 : 0.86}
@@ -245,6 +265,11 @@ export function PlusPaywallSheet() {
               ? currentStatus
               : "Reminders, household sharing, and the next cycle. Cancel anytime."}
           </Text>
+          {planNote ? (
+            <Text style={[styles.subhead, { color: colors.textSecondary }]}>
+              {planNote}
+            </Text>
+          ) : null}
         </View>
 
         {viewingOwnPlan ? null : (
