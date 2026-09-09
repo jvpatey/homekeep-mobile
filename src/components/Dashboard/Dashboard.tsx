@@ -16,7 +16,10 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
-import { CompletionCelebration } from "./popups";
+import {
+  CompletionCelebration,
+  CompletionCelebrationSnapshot,
+} from "./popups";
 import { NotificationPermissionRequest, HearthCanvas } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { NextRightThingCard } from "./NextRightThingCard";
@@ -115,7 +118,10 @@ export function NewDashboard({
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
-  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebration, setCelebration] = useState<{
+    visible: boolean;
+    snapshot: CompletionCelebrationSnapshot | null;
+  }>({ visible: false, snapshot: null });
   const [completingInstanceIds, setCompletingInstanceIds] = useState<
     Set<string>
   >(new Set());
@@ -283,6 +289,45 @@ export function NewDashboard({
       if (completingRef.current.has(instanceId)) return false;
       if (!(await requirePlus())) return false;
 
+      const completedTask =
+        tasks.find((t) => t.instance_id === instanceId) ??
+        overdueTasks.find((t) => t.instance_id === instanceId);
+
+      const remainingOverdue = overdueTasks.filter(
+        (t) => t.instance_id !== instanceId
+      );
+      const remainingUpcoming = tasks.filter(
+        (t) => t.instance_id !== instanceId
+      );
+      const remainingSeasonalOverdue = seasonalOverdue.filter(
+        (t) => t.instance_id !== instanceId
+      );
+      const remainingSeasonalUpcoming = seasonalTasks.filter(
+        (t) => t.instance_id !== instanceId
+      );
+      const nextAfter = pickNextRightThing(
+        remainingSeasonalOverdue,
+        remainingSeasonalUpcoming
+      );
+
+      const snapshot: CompletionCelebrationSnapshot | null = completedTask
+        ? {
+            title: completedTask.title,
+            category: completedTask.category,
+            estimated_duration_minutes:
+              completedTask.estimated_duration_minutes,
+            wasOverdue:
+              completedTask.is_overdue ||
+              overdueTasks.some((t) => t.instance_id === instanceId),
+            remainingOverdue: remainingOverdue.length,
+            remainingToday: countDueToday([
+              ...remainingUpcoming,
+              ...remainingOverdue,
+            ]),
+            nextTitle: nextAfter?.title,
+          }
+        : null;
+
       completingRef.current.add(instanceId);
       setCompletingInstanceIds(new Set(completingRef.current));
       await triggerMedium();
@@ -290,7 +335,7 @@ export function NewDashboard({
       try {
         const result = await onCompleteTask(instanceId, extras);
         if (result.success) {
-          setShowCelebration(true);
+          setCelebration({ visible: true, snapshot });
           setShowTaskDetail(false);
           setSelectedTask(null);
           return true;
@@ -312,7 +357,15 @@ export function NewDashboard({
         setCompletingInstanceIds(new Set(completingRef.current));
       }
     },
-    [onCompleteTask, requirePlus, triggerMedium]
+    [
+      onCompleteTask,
+      overdueTasks,
+      requirePlus,
+      seasonalOverdue,
+      seasonalTasks,
+      tasks,
+      triggerMedium,
+    ]
   );
 
   const handleSkipOccurrence = useCallback(
@@ -407,7 +460,7 @@ export function NewDashboard({
   }, [clearPendingOpen, overdueTasks, pendingOpen, tasks]);
 
   const handleCloseCelebration = () => {
-    setShowCelebration(false);
+    setCelebration({ visible: false, snapshot: null });
   };
 
   const handleTaskCreated = () => {
@@ -607,7 +660,8 @@ export function NewDashboard({
       )}
 
       <CompletionCelebration
-        isVisible={showCelebration}
+        isVisible={celebration.visible}
+        snapshot={celebration.snapshot}
         onClose={handleCloseCelebration}
       />
 
