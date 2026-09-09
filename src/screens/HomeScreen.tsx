@@ -35,53 +35,66 @@ export function HomeScreen() {
   const reducedMotion = useReducedMotion();
   const {
     isRegularWidth,
+    width,
+    height,
     getAuthContentWidth,
     getMaxContentWidth,
     getResponsiveValue,
   } = useDevice();
   const [appleLoading, setAppleLoading] = useState(false);
 
+  const isTabletPortrait = isRegularWidth && height >= width;
   const splitWidth = getMaxContentWidth();
   const phoneColumnWidth = getAuthContentWidth("welcome");
   const ctaCardWidth = isRegularWidth
-    ? getResponsiveValue(320, 360, 400)
+    ? getResponsiveValue(
+        isTabletPortrait ? 300 : 320,
+        isTabletPortrait ? 320 : 360,
+        400
+      )
     : undefined;
   const gutter = isRegularWidth
-    ? DesignSystem.spacing.xl
+    ? getResponsiveValue(
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl,
+        DesignSystem.spacing.xxl
+      )
     : DesignSystem.spacing.lg;
   const wordmarkSize = isRegularWidth ? getResponsiveValue(20, 22, 24) : 20;
-  const heroSize = isRegularWidth ? getResponsiveValue(120, 160, 200) : 120;
+  // Keep the mark present, not towering — tall marks unbalance the split CTA.
+  const heroSize = isRegularWidth
+    ? getResponsiveValue(isTabletPortrait ? 72 : 88, 96, 112)
+    : 120;
   const headlineFontSize = isRegularWidth
-    ? getResponsiveValue(38, 44, 52)
+    ? getResponsiveValue(36, 42, 48)
     : 38;
   const headlineLineHeight = isRegularWidth
-    ? getResponsiveValue(44, 50, 58)
+    ? getResponsiveValue(42, 48, 54)
     : 44;
   const supportFontSize = isRegularWidth ? getResponsiveValue(16, 17, 18) : 16;
   const supportLineHeight = isRegularWidth
     ? getResponsiveValue(22, 24, 26)
     : 22;
   const heroMarkMarginTop = isRegularWidth
-    ? getResponsiveValue(
-        DesignSystem.spacing.xl,
-        DesignSystem.spacing.xxl,
-        DesignSystem.spacing.xxl,
-      )
+    ? DesignSystem.spacing.sm
     : DesignSystem.spacing.xxxl;
   const heroMarkMarginBottom = isRegularWidth
-    ? getResponsiveValue(
-        DesignSystem.spacing.lg,
-        DesignSystem.spacing.xl,
-        DesignSystem.spacing.xl,
-      )
+    ? DesignSystem.spacing.md
     : DesignSystem.spacing.xl;
   const cardPadding = isRegularWidth
     ? getResponsiveValue(
-        DesignSystem.spacing.lg,
         DesignSystem.spacing.xl,
         DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl
       )
     : DesignSystem.spacing.lg;
+  const splitGap = isRegularWidth
+    ? getResponsiveValue(
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl,
+        DesignSystem.spacing.xxl
+      )
+    : DesignSystem.spacing.xl;
 
   const entering = reducedMotion
     ? undefined
@@ -294,17 +307,27 @@ export function HomeScreen() {
           </Animated.View>
 
           {isRegularWidth ? (
-            <View style={styles.splitRow}>
-              <View style={styles.brand}>{copy}</View>
-              <HearthSurfaceCard
-                containerStyle={[
-                  styles.ctaCardContainer,
-                  ctaCardWidth != null && { maxWidth: ctaCardWidth },
-                ]}
-                style={[styles.ctaCard, { padding: cardPadding, width: "100%" }]}
-              >
-                {dock}
-              </HearthSurfaceCard>
+            <View style={styles.heroStage}>
+              <View style={[styles.splitRow, { gap: splitGap }]}>
+                <View style={styles.brand}>{copy}</View>
+                <HearthSurfaceCard
+                  containerStyle={[
+                    styles.ctaCardContainer,
+                    ctaCardWidth != null && { maxWidth: ctaCardWidth },
+                  ]}
+                  style={[
+                    styles.ctaCard,
+                    {
+                      padding: cardPadding,
+                      width: "100%",
+                      flex: 1,
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  {dock}
+                </HearthSurfaceCard>
+              </View>
             </View>
           ) : (
             <>
@@ -334,28 +357,36 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignSelf: "center",
   },
-  splitRow: {
+  heroStage: {
     flex: 1,
+    justifyContent: "center",
+    paddingVertical: DesignSystem.spacing.xl,
+  },
+  splitRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.xl,
+    alignItems: "stretch",
+    width: "100%",
   },
   brand: {
-    flex: 1.2,
+    flex: 1.15,
     minWidth: 0,
+    justifyContent: "center",
   },
   ctaCardContainer: {
     flex: 1,
-    minWidth: 280,
-    width: "100%",
+    minWidth: 260,
+    maxWidth: 400,
+    alignSelf: "stretch",
   },
   ctaCard: {
     overflow: "visible",
+    minHeight: 220,
   },
   wordmarkRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 2,
+    marginBottom: DesignSystem.spacing.md,
   },
   wordmarkMark: {
     height: 20,
