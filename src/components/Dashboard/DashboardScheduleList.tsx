@@ -78,18 +78,31 @@ export const DashboardScheduleList = forwardRef<
     scrollToSection: (key: string) => {
       let targetKey = key;
       if (key === "__today__") {
-        const todaySection = sections.find((s) => s.title === "Today");
+        const todaySection = sections.find(
+          (s) => s.date != null && s.title === "Today"
+        );
         if (!todaySection) return;
         targetKey = todaySection.key;
       }
       const sectionIndex = sections.findIndex((s) => s.key === targetKey);
       if (sectionIndex < 0) return;
-      listRef.current?.scrollToLocation({
-        sectionIndex,
-        itemIndex: 0,
-        animated: true,
-        viewOffset: 0,
-      });
+
+      const scroll = (attempt: number) => {
+        try {
+          listRef.current?.scrollToLocation({
+            sectionIndex,
+            itemIndex: 0,
+            animated: attempt === 0,
+            viewPosition: 0,
+            viewOffset: 8,
+          });
+        } catch {
+          if (attempt < 2) {
+            setTimeout(() => scroll(attempt + 1), 120);
+          }
+        }
+      };
+      scroll(0);
     },
   }));
 
@@ -269,6 +282,15 @@ export const DashboardScheduleList = forwardRef<
       keyExtractor={(item) => item.instance_id}
       stickySectionHeadersEnabled
       showsVerticalScrollIndicator={false}
+      onScrollToIndexFailed={({ index }) => {
+        setTimeout(() => {
+          listRef.current?.scrollToLocation({
+            sectionIndex: 0,
+            itemIndex: Math.max(index, 0),
+            animated: true,
+          });
+        }, 100);
+      }}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={renderEmpty}
       contentContainerStyle={[
@@ -302,7 +324,6 @@ export const DashboardScheduleList = forwardRef<
           onSkipOccurrence={onSkipOccurrence}
         />
       )}
-      onScrollToIndexFailed={() => {}}
     />
   );
 });

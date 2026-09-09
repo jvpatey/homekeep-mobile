@@ -632,9 +632,32 @@ export function NewDashboard({
     setShowCreateModal(true);
   };
 
-  const handleScrollToSection = (key: string) => {
-    listRef.current?.scrollToSection(key);
-  };
+  const handleStatusChipPress = useCallback(
+    (kind: "overdue" | "today") => {
+      if (kind === "overdue") {
+        if (seasonalOverdue.length === 1) {
+          setSelectedTask(seasonalOverdue[0]);
+          setShowTaskDetail(true);
+          return;
+        }
+        listRef.current?.scrollToSection("overdue");
+        return;
+      }
+
+      const today = new Date().toDateString();
+      const dueTodayTasks = [...tasks, ...overdueTasks].filter(
+        (t) =>
+          !t.is_completed && new Date(t.due_date).toDateString() === today
+      );
+      if (dueTodayTasks.length === 1) {
+        setSelectedTask(dueTodayTasks[0]);
+        setShowTaskDetail(true);
+        return;
+      }
+      listRef.current?.scrollToSection("__today__");
+    },
+    [overdueTasks, seasonalOverdue, tasks]
+  );
 
   const contentPaddingBottom = hasScheduleTasks
     ? insets.bottom +
@@ -658,7 +681,7 @@ export function NewDashboard({
         onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowHomeSetupModal(true)}
         onOpenHomeSummary={() => navigation.navigate("HomeSummaryPreview")}
-        onScrollToSection={handleScrollToSection}
+        onStatusChipPress={handleStatusChipPress}
         animatedStyle={headerAnimatedStyle}
         seasonLabel={seasonLabel}
       />
