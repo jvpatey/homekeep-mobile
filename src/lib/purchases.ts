@@ -22,22 +22,62 @@ export const FALLBACK_YEARLY_PRICE = "CA$29.99";
 export const FALLBACK_YEARLY_PER_MONTH = "CA$2.50";
 const STORE_CURRENCY = "CAD";
 
-/** Show CAD explicitly so a bare "$" is not read as USD. */
+const HAS_CURRENCY_MARKER =
+  /CA\$|C\$|CAD\b|US\$|USD\b|€|£|¥|A\$|NZ\$|HK\$/i;
+
+/**
+ * Normalize store price strings for display.
+ * Prefer StoreKit localization; for CAD, make a bare "$" read as CA$ (not USD).
+ * Never append a second currency label onto an already-marked string.
+ */
 export function displayPrice(
   priceString: string | null | undefined,
   currencyCode?: string | null
 ): string {
   const raw = (priceString ?? "").trim();
   const code = (currencyCode ?? STORE_CURRENCY).toUpperCase();
-  if (!raw) return FALLBACK_YEARLY_PRICE;
+  if (!raw) {
+    return code === "CAD" ? FALLBACK_YEARLY_PRICE : "";
+  }
+
+  if (HAS_CURRENCY_MARKER.test(raw)) {
+    if (code === "CAD" && /^C\$/.test(raw) && !/^CA\$/i.test(raw)) {
+      return `CA$${raw.slice(2)}`;
+    }
+    return raw;
+  }
+
   if (code === "CAD") {
-    if (/CA\$|CAD/i.test(raw)) return raw;
-    if (raw.startsWith("C$")) return `CA$${raw.slice(2)}`;
     if (raw.startsWith("$")) return `CA${raw}`;
     return `${raw} CAD`;
   }
+
+  if (code === "USD" && raw.startsWith("$")) {
+    return `US${raw}`;
+  }
+
   if (raw.includes(code)) return raw;
   return `${raw} ${code}`;
+}
+
+function formatMoney(
+  amount: number,
+  currencyCode?: string | null
+): string | null {
+  const code = (currencyCode ?? STORE_CURRENCY).toUpperCase();
+  try {
+    const formatted = new Intl.NumberFormat(
+      code === "CAD" ? "en-CA" : code === "USD" ? "en-US" : undefined,
+      {
+        style: "currency",
+        currency: code,
+        maximumFractionDigits: 2,
+      }
+    ).format(amount);
+    return displayPrice(formatted, code);
+  } catch {
+    return null;
+  }
 }
 
 export function packagePriceLabel(
@@ -45,7 +85,10 @@ export function packagePriceLabel(
   fallback: string
 ): string {
   if (!pkg) return displayPrice(fallback, STORE_CURRENCY);
-  return displayPrice(pkg.product.priceString, pkg.product.currencyCode);
+  const code = pkg.product.currencyCode || STORE_CURRENCY;
+  const fromAmount = formatMoney(pkg.product.price, code);
+  if (fromAmount) return fromAmount;
+  return displayPrice(pkg.product.priceString, code);
 }
 
 export type PlusPlanLabel = "Yearly" | "Monthly";
@@ -198,19 +241,12 @@ export function monthlyEquivalentLabel(pkg: PurchasesPackage): string | null {
   if (!price || price <= 0) return null;
   const perMonth = price / 12;
   const code = pkg.product.currencyCode || STORE_CURRENCY;
-  try {
-    const formatted = new Intl.NumberFormat("en-CA", {
-      style: "currency",
-      currency: code,
-      maximumFractionDigits: 2,
-    }).format(perMonth);
-    return displayPrice(formatted, code);
-  } catch {
-    return displayPrice(
-      `$${(Math.round(perMonth * 100) / 100).toFixed(2)}`,
-      code
-    );
-  }
+  const formatted = formatMoney(perMonth, code);
+  if (formatted) return formatted;
+  return displayPrice(
+    `$${(Math.round(perMonth * 100) / 100).toFixed(2)}`,
+    code
+  );
 }
 
 let configureStarted = false;
