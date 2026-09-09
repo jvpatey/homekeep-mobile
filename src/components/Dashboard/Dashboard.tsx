@@ -60,10 +60,27 @@ import {
   getHomeMapZones,
   taskMatchesZone,
 } from "../../data/homeMapZones";
-import { isTaskInSeason } from "../../utils/seasonalTasks";
+import { isTaskInSeason, buildWeekendPlan } from "../../utils/seasonalTasks";
+import {
+  loadWeekendPlan,
+  saveWeekendPlan,
+  clearWeekendPlan,
+  createWeekendPlanFromTasks,
+  resolveWeekendPlan,
+  markWeekendPlanItemComplete,
+  loadWeekendPlanHistory,
+  archiveWeekendPlan,
+  StoredWeekendPlan,
+  WeekendPlanHistoryEntry,
+} from "../../utils/weekendPlanStorage";
 import { CompleteTaskSheet } from "../modals/complete-task/CompleteTaskSheet";
 import { EmergencyFactsModal } from "../modals/emergency-facts/EmergencyFactsModal";
 import { WeekendBudgetSheet } from "./WeekendBudgetSheet";
+import { WeekendPlanStrip } from "./WeekendPlanStrip";
+import {
+  WeekendPlanCelebration,
+  WeekendPlanCelebrationSnapshot,
+} from "./WeekendPlanCelebration";
 import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
 
 interface NewDashboardProps {
@@ -122,6 +139,10 @@ export function NewDashboard({
     visible: boolean;
     snapshot: CompletionCelebrationSnapshot | null;
   }>({ visible: false, snapshot: null });
+  const [weekendCelebration, setWeekendCelebration] = useState<{
+    visible: boolean;
+    snapshot: WeekendPlanCelebrationSnapshot | null;
+  }>({ visible: false, snapshot: null });
   const [completingInstanceIds, setCompletingInstanceIds] = useState<
     Set<string>
   >(new Set());
@@ -143,7 +164,13 @@ export function NewDashboard({
   const [selectedZoneId, setSelectedZoneId] = useState<HomeMapZoneId | null>(
     null
   );
+  const [storedWeekendPlan, setStoredWeekendPlan] =
+    useState<StoredWeekendPlan | null>(null);
+  const [weekendHistory, setWeekendHistory] = useState<
+    WeekendPlanHistoryEntry[]
+  >([]);
   const [showWeekendBudget, setShowWeekendBudget] = useState(false);
+  const [sheetBudget, setSheetBudget] = useState(90);
   const [showEmergencyFacts, setShowEmergencyFacts] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<MaintenanceTask | null>(
     null
@@ -151,6 +178,9 @@ export function NewDashboard({
   const [climateAlert, setClimateAlert] = useState<ClimateAlert | null>(null);
   const pendingEditRef = useRef<MaintenanceTask | null>(null);
   const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
+  const resumeWeekendAfterDetailRef = useRef(false);
+  /** Resume weekend sheet only after celebrations finish (Modals stack above overlays). */
+  const pendingWeekendResumeRef = useRef(false);
 
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(14);
@@ -221,6 +251,23 @@ export function NewDashboard({
     return () => clearTimeout(timer);
   }, [addressNeeded, homeSetupNeeded]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([loadWeekendPlan(), loadWeekendPlanHistory()]).then(
+      ([stored, history]) => {
+        if (cancelled) return;
+        if (stored) {
+          setStoredWeekendPlan(stored);
+          setSheetBudget(stored.budgetMinutes);
+        }
+        setWeekendHistory(history);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const month = new Date().getMonth();
   const seasonalTasks = useMemo(
     () => tasks.filter((t) => isTaskInSeason(t, month, profile?.latitude)),
@@ -233,6 +280,81 @@ export function NewDashboard({
       ),
     [overdueTasks, month, profile?.latitude]
   );
+
+  const weekendPool = useMemo(
+    () => [...seasonalOverdue, ...seasonalTasks],
+    [seasonalOverdue, seasonalTasks]
+  );
+
+  const activeWeekendPlan = useMemo(
+    () => (storedWeekendPlan ? resolveWeekendPlan(storedWeekendPlan) : null),
+    [storedWeekendPlan]
+  );
+
+  useEffect(() => {
+    if (!storedWeekendPlan || !activeWeekendPlan) return;
+    if (Date.now() <= activeWeekendPlan.windowEnd.getTime()) return;
+    setStoredWeekendPlan(null);
+    void clearWeekendPlan();
+  }, [activeWeekendPlan, storedWeekendPlan]);
+
+  const openWeekendPlanner = useCallback(() => {
+    setSheetBudget(storedWeekendPlan?.budgetMinutes ?? 90);
+    setShowWeekendBudget(true);
+  }, [storedWeekendPlan]);
+
+  const dismissWeekendSheet = useCallback(() => {
+    setShowWeekendBudget(false);
+  }, []);
+
+  const startWeekendPlan = useCallback(() => {
+    const preview = buildWeekendPlan(weekendPool, sheetBudget);
+    const created = createWeekendPlanFromTasks(preview.tasks, sheetBudget);
+    if (!created) return;
+    setStoredWeekendPlan(created);
+    void saveWeekendPlan(created);
+    setShowWeekendBudget(false);
+  }, [sheetBudget, weekendPool]);
+
+  const endWeekendPlan = useCallback(() => {
+    Alert.alert(
+      "End weekend plan?",
+      "This clears your checklist. Completed jobs stay in your history only if you finish the whole list.",
+      [
+        { text: "Keep plan", style: "cancel" },
+        {
+          text: "End plan",
+          style: "destructive",
+          onPress: () => {
+            setStoredWeekendPlan(null);
+            setShowWeekendBudget(false);
+            void clearWeekendPlan();
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const queueWeekendResume = useCallback(() => {
+    pendingWeekendResumeRef.current = true;
+  }, []);
+
+  const flushWeekendResume = useCallback(() => {
+    if (!pendingWeekendResumeRef.current) return;
+    pendingWeekendResumeRef.current = false;
+    setTimeout(() => setShowWeekendBudget(true), 50);
+  }, []);
+
+  const handleCloseCelebration = () => {
+    setCelebration({ visible: false, snapshot: null });
+    flushWeekendResume();
+  };
+
+  const handleCloseWeekendCelebration = () => {
+    setWeekendCelebration({ visible: false, snapshot: null });
+    // Plan is finished — do not reopen the weekend sheet.
+    pendingWeekendResumeRef.current = false;
+  };
 
   const zoneFilteredUpcoming = useMemo(() => {
     if (!selectedZoneId) return seasonalTasks;
@@ -335,9 +457,39 @@ export function NewDashboard({
       try {
         const result = await onCompleteTask(instanceId, extras);
         if (result.success) {
-          setCelebration({ visible: true, snapshot });
           setShowTaskDetail(false);
           setSelectedTask(null);
+
+          const updatedPlan = await markWeekendPlanItemComplete(instanceId);
+          if (updatedPlan) {
+            const resolved = resolveWeekendPlan(updatedPlan);
+            if (resolved.isComplete) {
+              const entry = await archiveWeekendPlan(updatedPlan);
+              const history = await loadWeekendPlanHistory();
+              setStoredWeekendPlan(null);
+              setWeekendHistory(history);
+              resumeWeekendAfterDetailRef.current = false;
+              pendingWeekendResumeRef.current = false;
+              setShowWeekendBudget(false);
+              setWeekendCelebration({
+                visible: true,
+                snapshot: {
+                  taskCount: entry.taskCount,
+                  totalMinutes: entry.totalMinutes,
+                  titles: entry.titles,
+                  history,
+                },
+              });
+              return true;
+            }
+            setStoredWeekendPlan(updatedPlan);
+          }
+
+          if (resumeWeekendAfterDetailRef.current) {
+            resumeWeekendAfterDetailRef.current = false;
+            queueWeekendResume();
+          }
+          setCelebration({ visible: true, snapshot });
           return true;
         }
         Alert.alert(
@@ -360,6 +512,7 @@ export function NewDashboard({
     [
       onCompleteTask,
       overdueTasks,
+      queueWeekendResume,
       requirePlus,
       seasonalOverdue,
       seasonalTasks,
@@ -459,10 +612,6 @@ export function NewDashboard({
     clearPendingOpen();
   }, [clearPendingOpen, overdueTasks, pendingOpen, tasks]);
 
-  const handleCloseCelebration = () => {
-    setCelebration({ visible: false, snapshot: null });
-  };
-
   const handleTaskCreated = () => {
     setShowCreateModal(false);
     setEditTaskInitial(null);
@@ -542,19 +691,27 @@ export function NewDashboard({
           }}
         />
       ) : null}
-      <Pressable
-        onPress={() => setShowWeekendBudget(true)}
-        style={{
-          alignSelf: "center",
-          marginBottom: DesignSystem.spacing.md,
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Plan a weekend with a time budget"
-      >
-        <Text style={{ color: colors.primary, fontWeight: "600" }}>
-          I have some time this weekend
-        </Text>
-      </Pressable>
+      {activeWeekendPlan ? (
+        <WeekendPlanStrip
+          plan={activeWeekendPlan}
+          onPress={openWeekendPlanner}
+          onEndPlan={endWeekendPlan}
+        />
+      ) : (
+        <Pressable
+          onPress={openWeekendPlanner}
+          style={{
+            alignSelf: "center",
+            marginBottom: DesignSystem.spacing.md,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Plan a weekend with a time budget"
+        >
+          <Text style={{ color: colors.primary, fontWeight: "600" }}>
+            I have some time this weekend
+          </Text>
+        </Pressable>
+      )}
       {tasksError && onRetryTasks ? (
         <TasksLoadErrorBanner message={tasksError} onRetry={onRetryTasks} />
       ) : null}
@@ -609,6 +766,12 @@ export function NewDashboard({
             }
             if (toComplete) {
               setTimeout(() => setCompleteTarget(toComplete), 50);
+              return;
+            }
+            // Resume weekend planner after browsing a task (avoid nested Modals).
+            if (resumeWeekendAfterDetailRef.current) {
+              resumeWeekendAfterDetailRef.current = false;
+              setTimeout(() => setShowWeekendBudget(true), 50);
             }
           }}
           onComplete={handleCompleteTask}
@@ -635,6 +798,10 @@ export function NewDashboard({
             setShowCreateModal(false);
             setEditTaskInitial(null);
             setCreateEquipmentId(null);
+            if (resumeWeekendAfterDetailRef.current) {
+              resumeWeekendAfterDetailRef.current = false;
+              setTimeout(() => setShowWeekendBudget(true), 50);
+            }
           }}
           onTaskCreated={handleTaskCreated}
           initialValues={
@@ -663,6 +830,12 @@ export function NewDashboard({
         isVisible={celebration.visible}
         snapshot={celebration.snapshot}
         onClose={handleCloseCelebration}
+      />
+
+      <WeekendPlanCelebration
+        isVisible={weekendCelebration.visible}
+        snapshot={weekendCelebration.snapshot}
+        onClose={handleCloseWeekendCelebration}
       />
 
       {showEquipmentManualsModal ? (
@@ -701,7 +874,15 @@ export function NewDashboard({
         <CompleteTaskSheet
           visible
           task={completeTarget}
-          onClose={() => setCompleteTarget(null)}
+          onClose={() => {
+            setCompleteTarget(null);
+            // Cancelled without completing — reopen plan now.
+            // Successful completes queue resume until celebration closes.
+            if (resumeWeekendAfterDetailRef.current) {
+              resumeWeekendAfterDetailRef.current = false;
+              setTimeout(() => setShowWeekendBudget(true), 50);
+            }
+          }}
           onSubmit={handleCompleteTask}
         />
       ) : null}
@@ -716,9 +897,28 @@ export function NewDashboard({
       {showWeekendBudget ? (
         <WeekendBudgetSheet
           visible
-          tasks={[...seasonalOverdue, ...seasonalTasks]}
-          onClose={() => setShowWeekendBudget(false)}
-          onPickTask={(task) => {
+          tasks={weekendPool}
+          budgetMinutes={sheetBudget}
+          onBudgetChange={setSheetBudget}
+          activePlan={activeWeekendPlan}
+          history={weekendHistory}
+          onClose={dismissWeekendSheet}
+          onStartPlan={startWeekendPlan}
+          onEndPlan={endWeekendPlan}
+          onPickTask={(instanceId) => {
+            const task =
+              weekendPool.find((t) => t.instance_id === instanceId) ??
+              tasks.find((t) => t.instance_id === instanceId) ??
+              overdueTasks.find((t) => t.instance_id === instanceId);
+            if (!task) {
+              Alert.alert(
+                "Job unavailable",
+                "This job is no longer on your schedule."
+              );
+              return;
+            }
+            resumeWeekendAfterDetailRef.current = true;
+            setShowWeekendBudget(false);
             setSelectedTask(task);
             setShowTaskDetail(true);
           }}

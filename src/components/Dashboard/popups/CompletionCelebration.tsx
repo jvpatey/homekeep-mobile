@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Modal } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
@@ -360,37 +360,44 @@ export function CompletionCelebration({
   const ringSize = isTablet ? 104 : 88;
 
   return (
-    <View style={styles.overlayContainer} pointerEvents="box-none">
-      <Animated.View style={[styles.overlay, overlayStyle]}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={handleClose}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss celebration"
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          styles.card,
-          cardStyle,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            maxWidth: isTablet ? 450 : 350,
-          },
-          DesignSystem.shadows.softKey,
-        ]}
-      >
-        {/* Clip only the fill — confetti lives above and can overflow freely. */}
-        <View style={styles.cardClip} pointerEvents="none">
-          <LinearGradient
-            colors={authAtmosphere}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.35 }}
+    <Modal
+      transparent
+      visible={isVisible}
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
+      <View style={styles.overlayContainer} pointerEvents="box-none">
+        <Animated.View style={[styles.overlay, overlayStyle]}>
+          <Pressable
             style={StyleSheet.absoluteFill}
+            onPress={handleClose}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss celebration"
           />
-        </View>
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.card,
+            cardStyle,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              maxWidth: isTablet ? 450 : 350,
+            },
+            DesignSystem.shadows.softKey,
+          ]}
+        >
+          {/* Clip only the fill — confetti lives above and can overflow freely. */}
+          <View style={styles.cardClip} pointerEvents="none">
+            <LinearGradient
+              colors={authAtmosphere}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 0.35 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
 
         <View
           style={[
@@ -541,7 +548,8 @@ export function CompletionCelebration({
           </Animated.View>
         </View>
       </Animated.View>
-    </View>
+      </View>
+    </Modal>
   );
 }
 
