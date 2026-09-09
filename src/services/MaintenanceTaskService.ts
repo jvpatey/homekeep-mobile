@@ -12,6 +12,17 @@ import {
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
 import { enrichTasksWithCompleters } from "./enrichCompleters";
 import { addDays, startOfDay } from "date-fns";
+import { toServiceError } from "../utils/serviceError";
+
+function failedQuery<T>(
+  error: unknown,
+  logLabel: string,
+  fallback: string
+): ServiceResponse<T> {
+  const serviceError = toServiceError(error, fallback);
+  console.error(logLabel, serviceError);
+  return { data: null, error: serviceError };
+}
 
 /** Max rows per task list query; pagination is out of scope for now. */
 export const TASK_LIST_LIMIT = 200;
@@ -116,15 +127,7 @@ export class MaintenanceTaskService {
       const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
       return { data: mappedTasks, error: null };
     } catch (error) {
-      console.error("Error fetching maintenance tasks:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
+      return failedQuery(error, "Error fetching maintenance tasks:", "Couldn't load tasks");
     }
   }
 
@@ -178,15 +181,7 @@ export class MaintenanceTaskService {
       const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
       return { data: mappedTasks, error: null };
     } catch (error) {
-      console.error("Error fetching upcoming tasks:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
+      return failedQuery(error, "Error fetching upcoming tasks:", "Couldn't load upcoming tasks");
     }
   }
 
@@ -240,15 +235,7 @@ export class MaintenanceTaskService {
       const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
       return { data: mappedTasks, error: null };
     } catch (error) {
-      console.error("Error fetching overdue tasks:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
+      return failedQuery(error, "Error fetching overdue tasks:", "Couldn't load overdue tasks");
     }
   }
 
@@ -315,15 +302,7 @@ export class MaintenanceTaskService {
       );
       return { data: mappedTasks, error: null };
     } catch (error) {
-      console.error("Error fetching completed tasks:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
+      return failedQuery(error, "Error fetching completed tasks:", "Couldn't load completed tasks");
     }
   }
 
@@ -367,15 +346,7 @@ export class MaintenanceTaskService {
 
       return { data: null, error: null };
     } catch (error) {
-      console.error("Error updating overdue status:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
+      return failedQuery(error, "Error updating overdue status:", "Couldn't update overdue status");
     }
   }
 }

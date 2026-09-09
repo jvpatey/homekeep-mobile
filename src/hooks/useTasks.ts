@@ -3,6 +3,10 @@ import { AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
 import { ensureAuthSession } from "../utils/ensureAuthSession";
 import {
+  isTransientServiceError,
+  toServiceError,
+} from "../utils/serviceError";
+import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
@@ -181,7 +185,12 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         if (upcomingResult.error) throw upcomingResult.error;
         if (completedResult.error) throw completedResult.error;
         if (overdueResult.error) throw overdueResult.error;
-        if (statsResult.error) throw statsResult.error;
+        if (statsResult.error) {
+          console.warn(
+            "useTasks: maintenance stats failed, continuing:",
+            toServiceError(statsResult.error)
+          );
+        }
 
         const allOverdueTasks = overdueResult.data || [];
         const correctedOverdueTasks = allOverdueTasks.filter((task) => {
@@ -220,8 +229,20 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         setStats(statsData);
       } catch (err) {
         if (gen !== loadGeneration.current) return;
-        const loadError = err as Error;
-        setError(loadError.message || "Failed to load maintenance tasks");
+        const loadError = toServiceError(
+          err,
+          "Failed to load maintenance tasks"
+        );
+        if (!options?.isRetry && isTransientServiceError(loadError)) {
+          const sessionValid = await ensureAuthSession({ forceRefresh: true });
+          if (gen !== loadGeneration.current) return;
+          if (sessionValid) {
+            await new Promise((r) => setTimeout(r, 400));
+            if (gen !== loadGeneration.current) return;
+            return loadTasks({ isRetry: true });
+          }
+        }
+        setError(loadError.message);
         console.error("❌ useTasks: Error loading maintenance tasks:", loadError);
       } finally {
         if (gen === loadGeneration.current) {

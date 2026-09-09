@@ -16,6 +16,7 @@ interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
   visible: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   onComplete: (instanceId: string) => void | Promise<boolean>;
   onEdit?: (task: MaintenanceTask) => void;
   onSkipOccurrence?: (task: MaintenanceTask) => Promise<boolean>;
@@ -39,6 +40,7 @@ export function SimpleTaskDetailModal({
   task,
   visible,
   onClose,
+  onDismissed,
   onComplete,
   onEdit,
   onSkipOccurrence,
@@ -171,6 +173,7 @@ export function SimpleTaskDetailModal({
     <HearthSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
       title="Task details"
       maxHeightRatio={0.9}
       footer={footer}

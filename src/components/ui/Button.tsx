@@ -57,6 +57,7 @@ export function Button({
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       disabled={isDisabled}
+      style={styles.pressable}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
@@ -130,6 +131,9 @@ export function TextLink({
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    width: "100%",
+  },
   button: {
     minHeight: DesignSystem.components.buttonLarge,
     borderRadius: DesignSystem.borders.radius.round,

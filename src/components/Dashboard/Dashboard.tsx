@@ -143,6 +143,8 @@ export function NewDashboard({
     null
   );
   const [climateAlert, setClimateAlert] = useState<ClimateAlert | null>(null);
+  const pendingEditRef = useRef<MaintenanceTask | null>(null);
+  const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
 
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(14);
@@ -421,6 +423,13 @@ export function NewDashboard({
     setShowCreateModal(true);
   };
 
+  const openEditModal = async (task: MaintenanceTask) => {
+    if (!(await requirePlus())) return;
+    setCreateEquipmentId(null);
+    setEditTaskInitial(task);
+    setShowCreateModal(true);
+  };
+
   const handleScrollToSection = (key: string) => {
     listRef.current?.scrollToSection(key);
   };
@@ -528,27 +537,35 @@ export function NewDashboard({
         <FloatingActionButton onPress={openCreateModal} />
       ) : null}
 
-      {showTaskDetail && selectedTask ? (
+      {selectedTask ? (
         <SimpleTaskDetailModal
           task={selectedTask}
-          visible
-          onClose={() => {
-            setShowTaskDetail(false);
+          visible={showTaskDetail}
+          onClose={() => setShowTaskDetail(false)}
+          onDismissed={() => {
             setSelectedTask(null);
+            const toEdit = pendingEditRef.current;
+            const toComplete = pendingCompleteRef.current;
+            pendingEditRef.current = null;
+            pendingCompleteRef.current = null;
+            if (toEdit) {
+              setTimeout(() => {
+                void openEditModal(toEdit);
+              }, 50);
+              return;
+            }
+            if (toComplete) {
+              setTimeout(() => setCompleteTarget(toComplete), 50);
+            }
           }}
           onComplete={handleCompleteTask}
           onStartComplete={(task) => {
+            pendingCompleteRef.current = task;
             setShowTaskDetail(false);
-            setSelectedTask(null);
-            setCompleteTarget(task);
           }}
           onEdit={(task) => {
-            void (async () => {
-              if (!(await requirePlus())) return;
-              setShowTaskDetail(false);
-              setEditTaskInitial(task);
-              setShowCreateModal(true);
-            })();
+            pendingEditRef.current = task;
+            setShowTaskDetail(false);
           }}
           onSkipOccurrence={
             onSkipTaskOccurrence

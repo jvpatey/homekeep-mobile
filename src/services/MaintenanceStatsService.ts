@@ -5,6 +5,7 @@ import {
   CountResponse,
 } from "../types/maintenance";
 import { addDays, startOfDay } from "date-fns";
+import { toServiceError } from "../utils/serviceError";
 
 export class MaintenanceStatsService {
   // Get maintenance statistics for dashboard
@@ -38,41 +39,47 @@ export class MaintenanceStatsService {
         this.getThisWeekInstancesCount(today, nextWeek),
       ]);
 
-      // Check for errors
-      if (activeRoutinesResult.error) throw activeRoutinesResult.error;
-      if (totalInstancesResult.error) throw totalInstancesResult.error;
-      if (completedInstancesResult.error) throw completedInstancesResult.error;
-      if (overdueInstancesResult.error) throw overdueInstancesResult.error;
-      if (todayInstancesResult.error) throw todayInstancesResult.error;
-      if (thisWeekInstancesResult.error) throw thisWeekInstancesResult.error;
+      const takeCount = (result: CountResponse, label: string): number => {
+        if (result.error) {
+          console.warn(
+            `Maintenance stats (${label}) failed:`,
+            toServiceError(result.error)
+          );
+          return 0;
+        }
+        return result.data ?? 0;
+      };
+
+      const activeRoutines = takeCount(activeRoutinesResult, "active routines");
+      const totalInstances = takeCount(totalInstancesResult, "total instances");
+      const completed = takeCount(completedInstancesResult, "completed");
+      const overdue = takeCount(overdueInstancesResult, "overdue");
+      const dueToday = takeCount(todayInstancesResult, "due today");
+      const thisWeek = takeCount(thisWeekInstancesResult, "this week");
 
       const stats: MaintenanceStats = {
-        total: activeRoutinesResult.data || 0,
-        completed: completedInstancesResult.data || 0,
-        overdue: overdueInstancesResult.data || 0,
-        dueToday: todayInstancesResult.data || 0,
-        thisWeek: thisWeekInstancesResult.data || 0,
-        completionRate: totalInstancesResult.data
-          ? Math.round(
-              ((completedInstancesResult.data || 0) /
-                totalInstancesResult.data) *
-                100
-            )
+        total: activeRoutines,
+        completed,
+        overdue,
+        dueToday,
+        thisWeek,
+        completionRate: totalInstances
+          ? Math.round((completed / totalInstances) * 100)
           : 0,
-        activeRoutines: activeRoutinesResult.data || 0,
-        totalInstances: totalInstancesResult.data || 0,
+        activeRoutines,
+        totalInstances,
       };
 
       return { data: stats, error: null };
     } catch (error) {
-      console.error("Error fetching maintenance stats:", error);
+      const serviceError = toServiceError(
+        error,
+        "Couldn't load maintenance stats"
+      );
+      console.error("Error fetching maintenance stats:", serviceError);
       return {
         data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
+        error: serviceError,
       };
     }
   }
