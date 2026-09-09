@@ -5,7 +5,7 @@ import {
   CountResponse,
 } from "../types/maintenance";
 import { addDays, startOfDay } from "date-fns";
-import { toServiceError } from "../utils/serviceError";
+import { logServiceFailure } from "../utils/serviceError";
 
 export class MaintenanceStatsService {
   // Get maintenance statistics for dashboard
@@ -41,9 +41,9 @@ export class MaintenanceStatsService {
 
       const takeCount = (result: CountResponse, label: string): number => {
         if (result.error) {
-          console.warn(
+          logServiceFailure(
             `Maintenance stats (${label}) failed:`,
-            toServiceError(result.error)
+            result.error
           );
           return 0;
         }
@@ -72,11 +72,10 @@ export class MaintenanceStatsService {
 
       return { data: stats, error: null };
     } catch (error) {
-      const serviceError = toServiceError(
-        error,
-        "Couldn't load maintenance stats"
+      const serviceError = logServiceFailure(
+        "Error fetching maintenance stats:",
+        error
       );
-      console.error("Error fetching maintenance stats:", serviceError);
       return {
         data: null,
         error: serviceError,

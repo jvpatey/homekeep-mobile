@@ -12,7 +12,7 @@ import {
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
 import { enrichTasksWithCompleters } from "./enrichCompleters";
 import { addDays, startOfDay } from "date-fns";
-import { toServiceError } from "../utils/serviceError";
+import { toServiceError, logServiceFailure } from "../utils/serviceError";
 
 function failedQuery<T>(
   error: unknown,
@@ -20,7 +20,7 @@ function failedQuery<T>(
   fallback: string
 ): ServiceResponse<T> {
   const serviceError = toServiceError(error, fallback);
-  console.error(logLabel, serviceError);
+  logServiceFailure(logLabel, serviceError);
   return { data: null, error: serviceError };
 }
 

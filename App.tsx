@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator, StyleSheet, LogBox } from "react-native";
 import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from "@expo-google-fonts/fraunces";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -14,6 +14,8 @@ import { PlusPaywallHost } from "./src/components/plus";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+LogBox.ignoreLogs(["The network connection was lost"]);
 
 function AppContent() {
   return (

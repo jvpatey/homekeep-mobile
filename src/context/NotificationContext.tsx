@@ -25,6 +25,10 @@ import {
   buildDefaultNotificationPreferences,
   MAINTENANCE_CATEGORY_COUNT,
 } from "../utils/notificationDefaults";
+import {
+  isTransientServiceError,
+  logServiceFailure,
+} from "../utils/serviceError";
 
 Notifications.setNotificationHandler({
   handleNotification: async () =>
@@ -205,7 +209,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         return;
       }
 
-      try {
+      const persist = async () => {
         const { error } = await supabase
           .from("profiles")
           .update({
@@ -213,18 +217,31 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
+        return error;
+      };
+
+      try {
+        let error = await persist();
+        if (error && isTransientServiceError(error)) {
+          await new Promise((r) => setTimeout(r, 400));
+          error = await persist();
+        }
 
         if (error) {
-          console.error("Error saving push token to database:", error);
-          setPushTokenError(error.message);
+          logServiceFailure("Error saving push token to database:", error);
+          if (!isTransientServiceError(error)) {
+            setPushTokenError(error.message);
+          }
         } else {
           setPushTokenError(null);
         }
       } catch (error) {
-        console.error("Error saving push token:", error);
-        setPushTokenError(
-          error instanceof Error ? error.message : "Failed to save push token"
-        );
+        logServiceFailure("Error saving push token:", error);
+        if (!isTransientServiceError(error)) {
+          setPushTokenError(
+            error instanceof Error ? error.message : "Failed to save push token"
+          );
+        }
       }
     },
     [supabase, user]

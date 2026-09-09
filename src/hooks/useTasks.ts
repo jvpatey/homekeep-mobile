@@ -4,6 +4,7 @@ import { MaintenanceService } from "../services/maintenanceService";
 import { ensureAuthSession } from "../utils/ensureAuthSession";
 import {
   isTransientServiceError,
+  logServiceFailure,
   toServiceError,
 } from "../utils/serviceError";
 import {
@@ -243,7 +244,10 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           }
         }
         setError(loadError.message);
-        console.error("❌ useTasks: Error loading maintenance tasks:", loadError);
+        logServiceFailure(
+          "useTasks: Error loading maintenance tasks:",
+          loadError
+        );
       } finally {
         if (gen === loadGeneration.current) {
           setLoading(false);

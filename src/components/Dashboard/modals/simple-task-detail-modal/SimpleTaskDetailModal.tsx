@@ -11,6 +11,11 @@ import { Button } from "../../../ui/Button";
 import { PriorityMark } from "../../../ui/PriorityMark";
 import { categories } from "../create-task-modal/data";
 import { formatTaskSectionHeading } from "../../../../utils/formatTaskDates";
+import {
+  getMaintenancePlanById,
+  getPlanTheme,
+  getPlanTagPillStyle,
+} from "../../../../data/maintenancePlans";
 
 interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
@@ -46,7 +51,7 @@ export function SimpleTaskDetailModal({
   onSkipOccurrence,
   onStartComplete,
 }: SimpleTaskDetailModalProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const { isTablet } = useDevice();
   const [isCompleting, setIsCompleting] = useState(false);
@@ -111,6 +116,10 @@ export function SimpleTaskDetailModal({
   if (!task) return null;
 
   const category = getCategoryInfo(task.category);
+  const sourcePlan = task.source_plan_id
+    ? getMaintenancePlanById(task.source_plan_id)
+    : undefined;
+  const planTheme = getPlanTheme(task.source_plan_id);
   const showSkipOccurrence =
     !!onSkipOccurrence &&
     !task.is_completed &&
@@ -230,6 +239,34 @@ export function SimpleTaskDetailModal({
               {task.priority} priority
             </Text>
           </View>
+          {sourcePlan ? (
+            <View
+              style={[
+                styles.metaChip,
+                planTheme
+                  ? getPlanTagPillStyle(planTheme, isDark)
+                  : {
+                      backgroundColor: colors.fieldFill,
+                      borderColor: colors.border,
+                    },
+              ]}
+              accessibilityLabel={`From ${sourcePlan.title}`}
+            >
+              <Ionicons
+                name={planTheme?.icon ?? "albums-outline"}
+                size={isTablet ? 16 : 14}
+                color={planTheme?.primary ?? colors.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.planChipLabel,
+                  { color: planTheme?.primary ?? colors.textSecondary },
+                ]}
+              >
+                From {sourcePlan.title}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {task.description ? (
@@ -343,6 +380,10 @@ const styles = StyleSheet.create({
   metaLabel: {
     ...DesignSystem.typography.footnote,
     textTransform: "capitalize",
+  },
+  planChipLabel: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
   },
   section: {
     marginBottom: DesignSystem.spacing.lg,

@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -390,6 +391,11 @@ export function EmergencyFactsModal({
   const [customDrafts, setCustomDrafts] = useState<CustomDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const photoPathsRef = useRef(photoPaths);
+  const customDraftsRef = useRef(customDrafts);
+  const uploadInFlightRef = useRef<Promise<void> | null>(null);
+  photoPathsRef.current = photoPaths;
+  customDraftsRef.current = customDrafts;
 
   useEffect(() => {
     if (!visible) {
@@ -520,53 +526,94 @@ export function EmergencyFactsModal({
     } else {
       setPreviewUris((prev) => ({ ...prev, [storageKey]: localUri }));
     }
-    setUploadingKey(storageKey);
-    try {
-      const path = `${user.id}/emergency/${storageKey}.jpg`;
-      const uploaded = await EquipmentManualService.uploadFromUriPublic(
-        path,
-        localUri,
-        "image/jpeg"
-      );
-      if (uploaded.path) {
-        if (customId) {
-          updateCustomDraft(customId, { photoPath: uploaded.path });
-        } else {
-          setPhotoPaths((prev) => ({ ...prev, [storageKey]: uploaded.path }));
+
+    const run = (async () => {
+      setUploadingKey(storageKey);
+      try {
+        let uploadUri = localUri;
+        try {
+          const prepared = await ImageManipulator.manipulateAsync(
+            localUri,
+            [],
+            {
+              compress: 0.7,
+              format: ImageManipulator.SaveFormat.JPEG,
+            }
+          );
+          uploadUri = prepared.uri;
+        } catch {
+          // Use the picker URI if we cannot copy it to a JPEG.
         }
-      } else {
+
+        const path = `${user.id}/emergency/${storageKey}.jpg`;
+        const uploaded = await EquipmentManualService.uploadFromUriPublic(
+          path,
+          uploadUri,
+          "image/jpeg"
+        );
+        if (uploaded.path) {
+          if (customId) {
+            customDraftsRef.current = customDraftsRef.current.map((item) =>
+              item.id === customId
+                ? { ...item, photoPath: uploaded.path }
+                : item
+            );
+            updateCustomDraft(customId, { photoPath: uploaded.path });
+          } else {
+            photoPathsRef.current = {
+              ...photoPathsRef.current,
+              [storageKey]: uploaded.path,
+            };
+            setPhotoPaths((prev) => ({
+              ...prev,
+              [storageKey]: uploaded.path,
+            }));
+          }
+        } else {
+          if (customId) {
+            updateCustomDraft(customId, { previewUri: null });
+          } else {
+            setPreviewUris((prev) => ({ ...prev, [storageKey]: null }));
+          }
+          Alert.alert(
+            "Couldn't upload photo",
+            uploaded.error?.message ?? "Please try again."
+          );
+        }
+      } catch {
         if (customId) {
           updateCustomDraft(customId, { previewUri: null });
         } else {
           setPreviewUris((prev) => ({ ...prev, [storageKey]: null }));
         }
-        Alert.alert(
-          "Couldn't upload photo",
-          uploaded.error?.message ?? "Please try again."
-        );
+        Alert.alert("Couldn't upload photo", "Please try again.");
+      } finally {
+        setUploadingKey(null);
       }
-    } catch {
-      if (customId) {
-        updateCustomDraft(customId, { previewUri: null });
-      } else {
-        setPreviewUris((prev) => ({ ...prev, [storageKey]: null }));
-      }
-      Alert.alert("Couldn't upload photo", "Please try again.");
-    } finally {
-      setUploadingKey(null);
+    })();
+
+    uploadInFlightRef.current = run;
+    await run;
+    if (uploadInFlightRef.current === run) {
+      uploadInFlightRef.current = null;
     }
   };
 
   const handleSave = async () => {
     if (!(await requirePlus())) return;
+    if (uploadInFlightRef.current) {
+      await uploadInFlightRef.current;
+    }
     setSaving(true);
     try {
       const previous = profile?.home_emergency ?? {};
       const facts: HomeEmergencyFacts = { ...previous };
+      const latestPhotos = photoPathsRef.current;
+      const latestCustom = customDraftsRef.current;
       for (const spot of visibleSpots) {
         const note = notes[spot.key].trim();
         const howto = howtos[spot.key].trim();
-        const photo = photoPaths[spot.key];
+        const photo = latestPhotos[spot.key];
         if (!note && !howto && !photo) {
           facts[spot.key] = null;
           continue;
@@ -579,7 +626,7 @@ export function EmergencyFactsModal({
         facts[spot.key] = payload;
       }
       const custom: HomeEmergencyCustomSpot[] = [];
-      for (const draft of customDrafts) {
+      for (const draft of latestCustom) {
         const label = draft.label.trim();
         const note = draft.note.trim();
         const howto = draft.howto.trim();
@@ -665,7 +712,13 @@ export function EmergencyFactsModal({
       embedded={embedded}
       footer={
         <Button
-          label={saving ? "Saving…" : "Save"}
+          label={
+            saving
+              ? "Saving…"
+              : uploadingKey
+                ? "Uploading photo…"
+                : "Save"
+          }
           onPress={() => void handleSave()}
           disabled={saving}
         />

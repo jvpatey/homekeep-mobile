@@ -9,6 +9,7 @@ import {
   EquipmentManualsResponse,
   EquipmentManualSignedUrlResponse,
 } from "../types/equipmentManual";
+import { logServiceFailure } from "../utils/serviceError";
 
 export const EQUIPMENT_MANUALS_BUCKET = "equipment-manuals";
 
@@ -17,17 +18,41 @@ function sanitizeFileName(name: string): string {
   return base.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "manual";
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out`)),
+      ms
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 async function readUriAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
-  try {
-    const response = await fetch(uri);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+  const isRemote = /^https?:\/\//i.test(uri);
+  if (!isRemote) {
+    try {
+      const file = new ExpoFile(uri);
+      return await withTimeout(file.arrayBuffer(), 20_000, "Read photo");
+    } catch {
+      // Some library URIs need fetch; bound it so it cannot hang the UI.
     }
-    return await response.arrayBuffer();
-  } catch {
-    const file = new ExpoFile(uri);
-    return await file.arrayBuffer();
   }
+
+  const response = await withTimeout(fetch(uri), 20_000, "Read photo");
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return await response.arrayBuffer();
 }
 
 export class EquipmentManualService {
@@ -61,24 +86,30 @@ export class EquipmentManualService {
     try {
       const buffer = await readUriAsArrayBuffer(localUri);
 
-      const { error: uploadError } = await supabase.storage
-        .from(EQUIPMENT_MANUALS_BUCKET)
-        .upload(objectPath, buffer, {
-          contentType: mimeType || "application/octet-stream",
-          upsert: true,
-        });
+      const { error: uploadError } = await withTimeout(
+        supabase.storage.from(EQUIPMENT_MANUALS_BUCKET).upload(
+          objectPath,
+          new Uint8Array(buffer),
+          {
+            contentType: mimeType || "application/octet-stream",
+            upsert: true,
+          }
+        ),
+        45_000,
+        "Upload photo"
+      );
 
       if (uploadError) throw uploadError;
 
       return { path: objectPath, error: null };
     } catch (error) {
-      console.error("Error uploading equipment file:", error);
+      const serviceError = logServiceFailure(
+        "Error uploading equipment file:",
+        error
+      );
       return {
         path: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown upload error",
-        },
+        error: { message: serviceError.message },
       };
     }
   }

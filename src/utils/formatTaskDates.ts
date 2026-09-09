@@ -5,6 +5,8 @@ import {
   isSameYear,
   isValid,
   parseISO,
+  startOfDay,
+  differenceInCalendarDays,
 } from "date-fns";
 
 const INVALID_LABEL = "—";
@@ -50,6 +52,23 @@ export function formatTaskDueLabel(
   if (isTomorrow(date)) return "Due tomorrow";
 
   return `Due ${formatTaskDueDate(date, referenceDate)}`;
+}
+
+/** Overdue row footer: 1 day late, 6 days late. Falls back to due label if not late. */
+export function formatTaskLatenessLabel(
+  value: Date | string,
+  referenceDate: Date = new Date()
+): string {
+  const date = toDate(value);
+  if (!assertValid(date)) return "Overdue";
+
+  const daysLate = differenceInCalendarDays(
+    startOfDay(referenceDate),
+    startOfDay(date)
+  );
+  if (daysLate <= 0) return formatTaskDueLabel(date, referenceDate);
+  if (daysLate === 1) return "1 day late";
+  return `${daysLate} days late`;
 }
 
 /** Section list title: Today, Monday, Mar 15, or Monday, Mar 15, 2027 */

@@ -4,12 +4,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
 import { useTheme } from "../../context/ThemeContext";
 import { useDevice } from "../../hooks";
-import { MaintenanceTask } from "../../types/maintenance";
+import {
+  HOME_MAINTENANCE_CATEGORIES,
+  CategoryKey,
+  MaintenanceTask,
+} from "../../types/maintenance";
 import { DesignSystem } from "../../theme/designSystem";
 import { timelineStyles } from "./timeline-view/styles";
-import { getPriorityColor } from "./timeline-view/utils";
-import { getPlanTheme } from "../../data/maintenancePlans/planThemes";
-import { formatTaskDueLabel } from "../../utils/formatTaskDates";
+import { PriorityMark } from "../ui/PriorityMark";
+import { hexWithAlpha } from "./popups/popupChrome";
+import {
+  formatTaskDueLabel,
+  formatTaskLatenessLabel,
+} from "../../utils/formatTaskDates";
+import { isToday, parseISO, isValid } from "date-fns";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
@@ -35,16 +43,27 @@ export function ScheduleTaskRow({
   onTaskPress,
   onSkipOccurrence,
 }: ScheduleTaskRowProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const isOverdue = variant === "overdue";
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const fontMultiplier = getFontMultiplier();
   const swipeableRef = useRef<Swipeable>(null);
 
-  const planTheme = getPlanTheme(task.source_plan_id ?? undefined);
-
   const timelineDotFill = isOverdue ? colors.error : colors.primary;
   const timelineDotRing = colors.surface;
+  const category =
+    HOME_MAINTENANCE_CATEGORIES[task.category as CategoryKey] ??
+    HOME_MAINTENANCE_CATEGORIES.GENERAL;
+  const showPriority =
+    task.priority === "high" || task.priority === "urgent";
+  const dueLabel = isOverdue
+    ? formatTaskLatenessLabel(task.due_date)
+    : formatTaskDueLabel(task.due_date);
+  const dueDate = (() => {
+    const parsed = parseISO(task.due_date);
+    return isValid(parsed) ? parsed : new Date(task.due_date);
+  })();
+  const dueIsToday = isValid(dueDate) && isToday(dueDate);
 
   const canSkip =
     !!onSkipOccurrence && !task.is_completed && task.interval_days > 0;
@@ -90,8 +109,8 @@ export function ScheduleTaskRow({
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`${isOverdue ? "Overdue. " : ""}${task.title}. ${
-        task.priority
-      } priority.`}
+        category.displayName
+      }. ${dueLabel}.${showPriority ? ` ${task.priority} priority.` : ""}`}
     >
       <View
         style={[
@@ -133,14 +152,14 @@ export function ScheduleTaskRow({
         style={[
           timelineStyles.taskContent,
           {
-            backgroundColor: colors.surface,
-            borderColor: isOverdue ? colors.error + "55" : colors.border,
+            backgroundColor: isOverdue
+              ? hexWithAlpha(colors.error, 0.06)
+              : colors.surface,
+            borderColor: isOverdue
+              ? hexWithAlpha(colors.error, 0.38)
+              : colors.border,
             borderWidth: 1,
             borderRadius: DesignSystem.borders.radius.xlarge,
-            ...(planTheme && {
-              borderLeftWidth: 4,
-              borderLeftColor: planTheme.primary,
-            }),
           },
           DesignSystem.shadows.softAmbient,
           isTablet && {
@@ -160,94 +179,93 @@ export function ScheduleTaskRow({
               isTablet && {
                 fontSize: timelineStyles.taskTitle.fontSize * fontMultiplier,
                 lineHeight:
-                  timelineStyles.taskTitle.fontSize *
-                  fontMultiplier *
-                  1.3,
+                  timelineStyles.taskTitle.fontSize * fontMultiplier * 1.3,
               },
             ]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {task.title}
           </Text>
-          <View style={timelineStyles.taskMeta}>
+          <View style={rowStyles.metaRow}>
             <View
               style={[
-                timelineStyles.priorityBadge,
-                { backgroundColor: colors.fieldFill },
-                isTablet && {
-                  paddingHorizontal: getResponsiveValue(
-                    DesignSystem.spacing.sm,
-                    DesignSystem.spacing.md,
-                    DesignSystem.spacing.md
-                  ),
-                  paddingVertical: getResponsiveValue(4, 6, 8),
-                },
+                rowStyles.chip,
+                { backgroundColor: hexWithAlpha(category.color, 0.14) },
               ]}
             >
               <View
                 style={[
-                  timelineStyles.priorityDot,
-                  {
-                    backgroundColor: getPriorityColor(task.priority, colors),
-                  },
-                ]}
-              />
-              <Text
-                style={[
-                  timelineStyles.priorityText,
-                  { color: colors.textSecondary },
+                  rowStyles.chipIcon,
+                  { backgroundColor: hexWithAlpha(category.color, 0.22) },
                 ]}
               >
-                {task.priority}
+                <Ionicons
+                  name={category.icon as keyof typeof Ionicons.glyphMap}
+                  size={12}
+                  color={category.color}
+                />
+              </View>
+              <Text
+                style={[rowStyles.chipLabel, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {category.displayName}
               </Text>
             </View>
             {task.estimated_duration_minutes ? (
               <View
                 style={[
-                  timelineStyles.durationBadge,
+                  rowStyles.chip,
+                  rowStyles.chipPlain,
                   { backgroundColor: colors.fieldFill },
                 ]}
               >
                 <Ionicons
                   name="time-outline"
-                  size={12}
+                  size={13}
                   color={colors.textSecondary}
                 />
                 <Text
-                  style={[
-                    timelineStyles.durationText,
-                    { color: colors.textSecondary },
-                  ]}
+                  style={[rowStyles.chipLabel, { color: colors.textSecondary }]}
                 >
                   {task.estimated_duration_minutes}m
                 </Text>
+              </View>
+            ) : null}
+            {showPriority ? (
+              <View
+                style={[
+                  rowStyles.chip,
+                  rowStyles.chipPlain,
+                  { backgroundColor: colors.fieldFill },
+                ]}
+              >
+                <PriorityMark
+                  priority={task.priority}
+                  showLabel
+                  size={6}
+                />
               </View>
             ) : null}
           </View>
         </View>
 
         <View style={timelineStyles.taskFooter}>
-          {(() => {
-            const dueDate = new Date(task.due_date);
-            const today = new Date();
-            const displayText = formatTaskDueLabel(task.due_date);
-            const isDueToday =
-              dueDate.toDateString() === today.toDateString();
-
-            return (
-              <Text
-                style={[
-                  timelineStyles.taskTime,
-                  {
-                    color: isDueToday ? colors.primary : colors.textSecondary,
-                    fontWeight: isDueToday ? "600" : "400",
-                  },
-                ]}
-              >
-                {displayText}
-              </Text>
-            );
-          })()}
+          <Text
+            style={[
+              timelineStyles.taskTime,
+              {
+                color: isOverdue
+                  ? colors.error
+                  : dueIsToday
+                    ? colors.primary
+                    : colors.textSecondary,
+                fontWeight: isOverdue || dueIsToday ? "600" : "400",
+              },
+            ]}
+          >
+            {dueLabel}
+          </Text>
 
           <TouchableOpacity
             style={[
@@ -256,10 +274,11 @@ export function ScheduleTaskRow({
                 backgroundColor: colors.primary,
                 opacity: isCompleting ? 0.5 : 1,
               },
+              rowStyles.completeButton,
               isTablet && {
-                width: 44 * fontMultiplier,
-                height: 44 * fontMultiplier,
-                borderRadius: 22 * fontMultiplier,
+                width: 40 * fontMultiplier,
+                height: 40 * fontMultiplier,
+                borderRadius: 20 * fontMultiplier,
               },
             ]}
             onPress={() => {
@@ -317,6 +336,41 @@ export function ScheduleTaskRow({
 const SKIP_ACTION_WIDTH = 88;
 
 const rowStyles = StyleSheet.create({
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 4,
+    paddingRight: DesignSystem.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: DesignSystem.borders.radius.round,
+  },
+  chipIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipPlain: {
+    paddingLeft: DesignSystem.spacing.sm,
+    paddingVertical: 5,
+  },
+  chipLabel: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+  },
+  completeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   swipeForeground: {
     width: "100%",
   },

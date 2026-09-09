@@ -75,7 +75,10 @@ export function isTransientServiceError(error: unknown): boolean {
 
   return (
     blob.includes("network") ||
+    blob.includes("connection was lost") ||
     blob.includes("failed to fetch") ||
+    blob.includes("fetch failed") ||
+    blob.includes("unexpectedexception") ||
     blob.includes("timeout") ||
     blob.includes("timed out") ||
     blob.includes("jwt") ||
@@ -85,4 +88,15 @@ export function isTransientServiceError(error: unknown): boolean {
     parsed.code === "408" ||
     parsed.code === "503"
   );
+}
+
+/** LogBox treats console.error as a red screen — keep flakes out of it. */
+export function logServiceFailure(label: string, error: unknown) {
+  const parsed = toServiceError(error);
+  if (isTransientServiceError(parsed)) {
+    console.log(label, parsed);
+  } else {
+    console.error(label, parsed);
+  }
+  return parsed;
 }
