@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { View, Alert } from "react-native";
+import { View, Text, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthScaffold, OAuthButtons } from "../../components/auth";
 import { Button, TextField, TextLink } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { useAuthForm, useAuthHaptics } from "./hooks";
 import { DesignSystem } from "../../theme/designSystem";
 
 export function SignUpScreen() {
   const { signUp } = useAuth();
+  const { colors } = useTheme();
   const navigation = useNavigation();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
@@ -16,7 +18,7 @@ export function SignUpScreen() {
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
     fullName: { required: true, minLength: 2 },
     email: { required: true, email: true },
-    password: { required: true, minLength: 6 },
+    password: { required: true, minLength: 8 },
     confirmPassword: { required: true, match: "password" },
   });
 
@@ -114,6 +116,18 @@ export function SignUpScreen() {
         autoComplete="new-password"
         textContentType="newPassword"
       />
+      {!errors.password && (
+        <Text
+          style={{
+            ...DesignSystem.typography.footnote,
+            color: colors.textSecondary,
+            marginTop: -DesignSystem.spacing.sm,
+            marginBottom: DesignSystem.spacing.sm,
+          }}
+        >
+          At least 8 characters.
+        </Text>
+      )}
 
       <TextField
         label="Confirm password"
