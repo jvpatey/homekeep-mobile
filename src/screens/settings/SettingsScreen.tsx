@@ -39,9 +39,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     productId,
     includedViaHousehold,
     presentPaywall,
-    restore,
-    purchasing,
-    manageSubscription,
     openLegal,
     registerPaywallEmbed,
   } = useSubscription();
@@ -82,23 +79,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     productId,
     includedViaHousehold,
   });
-
-  const handleRestorePurchases = async () => {
-    await triggerLight();
-    const result = await restore();
-    if (result.restored) {
-      Alert.alert("Restored", `${HOMEKEEP_PLUS_NAME} is active on this account.`);
-      return;
-    }
-    if (result.error) {
-      Alert.alert("Couldn't restore", result.error);
-      return;
-    }
-    Alert.alert(
-      "Nothing to restore",
-      "No subscription to restore on this Apple or Google account."
-    );
-  };
 
   const handleDeleteAllTasks = async () => {
     await triggerMedium();
@@ -268,24 +248,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               onPress={() => {
                 void triggerLight();
                 void presentPaywall({ force: true });
-              }}
-              showDivider
-            />
-            <SheetActionRow
-              icon="refresh-outline"
-              title="Restore purchases"
-              onPress={() => void handleRestorePurchases()}
-              disabled={purchasing}
-              showChevron={false}
-              showDivider
-            />
-            <SheetActionRow
-              icon="card-outline"
-              title="Manage subscription"
-              subtitle="Opens your store account"
-              onPress={() => {
-                void triggerLight();
-                void manageSubscription();
               }}
               showDivider
             />

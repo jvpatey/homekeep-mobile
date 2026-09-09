@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthScaffold, OAuthButtons } from "../../components/auth";
 import { Button, TextField, TextLink } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
+import { EMAIL_NOT_CONFIRMED } from "../../utils/isEmailVerified";
 import { useAuthForm, useAuthHaptics } from "./hooks";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -29,6 +30,14 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const { error } = await signIn(email, password);
+      if (error?.code === EMAIL_NOT_CONFIRMED) {
+        triggerError();
+        (navigation as any).navigate("CodeVerification", {
+          email: error.email ?? email.trim().toLowerCase(),
+          purpose: "signup",
+        });
+        return;
+      }
       if (error) {
         triggerError();
         Alert.alert("Sign In Error", error.message);

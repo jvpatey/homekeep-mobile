@@ -20,6 +20,10 @@ export function EmailVerificationScreen() {
 
   const [status, setStatus] = useState<VerificationStatus>("verifying");
   const [message, setMessage] = useState("Verifying your email...");
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkPurpose, setLinkPurpose] = useState<"signup" | "recovery">(
+    "signup",
+  );
 
   useEffect(() => {
     const handleEmailVerification = async () => {
@@ -52,6 +56,13 @@ export function EmailVerificationScreen() {
 
         const token_hash = urlObj.searchParams.get("token_hash");
         const type = urlObj.searchParams.get("type");
+        const emailParam = urlObj.searchParams.get("email");
+        if (emailParam) {
+          setLinkEmail(emailParam.trim().toLowerCase());
+        }
+        if (type === "recovery") {
+          setLinkPurpose("recovery");
+        }
 
         if (!token_hash || !type) {
           throw new Error(
@@ -65,7 +76,7 @@ export function EmailVerificationScreen() {
 
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
-          type: type as "signup" | "email",
+          type: type as "signup" | "email" | "recovery",
         });
 
         if (error) {
@@ -98,7 +109,14 @@ export function EmailVerificationScreen() {
   };
 
   const handleManualCode = () => {
-    navigation.navigate("CodeVerification" as never);
+    if (linkEmail) {
+      (navigation as any).navigate("CodeVerification", {
+        email: linkEmail,
+        purpose: linkPurpose,
+      });
+      return;
+    }
+    navigation.navigate("EmailEntry" as never);
   };
 
   const statusIcon = () => {

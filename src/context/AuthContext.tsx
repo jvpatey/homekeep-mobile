@@ -18,6 +18,10 @@ import {
   SESSION_EXPIRED_TITLE,
 } from "../utils/authSessionErrors";
 import { logOutPurchases } from "../lib/purchases";
+import {
+  EMAIL_NOT_CONFIRMED,
+  isEmailVerified,
+} from "../utils/isEmailVerified";
 
 export { supabase } from "../lib/supabase";
 
@@ -143,6 +147,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const applyAuthenticatedSession = useCallback(
     async (nextSession: Session) => {
+      if (!isEmailVerified(nextSession.user)) {
+        voluntarySignOutRef.current = true;
+        setSession(null);
+        setUser(null);
+        setSessionReady(true);
+        setLoading(false);
+        if (supabase) {
+          try {
+            await supabase.auth.signOut({ scope: "local" });
+          } catch {
+            // Best-effort: keep the auth stack visible
+          }
+        }
+        voluntarySignOutRef.current = false;
+        return;
+      }
+
       const sessionValid = await ensureAuthSession();
       if (!sessionValid) {
         await handleSessionExpired();
@@ -261,10 +282,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { data: null, error: { message: "Supabase not configured" } };
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
+
+    if (error) {
+      return { data, error };
+    }
+
+    if (data.user && !isEmailVerified(data.user)) {
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        // Best-effort: do not leave an unverified session
+      }
+      return {
+        data: null,
+        error: {
+          code: EMAIL_NOT_CONFIRMED,
+          email: normalizedEmail,
+          message: "Please verify your email before signing in.",
+        },
+      };
+    }
+
     return { data, error };
   };
 
@@ -279,7 +322,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Create the auth user with email redirect and metadata
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password,
       options: {
         emailRedirectTo: redirectTo,
@@ -291,6 +334,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (authError) {
       return { data: null, error: authError };
+    }
+
+    // Supabase returns a user with no identities when the email already
+    // exists and confirmations are on — no verification email is sent.
+    if (authData.user && authData.user.identities?.length === 0) {
+      return {
+        data: null,
+        error: {
+          message:
+            "An account with this email already exists. Sign in or reset your password.",
+        },
+      };
+    }
+
+    // Drop a session created before email confirmation so a reload
+    // cannot skip the verify screen.
+    if (authData.session) {
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        // Best-effort: verify flow does not need this session
+      }
     }
 
     // Profile will be automatically created by the database trigger

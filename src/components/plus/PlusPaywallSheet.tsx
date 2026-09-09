@@ -23,6 +23,7 @@ import {
   HOMEKEEP_PLUS_NAME,
   getPrivacyUrl,
   isExpoGo,
+  isStoreManagedStatus,
   monthlyEquivalentLabel,
   packageHasIntroTrial,
   packagePriceLabel,
@@ -92,37 +93,45 @@ export function PlusPaywallSheet({
     productId,
     includedViaHousehold,
   });
-  const viewingOwnPlan = isPlus;
+  const hasStoreSubscription =
+    isPlus && !includedViaHousehold && isStoreManagedStatus(status);
+  const manageOnly = includedViaHousehold || hasStoreSubscription;
+  const showPurchaseOptions = !manageOnly;
   const planNote =
-    viewingOwnPlan && status === "trialing" && expirationDate
+    hasStoreSubscription && status === "trialing" && expirationDate
       ? `This is a free trial on your ${plusPlanLabel(productId) ?? "HomeKeep +"} plan. Billing starts ${expirationDate.toLocaleDateString()} unless you cancel.`
-      : viewingOwnPlan && status === "active" && expirationDate
+      : hasStoreSubscription && status === "active" && expirationDate
         ? `Renews ${expirationDate.toLocaleDateString()}. Cancel anytime in your store account.`
-        : viewingOwnPlan && status === "grace"
+        : hasStoreSubscription && status === "grace"
           ? "There's a billing issue. Access continues while you update payment in your store account."
-          : viewingOwnPlan && includedViaHousehold
+          : includedViaHousehold
             ? "This home includes HomeKeep + for everyone in the household."
-            : null;
-  const ctaLabel = viewingOwnPlan
-    ? includedViaHousehold
-      ? "Close"
-      : "Change plan"
-    : !storeAvailable
-      ? "Requires a development build"
-      : hasTrial
-        ? "Start 7-day free trial"
-        : `Subscribe for ${packagePriceLabel(
-            selected,
-            plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE
-          )}`;
+            : status === "promo" && expirationDate
+              ? `Complimentary access ends ${expirationDate.toLocaleDateString()}. Subscribe to keep HomeKeep +.`
+              : status === "promo"
+                ? "Subscribe to keep HomeKeep + after complimentary access ends."
+                : null;
+  const ctaLabel = includedViaHousehold
+    ? "Close"
+    : hasStoreSubscription
+      ? "Manage subscription"
+      : !storeAvailable
+        ? "Requires a development build"
+        : hasTrial
+          ? "Start 7-day free trial"
+          : `Subscribe for ${packagePriceLabel(
+              selected,
+              plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE
+            )}`;
 
   const handlePrimary = async () => {
-    if (viewingOwnPlan) {
+    if (includedViaHousehold) {
       await triggerLight();
-      if (includedViaHousehold) {
-        closePaywall();
-        return;
-      }
+      closePaywall();
+      return;
+    }
+    if (hasStoreSubscription) {
+      await triggerLight();
       await manageSubscription();
       return;
     }
@@ -173,16 +182,20 @@ export function PlusPaywallSheet({
     plan === "yearly" ? FALLBACK_YEARLY_PRICE : FALLBACK_MONTHLY_PRICE
   );
   const billingPeriod = plan === "yearly" ? "year" : "month";
-  const legalText = viewingOwnPlan
+  const legalText = hasStoreSubscription
     ? "Change or cancel in your Apple or Google account settings."
-    : hasTrial
-      ? `7-day free trial, then ${afterTrialPrice} per ${billingPeriod}. Renews automatically until you cancel in your Apple or Google account settings.`
-      : `${afterTrialPrice} per ${billingPeriod}. Renews automatically until you cancel in your Apple or Google account settings.`;
+    : includedViaHousehold
+      ? "HomeKeep + is included with this home."
+      : hasTrial
+        ? `7-day free trial, then ${afterTrialPrice} per ${billingPeriod}. Renews automatically until you cancel in your Apple or Google account settings.`
+        : `${afterTrialPrice} per ${billingPeriod}. Renews automatically until you cancel in your Apple or Google account settings.`;
 
-  const notice = isExpoGo()
-    ? "Store purchases need a development build."
-    : offeringsError;
-  const showRetry = Boolean(offeringsError);
+  const notice = showPurchaseOptions
+    ? isExpoGo()
+      ? "Store purchases need a development build."
+      : offeringsError
+    : null;
+  const showRetry = showPurchaseOptions && Boolean(offeringsError);
 
   return (
     <HearthSheet
@@ -211,16 +224,14 @@ export function PlusPaywallSheet({
               onPress={() => void handlePrimary()}
               loading={purchasing}
               disabled={
-                viewingOwnPlan
-                  ? purchasing
-                  : purchasing || !canPurchase || offeringsLoading
+                showPurchaseOptions
+                  ? purchasing || !canPurchase || offeringsLoading
+                  : purchasing
               }
               accessibilityLabel={
-                viewingOwnPlan
-                  ? ctaLabel
-                  : hasTrial
-                    ? `Start 7-day free trial, then ${afterTrialPrice} per ${billingPeriod}`
-                    : ctaLabel
+                showPurchaseOptions && hasTrial
+                  ? `Start 7-day free trial, then ${afterTrialPrice} per ${billingPeriod}`
+                  : ctaLabel
               }
             />
           )}
@@ -258,10 +269,14 @@ export function PlusPaywallSheet({
       >
         <View style={styles.hero}>
           <Text style={[styles.headline, { color: colors.text }]}>
-            {viewingOwnPlan ? "Your plan" : "Try everything for 7 days"}
+            {manageOnly
+              ? "Your plan"
+              : status === "promo"
+                ? "Subscribe to keep HomeKeep +"
+                : "Try everything for 7 days"}
           </Text>
           <Text style={[styles.subhead, { color: colors.textSecondary }]}>
-            {viewingOwnPlan
+            {manageOnly || status === "promo"
               ? currentStatus
               : "Reminders, household sharing, and the next cycle. Cancel anytime."}
           </Text>
@@ -272,7 +287,7 @@ export function PlusPaywallSheet({
           ) : null}
         </View>
 
-        {viewingOwnPlan ? null : (
+        {showPurchaseOptions ? (
           <View style={styles.values}>
             {VALUE_LINES.map((line) => (
               <View key={line} style={styles.valueRow}>
@@ -283,7 +298,7 @@ export function PlusPaywallSheet({
               </View>
             ))}
           </View>
-        )}
+        ) : null}
 
         {notice ? (
           <Text style={[styles.notice, { color: colors.textSecondary }]}>
@@ -291,33 +306,35 @@ export function PlusPaywallSheet({
           </Text>
         ) : null}
 
-        <HearthSurfaceCard style={styles.planGroup}>
-          <PlanRow
-            selected={plan === "yearly"}
-            title="Yearly"
-            price={yearlyPrice}
-            detail={`${yearlyPerMonth}/mo${packageHasIntroTrial(yearlyPackage) ? " · 7 days free" : ""}`}
-            badge="Best value"
-            disabled={purchasing}
-            showDivider
-            onSelect={() => {
-              void triggerLight();
-              setPlan("yearly");
-            }}
-          />
-          <PlanRow
-            selected={plan === "monthly"}
-            title="Monthly"
-            price={monthlyPrice}
-            detail={`Billed monthly${packageHasIntroTrial(monthlyPackage) ? " · 7 days free" : ""}`}
-            disabled={purchasing}
-            showDivider={false}
-            onSelect={() => {
-              void triggerLight();
-              setPlan("monthly");
-            }}
-          />
-        </HearthSurfaceCard>
+        {showPurchaseOptions ? (
+          <HearthSurfaceCard style={styles.planGroup}>
+            <PlanRow
+              selected={plan === "yearly"}
+              title="Yearly"
+              price={yearlyPrice}
+              detail={`${yearlyPerMonth}/mo${packageHasIntroTrial(yearlyPackage) ? " · 7 days free" : ""}`}
+              badge="Best value"
+              disabled={purchasing}
+              showDivider
+              onSelect={() => {
+                void triggerLight();
+                setPlan("yearly");
+              }}
+            />
+            <PlanRow
+              selected={plan === "monthly"}
+              title="Monthly"
+              price={monthlyPrice}
+              detail={`Billed monthly${packageHasIntroTrial(monthlyPackage) ? " · 7 days free" : ""}`}
+              disabled={purchasing}
+              showDivider={false}
+              onSelect={() => {
+                void triggerLight();
+                setPlan("monthly");
+              }}
+            />
+          </HearthSurfaceCard>
+        ) : null}
       </ScrollView>
     </HearthSheet>
   );

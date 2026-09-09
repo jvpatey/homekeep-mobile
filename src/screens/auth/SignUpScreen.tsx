@@ -46,7 +46,10 @@ export function SignUpScreen() {
             {
               text: "Enter code",
               onPress: () =>
-                (navigation as any).navigate("CodeVerification", { email }),
+                (navigation as any).navigate("CodeVerification", {
+                  email: email.trim().toLowerCase(),
+                  purpose: "signup",
+                }),
             },
             { text: "OK", style: "default" },
           ],

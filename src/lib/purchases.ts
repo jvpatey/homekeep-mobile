@@ -50,6 +50,11 @@ export function packagePriceLabel(
 
 export type PlusPlanLabel = "Yearly" | "Monthly";
 
+/** True when Plus is billed through Apple/Google and can be managed there. */
+export function isStoreManagedStatus(status: string): boolean {
+  return status === "active" || status === "trialing" || status === "grace";
+}
+
 export function plusPlanLabel(productId: string | null): PlusPlanLabel | null {
   if (!productId) return null;
   if (
