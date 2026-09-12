@@ -77,11 +77,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const voluntarySignOutRef = useRef(false);
   const sessionRecoveryRef = useRef({ inProgress: false, alertShown: false });
   const hadAuthenticatedSessionRef = useRef(false);
+  const sessionReadyRef = useRef(false);
+
+  const markSessionReady = useCallback(() => {
+    sessionReadyRef.current = true;
+    setSessionReady(true);
+    setLoading(false);
+  }, []);
 
   const clearLocalAuthState = useCallback(async () => {
     setSession(null);
     setUser(null);
-    setSessionReady(true);
+    markSessionReady();
     await logOutPurchases();
     if (!supabase) return;
     try {
@@ -89,7 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {
       // Local clear is best-effort when tokens are already invalid
     }
-  }, []);
+  }, [markSessionReady]);
 
   const showSessionExpiredAlert = useCallback(() => {
     if (sessionRecoveryRef.current.alertShown) return;
@@ -116,11 +123,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } finally {
         sessionRecoveryRef.current.inProgress = false;
-        setLoading(false);
-        setSessionReady(true);
+        markSessionReady();
       }
     },
-    [clearLocalAuthState, showSessionExpiredAlert]
+    [clearLocalAuthState, markSessionReady, showSessionExpiredAlert]
   );
 
   const upsertUserTimezone = async (currentUser: User | null) => {
@@ -151,8 +157,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         voluntarySignOutRef.current = true;
         setSession(null);
         setUser(null);
-        setSessionReady(true);
-        setLoading(false);
+        markSessionReady();
         if (supabase) {
           try {
             await supabase.auth.signOut({ scope: "local" });
@@ -164,33 +169,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      const sessionValid = await ensureAuthSession();
-      if (!sessionValid) {
-        await handleSessionExpired();
-        return;
-      }
-
+      // Unblock navigation immediately from the known session. Awaiting
+      // getSession/refreshSession before this was hanging the cold-start
+      // spinner when the network or auth client lock stalled.
       setSession(nextSession);
       setUser(nextSession.user);
       hadAuthenticatedSessionRef.current = true;
       sessionRecoveryRef.current.alertShown = false;
-      setSessionReady(true);
-      setLoading(false);
-      await upsertUserTimezone(nextSession.user);
+      markSessionReady();
+      void upsertUserTimezone(nextSession.user);
+
+      try {
+        const sessionValid = await ensureAuthSession();
+        if (!sessionValid) {
+          await handleSessionExpired();
+        }
+      } catch (err) {
+        if (__DEV__) {
+          console.warn("Background session validation failed:", err);
+        }
+      }
     },
-    [handleSessionExpired]
+    [handleSessionExpired, markSessionReady]
   );
 
   useEffect(() => {
     if (!supabase) {
-      setLoading(false);
-      setSessionReady(true);
+      markSessionReady();
       return;
     }
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (__DEV__) {
         console.log(
           "Auth state changed:",
@@ -199,14 +210,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
       }
 
+      // Never await supabase.auth.* inside this callback — it can deadlock
+      // the auth client lock (getSession/refreshSession never resolve).
       if (event === "INITIAL_SESSION") {
         if (nextSession?.user) {
-          await applyAuthenticatedSession(nextSession);
+          setTimeout(() => {
+            void applyAuthenticatedSession(nextSession);
+          }, 0);
         } else {
           setSession(null);
           setUser(null);
-          setSessionReady(true);
-          setLoading(false);
+          markSessionReady();
         }
         return;
       }
@@ -215,7 +229,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           sessionRecoveryRef.current.alertShown = false;
         }
-        await applyAuthenticatedSession(nextSession);
+        setTimeout(() => {
+          void applyAuthenticatedSession(nextSession);
+        }, 0);
         return;
       }
 
@@ -226,8 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setSession(null);
         setUser(null);
-        setSessionReady(true);
-        setLoading(false);
+        markSessionReady();
 
         if (signedOutUnexpectedly) {
           hadAuthenticatedSessionRef.current = false;
@@ -237,7 +252,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return () => subscription.unsubscribe();
-  }, [applyAuthenticatedSession, showSessionExpiredAlert]);
+  }, [applyAuthenticatedSession, markSessionReady, showSessionExpiredAlert]);
 
   // Handle app state changes for optimal session management
   useEffect(() => {
@@ -247,6 +262,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === "active") {
         client.auth.startAutoRefresh();
+        // Avoid racing getSession/refreshSession against cold-start restore.
+        if (!sessionReadyRef.current) return;
         void client.auth.getSession().then(({ data: { session } }) => {
           if (
             session &&
