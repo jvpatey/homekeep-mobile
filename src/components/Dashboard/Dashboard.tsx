@@ -46,6 +46,7 @@ import {
   DashboardScheduleListRef,
 } from "./DashboardScheduleList";
 import { confirmSkipTaskOccurrence } from "../../utils/skipTaskOccurrence";
+import { maybeRequestReviewAfterTaskComplete } from "../../utils/requestAppReview";
 import { useHaptics, useReducedMotion } from "../../hooks";
 import {
   recommendInSeasonPlanId,
@@ -348,6 +349,7 @@ export function NewDashboard({
   const handleCloseCelebration = () => {
     setCelebration({ visible: false, snapshot: null });
     flushWeekendResume();
+    void maybeRequestReviewAfterTaskComplete();
   };
 
   const handleCloseWeekendCelebration = () => {
