@@ -209,6 +209,11 @@ export function isPurchaseCancelled(error: unknown): boolean {
   );
 }
 
+export function isProductAlreadyPurchased(error: unknown): boolean {
+  if (!isPurchasesError(error)) return false;
+  return error.code === PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR;
+}
+
 export function packageHasIntroTrial(pkg: PurchasesPackage | null): boolean {
   if (!pkg) return false;
   const intro = pkg.product.introPrice;

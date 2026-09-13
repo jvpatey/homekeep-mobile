@@ -14,7 +14,8 @@ export type EnsureAuthSessionOptions = {
 export async function ensureAuthSession(
   options?: EnsureAuthSessionOptions
 ): Promise<boolean> {
-  if (!supabase) return false;
+  const client = supabase;
+  if (!client) return false;
 
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
@@ -22,7 +23,7 @@ export async function ensureAuthSession(
     const {
       data: { session },
       error,
-    } = await supabase.auth.getSession();
+    } = await client.auth.getSession();
     if (error || !session) return false;
 
     const expiresAtMs = (session.expires_at ?? 0) * 1000;
@@ -31,7 +32,7 @@ export async function ensureAuthSession(
 
     if (needsRefresh) {
       const { data: refreshed, error: refreshError } =
-        await supabase.auth.refreshSession();
+        await client.auth.refreshSession();
       if (refreshError || !refreshed.session) return false;
     }
 

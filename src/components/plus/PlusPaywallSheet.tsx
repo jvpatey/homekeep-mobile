@@ -30,6 +30,10 @@ import {
   plusPlanLabel,
   plusStatusSubtitle,
 } from "../../lib/purchases";
+import {
+  PlusSuccessCelebration,
+  PlusSuccessKind,
+} from "./PlusSuccessCelebration";
 
 type PlanKey = "yearly" | "monthly";
 
@@ -40,6 +44,108 @@ const VALUE_LINES = [
 ];
 
 const COLUMN_MAX = 480;
+
+function formatPlanDate(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function planStatusMeta({
+  status,
+  daysRemaining,
+  expirationDate,
+  productId,
+  includedViaHousehold,
+}: {
+  status: string;
+  daysRemaining: number | null;
+  expirationDate: Date | null;
+  productId: string | null;
+  includedViaHousehold: boolean;
+}): {
+  pill: string;
+  plan: string;
+  detailLabel: string | null;
+  detailValue: string | null;
+  note: string | null;
+  tone: "ok" | "trial" | "warning" | "included";
+} {
+  const plan = plusPlanLabel(productId) ?? HOMEKEEP_PLUS_NAME;
+  const dateLabel = expirationDate ? formatPlanDate(expirationDate) : null;
+  const daysLabel =
+    daysRemaining != null
+      ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`
+      : null;
+
+  if (includedViaHousehold) {
+    return {
+      pill: "Included",
+      plan: "Household",
+      detailLabel: null,
+      detailValue: null,
+      note: "This home includes HomeKeep + for everyone in the household.",
+      tone: "included",
+    };
+  }
+
+  if (status === "trialing") {
+    return {
+      pill: "Free trial",
+      plan,
+      detailLabel: dateLabel ? "Billing starts" : daysLabel ? "Trial" : null,
+      detailValue: dateLabel ?? daysLabel,
+      note: dateLabel
+        ? `You're not charged until ${dateLabel}. Cancel anytime in your store account.`
+        : "Cancel anytime in your store account before the trial ends.",
+      tone: "trial",
+    };
+  }
+
+  if (status === "active") {
+    return {
+      pill: "Active",
+      plan,
+      detailLabel: dateLabel ? "Renews" : null,
+      detailValue: dateLabel,
+      note: "Cancel anytime in your Apple or Google account settings.",
+      tone: "ok",
+    };
+  }
+
+  if (status === "grace") {
+    return {
+      pill: "Billing issue",
+      plan,
+      detailLabel: "Access",
+      detailValue: "Continues while you update payment",
+      note: "Update payment in your Apple or Google account to keep HomeKeep +.",
+      tone: "warning",
+    };
+  }
+
+  if (status === "promo") {
+    return {
+      pill: "Complimentary",
+      plan,
+      detailLabel: dateLabel ? "Ends" : daysLabel ? "Access" : null,
+      detailValue: dateLabel ?? daysLabel,
+      note: "Subscribe to keep HomeKeep + after complimentary access ends.",
+      tone: "trial",
+    };
+  }
+
+  return {
+    pill: "HomeKeep +",
+    plan,
+    detailLabel: null,
+    detailValue: null,
+    note: null,
+    tone: "ok",
+  };
+}
 
 export function PlusPaywallSheet({
   embedded = false,
@@ -70,9 +176,10 @@ export function PlusPaywallSheet({
     includedViaHousehold,
     manageSubscription,
   } = useSubscription();
-  const { triggerLight, triggerSuccess } = useHaptics();
+  const { triggerLight } = useHaptics();
   const [plan, setPlan] = useState<PlanKey>("yearly");
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const [successKind, setSuccessKind] = useState<PlusSuccessKind | null>(null);
 
   useEffect(() => {
     const label = plusPlanLabel(productId);
@@ -97,20 +204,13 @@ export function PlusPaywallSheet({
     isPlus && !includedViaHousehold && isStoreManagedStatus(status);
   const manageOnly = includedViaHousehold || hasStoreSubscription;
   const showPurchaseOptions = !manageOnly;
-  const planNote =
-    hasStoreSubscription && status === "trialing" && expirationDate
-      ? `This is a free trial on your ${plusPlanLabel(productId) ?? "HomeKeep +"} plan. Billing starts ${expirationDate.toLocaleDateString()} unless you cancel.`
-      : hasStoreSubscription && status === "active" && expirationDate
-        ? `Renews ${expirationDate.toLocaleDateString()}. Cancel anytime in your store account.`
-        : hasStoreSubscription && status === "grace"
-          ? "There's a billing issue. Access continues while you update payment in your store account."
-          : includedViaHousehold
-            ? "This home includes HomeKeep + for everyone in the household."
-            : status === "promo" && expirationDate
-              ? `Complimentary access ends ${expirationDate.toLocaleDateString()}. Subscribe to keep HomeKeep +.`
-              : status === "promo"
-                ? "Subscribe to keep HomeKeep + after complimentary access ends."
-                : null;
+  const statusMeta = planStatusMeta({
+    status,
+    daysRemaining,
+    expirationDate,
+    productId,
+    includedViaHousehold,
+  });
   const ctaLabel = includedViaHousehold
     ? "Close"
     : hasStoreSubscription
@@ -139,7 +239,7 @@ export function PlusPaywallSheet({
     await triggerLight();
     const result = await purchasePackage(selected);
     if (result.ok) {
-      triggerSuccess();
+      setSuccessKind(hasTrial ? "trial" : "subscribe");
       return;
     }
     if ("cancelled" in result && result.cancelled) return;
@@ -157,7 +257,7 @@ export function PlusPaywallSheet({
     setRestoreMessage(null);
     const result = await restore();
     if (result.restored) {
-      triggerSuccess();
+      setSuccessKind("restore");
       return;
     }
     if (result.error) {
@@ -198,6 +298,7 @@ export function PlusPaywallSheet({
   const showRetry = showPurchaseOptions && Boolean(offeringsError);
 
   return (
+    <>
     <HearthSheet
       key={paywallEpoch}
       visible={paywallVisible}
@@ -265,7 +366,11 @@ export function PlusPaywallSheet({
       <ScrollView
         showsVerticalScrollIndicator={false}
         bounces={false}
-        contentContainerStyle={[styles.scroll, columnStyle]}
+        contentContainerStyle={[
+          styles.scroll,
+          manageOnly ? styles.scrollManage : null,
+          columnStyle,
+        ]}
       >
         <View style={styles.hero}>
           <Text style={[styles.headline, { color: colors.text }]}>
@@ -275,17 +380,18 @@ export function PlusPaywallSheet({
                 ? "Subscribe to keep HomeKeep +"
                 : "Try everything for 7 days"}
           </Text>
-          <Text style={[styles.subhead, { color: colors.textSecondary }]}>
-            {manageOnly || status === "promo"
-              ? currentStatus
-              : "Reminders, household sharing, and the next cycle. Cancel anytime."}
-          </Text>
-          {planNote ? (
+          {!manageOnly ? (
             <Text style={[styles.subhead, { color: colors.textSecondary }]}>
-              {planNote}
+              {status === "promo"
+                ? currentStatus
+                : "Reminders, household sharing, and the next cycle. Cancel anytime."}
             </Text>
           ) : null}
         </View>
+
+        {manageOnly ? (
+          <PlanStatusCard meta={statusMeta} />
+        ) : null}
 
         {showPurchaseOptions ? (
           <View style={styles.values}>
@@ -337,6 +443,96 @@ export function PlusPaywallSheet({
         ) : null}
       </ScrollView>
     </HearthSheet>
+    <PlusSuccessCelebration
+      isVisible={successKind != null}
+      kind={successKind ?? "subscribe"}
+      onClose={() => setSuccessKind(null)}
+    />
+    </>
+  );
+}
+
+function PlanStatusCard({
+  meta,
+}: {
+  meta: ReturnType<typeof planStatusMeta>;
+}) {
+  const { colors } = useTheme();
+  const pillColor =
+    meta.tone === "warning"
+      ? colors.warning
+      : meta.tone === "included"
+        ? colors.secondary
+        : colors.primary;
+  const pillIcon =
+    meta.tone === "warning"
+      ? ("alert-circle" as const)
+      : meta.tone === "included"
+        ? ("people" as const)
+        : meta.tone === "trial"
+          ? ("gift" as const)
+          : ("sparkles" as const);
+
+  return (
+    <HearthSurfaceCard style={styles.statusCard}>
+      <View style={styles.statusHeader}>
+        <View
+          style={[
+            styles.statusPill,
+            {
+              backgroundColor: colors.glassTint,
+              borderColor: colors.glassBorder,
+            },
+          ]}
+        >
+          <Ionicons name={pillIcon} size={14} color={pillColor} />
+          <Text style={[styles.statusPillText, { color: pillColor }]}>
+            {meta.pill}
+          </Text>
+        </View>
+        <Text style={[styles.statusPlanName, { color: colors.text }]}>
+          {meta.plan}
+        </Text>
+      </View>
+
+      {meta.detailLabel && meta.detailValue ? (
+        <View
+          style={[
+            styles.statusDetailBlock,
+            { borderTopColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
+            {meta.detailLabel}
+          </Text>
+          <Text style={[styles.statusDetailValue, { color: colors.text }]}>
+            {meta.detailValue}
+          </Text>
+        </View>
+      ) : null}
+
+      {meta.note ? (
+        <Text
+          style={[
+            styles.statusNote,
+            {
+              color: colors.textSecondary,
+              borderTopColor: colors.border,
+              borderTopWidth:
+                meta.detailLabel && meta.detailValue
+                  ? 0
+                  : StyleSheet.hairlineWidth,
+              paddingTop:
+                meta.detailLabel && meta.detailValue
+                  ? 0
+                  : DesignSystem.spacing.md,
+            },
+          ]}
+        >
+          {meta.note}
+        </Text>
+      ) : null}
+    </HearthSurfaceCard>
   );
 }
 
@@ -441,6 +637,9 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.lg,
     flexGrow: 1,
   },
+  scrollManage: {
+    gap: DesignSystem.spacing.md,
+  },
   column: {
     width: "100%",
     maxWidth: COLUMN_MAX,
@@ -454,6 +653,45 @@ const styles = StyleSheet.create({
   },
   subhead: {
     ...DesignSystem.typography.callout,
+  },
+  statusCard: {
+    padding: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.md,
+  },
+  statusHeader: {
+    gap: DesignSystem.spacing.sm,
+  },
+  statusPill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  statusPillText: {
+    ...DesignSystem.typography.captionSemiBold,
+  },
+  statusPlanName: {
+    ...DesignSystem.typography.title2,
+  },
+  statusDetailBlock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.xs,
+  },
+  statusLabel: {
+    ...DesignSystem.typography.footnote,
+  },
+  statusDetailValue: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
+  },
+  statusNote: {
+    ...DesignSystem.typography.footnote,
+    lineHeight: 20,
   },
   values: {
     gap: DesignSystem.spacing.sm,

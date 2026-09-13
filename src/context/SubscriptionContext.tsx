@@ -20,6 +20,7 @@ import {
   configurePurchases,
   getRcApiKey,
   isExpoGo,
+  isProductAlreadyPurchased,
   isPurchaseCancelled,
   logOutPurchases,
   openLegalUrl,
@@ -123,7 +124,7 @@ export function SubscriptionProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, sessionReady } = useAuth();
   const { profile } = useProfile();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [remote, setRemote] = useState<EntitlementRow | null>(null);
@@ -142,6 +143,7 @@ export function SubscriptionProvider({
   const setupPaywallShownRef = useRef(false);
   const purchasingRef = useRef(false);
   const isPlusRef = useRef(false);
+  const identifiedUserIdRef = useRef<string | null>(null);
   const [paywallEmbeds, setPaywallEmbeds] = useState(0);
 
   const registerPaywallEmbed = useCallback(() => {
@@ -196,7 +198,18 @@ export function SubscriptionProvider({
       if (!configurePurchases()) return;
       try {
         const { customerInfo: info } = await Purchases.logIn(userId);
+        identifiedUserIdRef.current = userId;
         applyCustomerInfo(info);
+        if (!rcHasPlus(info)) {
+          try {
+            const refreshed = await Purchases.getCustomerInfo();
+            applyCustomerInfo(refreshed);
+          } catch (refreshError) {
+            if (__DEV__) {
+              console.warn("getCustomerInfo after logIn failed", refreshError);
+            }
+          }
+        }
       } catch (error) {
         if (__DEV__) {
           console.warn("Purchases.logIn failed", error);
@@ -234,7 +247,12 @@ export function SubscriptionProvider({
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
+      if (!sessionReady) {
+        setLoading(true);
+        return;
+      }
       if (!user) {
+        identifiedUserIdRef.current = null;
         setCustomerInfo(null);
         setRemote(null);
         setRpcPlus(false);
@@ -242,6 +260,7 @@ export function SubscriptionProvider({
         await logOutPurchases();
         return;
       }
+      setLoading(true);
       await identify(user.id);
       if (!cancelled) {
         await fetchRemote();
@@ -252,7 +271,7 @@ export function SubscriptionProvider({
     return () => {
       cancelled = true;
     };
-  }, [fetchRemote, identify, user?.id]);
+  }, [fetchRemote, identify, sessionReady, user?.id]);
 
   useEffect(() => {
     if (!configurePurchases()) return;
@@ -381,6 +400,24 @@ export function SubscriptionProvider({
     void presentPaywall();
   }, [presentPaywall]);
 
+  const finishEntitledPurchase = useCallback(
+    async (info: CustomerInfo): Promise<PurchaseResult> => {
+      applyCustomerInfo(info);
+      await fetchRemote();
+      if (rcHasPlus(info) || isPlusRef.current) {
+        isPlusRef.current = true;
+        setPaywallVisible(false);
+        resolvePaywall(true);
+        return { ok: true };
+      }
+      return {
+        ok: false,
+        error: "Purchase finished but HomeKeep + is not active yet.",
+      };
+    },
+    [applyCustomerInfo, fetchRemote, resolvePaywall]
+  );
+
   const purchasePackage = useCallback(
     async (pkg: PurchasesPackage): Promise<PurchaseResult> => {
       if (purchasingRef.current) {
@@ -396,31 +433,39 @@ export function SubscriptionProvider({
       purchasingRef.current = true;
       setPurchasing(true);
       try {
-        const { customerInfo: info } = await Purchases.purchasePackage(pkg);
-        applyCustomerInfo(info);
-        await fetchRemote();
-        if (rcHasPlus(info) || isPlusRef.current) {
-          isPlusRef.current = true;
-          setPaywallVisible(false);
-          resolvePaywall(true);
-          return { ok: true };
+        if (user && identifiedUserIdRef.current !== user.id) {
+          await identify(user.id);
         }
-        return {
-          ok: false,
-          error: "Purchase finished but HomeKeep + is not active yet.",
-        };
+        const { customerInfo: info } = await Purchases.purchasePackage(pkg);
+        return finishEntitledPurchase(info);
       } catch (error) {
         if (isPurchaseCancelled(error)) {
           return { ok: false, cancelled: true };
         }
-        const message = isPurchasesErrorMessage(error);
-        return { ok: false, error: message };
+        if (isProductAlreadyPurchased(error)) {
+          try {
+            const info = await Purchases.restorePurchases();
+            const result = await finishEntitledPurchase(info);
+            if (result.ok) return result;
+            const refreshed = await Purchases.getCustomerInfo();
+            return finishEntitledPurchase(refreshed);
+          } catch (restoreError) {
+            if (isPurchaseCancelled(restoreError)) {
+              return { ok: false, cancelled: true };
+            }
+            return {
+              ok: false,
+              error: isPurchasesErrorMessage(restoreError),
+            };
+          }
+        }
+        return { ok: false, error: isPurchasesErrorMessage(error) };
       } finally {
         purchasingRef.current = false;
         setPurchasing(false);
       }
     },
-    [applyCustomerInfo, fetchRemote, resolvePaywall]
+    [finishEntitledPurchase, identify, user]
   );
 
   const restore = useCallback(async (): Promise<RestoreResult> => {
