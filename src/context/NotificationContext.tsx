@@ -313,7 +313,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     } catch (error) {
       console.error("Error seeding notification preferences:", error);
     }
-  }, [supabase, user]);
+  }, [supabase, user?.id]);
 
   const refreshPushTokenIfGranted = useCallback(async (): Promise<boolean> => {
     const status = await checkPermissionStatus();
@@ -458,7 +458,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     } catch (error) {
       console.error("Error loading notification preferences:", error);
     }
-  }, [supabase, user]);
+  }, [supabase, user?.id]);
 
   const clearPendingOpen = useCallback(() => {
     setPendingOpen(null);
@@ -518,7 +518,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     loadNotificationPreferences,
     refreshPushTokenIfGranted,
     seedNotificationPreferences,
-    user,
+    user?.id,
   ]);
 
   useEffect(() => {
@@ -531,7 +531,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     });
 
     return () => subscription.remove();
-  }, [refreshPushTokenIfGranted, user]);
+  }, [refreshPushTokenIfGranted, user?.id]);
 
   const value: NotificationContextType = {
     notification,

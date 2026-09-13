@@ -79,7 +79,7 @@ interface SubscriptionContextValue {
   reloadOfferings: () => Promise<void>;
   purchasePackage: (pkg: PurchasesPackage) => Promise<PurchaseResult>;
   restore: () => Promise<RestoreResult>;
-  refresh: () => Promise<void>;
+  refresh: (options?: { silent?: boolean }) => Promise<void>;
   manageSubscription: () => Promise<void>;
   openLegal: (kind: "privacy" | "terms") => Promise<void>;
   paywallEmbeds: number;
@@ -154,7 +154,8 @@ export function SubscriptionProvider({
   const storeAvailable = Boolean(getRcApiKey()) && !isExpoGo();
 
   const fetchRemote = useCallback(async () => {
-    if (!supabase || !user) {
+    const userId = user?.id;
+    if (!supabase || !userId) {
       setRemote(null);
       setRpcPlus(false);
       return;
@@ -179,15 +180,15 @@ export function SubscriptionProvider({
       setRpcPlus(false);
     }
     const list = (rows.data ?? []) as EntitlementRow[];
-    const mine = list.find((row) => row.user_id === user.id);
+    const mine = list.find((row) => row.user_id === userId);
     const household = list.find(
       (row) =>
-        row.user_id !== user.id &&
+        row.user_id !== userId &&
         ACTIVE.includes(row.status) &&
         (!row.expires_at || new Date(row.expires_at) > new Date())
     );
     setRemote(mine ?? household ?? null);
-  }, [user]);
+  }, [user?.id]);
 
   const applyCustomerInfo = useCallback((info: CustomerInfo) => {
     setCustomerInfo(info);
@@ -219,26 +220,34 @@ export function SubscriptionProvider({
     [applyCustomerInfo]
   );
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      if (user && configurePurchases()) {
-        try {
-          const info = await Purchases.getCustomerInfo();
-          applyCustomerInfo(info);
-        } catch (error) {
-          if (__DEV__) {
-            console.warn("getCustomerInfo failed", error);
-          }
-        }
-      } else {
-        setCustomerInfo(null);
+  const refresh = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent === true;
+      if (!silent) {
+        setLoading(true);
       }
-      await fetchRemote();
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCustomerInfo, fetchRemote, user]);
+      try {
+        if (user?.id && configurePurchases()) {
+          try {
+            const info = await Purchases.getCustomerInfo();
+            applyCustomerInfo(info);
+          } catch (error) {
+            if (__DEV__) {
+              console.warn("getCustomerInfo failed", error);
+            }
+          }
+        } else if (!user?.id) {
+          setCustomerInfo(null);
+        }
+        await fetchRemote();
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [applyCustomerInfo, fetchRemote, user?.id]
+  );
 
   useEffect(() => {
     configurePurchases();
@@ -287,13 +296,13 @@ export function SubscriptionProvider({
 
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {
-      if (state === "active" && user) {
-        void refresh();
+      if (state === "active" && user?.id) {
+        void refresh({ silent: true });
       }
     };
     const sub = AppState.addEventListener("change", onChange);
     return () => sub.remove();
-  }, [refresh, user]);
+  }, [refresh, user?.id]);
 
   const rcPlus = rcHasPlus(customerInfo);
   const rcTrial = rcTrialing(customerInfo);

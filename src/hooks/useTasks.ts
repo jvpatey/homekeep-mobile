@@ -254,7 +254,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         }
       }
     },
-    [user, sessionReady, filters, timeRange, lookbackDays]
+    [user?.id, sessionReady, filters, timeRange, lookbackDays]
   );
 
   // createTask - create a new maintenance routine
@@ -282,7 +282,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const applyMaintenancePlan = useCallback(
@@ -361,7 +361,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const applyGeneratedHomeSchedule = useCallback(
@@ -406,7 +406,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const reconcileHomeSchedule = useCallback(
@@ -464,7 +464,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // updateTask - update a maintenance routine
@@ -514,7 +514,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // completeTask - mark a routine instance as completed
@@ -551,7 +551,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // uncompleteTask - mark a routine instance as incomplete
@@ -577,7 +577,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const skipTaskOccurrence = useCallback(
@@ -618,7 +618,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // deleteTask - delete a maintenance routine
@@ -646,7 +646,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // bulkCompleteTasks - mark multiple routine instances as completed
@@ -679,7 +679,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // refreshTasks - refresh the maintenance tasks
@@ -712,7 +712,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       const error = err as Error;
       console.error("Error refreshing stats:", error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   // delete all maintenance routines and instances for current user
   const deleteAllTasks = useCallback(async () => {
@@ -737,7 +737,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       console.error("Error deleting all maintenance routines:", error);
       return { success: false, error: errorMessage };
     }
-  }, [user, refreshStats]);
+  }, [user?.id, refreshStats]);
 
   // Reload when app returns to foreground (debounced)
   useEffect(() => {
@@ -774,7 +774,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         totalInstances: 0,
       });
     }
-  }, [user, sessionReady, loadTasks]);
+  }, [user?.id, sessionReady, loadTasks]);
 
   return {
     tasks,

@@ -6,7 +6,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { Session, User, SupabaseClient } from "@supabase/supabase-js";
+import { Session, User, SupabaseClient, AuthChangeEvent } from "@supabase/supabase-js";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Alert, AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
@@ -82,6 +82,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const sessionRecoveryRef = useRef({ inProgress: false, alertShown: false });
   const hadAuthenticatedSessionRef = useRef(false);
   const sessionReadyRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   const markSessionReady = useCallback(() => {
     sessionReadyRef.current = true;
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const clearLocalAuthState = useCallback(async () => {
+    userIdRef.current = null;
     setSession(null);
     setUser(null);
     markSessionReady();
@@ -156,9 +158,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const applyAuthenticatedSession = useCallback(
-    async (nextSession: Session) => {
+    async (nextSession: Session, event: AuthChangeEvent) => {
       if (!isEmailVerified(nextSession.user)) {
         voluntarySignOutRef.current = true;
+        userIdRef.current = null;
         setSession(null);
         setUser(null);
         markSessionReady();
@@ -173,15 +176,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Unblock navigation immediately from the known session. Awaiting
-      // getSession/refreshSession before this was hanging the cold-start
-      // spinner when the network or auth client lock stalled.
+      const nextUserId = nextSession.user.id;
+      const sameUser = userIdRef.current === nextUserId;
+
+      // Always update the session so access tokens stay current.
       setSession(nextSession);
-      setUser(nextSession.user);
+
+      // Keep a stable user object across token refresh / same-account SIGNED_IN
+      // so downstream effects keyed on `user` do not thrash. Replace on new
+      // account or USER_UPDATED (metadata / password / email changes).
+      if (!sameUser || event === "USER_UPDATED") {
+        userIdRef.current = nextUserId;
+        setUser(nextSession.user);
+      }
+
       hadAuthenticatedSessionRef.current = true;
       sessionRecoveryRef.current.alertShown = false;
       markSessionReady();
-      void upsertUserTimezone(nextSession.user);
+
+      if (!sameUser || event === "INITIAL_SESSION") {
+        void upsertUserTimezone(nextSession.user);
+      }
+
+      if (event === "TOKEN_REFRESHED") {
+        return;
+      }
 
       try {
         const sessionValid = await ensureAuthSession();
@@ -219,9 +238,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (event === "INITIAL_SESSION") {
         if (nextSession?.user) {
           setTimeout(() => {
-            void applyAuthenticatedSession(nextSession);
+            void applyAuthenticatedSession(nextSession, event);
           }, 0);
         } else {
+          userIdRef.current = null;
           setSession(null);
           setUser(null);
           markSessionReady();
@@ -234,7 +254,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           sessionRecoveryRef.current.alertShown = false;
         }
         setTimeout(() => {
-          void applyAuthenticatedSession(nextSession);
+          void applyAuthenticatedSession(nextSession, event);
         }, 0);
         return;
       }
@@ -244,6 +264,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           hadAuthenticatedSessionRef.current &&
           !voluntarySignOutRef.current;
 
+        userIdRef.current = null;
         setSession(null);
         setUser(null);
         markSessionReady();
