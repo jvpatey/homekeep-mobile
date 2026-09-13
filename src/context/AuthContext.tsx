@@ -50,6 +50,10 @@ interface AuthContextType {
   updateUserFullName: (
     fullName: string
   ) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -552,6 +556,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
     []
   );
 
+  const changePassword = useCallback(
+    async (
+      currentPassword: string,
+      newPassword: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      if (!supabase) {
+        return { success: false, error: "Not signed in" };
+      }
+      const email = user?.email?.trim();
+      if (!email) {
+        return { success: false, error: "No email on this account." };
+      }
+      if (newPassword.length < 8) {
+        return {
+          success: false,
+          error: "New password must be at least 8 characters.",
+        };
+      }
+      if (currentPassword === newPassword) {
+        return {
+          success: false,
+          error: "New password must be different from your current password.",
+        };
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+      if (verifyError) {
+        return { success: false, error: "Current password is incorrect." };
+      }
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      if (data.user) setUser(data.user);
+      return { success: true };
+    },
+    [user?.email]
+  );
+
   const value = {
     user,
     session,
@@ -565,6 +614,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
     deleteAccount,
     updateUserFullName,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

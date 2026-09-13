@@ -17,3 +17,16 @@ export function isEmailVerified(user: User | null | undefined): boolean {
 
   return false;
 }
+
+/** True when the account can sign in with email + password (not Apple-only). */
+export function userHasEmailPassword(user: User | null | undefined): boolean {
+  if (!user) return false;
+  if (user.identities?.some((identity) => identity.provider === "email")) {
+    return true;
+  }
+  const providers = user.app_metadata?.providers;
+  if (Array.isArray(providers) && providers.includes("email")) {
+    return true;
+  }
+  return user.app_metadata?.provider === "email";
+}

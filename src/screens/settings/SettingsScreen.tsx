@@ -16,9 +16,11 @@ import { HomeSetupModal } from "../../components/modals/home-setup";
 import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
 import { PlusPaywallSheet } from "../../components/plus";
 import { EditNameModal } from "../../components/modals/edit-name-modal";
+import { EditPasswordModal } from "../../components/modals/edit-password-modal";
 import { DesignSystem } from "../../theme/designSystem";
 import { SettingsScreenProps } from "./types";
 import { accountDisplayName, hasAccountName } from "../../utils/displayName";
+import { userHasEmailPassword } from "../../utils/isEmailVerified";
 import { useSubscription } from "../../context/SubscriptionContext";
 import {
   HOMEKEEP_PLUS_NAME,
@@ -51,6 +53,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
+  const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(true);
 
   const nameInput = {
@@ -61,6 +64,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const displayName = accountDisplayName(nameInput);
   const named = hasAccountName(nameInput);
   const email = user?.email ?? profile?.email ?? "";
+  const canChangePassword = userHasEmailPassword(user);
 
   const closeSheet = () => {
     setSheetVisible(false);
@@ -234,7 +238,20 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 void triggerLight();
                 setNameEditorVisible(true);
               }}
+              showDivider={canChangePassword}
             />
+            {canChangePassword ? (
+              <SheetActionRow
+                icon="lock-closed-outline"
+                title="Change password"
+                subtitle="Update the password for this email"
+                onPress={() => {
+                  void triggerLight();
+                  setPasswordEditorVisible(true);
+                }}
+                showDivider={false}
+              />
+            ) : null}
           </HearthSurfaceCard>
 
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
@@ -352,6 +369,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <EditNameModal
           visible
           onClose={() => setNameEditorVisible(false)}
+        />
+      ) : null}
+
+      {passwordEditorVisible ? (
+        <EditPasswordModal
+          visible
+          onClose={() => setPasswordEditorVisible(false)}
         />
       ) : null}
 
