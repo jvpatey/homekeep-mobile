@@ -220,6 +220,13 @@ export function SubscriptionProvider({
     [applyCustomerInfo]
   );
 
+  const ensureIdentified = useCallback(async (): Promise<boolean> => {
+    if (!user?.id || !configurePurchases()) return false;
+    if (identifiedUserIdRef.current === user.id) return true;
+    await identify(user.id);
+    return identifiedUserIdRef.current === user.id;
+  }, [identify, user?.id]);
+
   const refresh = useCallback(
     async (options?: { silent?: boolean }) => {
       const silent = options?.silent === true;
@@ -393,6 +400,11 @@ export function SubscriptionProvider({
   const presentPaywall = useCallback(
     async (options?: { force?: boolean }) => {
       if (isPlusRef.current && !options?.force) return true;
+      const prior = paywallResolverRef.current;
+      if (prior) {
+        paywallResolverRef.current = null;
+        prior(isPlusRef.current);
+      }
       setPaywallEpoch((n) => n + 1);
       setPaywallVisible(true);
       void reloadOfferings();
@@ -427,6 +439,9 @@ export function SubscriptionProvider({
     [applyCustomerInfo, fetchRemote, resolvePaywall]
   );
 
+  const identifyRequiredError =
+    "Could not link your subscription account. Check your connection and try again.";
+
   const purchasePackage = useCallback(
     async (pkg: PurchasesPackage): Promise<PurchaseResult> => {
       if (purchasingRef.current) {
@@ -442,8 +457,8 @@ export function SubscriptionProvider({
       purchasingRef.current = true;
       setPurchasing(true);
       try {
-        if (user && identifiedUserIdRef.current !== user.id) {
-          await identify(user.id);
+        if (!(await ensureIdentified())) {
+          return { ok: false, error: identifyRequiredError };
         }
         const { customerInfo: info } = await Purchases.purchasePackage(pkg);
         return finishEntitledPurchase(info);
@@ -453,6 +468,9 @@ export function SubscriptionProvider({
         }
         if (isProductAlreadyPurchased(error)) {
           try {
+            if (!(await ensureIdentified())) {
+              return { ok: false, error: identifyRequiredError };
+            }
             const info = await Purchases.restorePurchases();
             const result = await finishEntitledPurchase(info);
             if (result.ok) return result;
@@ -474,7 +492,7 @@ export function SubscriptionProvider({
         setPurchasing(false);
       }
     },
-    [finishEntitledPurchase, identify, user]
+    [ensureIdentified, finishEntitledPurchase]
   );
 
   const restore = useCallback(async (): Promise<RestoreResult> => {
@@ -491,6 +509,9 @@ export function SubscriptionProvider({
     purchasingRef.current = true;
     setPurchasing(true);
     try {
+      if (!(await ensureIdentified())) {
+        return { restored: false, error: identifyRequiredError };
+      }
       const info = await Purchases.restorePurchases();
       applyCustomerInfo(info);
       await fetchRemote();
@@ -510,7 +531,7 @@ export function SubscriptionProvider({
       purchasingRef.current = false;
       setPurchasing(false);
     }
-  }, [applyCustomerInfo, fetchRemote, resolvePaywall]);
+  }, [applyCustomerInfo, ensureIdentified, fetchRemote, resolvePaywall]);
 
   const value = useMemo<SubscriptionContextValue>(
     () => ({
