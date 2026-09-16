@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import Purchases, {
   CustomerInfo,
   PurchasesOffering,
@@ -106,6 +106,32 @@ function rcTrialing(info: CustomerInfo | null): boolean {
   return ent?.periodType === "TRIAL";
 }
 
+function storeForPlatform(): "app_store" | "play_store" {
+  return Platform.OS === "ios" ? "app_store" : "play_store";
+}
+
+async function upsertStoreEntitlementFromRc(
+  info: CustomerInfo
+): Promise<boolean> {
+  if (!supabase || !rcHasPlus(info)) return false;
+  const ent = info.entitlements.active[HOMEKEEP_PLUS_ENTITLEMENT];
+  if (!ent) return false;
+  const status = ent.periodType === "TRIAL" ? "trialing" : "active";
+  const { error } = await supabase.rpc("upsert_my_store_entitlement", {
+    p_status: status,
+    p_product_id: ent.productIdentifier ?? null,
+    p_expires_at: ent.expirationDate ?? null,
+    p_store: storeForPlatform(),
+  });
+  if (error) {
+    if (__DEV__) {
+      console.warn("upsert_my_store_entitlement", error.message);
+    }
+    return false;
+  }
+  return true;
+}
+
 function daysUntil(date: Date | null): number | null {
   if (!date) return null;
   const ms = date.getTime() - Date.now();
@@ -190,9 +216,20 @@ export function SubscriptionProvider({
     setRemote(mine ?? household ?? null);
   }, [user?.id]);
 
-  const applyCustomerInfo = useCallback((info: CustomerInfo) => {
-    setCustomerInfo(info);
-  }, []);
+  const applyCustomerInfo = useCallback(
+    (info: CustomerInfo) => {
+      setCustomerInfo(info);
+      if (rcHasPlus(info)) {
+        void (async () => {
+          const synced = await upsertStoreEntitlementFromRc(info);
+          if (synced) {
+            await fetchRemote();
+          }
+        })();
+      }
+    },
+    [fetchRemote]
+  );
 
   const identify = useCallback(
     async (userId: string) => {
@@ -293,13 +330,12 @@ export function SubscriptionProvider({
     if (!configurePurchases()) return;
     const listener = (info: CustomerInfo) => {
       applyCustomerInfo(info);
-      void fetchRemote();
     };
     Purchases.addCustomerInfoUpdateListener(listener);
     return () => {
       Purchases.removeCustomerInfoUpdateListener(listener);
     };
-  }, [applyCustomerInfo, fetchRemote]);
+  }, [applyCustomerInfo]);
 
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {

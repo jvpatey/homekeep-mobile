@@ -25,7 +25,7 @@ serve(async (req) => {
       `notification-worker at ${now.toISOString()}, force_type=${forceType ?? "none"}, user_id=${authorized.userId ?? "ALL"}`
     );
 
-    const { results, usersProcessed, userId } = await runNotificationJob(
+    const { results, usersProcessed, userId, skips } = await runNotificationJob(
       supabase,
       now,
       {
@@ -40,6 +40,7 @@ serve(async (req) => {
       message: "Hourly notification worker completed",
       user_id: userId,
       users_processed: usersProcessed,
+      skips,
       results,
     });
   } catch (error: unknown) {

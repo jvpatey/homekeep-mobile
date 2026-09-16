@@ -120,8 +120,9 @@ ORDER BY sent_at DESC LIMIT 10;
 | Step | Expected |
 |------|----------|
 | Fresh user login | ~9 `notification_preferences` rows, `push_token` set after enabling notifications |
+| Plus / trial user opens app | `entitlements` row with `trialing` or `active`; `user_has_plus` true |
 | `send-push-notification` curl | 200 + `push_notifications` row; device shows alert if backgrounded |
-| `notification-worker?force_type=upcoming` | One due-tomorrow batch if tasks exist; dedupe on repeat |
+| `notification-worker?force_type=upcoming` | One due-tomorrow batch if tasks exist; dedupe on repeat; `users_processed: 1` for Plus/trial |
 | Local hour 18 (or `force_type=upcoming`) | One upcoming push for the home |
 | Local hour 8 (or `force_type=morning`) | One morning push if overdue or due today |
 | Member joins household | Other members (master on) get “Name joined your home.” |
@@ -132,10 +133,27 @@ ORDER BY sent_at DESC LIMIT 10;
 |-------|-----|
 | `InvalidCredentials` (Expo) | Add APNs key in EAS; rebuild TestFlight |
 | `User not found or no push token` | Open app, enable notifications, sign in |
-| Scheduled sends never fire | Confirm `notification-worker` schedule in Supabase dashboard; invoke with service role |
-| No upcoming/morning | Check `notification_preferences.enabled` and task due dates |
+| Scheduled sends never fire | Confirm `notification_worker_hourly` cron is `0 * * * *` and Authorization uses the **service_role** key (not anon) |
+| **RC Plus / 7-day trial but `users_processed: 0`** | Check `entitlements` for that user. App Store Plus comes from RevenueCat; the worker requires a Supabase row (`trialing`/`active`/`grace`/`promo`). Open the latest app build once (client sync) or upsert via `upsert_my_store_entitlement` / webhook |
+| `skips.not_entitled` in worker JSON | Same as above — heal entitlements, then re-run `force_type` |
+| No upcoming/morning | Check `notification_preferences` (`enabled` + `due_soon_reminder` / `overdue_reminder`) and task due dates (upcoming = due **tomorrow**) |
 | Duplicate pushes | Check `notification_deliveries` unique constraint exists |
-| `Unauthorized` | Use a user JWT, service role, or `x-cron-secret` |
+| `Unauthorized` | Use a **real** service role key (not the placeholder), a user JWT, or `x-cron-secret` |
+
+### Entitlement checks
+
+```sql
+SELECT status, expires_at, product_id, store,
+       public.user_has_plus('YOUR_USER_UUID') AS has_plus
+FROM entitlements
+WHERE user_id = 'YOUR_USER_UUID';
+
+-- Worker response includes skips, e.g.:
+-- {"users_processed":0,"skips":{"not_entitled":1,"no_token":0,"wrong_hour":0,"bad_force_type":0}}
+```
+
+**Note:** 7-day intro trials must have `status = 'trialing'` (or active Plus). `user_has_plus` and the worker treat `trialing` as entitled.
+
 
 ## Dedupe keys
 

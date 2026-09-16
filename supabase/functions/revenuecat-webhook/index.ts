@@ -74,7 +74,6 @@ function isPersistedAppUserId(id: string | undefined | null): id is string {
 const REVOKE_TYPES = new Set([
   "EXPIRATION",
   "REFUND",
-  "CANCELLATION",
   "TEMPORARY_ENTITLEMENT_DELETION",
 ]);
 
@@ -82,6 +81,7 @@ function statusForEvent(event: RcEvent): EntitlementStatus {
   const type = event.type ?? "";
   if (REVOKE_TYPES.has(type)) return "expired";
   if (type === "BILLING_ISSUE") return "grace";
+  // CANCELLATION = auto-renew off; access continues until EXPIRATION
   if ((event.period_type ?? "").toUpperCase() === "TRIAL") return "trialing";
   return "active";
 }
