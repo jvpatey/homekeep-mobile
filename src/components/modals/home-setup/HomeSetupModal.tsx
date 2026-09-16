@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useProfile } from "../../../context/ProfileContext";
@@ -454,25 +462,38 @@ export function HomeSetupModal({
 
   const questionCount = 10 + (saltNeeded ? 1 : 0);
 
-  const skipOrCancel = hideSkip ? (
-    <Button label="Cancel" onPress={handleRequestClose} variant="ghost" />
-  ) : (
-    <>
-      <Button
-        label="Join a household instead"
-        onPress={() => void handleJoinHousehold()}
-        variant="ghost"
-        disabled={saving}
-        accessibilityLabel="Skip setup and join someone else's household"
-      />
-      <Button
-        label="Skip for now"
-        onPress={() => void handleSkip()}
-        variant="ghost"
-        disabled={saving}
-      />
-    </>
+  const footerLink = (
+    label: string,
+    onPress: () => void,
+    accessibilityLabel?: string
+  ) => (
+    <Pressable
+      onPress={onPress}
+      disabled={saving}
+      hitSlop={8}
+      accessibilityRole="link"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: saving }}
+      style={[styles.footerLink, saving && styles.footerLinkDisabled]}
+    >
+      <Text style={[styles.footerLinkText, { color: colors.primary }]}>
+        {label}
+      </Text>
+    </Pressable>
   );
+
+  const firstRunExits = hideSkip
+    ? footerLink("Cancel", handleRequestClose)
+    : (
+        <>
+          {footerLink(
+            "Join a household",
+            () => void handleJoinHousehold(),
+            "Skip setup and join someone else's household"
+          )}
+          {footerLink("Skip for now", () => void handleSkip())}
+        </>
+      );
 
   const footer =
     phase === "address" ? (
@@ -483,7 +504,7 @@ export function HomeSetupModal({
           disabled={!addressCanSubmit || saving}
           accessibilityLabel="Save address and continue"
         />
-        {skipOrCancel}
+        <View style={styles.footerLinks}>{firstRunExits}</View>
       </View>
     ) : phase === "questions" ? (
       <View style={styles.footerInner}>
@@ -493,13 +514,9 @@ export function HomeSetupModal({
           disabled={!canContinueQuestions}
           accessibilityLabel="Continue to suggested schedule"
         />
-        <Button
-          label="Back"
-          onPress={() => setPhase("address")}
-          variant="ghost"
-          disabled={saving}
-        />
-        {skipOrCancel}
+        <View style={styles.footerLinks}>
+          {footerLink("Back", () => setPhase("address"))}
+        </View>
       </View>
     ) : (
       <View style={styles.footerInner}>
@@ -525,12 +542,9 @@ export function HomeSetupModal({
               : "Apply generated schedule"
           }
         />
-        <Button
-          label="Back"
-          onPress={() => setPhase("questions")}
-          variant="ghost"
-          disabled={saving}
-        />
+        <View style={styles.footerLinks}>
+          {footerLink("Back", () => setPhase("questions"))}
+        </View>
       </View>
     );
 
@@ -1018,7 +1032,26 @@ const styles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.sm,
   },
   footerInner: {
-    gap: DesignSystem.spacing.xs,
+    paddingTop: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
+  },
+  footerLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.lg,
+  },
+  footerLink: {
+    paddingVertical: DesignSystem.spacing.xs,
+    minHeight: DesignSystem.components.minTouchTarget,
+    justifyContent: "center",
+  },
+  footerLinkDisabled: {
+    opacity: 0.55,
+  },
+  footerLinkText: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
   },
   taskRow: {
     flexDirection: "row",

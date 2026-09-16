@@ -17,7 +17,6 @@ import { PriorityMark } from "../../components/ui/PriorityMark";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { MaintenanceService } from "../../services/maintenanceService";
 import { AllTasksScreenProps } from "./types";
-import { getPlanTheme } from "../../data/maintenancePlans/planThemes";
 
 export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
   const { colors } = useTheme();
@@ -140,7 +139,6 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
 
   const renderRoutineItem = ({ item }: { item: MaintenanceRoutine }) => {
     const isDeleting = deletingTasks.has(item.id);
-    const planTheme = getPlanTheme(item.source_plan_id ?? undefined);
 
     return (
       <View
@@ -150,10 +148,6 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
             backgroundColor: colors.surface,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: colors.border,
-            ...(planTheme && {
-              borderLeftWidth: 4,
-              borderLeftColor: planTheme.primary,
-            }),
           },
         ]}
       >
@@ -165,7 +159,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
             >
               {item.title}
             </Text>
-            <PriorityMark priority={item.priority} size={8} />
+            <PriorityMark priority={item.priority} showLabel size={8} />
           </View>
 
           <View style={styles.taskDetails}>

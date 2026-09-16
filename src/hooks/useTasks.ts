@@ -3,6 +3,11 @@ import { AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
 import { ensureAuthSession } from "../utils/ensureAuthSession";
 import {
+  isTransientServiceError,
+  logServiceFailure,
+  toServiceError,
+} from "../utils/serviceError";
+import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
@@ -181,7 +186,12 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         if (upcomingResult.error) throw upcomingResult.error;
         if (completedResult.error) throw completedResult.error;
         if (overdueResult.error) throw overdueResult.error;
-        if (statsResult.error) throw statsResult.error;
+        if (statsResult.error) {
+          console.warn(
+            "useTasks: maintenance stats failed, continuing:",
+            toServiceError(statsResult.error)
+          );
+        }
 
         const allOverdueTasks = overdueResult.data || [];
         const correctedOverdueTasks = allOverdueTasks.filter((task) => {
@@ -220,16 +230,31 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         setStats(statsData);
       } catch (err) {
         if (gen !== loadGeneration.current) return;
-        const loadError = err as Error;
-        setError(loadError.message || "Failed to load maintenance tasks");
-        console.error("❌ useTasks: Error loading maintenance tasks:", loadError);
+        const loadError = toServiceError(
+          err,
+          "Failed to load maintenance tasks"
+        );
+        if (!options?.isRetry && isTransientServiceError(loadError)) {
+          const sessionValid = await ensureAuthSession({ forceRefresh: true });
+          if (gen !== loadGeneration.current) return;
+          if (sessionValid) {
+            await new Promise((r) => setTimeout(r, 400));
+            if (gen !== loadGeneration.current) return;
+            return loadTasks({ isRetry: true });
+          }
+        }
+        setError(loadError.message);
+        logServiceFailure(
+          "useTasks: Error loading maintenance tasks:",
+          loadError
+        );
       } finally {
         if (gen === loadGeneration.current) {
           setLoading(false);
         }
       }
     },
-    [user, sessionReady, filters, timeRange, lookbackDays]
+    [user?.id, sessionReady, filters, timeRange, lookbackDays]
   );
 
   // createTask - create a new maintenance routine
@@ -257,7 +282,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const applyMaintenancePlan = useCallback(
@@ -336,7 +361,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const applyGeneratedHomeSchedule = useCallback(
@@ -381,7 +406,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const reconcileHomeSchedule = useCallback(
@@ -439,7 +464,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // updateTask - update a maintenance routine
@@ -489,7 +514,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // completeTask - mark a routine instance as completed
@@ -526,7 +551,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // uncompleteTask - mark a routine instance as incomplete
@@ -552,7 +577,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   const skipTaskOccurrence = useCallback(
@@ -593,7 +618,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // deleteTask - delete a maintenance routine
@@ -621,7 +646,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // bulkCompleteTasks - mark multiple routine instances as completed
@@ -654,7 +679,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         return { success: false, error: errorMessage };
       }
     },
-    [user, loadTasks]
+    [user?.id, loadTasks]
   );
 
   // refreshTasks - refresh the maintenance tasks
@@ -687,7 +712,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       const error = err as Error;
       console.error("Error refreshing stats:", error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   // delete all maintenance routines and instances for current user
   const deleteAllTasks = useCallback(async () => {
@@ -712,7 +737,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
       console.error("Error deleting all maintenance routines:", error);
       return { success: false, error: errorMessage };
     }
-  }, [user, refreshStats]);
+  }, [user?.id, refreshStats]);
 
   // Reload when app returns to foreground (debounced)
   useEffect(() => {
@@ -749,7 +774,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
         totalInstances: 0,
       });
     }
-  }, [user, sessionReady, loadTasks]);
+  }, [user?.id, sessionReady, loadTasks]);
 
   return {
     tasks,

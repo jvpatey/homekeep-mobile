@@ -310,7 +310,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id !== userIdRef.current) {
@@ -321,7 +321,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setAvatarUrl(null);
       setLoading(false);
     }
-  }, [user, loadProfile]);
+  }, [user?.id, loadProfile]);
 
   const updateAddress = useCallback(
     async (

@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import Purchases, {
   CustomerInfo,
   PurchasesOffering,
@@ -20,6 +20,7 @@ import {
   configurePurchases,
   getRcApiKey,
   isExpoGo,
+  isProductAlreadyPurchased,
   isPurchaseCancelled,
   logOutPurchases,
   openLegalUrl,
@@ -78,7 +79,7 @@ interface SubscriptionContextValue {
   reloadOfferings: () => Promise<void>;
   purchasePackage: (pkg: PurchasesPackage) => Promise<PurchaseResult>;
   restore: () => Promise<RestoreResult>;
-  refresh: () => Promise<void>;
+  refresh: (options?: { silent?: boolean }) => Promise<void>;
   manageSubscription: () => Promise<void>;
   openLegal: (kind: "privacy" | "terms") => Promise<void>;
   paywallEmbeds: number;
@@ -105,6 +106,32 @@ function rcTrialing(info: CustomerInfo | null): boolean {
   return ent?.periodType === "TRIAL";
 }
 
+function storeForPlatform(): "app_store" | "play_store" {
+  return Platform.OS === "ios" ? "app_store" : "play_store";
+}
+
+async function upsertStoreEntitlementFromRc(
+  info: CustomerInfo
+): Promise<boolean> {
+  if (!supabase || !rcHasPlus(info)) return false;
+  const ent = info.entitlements.active[HOMEKEEP_PLUS_ENTITLEMENT];
+  if (!ent) return false;
+  const status = ent.periodType === "TRIAL" ? "trialing" : "active";
+  const { error } = await supabase.rpc("upsert_my_store_entitlement", {
+    p_status: status,
+    p_product_id: ent.productIdentifier ?? null,
+    p_expires_at: ent.expirationDate ?? null,
+    p_store: storeForPlatform(),
+  });
+  if (error) {
+    if (__DEV__) {
+      console.warn("upsert_my_store_entitlement", error.message);
+    }
+    return false;
+  }
+  return true;
+}
+
 function daysUntil(date: Date | null): number | null {
   if (!date) return null;
   const ms = date.getTime() - Date.now();
@@ -123,7 +150,7 @@ export function SubscriptionProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, sessionReady } = useAuth();
   const { profile } = useProfile();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [remote, setRemote] = useState<EntitlementRow | null>(null);
@@ -142,6 +169,7 @@ export function SubscriptionProvider({
   const setupPaywallShownRef = useRef(false);
   const purchasingRef = useRef(false);
   const isPlusRef = useRef(false);
+  const identifiedUserIdRef = useRef<string | null>(null);
   const [paywallEmbeds, setPaywallEmbeds] = useState(0);
 
   const registerPaywallEmbed = useCallback(() => {
@@ -152,7 +180,8 @@ export function SubscriptionProvider({
   const storeAvailable = Boolean(getRcApiKey()) && !isExpoGo();
 
   const fetchRemote = useCallback(async () => {
-    if (!supabase || !user) {
+    const userId = user?.id;
+    if (!supabase || !userId) {
       setRemote(null);
       setRpcPlus(false);
       return;
@@ -177,26 +206,48 @@ export function SubscriptionProvider({
       setRpcPlus(false);
     }
     const list = (rows.data ?? []) as EntitlementRow[];
-    const mine = list.find((row) => row.user_id === user.id);
+    const mine = list.find((row) => row.user_id === userId);
     const household = list.find(
       (row) =>
-        row.user_id !== user.id &&
+        row.user_id !== userId &&
         ACTIVE.includes(row.status) &&
         (!row.expires_at || new Date(row.expires_at) > new Date())
     );
     setRemote(mine ?? household ?? null);
-  }, [user]);
+  }, [user?.id]);
 
-  const applyCustomerInfo = useCallback((info: CustomerInfo) => {
-    setCustomerInfo(info);
-  }, []);
+  const applyCustomerInfo = useCallback(
+    (info: CustomerInfo) => {
+      setCustomerInfo(info);
+      if (rcHasPlus(info)) {
+        void (async () => {
+          const synced = await upsertStoreEntitlementFromRc(info);
+          if (synced) {
+            await fetchRemote();
+          }
+        })();
+      }
+    },
+    [fetchRemote]
+  );
 
   const identify = useCallback(
     async (userId: string) => {
       if (!configurePurchases()) return;
       try {
         const { customerInfo: info } = await Purchases.logIn(userId);
+        identifiedUserIdRef.current = userId;
         applyCustomerInfo(info);
+        if (!rcHasPlus(info)) {
+          try {
+            const refreshed = await Purchases.getCustomerInfo();
+            applyCustomerInfo(refreshed);
+          } catch (refreshError) {
+            if (__DEV__) {
+              console.warn("getCustomerInfo after logIn failed", refreshError);
+            }
+          }
+        }
       } catch (error) {
         if (__DEV__) {
           console.warn("Purchases.logIn failed", error);
@@ -206,26 +257,41 @@ export function SubscriptionProvider({
     [applyCustomerInfo]
   );
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      if (user && configurePurchases()) {
-        try {
-          const info = await Purchases.getCustomerInfo();
-          applyCustomerInfo(info);
-        } catch (error) {
-          if (__DEV__) {
-            console.warn("getCustomerInfo failed", error);
-          }
-        }
-      } else {
-        setCustomerInfo(null);
+  const ensureIdentified = useCallback(async (): Promise<boolean> => {
+    if (!user?.id || !configurePurchases()) return false;
+    if (identifiedUserIdRef.current === user.id) return true;
+    await identify(user.id);
+    return identifiedUserIdRef.current === user.id;
+  }, [identify, user?.id]);
+
+  const refresh = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent === true;
+      if (!silent) {
+        setLoading(true);
       }
-      await fetchRemote();
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCustomerInfo, fetchRemote, user]);
+      try {
+        if (user?.id && configurePurchases()) {
+          try {
+            const info = await Purchases.getCustomerInfo();
+            applyCustomerInfo(info);
+          } catch (error) {
+            if (__DEV__) {
+              console.warn("getCustomerInfo failed", error);
+            }
+          }
+        } else if (!user?.id) {
+          setCustomerInfo(null);
+        }
+        await fetchRemote();
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [applyCustomerInfo, fetchRemote, user?.id]
+  );
 
   useEffect(() => {
     configurePurchases();
@@ -234,7 +300,12 @@ export function SubscriptionProvider({
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
+      if (!sessionReady) {
+        setLoading(true);
+        return;
+      }
       if (!user) {
+        identifiedUserIdRef.current = null;
         setCustomerInfo(null);
         setRemote(null);
         setRpcPlus(false);
@@ -242,6 +313,7 @@ export function SubscriptionProvider({
         await logOutPurchases();
         return;
       }
+      setLoading(true);
       await identify(user.id);
       if (!cancelled) {
         await fetchRemote();
@@ -252,29 +324,28 @@ export function SubscriptionProvider({
     return () => {
       cancelled = true;
     };
-  }, [fetchRemote, identify, user?.id]);
+  }, [fetchRemote, identify, sessionReady, user?.id]);
 
   useEffect(() => {
     if (!configurePurchases()) return;
     const listener = (info: CustomerInfo) => {
       applyCustomerInfo(info);
-      void fetchRemote();
     };
     Purchases.addCustomerInfoUpdateListener(listener);
     return () => {
       Purchases.removeCustomerInfoUpdateListener(listener);
     };
-  }, [applyCustomerInfo, fetchRemote]);
+  }, [applyCustomerInfo]);
 
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {
-      if (state === "active" && user) {
-        void refresh();
+      if (state === "active" && user?.id) {
+        void refresh({ silent: true });
       }
     };
     const sub = AppState.addEventListener("change", onChange);
     return () => sub.remove();
-  }, [refresh, user]);
+  }, [refresh, user?.id]);
 
   const rcPlus = rcHasPlus(customerInfo);
   const rcTrial = rcTrialing(customerInfo);
@@ -365,6 +436,11 @@ export function SubscriptionProvider({
   const presentPaywall = useCallback(
     async (options?: { force?: boolean }) => {
       if (isPlusRef.current && !options?.force) return true;
+      const prior = paywallResolverRef.current;
+      if (prior) {
+        paywallResolverRef.current = null;
+        prior(isPlusRef.current);
+      }
       setPaywallEpoch((n) => n + 1);
       setPaywallVisible(true);
       void reloadOfferings();
@@ -381,6 +457,27 @@ export function SubscriptionProvider({
     void presentPaywall();
   }, [presentPaywall]);
 
+  const finishEntitledPurchase = useCallback(
+    async (info: CustomerInfo): Promise<PurchaseResult> => {
+      applyCustomerInfo(info);
+      await fetchRemote();
+      if (rcHasPlus(info) || isPlusRef.current) {
+        isPlusRef.current = true;
+        setPaywallVisible(false);
+        resolvePaywall(true);
+        return { ok: true };
+      }
+      return {
+        ok: false,
+        error: "Purchase finished but HomeKeep + is not active yet.",
+      };
+    },
+    [applyCustomerInfo, fetchRemote, resolvePaywall]
+  );
+
+  const identifyRequiredError =
+    "Could not link your subscription account. Check your connection and try again.";
+
   const purchasePackage = useCallback(
     async (pkg: PurchasesPackage): Promise<PurchaseResult> => {
       if (purchasingRef.current) {
@@ -396,31 +493,42 @@ export function SubscriptionProvider({
       purchasingRef.current = true;
       setPurchasing(true);
       try {
-        const { customerInfo: info } = await Purchases.purchasePackage(pkg);
-        applyCustomerInfo(info);
-        await fetchRemote();
-        if (rcHasPlus(info) || isPlusRef.current) {
-          isPlusRef.current = true;
-          setPaywallVisible(false);
-          resolvePaywall(true);
-          return { ok: true };
+        if (!(await ensureIdentified())) {
+          return { ok: false, error: identifyRequiredError };
         }
-        return {
-          ok: false,
-          error: "Purchase finished but HomeKeep + is not active yet.",
-        };
+        const { customerInfo: info } = await Purchases.purchasePackage(pkg);
+        return finishEntitledPurchase(info);
       } catch (error) {
         if (isPurchaseCancelled(error)) {
           return { ok: false, cancelled: true };
         }
-        const message = isPurchasesErrorMessage(error);
-        return { ok: false, error: message };
+        if (isProductAlreadyPurchased(error)) {
+          try {
+            if (!(await ensureIdentified())) {
+              return { ok: false, error: identifyRequiredError };
+            }
+            const info = await Purchases.restorePurchases();
+            const result = await finishEntitledPurchase(info);
+            if (result.ok) return result;
+            const refreshed = await Purchases.getCustomerInfo();
+            return finishEntitledPurchase(refreshed);
+          } catch (restoreError) {
+            if (isPurchaseCancelled(restoreError)) {
+              return { ok: false, cancelled: true };
+            }
+            return {
+              ok: false,
+              error: isPurchasesErrorMessage(restoreError),
+            };
+          }
+        }
+        return { ok: false, error: isPurchasesErrorMessage(error) };
       } finally {
         purchasingRef.current = false;
         setPurchasing(false);
       }
     },
-    [applyCustomerInfo, fetchRemote, resolvePaywall]
+    [ensureIdentified, finishEntitledPurchase]
   );
 
   const restore = useCallback(async (): Promise<RestoreResult> => {
@@ -437,6 +545,9 @@ export function SubscriptionProvider({
     purchasingRef.current = true;
     setPurchasing(true);
     try {
+      if (!(await ensureIdentified())) {
+        return { restored: false, error: identifyRequiredError };
+      }
       const info = await Purchases.restorePurchases();
       applyCustomerInfo(info);
       await fetchRemote();
@@ -456,7 +567,7 @@ export function SubscriptionProvider({
       purchasingRef.current = false;
       setPurchasing(false);
     }
-  }, [applyCustomerInfo, fetchRemote, resolvePaywall]);
+  }, [applyCustomerInfo, ensureIdentified, fetchRemote, resolvePaywall]);
 
   const value = useMemo<SubscriptionContextValue>(
     () => ({

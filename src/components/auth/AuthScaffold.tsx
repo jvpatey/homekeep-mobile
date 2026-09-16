@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
-  TouchableWithoutFeedback,
   StyleSheet,
   StyleProp,
   ViewStyle,
@@ -42,27 +41,77 @@ export function AuthScaffold({
   const { colors, isDark } = useTheme();
   const { authAtmosphere } = useGradients();
   const insets = useSafeAreaInsets();
-  const { isRegularWidth, getAuthContentWidth, getMaxContentWidth, getResponsiveValue } =
-    useDevice();
+  const {
+    isRegularWidth,
+    width,
+    height,
+    getAuthContentWidth,
+    getMaxContentWidth,
+    getResponsiveValue,
+  } = useDevice();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const hideSub = Keyboard.addListener(hideEvent, () =>
+      setKeyboardOpen(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const isTabletPortrait = isRegularWidth && height >= width;
   const formWidth = getAuthContentWidth("form");
   const splitWidth = getMaxContentWidth();
   const gutter = isRegularWidth
-    ? DesignSystem.spacing.xl
+    ? getResponsiveValue(
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl,
+        DesignSystem.spacing.xxl
+      )
     : DesignSystem.spacing.lg;
   const cardPadding = isRegularWidth
     ? getResponsiveValue(
-        DesignSystem.spacing.lg,
         DesignSystem.spacing.xl,
-        DesignSystem.spacing.xxl,
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl
       )
     : DesignSystem.spacing.lg;
-  const brandMarkSize = getResponsiveValue(72, 88, 108);
-  const brandTitleSize = getResponsiveValue(36, 40, 46);
-  const brandTitleLine = getResponsiveValue(42, 46, 52);
+  const splitGap = isRegularWidth
+    ? getResponsiveValue(
+        DesignSystem.spacing.xl,
+        DesignSystem.spacing.xxl,
+        DesignSystem.spacing.xxl
+      )
+    : DesignSystem.spacing.xl;
+  // Brand should read as the hero of the split — scale with the form card, not under it.
+  const brandMarkSize = isRegularWidth
+    ? getResponsiveValue(isTabletPortrait ? 104 : 120, 132, 152)
+    : getResponsiveValue(72, 88, 108);
+  const brandTitleSize = isRegularWidth
+    ? getResponsiveValue(isTabletPortrait ? 42 : 46, 50, 56)
+    : getResponsiveValue(36, 40, 46);
+  const brandTitleLine = isRegularWidth
+    ? getResponsiveValue(isTabletPortrait ? 48 : 52, 56, 62)
+    : getResponsiveValue(42, 46, 52);
+  const brandSubtitleSize = isRegularWidth
+    ? getResponsiveValue(17, 18, 19)
+    : undefined;
+  const brandSubtitleLine = isRegularWidth
+    ? getResponsiveValue(24, 26, 28)
+    : undefined;
   const edgePadding = {
     paddingTop: insets.top + DesignSystem.spacing.sm,
-    paddingBottom: insets.bottom + DesignSystem.spacing.lg,
+    paddingBottom:
+      insets.bottom +
+      DesignSystem.spacing.lg +
+      (keyboardOpen && !isRegularWidth ? DesignSystem.spacing.xl : 0),
     paddingHorizontal: gutter,
   };
 
@@ -80,43 +129,68 @@ export function AuthScaffold({
       style={[
         styles.split,
         splitWidth != null && { maxWidth: splitWidth },
+        keyboardOpen && styles.splitKeyboardOpen,
       ]}
     >
       <AuthHeader onBack={onBack} />
-      <View style={styles.splitRow}>
-        <View style={styles.brand}>
-          <HouseMark size={brandMarkSize} />
-          <Text
+      <View
+        style={[
+          styles.heroStage,
+          keyboardOpen && styles.heroStageKeyboardOpen,
+        ]}
+      >
+        <View style={[styles.splitRow, { gap: splitGap }]}>
+          <View style={styles.brand}>
+            <HouseMark size={brandMarkSize} />
+            <Text
+              style={[
+                styles.brandTitle,
+                {
+                  color: colors.text,
+                  fontSize: brandTitleSize,
+                  lineHeight: brandTitleLine,
+                },
+              ]}
+              maxFontSizeMultiplier={1.3}
+            >
+              {title}
+            </Text>
+            {!!subtitle && (
+              <Text
+                style={[
+                  styles.brandSubtitle,
+                  {
+                    color: colors.textSecondary,
+                    ...(brandSubtitleSize != null && {
+                      fontSize: brandSubtitleSize,
+                      lineHeight: brandSubtitleLine,
+                    }),
+                  },
+                ]}
+                maxFontSizeMultiplier={1.4}
+              >
+                {subtitle}
+              </Text>
+            )}
+          </View>
+          <HearthSurfaceCard
+            containerStyle={[
+              styles.cardContainer,
+              formWidth != null && { maxWidth: formWidth },
+            ]}
             style={[
-              styles.brandTitle,
+              styles.card,
               {
-                color: colors.text,
-                fontSize: brandTitleSize,
-                lineHeight: brandTitleLine,
+                padding: cardPadding,
+                width: "100%",
+                flex: keyboardOpen ? undefined : 1,
+                justifyContent: keyboardOpen ? "flex-start" : "center",
               },
             ]}
-            maxFontSizeMultiplier={1.3}
           >
-            {title}
-          </Text>
-          {!!subtitle && (
-            <Text
-              style={[styles.brandSubtitle, { color: colors.textSecondary }]}
-              maxFontSizeMultiplier={1.4}
-            >
-              {subtitle}
-            </Text>
-          )}
+            {form}
+          </HearthSurfaceCard>
         </View>
-        <HearthSurfaceCard
-          containerStyle={[
-            styles.cardContainer,
-            formWidth != null && { maxWidth: formWidth },
-          ]}
-          style={[styles.card, { padding: cardPadding, width: "100%" }]}
-        >
-          {form}
-        </HearthSurfaceCard>
       </View>
     </View>
   ) : (
@@ -126,52 +200,50 @@ export function AuthScaffold({
     </View>
   );
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.root, { backgroundColor: colors.background }]}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={[styles.root, { backgroundColor: colors.background }]}>
-          <StatusBar style={isDark ? "light" : "dark"} />
+  // iOS: ScrollView insets avoid the keyboard without shrinking a flex-centered stage.
+  // Android: keep KeyboardAvoidingView — window soft input needs the height nudge.
+  const frame = (
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-          <LinearGradient
-            colors={authAtmosphere}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.55 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
+      <LinearGradient
+        colors={authAtmosphere}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.55 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
 
-          {scrollable ? (
-            <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={[
-                styles.scrollContent,
-                edgePadding,
-                isRegularWidth && styles.regularAlign,
-              ]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {body}
-            </ScrollView>
-          ) : (
-            <View
-              style={[
-                styles.staticContent,
-                edgePadding,
-                isRegularWidth && styles.regularAlign,
-              ]}
-            >
-              {body}
-            </View>
-          )}
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+      {scrollable ? (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, edgePadding]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        >
+          {body}
+        </ScrollView>
+      ) : (
+        <View style={[styles.staticContent, edgePadding]}>{body}</View>
+      )}
+    </View>
   );
+
+  if (Platform.OS === "android") {
+    return (
+      <KeyboardAvoidingView
+        behavior="height"
+        style={[styles.root, { backgroundColor: colors.background }]}
+        keyboardVerticalOffset={20}
+      >
+        {frame}
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return frame;
 }
 
 const styles = StyleSheet.create({
@@ -187,41 +259,58 @@ const styles = StyleSheet.create({
   staticContent: {
     flex: 1,
   },
-  regularAlign: {
-    justifyContent: "center",
-  },
   column: {
     width: "100%",
     flexGrow: 1,
   },
   split: {
     width: "100%",
+    flexGrow: 1,
     alignSelf: "center",
+  },
+  splitKeyboardOpen: {
+    // Keep the split from re-centering inside a shorter viewport.
+    flexGrow: 0,
+  },
+  heroStage: {
+    flex: 1,
+    justifyContent: "center",
+    paddingVertical: DesignSystem.spacing.xl,
+  },
+  heroStageKeyboardOpen: {
+    flex: 0,
+    justifyContent: "flex-start",
+    paddingTop: DesignSystem.spacing.md,
+    paddingBottom: DesignSystem.spacing.lg,
   },
   splitRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.xl,
+    alignItems: "stretch",
+    width: "100%",
   },
   brand: {
-    flex: 1,
-    paddingRight: DesignSystem.spacing.md,
-    gap: DesignSystem.spacing.md,
+    flex: 1.35,
+    minWidth: 0,
+    justifyContent: "center",
+    gap: DesignSystem.spacing.lg,
   },
   brandTitle: {
     ...DesignSystem.typography.display,
-    letterSpacing: -1,
+    letterSpacing: -1.2,
   },
   brandSubtitle: {
     ...DesignSystem.typography.callout,
+    maxWidth: 360,
   },
   cardContainer: {
-    flex: 1.15,
-    minWidth: 320,
-    width: "100%",
+    flex: 1,
+    minWidth: 280,
+    maxWidth: 440,
+    alignSelf: "stretch",
   },
   card: {
     overflow: "visible",
+    minHeight: 280,
   },
   formGrow: {
     flex: 1,

@@ -18,13 +18,25 @@ export function CodeVerificationScreen() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const params = route.params as { email?: string };
-  const email = params?.email ?? "";
+  const params = route.params as {
+    email?: string;
+    purpose?: "signup" | "recovery";
+  };
+  const email = (params?.email ?? "").trim().toLowerCase();
+  const purpose = params?.purpose === "recovery" ? "recovery" : "signup";
+  const isRecovery = purpose === "recovery";
+  const [resending, setResending] = useState(false);
 
   const handleVerifyCode = useCallback(
     async (verificationCode: string) => {
       if (!verificationCode || verificationCode.length !== 6) {
         setError("Please enter a valid 6-digit code");
+        triggerError();
+        return;
+      }
+
+      if (!email) {
+        setError("No email on file. Go back and enter your email first.");
         triggerError();
         return;
       }
@@ -37,25 +49,40 @@ export function CodeVerificationScreen() {
           throw new Error("Supabase not configured");
         }
 
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          email,
-          token: verificationCode,
-          type: "email",
-        });
+        let lastError: Error | null = null;
+        let session = null;
+        const types = isRecovery
+          ? (["recovery"] as const)
+          : (["signup", "email"] as const);
 
-        if (verifyError) {
-          throw verifyError;
+        for (const type of types) {
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            email,
+            token: verificationCode,
+            type,
+          });
+
+          if (!verifyError && data.session) {
+            session = data.session;
+            break;
+          }
+
+          lastError =
+            verifyError ??
+            new Error("Verification completed but no session created");
         }
 
-        if (data.session) {
-          triggerSuccess();
-          Alert.alert(
-            "Email verified",
-            "Your account has been verified. Welcome to HomeKeep!",
-          );
-        } else {
-          throw new Error("Verification completed but no session created");
+        if (!session) {
+          throw lastError ?? new Error("Invalid or expired code.");
         }
+
+        triggerSuccess();
+        Alert.alert(
+          isRecovery ? "Code verified" : "Email verified",
+          isRecovery
+            ? "You can now use HomeKeep. Change your password anytime in Settings."
+            : "Your account has been verified. Welcome to HomeKeep!",
+        );
       } catch (err) {
         const errorObj = err as Error;
         triggerError();
@@ -64,13 +91,15 @@ export function CodeVerificationScreen() {
         if (errorObj.message?.includes("expired")) {
           errorMessage =
             "This verification code has expired. Please request a new one.";
+        } else if (errorObj.message) {
+          errorMessage = errorObj.message;
         }
         setError(errorMessage);
       } finally {
         setLoading(false);
       }
     },
-    [email, supabase, triggerError, triggerSuccess],
+    [email, isRecovery, supabase, triggerError, triggerSuccess],
   );
 
   const handleBackPress = () => {
@@ -82,15 +111,25 @@ export function CodeVerificationScreen() {
     triggerLight();
     setError("");
 
+    if (!email) {
+      setError("No email on file. Go back and enter your email first.");
+      return;
+    }
+
+    setResending(true);
     try {
       if (!supabase) {
         throw new Error("Supabase not configured");
       }
 
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email,
-      });
+      const { error: resendError } = isRecovery
+        ? await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: "homekeep://auth/verify",
+          })
+        : await supabase.auth.resend({
+            type: "signup",
+            email,
+          });
 
       if (resendError) {
         throw resendError;
@@ -100,14 +139,19 @@ export function CodeVerificationScreen() {
         "Code resent",
         "A new verification code has been sent to your email.",
       );
-    } catch {
-      setError("Failed to resend code. Please try again.");
+    } catch (err) {
+      const errorObj = err as Error;
+      setError(
+        errorObj.message || "Failed to resend code. Please try again.",
+      );
+    } finally {
+      setResending(false);
     }
   };
 
   return (
     <AuthScaffold
-      title="Verify your email"
+      title={isRecovery ? "Reset your password" : "Verify your email"}
       subtitle={`Enter the 6-digit code sent to ${email}`}
       onBack={handleBackPress}
       footer={
@@ -140,7 +184,17 @@ export function CodeVerificationScreen() {
           label={loading ? "Verifying..." : "Verify code"}
           onPress={() => handleVerifyCode(code)}
           loading={loading}
-          disabled={loading || code.length !== 6}
+          disabled={loading || resending || code.length !== 6}
+        />
+      </View>
+
+      <View style={{ marginTop: DesignSystem.spacing.sm }}>
+        <Button
+          variant="secondary"
+          label={resending ? "Sending..." : "Resend code"}
+          onPress={handleResendCode}
+          loading={resending}
+          disabled={loading || resending || !email}
         />
       </View>
 

@@ -56,8 +56,20 @@ export async function runNotificationJob(
   results: NotificationResults;
   usersProcessed: number;
   userId: string | null;
+  skips: {
+    no_token: number;
+    not_entitled: number;
+    wrong_hour: number;
+    bad_force_type: number;
+  };
 }> {
   const results = emptyResults();
+  const skips = {
+    no_token: 0,
+    not_entitled: 0,
+    wrong_hour: 0,
+    bad_force_type: 0,
+  };
   const tzByUser = await getUserTimezoneMap(supabase, options.userId ?? null);
 
   let q = supabase
@@ -73,13 +85,21 @@ export async function runNotificationJob(
   if (error) throw error;
 
   const users = profiles || [];
-  const entitledIds = await loadEntitledUserIds(supabase);
   let usersProcessed = 0;
   const scheduled = !options.forceType && !options.bypassHourCheck;
 
   for (const profile of users) {
-    if (!profile.push_token) continue;
-    if (entitledIds && !entitledIds.has(profile.id)) continue;
+    if (!profile.push_token) {
+      skips.no_token += 1;
+      continue;
+    }
+
+    const entitled = await userHasPlus(supabase, profile.id);
+    if (entitled === false) {
+      skips.not_entitled += 1;
+      continue;
+    }
+    // entitled === null → fail open (RPC error)
 
     const tz = tzByUser[profile.id] || "UTC";
     const local = getLocalParts(now, tz);
@@ -88,7 +108,10 @@ export async function runNotificationJob(
 
     if (options.forceType) {
       const forced = parseForceType(options.forceType);
-      if (!forced) continue;
+      if (!forced) {
+        skips.bad_force_type += 1;
+        continue;
+      }
       activeTypes = forced;
     } else if (options.bypassHourCheck && options.legacyType) {
       activeTypes = parseLegacyType(options.legacyType);
@@ -98,7 +121,10 @@ export async function runNotificationJob(
       activeTypes = activeTypesForLocalHour(local);
     }
 
-    if (activeTypes.size === 0) continue;
+    if (activeTypes.size === 0) {
+      skips.wrong_hour += 1;
+      continue;
+    }
 
     await runProcessorsForUser(
       supabase,
@@ -116,50 +142,23 @@ export async function runNotificationJob(
     results,
     usersProcessed,
     userId: options.userId ?? null,
+    skips,
   };
 }
 
-const ACTIVE_PLUS = new Set(["trialing", "active", "grace", "promo"]);
-
-/** null = entitlements unavailable; skip the Plus filter (fail open). */
-async function loadEntitledUserIds(
-  supabase: any
-): Promise<Set<string> | null> {
-  const { data: rows, error } = await supabase
-    .from("entitlements")
-    .select("user_id, household_id, status, expires_at");
+/** true / false; null = lookup failed (fail open). */
+async function userHasPlus(
+  supabase: any,
+  userId: string
+): Promise<boolean | null> {
+  const { data, error } = await supabase.rpc("user_has_plus", {
+    p_user_id: userId,
+  });
   if (error) {
-    console.warn("entitlements lookup failed; sending without Plus filter", error);
+    console.warn("user_has_plus failed; allowing send", error);
     return null;
   }
-
-  const entitled = new Set<string>();
-  const households = new Set<string>();
-  const now = Date.now();
-  for (const row of rows ?? []) {
-    const active = ACTIVE_PLUS.has(row.status);
-    const unexpired =
-      !row.expires_at || new Date(row.expires_at).getTime() > now;
-    if (!active || !unexpired) continue;
-    entitled.add(row.user_id);
-    if (row.household_id) households.add(row.household_id);
-  }
-
-  if (households.size > 0) {
-    const { data: members, error: memberError } = await supabase
-      .from("household_members")
-      .select("user_id")
-      .in("household_id", [...households]);
-    if (memberError) {
-      console.warn("household member lookup failed", memberError);
-    } else {
-      for (const member of members ?? []) {
-        entitled.add(member.user_id);
-      }
-    }
-  }
-
-  return entitled;
+  return data === true;
 }
 
 export function createServiceClient() {

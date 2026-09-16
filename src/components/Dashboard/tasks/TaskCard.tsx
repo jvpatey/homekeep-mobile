@@ -15,9 +15,7 @@ import {
 import { DesignSystem } from "../../../theme/designSystem";
 import { styles } from "./styles";
 import { hexWithAlpha } from "../popups/popupChrome";
-import {
-  getPlanTheme,
-} from "../../../data/maintenancePlans/planThemes";
+import { PriorityMark } from "../../ui/PriorityMark";
 import { formatTaskDueDate } from "../../../utils/formatTaskDates";
 
 // TaskCardProps interface for the TaskCard component
@@ -58,8 +56,6 @@ export function TaskCard({
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
   const categoryInfo = HOME_MAINTENANCE_CATEGORIES[category];
 
-  const planTheme = getPlanTheme(source_plan_id ?? undefined);
-
   const fontMultiplier = getFontMultiplier();
   // Card height is responsive for iPad
   const cardHeight = isTablet
@@ -84,21 +80,6 @@ export function TaskCard({
   // Animation values
   const cardScale = useSharedValue(1);
   const buttonScale = useSharedValue(1);
-
-  const getPriorityColor = () => {
-    switch (priority) {
-      case "urgent":
-        return colors.error;
-      case "high":
-        return "#FF6B35";
-      case "medium":
-        return colors.warning;
-      case "low":
-        return colors.success;
-      default:
-        return colors.textSecondary;
-    }
-  };
 
   // formatInterval function to format the interval
   const formatInterval = (intervalDays: number) => {
@@ -165,10 +146,6 @@ export function TaskCard({
               ? "rgba(255, 255, 255, 0.1)"
               : "rgba(255, 255, 255, 0.6)",
             borderWidth: 1,
-            ...(planTheme && {
-              borderLeftWidth: 4,
-              borderLeftColor: planTheme.primary,
-            }),
           },
           cardWidth ? { width: cardWidth } : undefined,
           { height: cardHeight },
@@ -219,33 +196,11 @@ export function TaskCard({
             </View>
 
             <View style={styles.priorityContainer}>
-              <View
-                style={[
-                  styles.priorityDot,
-                  { backgroundColor: getPriorityColor() },
-                  isTablet && {
-                    width: 8 * fontMultiplier,
-                    height: 8 * fontMultiplier,
-                    borderRadius: 4 * fontMultiplier,
-                  },
-                ]}
+              <PriorityMark
+                priority={priority}
+                showLabel
+                size={isTablet ? 8 * fontMultiplier : 8}
               />
-              <Text
-                style={[
-                  styles.priorityText,
-                  {
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.5)"
-                      : "rgba(15, 23, 42, 0.65)",
-                  },
-                  isTablet && {
-                    fontSize:
-                      (styles.priorityText.fontSize || 12) * fontMultiplier,
-                  },
-                ]}
-              >
-                {priority.toUpperCase()}
-              </Text>
             </View>
           </View>
 

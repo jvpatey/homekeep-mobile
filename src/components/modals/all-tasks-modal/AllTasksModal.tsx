@@ -16,7 +16,6 @@ import { PriorityMark } from "../../ui/PriorityMark";
 import { MaintenanceRoutine } from "../../../types/maintenance";
 import { MaintenanceService } from "../../../services/maintenanceService";
 import { styles } from "./styles";
-import { getPlanTheme } from "../../../data/maintenancePlans/planThemes";
 
 interface AllTasksModalProps {
   visible: boolean;
@@ -134,7 +133,6 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
 
   const renderRoutineItem = ({ item }: { item: MaintenanceRoutine }) => {
     const isDeleting = deletingTasks.has(item.id);
-    const planTheme = getPlanTheme(item.source_plan_id ?? undefined);
 
     return (
       <View
@@ -144,10 +142,6 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
-            ...(planTheme && {
-              borderLeftWidth: 4,
-              borderLeftColor: planTheme.primary,
-            }),
           },
           DesignSystem.shadows.softKey,
           isTablet && {
@@ -171,7 +165,7 @@ export function AllTasksModal({ visible, onClose }: AllTasksModalProps) {
             >
               {item.title}
             </Text>
-            <PriorityMark priority={item.priority} size={8} />
+            <PriorityMark priority={item.priority} showLabel size={8} />
           </View>
 
           <View style={styles.taskDetails}>

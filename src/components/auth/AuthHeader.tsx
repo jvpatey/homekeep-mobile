@@ -37,11 +37,13 @@ export function AuthHeader({
     ? getResponsiveValue(22, 24, 26)
     : DesignSystem.typography.callout.lineHeight;
   const headerPaddingBottom = isRegularWidth
-    ? getResponsiveValue(
-        DesignSystem.spacing.lg,
-        DesignSystem.spacing.xl,
-        DesignSystem.spacing.xl,
-      )
+    ? title
+      ? getResponsiveValue(
+          DesignSystem.spacing.lg,
+          DesignSystem.spacing.xl,
+          DesignSystem.spacing.xl
+        )
+      : DesignSystem.spacing.sm
     : DesignSystem.spacing.lg;
   const backIconSize = isRegularWidth ? getResponsiveValue(28, 30, 32) : 28;
 

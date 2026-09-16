@@ -36,7 +36,10 @@ export type AuthStackParamList = {
   Login: undefined; // User login screen
   SignUp: undefined; // User registration screen
   EmailVerification: { url: string }; // Email verification with URL parameter
-  CodeVerification: { email: string }; // Code verification with email parameter
+  CodeVerification: {
+    email: string;
+    purpose?: "signup" | "recovery";
+  };
   EmailEntry: undefined; // Email entry for password reset flow
 };
 

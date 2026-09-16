@@ -1,13 +1,15 @@
-import React from "react";
-import { View } from "react-native";
+import React, { useState } from "react";
+import { View, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthScaffold } from "../../components/auth";
 import { Button, TextField } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { useAuthForm, useAuthHaptics } from "./hooks";
 import { DesignSystem } from "../../theme/designSystem";
 
 export function EmailEntryScreen() {
   const navigation = useNavigation();
+  const { supabase } = useAuth();
   const { triggerError, triggerMedium, triggerLight } = useAuthHaptics();
 
   const { errors, setFieldValue, validateForm, getFieldValue } = useAuthForm({
@@ -15,14 +17,47 @@ export function EmailEntryScreen() {
   });
 
   const email = getFieldValue("email");
+  const [loading, setLoading] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!validateForm()) {
       triggerError();
       return;
     }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!supabase) {
+      triggerError();
+      Alert.alert("Error", "Supabase not configured");
+      return;
+    }
+
     triggerMedium();
-    (navigation as any).navigate("CodeVerification", { email });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        normalizedEmail,
+        { redirectTo: "homekeep://auth/verify" },
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      (navigation as any).navigate("CodeVerification", {
+        email: normalizedEmail,
+        purpose: "recovery",
+      });
+    } catch (err) {
+      triggerError();
+      const errorObj = err as Error;
+      Alert.alert(
+        "Reset failed",
+        errorObj.message || "Could not send a reset code. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackPress = () => {
@@ -32,8 +67,8 @@ export function EmailEntryScreen() {
 
   return (
     <AuthScaffold
-      title="Verify your email"
-      subtitle="Enter the email address linked to your account"
+      title="Reset password"
+      subtitle="We'll send a 6-digit code to this email"
       onBack={handleBackPress}
     >
       <TextField
@@ -49,9 +84,10 @@ export function EmailEntryScreen() {
 
       <View style={{ marginTop: DesignSystem.spacing.sm }}>
         <Button
-          label="Continue"
+          label={loading ? "Sending..." : "Send reset code"}
           onPress={handleContinue}
-          disabled={!email || !!errors.email}
+          loading={loading}
+          disabled={loading || !email || !!errors.email}
         />
       </View>
     </AuthScaffold>

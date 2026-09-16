@@ -207,6 +207,19 @@ npm install
    - For equipment manuals, create a Supabase Storage bucket named **`equipment-manuals`** (see `EQUIPMENT_MANUALS_BUCKET` in `EquipmentManualService`) with policies that let authenticated users manage their own objects, and create an **`equipment_manuals`** table aligned with the app types (`types/equipmentManual.ts`) and service queries
    - Profile photos use a private **`avatars`** bucket created by the `profile_avatars` migration (household members can read each other's display photos)
    - For **push reminders**, deploy Edge Functions and schedule the worker as described in [`PUSH_NOTIFICATIONS_SETUP.md`](PUSH_NOTIFICATIONS_SETUP.md) (repo includes [`supabase/config.toml`](supabase/config.toml) for CLI defaults).
+   - For **signup verification emails**, point Supabase Auth SMTP at Resend (dashboard only — do not put Resend secrets in the Expo `.env`):
+     1. Create a [Resend](https://resend.com) account and verify a sending domain (Resend’s onboarding domain is fine for smoke tests).
+     2. In Resend, create an API key. SMTP host is `smtp.resend.com`, username `resend`, password = that API key.
+     3. In Supabase → **Project Settings → Authentication → SMTP**, enable custom SMTP:
+        - Host: `smtp.resend.com`
+        - Port: `465` (SSL) or `587` (STARTTLS)
+        - Username: `resend`
+        - Password: Resend API key
+        - Sender email: an address on your verified Resend domain (e.g. `noreply@yourdomain.com`)
+        - Sender name: `HomeKeep`
+     4. In Supabase → **Authentication → Emails → Confirm signup**, include `{{ .Token }}` in the template so the app’s 6-digit code is present.
+     5. In Supabase → **Authentication → URL Configuration**, allow the redirect `homekeep://auth/verify`.
+     6. Sign up with a real inbox, confirm the message appears as delivered in the Resend dashboard, then enter the code in-app.
 
 4. **Start the development server:**
 

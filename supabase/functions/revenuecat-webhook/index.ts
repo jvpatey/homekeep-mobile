@@ -62,10 +62,26 @@ function expirationIso(ms?: number): string | null {
   return new Date(ms).toISOString();
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Supabase user ids only — ignore RC anonymous / alias strings. */
+function isPersistedAppUserId(id: string | undefined | null): id is string {
+  if (!id || id.startsWith("$RCAnonymousID:")) return false;
+  return UUID_RE.test(id);
+}
+
+const REVOKE_TYPES = new Set([
+  "EXPIRATION",
+  "REFUND",
+  "TEMPORARY_ENTITLEMENT_DELETION",
+]);
+
 function statusForEvent(event: RcEvent): EntitlementStatus {
   const type = event.type ?? "";
-  if (type === "EXPIRATION") return "expired";
+  if (REVOKE_TYPES.has(type)) return "expired";
   if (type === "BILLING_ISSUE") return "grace";
+  // CANCELLATION = auto-renew off; access continues until EXPIRATION
   if ((event.period_type ?? "").toUpperCase() === "TRIAL") return "trialing";
   return "active";
 }
@@ -77,6 +93,10 @@ function looksLikePlus(event: RcEvent): boolean {
   return (
     product === "homekeep_plus_monthly" || product === "homekeep_plus_yearly"
   );
+}
+
+function isRevokeEvent(event: RcEvent): boolean {
+  return REVOKE_TYPES.has(event.type ?? "");
 }
 
 serve(async (req) => {
@@ -140,13 +160,16 @@ serve(async (req) => {
   try {
     if (event.type === "TRANSFER") {
       for (const fromId of event.transferred_from ?? []) {
+        if (!isPersistedAppUserId(fromId)) continue;
         await upsertForUser(fromId, "expired", {
           product_id: event.product_id ?? null,
           store: mapStore(event.store),
-          expires_at: expirationIso(event.expiration_at_ms) ?? new Date().toISOString(),
+          expires_at:
+            expirationIso(event.expiration_at_ms) ?? new Date().toISOString(),
         });
       }
       for (const toId of event.transferred_to ?? []) {
+        if (!isPersistedAppUserId(toId)) continue;
         await upsertForUser(toId, statusForEvent(event), {
           product_id: event.product_id ?? null,
           store: mapStore(event.store),
@@ -156,12 +179,16 @@ serve(async (req) => {
       return json({ ok: true });
     }
 
-    if (!looksLikePlus(event) && event.type !== "TEST") {
+    if (
+      !looksLikePlus(event) &&
+      !isRevokeEvent(event) &&
+      event.type !== "TEST"
+    ) {
       return json({ ok: true, ignored: true });
     }
 
     const appUserId = event.app_user_id ?? event.original_app_user_id;
-    if (!appUserId || appUserId.startsWith("$RCAnonymousID:")) {
+    if (!isPersistedAppUserId(appUserId)) {
       return json({ ok: true, ignored: true });
     }
 
@@ -178,7 +205,9 @@ serve(async (req) => {
     await upsertForUser(appUserId, statusForEvent(event), {
       product_id: event.product_id ?? null,
       store: mapStore(event.store),
-      expires_at: expires,
+      expires_at: isRevokeEvent(event)
+        ? expires ?? new Date().toISOString()
+        : expires,
     });
 
     return json({ ok: true });

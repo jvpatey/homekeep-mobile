@@ -1,0 +1,1 @@
+export { EditPasswordModal } from "./EditPasswordModal";

@@ -30,7 +30,8 @@ interface DashboardHeaderProps {
   onOpenEquipmentManuals?: () => void;
   onOpenAddressEditor: () => void;
   onOpenHomeSummary?: () => void;
-  onScrollToSection?: (sectionKey: string) => void;
+  /** Header status chip — overdue preferred over due today when both exist. */
+  onStatusChipPress?: (kind: "overdue" | "today") => void;
   animatedStyle?: object;
   /** Season only — e.g. "Warm season". Locality lives in the context line. */
   seasonLabel?: string | null;
@@ -44,7 +45,7 @@ export function DashboardHeader({
   onOpenEquipmentManuals,
   onOpenAddressEditor,
   onOpenHomeSummary,
-  onScrollToSection,
+  onStatusChipPress,
   animatedStyle,
   seasonLabel,
 }: DashboardHeaderProps) {
@@ -106,30 +107,29 @@ export function DashboardHeader({
   const statusChip = useMemo(() => {
     if (overdueCount > 0) {
       return {
-        key: "overdue",
+        key: "overdue" as const,
         label: overdueCount === 1 ? "1 overdue" : `${overdueCount} overdue`,
-        accessibilityLabel: `${overdueCount} overdue tasks`,
+        accessibilityLabel:
+          overdueCount === 1
+            ? "1 overdue task, open it"
+            : `${overdueCount} overdue tasks, jump to list`,
         color: colors.error,
-        onPress: () => onScrollToSection?.("overdue"),
       };
     }
     if (dueTodayCount > 0) {
       return {
-        key: "today",
-        label: dueTodayCount === 1 ? "1 due today" : `${dueTodayCount} due today`,
-        accessibilityLabel: `${dueTodayCount} due today`,
+        key: "today" as const,
+        label:
+          dueTodayCount === 1 ? "1 due today" : `${dueTodayCount} due today`,
+        accessibilityLabel:
+          dueTodayCount === 1
+            ? "1 task due today, open it"
+            : `${dueTodayCount} tasks due today, jump to list`,
         color: colors.primary,
-        onPress: () => onScrollToSection?.("__today__"),
       };
     }
     return null;
-  }, [
-    overdueCount,
-    dueTodayCount,
-    onScrollToSection,
-    colors.error,
-    colors.primary,
-  ]);
+  }, [overdueCount, dueTodayCount, colors.error, colors.primary]);
 
   const handleContextPress = () => {
     triggerLight();
@@ -235,7 +235,7 @@ export function DashboardHeader({
             <Pressable
               onPress={() => {
                 triggerLight();
-                statusChip.onPress();
+                onStatusChipPress?.(statusChip.key);
               }}
               style={[
                 styles.chip,
