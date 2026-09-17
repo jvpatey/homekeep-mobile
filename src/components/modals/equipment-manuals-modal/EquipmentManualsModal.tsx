@@ -33,7 +33,7 @@ import { useGradients, useHaptics, useDevice, useSheetMount } from "../../../hoo
 import { DesignSystem } from "../../../theme/designSystem";
 import { Button, HearthSurfaceCard, SheetGrabber } from "../../ui";
 import { FormField } from "../../Dashboard/modals/create-task-modal/FormField";
-import { EquipmentManual } from "../../../types/equipmentManual";
+import { EquipmentManual, EquipmentType, EQUIPMENT_TYPES, EQUIPMENT_TYPE_LABELS } from "../../../types/equipmentManual";
 import { EquipmentManualService } from "../../../services/EquipmentManualService";
 import { MaintenanceService } from "../../../services/maintenanceService";
 import { useTasks } from "../../../context/TasksContext";
@@ -47,6 +47,7 @@ import {
   MaintenancePlanItemTemplate,
 } from "../../../data/maintenancePlans";
 import { styles } from "./styles";
+import { resolveWarrantyFields, warrantyStatusLabel } from "../../../utils/equipmentWarranty";
 
 type ScreenMode = "list" | "form" | "hints";
 
@@ -85,8 +86,15 @@ export function EquipmentManualsModal({
   const [editing, setEditing] = useState<EquipmentManual | null>(null);
   const [name, setName] = useState("");
   const [modelNumber, setModelNumber] = useState("");
+  const [equipmentType, setEquipmentType] = useState<EquipmentType | null>(
+    null
+  );
   const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
+  const [warrantyExpiresOn, setWarrantyExpiresOn] = useState<Date | null>(null);
   const [showPurchasePicker, setShowPurchasePicker] = useState(false);
+  const [showWarrantyPicker, setShowWarrantyPicker] = useState(false);
+  const [linkedCounts, setLinkedCounts] = useState<Record<string, number>>({});
+  const [choosingHints, setChoosingHints] = useState(false);
 
   const [pendingUri, setPendingUri] = useState<string | null>(null);
   const [pendingMime, setPendingMime] = useState<string | null>(null);
@@ -115,9 +123,18 @@ export function EquipmentManualsModal({
     if (!isConfigured) return;
     setLoading(true);
     try {
-      const { data, error } = await EquipmentManualService.listEquipmentManuals();
+      const [{ data, error }, routinesResult] = await Promise.all([
+        EquipmentManualService.listEquipmentManuals(),
+        MaintenanceService.getMaintenanceRoutines({ is_active: true }),
+      ]);
       if (error) throw new Error(error.message);
       setItems(data ?? []);
+      const counts: Record<string, number> = {};
+      for (const routine of routinesResult.data ?? []) {
+        if (!routine.equipment_id) continue;
+        counts[routine.equipment_id] = (counts[routine.equipment_id] ?? 0) + 1;
+      }
+      setLinkedCounts(counts);
     } catch (err) {
       console.error(err);
       Alert.alert(
@@ -149,14 +166,18 @@ export function EquipmentManualsModal({
   const resetForm = () => {
     setName("");
     setModelNumber("");
+    setEquipmentType(null);
     setPurchaseDate(null);
+    setWarrantyExpiresOn(null);
     setShowPurchasePicker(false);
+    setShowWarrantyPicker(false);
     setPendingUri(null);
     setPendingMime(null);
     setPendingFileName(null);
     setPendingReceiptUri(null);
     setPendingReceiptMime(null);
     setPendingReceiptFileName(null);
+    setChoosingHints(false);
   };
 
   const handleClose = async () => {
@@ -177,9 +198,15 @@ export function EquipmentManualsModal({
     setEditing(item);
     setName(item.name);
     setModelNumber(item.model_number ?? "");
+    setEquipmentType(item.equipment_type ?? null);
     setPurchaseDate(
       item.purchase_date ? parseISO(item.purchase_date) : null
     );
+    setWarrantyExpiresOn(
+      item.warranty_expires_on ? parseISO(item.warranty_expires_on) : null
+    );
+    setShowPurchasePicker(false);
+    setShowWarrantyPicker(false);
     setPendingUri(null);
     setPendingMime(null);
     setPendingFileName(null);
@@ -318,6 +345,29 @@ export function EquipmentManualsModal({
     await triggerLight();
     setPurchaseDate(null);
     setShowPurchasePicker(false);
+  };
+
+  const handleWarrantyDateChange = (
+    event: DateTimePickerEvent,
+    selected?: Date
+  ) => {
+    if (Platform.OS === "android") {
+      setShowWarrantyPicker(false);
+    }
+    if (event.type === "dismissed") {
+      return;
+    }
+    if (selected) {
+      const normalized = new Date(selected);
+      normalized.setHours(12, 0, 0, 0);
+      setWarrantyExpiresOn(normalized);
+    }
+  };
+
+  const clearWarrantyDate = async () => {
+    await triggerLight();
+    setWarrantyExpiresOn(null);
+    setShowWarrantyPicker(false);
   };
 
   const openStorageFile = async (
@@ -468,6 +518,10 @@ export function EquipmentManualsModal({
       let equipmentId = editing?.id;
       const purchaseIso =
         purchaseDate !== null ? format(purchaseDate, "yyyy-MM-dd") : null;
+      const warrantyIso =
+        warrantyExpiresOn !== null
+          ? format(warrantyExpiresOn, "yyyy-MM-dd")
+          : null;
 
       if (!equipmentId) {
         const { data: created, error: createErr } =
@@ -475,6 +529,8 @@ export function EquipmentManualsModal({
             name: trimmed,
             model_number: modelNumber.trim() || null,
             purchase_date: purchaseIso,
+            warranty_expires_on: warrantyIso,
+            equipment_type: equipmentType,
           });
         if (createErr || !created) {
           throw new Error(createErr?.message ?? "Could not save.");
@@ -486,6 +542,8 @@ export function EquipmentManualsModal({
             name: trimmed,
             model_number: modelNumber.trim() || null,
             purchase_date: purchaseIso,
+            warranty_expires_on: warrantyIso,
+            equipment_type: equipmentType,
           });
         if (updErr) throw new Error(updErr.message);
       }
@@ -559,11 +617,12 @@ export function EquipmentManualsModal({
       await triggerLight();
 
       const wasCreate = !editing;
+      const savedType = equipmentType;
       resetForm();
       setEditing(null);
 
       if (wasCreate && equipmentId) {
-        const hints = hintsForEquipmentName(trimmed);
+        const hints = hintsForEquipmentName(trimmed, savedType);
         if (hints.length > 0) {
           const { data: routines } =
             await MaintenanceService.getMaintenanceRoutines({
@@ -583,6 +642,7 @@ export function EquipmentManualsModal({
               ...toCreate.map(() => true),
               ...toLink.map(() => true),
             ]);
+            setChoosingHints(false);
             setScreenMode("hints");
             return;
           }
@@ -777,6 +837,11 @@ export function EquipmentManualsModal({
   const renderItem = ({ item }: { item: EquipmentManual }) => {
     const isDeleting = deletingIds.has(item.id);
     const purchaseLabel = formatPurchase(item.purchase_date);
+    const warranty = resolveWarrantyFields(item.warranty_expires_on);
+    const warrantyAlert =
+      warranty.warrantyStatus === "expired" ||
+      warranty.warrantyStatus === "expiring_soon";
+    const linkedCount = linkedCounts[item.id] ?? 0;
     const iconHit = isTablet ? getResponsiveValue(18, 20, 22) : 18;
 
     return (
@@ -831,6 +896,34 @@ export function EquipmentManualsModal({
                   ]}
                 >
                   Purchased {purchaseLabel}
+                </Text>
+              ) : null}
+              {warranty.warrantyExpiresLabel ? (
+                <Text
+                  style={[
+                    styles.equipmentMeta,
+                    {
+                      color: warrantyAlert
+                        ? colors.warning
+                        : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  Warranty {warranty.warrantyExpiresLabel}
+                  {warrantyStatusLabel(warranty.warrantyStatus)
+                    ? ` · ${warrantyStatusLabel(warranty.warrantyStatus)}`
+                    : ""}
+                </Text>
+              ) : null}
+              {linkedCount > 0 ? (
+                <Text
+                  style={[
+                    styles.equipmentMeta,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {linkedCount} linked reminder
+                  {linkedCount === 1 ? "" : "s"}
                 </Text>
               ) : null}
               <View style={styles.chipRow}>
@@ -983,6 +1076,50 @@ export function EquipmentManualsModal({
             isTablet && { fontSize: 13 * fontMultiplier },
           ]}
         >
+          Equipment type (optional)
+        </Text>
+        <View style={styles.typeChipRow}>
+          {EQUIPMENT_TYPES.map((type) => {
+            const selected = equipmentType === type;
+            return (
+              <TouchableOpacity
+                key={type}
+                onPress={() =>
+                  setEquipmentType((prev) => (prev === type ? null : type))
+                }
+                style={[
+                  styles.typeChip,
+                  {
+                    backgroundColor: selected
+                      ? `${colors.primary}18`
+                      : colors.fieldFill,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={EQUIPMENT_TYPE_LABELS[type]}
+              >
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    { color: selected ? colors.primary : colors.text },
+                  ]}
+                >
+                  {EQUIPMENT_TYPE_LABELS[type]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text
+          style={[
+            styles.sectionLabel,
+            { color: colors.textSecondary },
+            isTablet && { fontSize: 13 * fontMultiplier },
+          ]}
+        >
           Purchase date (optional)
         </Text>
         <TouchableOpacity
@@ -1019,6 +1156,62 @@ export function EquipmentManualsModal({
         {Platform.OS === "ios" && showPurchasePicker ? (
           <TouchableOpacity
             onPress={() => setShowPurchasePicker(false)}
+            style={{ alignSelf: "flex-end", marginTop: 8 }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>Done</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <Text
+          style={[
+            styles.sectionLabel,
+            { color: colors.textSecondary },
+            isTablet && { fontSize: 13 * fontMultiplier },
+          ]}
+        >
+          Warranty expires (optional)
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.dateButton,
+            {
+              backgroundColor: colors.fieldFill,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={() => {
+            setShowPurchasePicker(false);
+            setShowWarrantyPicker((v) => !v);
+          }}
+        >
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={20}
+            color={colors.primary}
+          />
+          <Text style={[styles.dateButtonText, { color: colors.text }]}>
+            {warrantyExpiresOn
+              ? format(warrantyExpiresOn, "MMM d, yyyy")
+              : "Tap to set date"}
+          </Text>
+        </TouchableOpacity>
+        {warrantyExpiresOn ? (
+          <TouchableOpacity onPress={clearWarrantyDate} style={{ marginTop: 8 }}>
+            <Text style={{ color: colors.error, fontSize: 14 }}>Clear date</Text>
+          </TouchableOpacity>
+        ) : null}
+        {showWarrantyPicker ? (
+          <DateTimePicker
+            value={warrantyExpiresOn ?? new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={handleWarrantyDateChange}
+            themeVariant={isDark ? "dark" : "light"}
+          />
+        ) : null}
+        {Platform.OS === "ios" && showWarrantyPicker ? (
+          <TouchableOpacity
+            onPress={() => setShowWarrantyPicker(false)}
             style={{ alignSelf: "flex-end", marginTop: 8 }}
           >
             <Text style={{ color: colors.primary, fontWeight: "600" }}>Done</Text>
@@ -1270,8 +1463,9 @@ export function EquipmentManualsModal({
                     <Text
                       style={[styles.formSubtitle, { color: colors.textSecondary }]}
                     >
-                      We’ll attach these to this equipment. Uncheck anything you
-                      don’t want.
+                      {choosingHints
+                        ? "Uncheck anything you don’t want, then add the rest."
+                        : "We’ll attach matching reminders to this equipment."}
                     </Text>
                   </View>
                 </>
@@ -1369,40 +1563,89 @@ export function EquipmentManualsModal({
                   contentContainerStyle={styles.listContent}
                   showsVerticalScrollIndicator={false}
                 >
-                  {hintCreate.map((item, index) =>
-                    renderHintRow({
-                      key: `create-${item.title}`,
-                      title: item.title,
-                      meta: "New reminder",
-                      checked: !!hintMask[index],
-                      onToggle: () =>
-                        setHintMask((prev) => {
-                          const next = [...prev];
-                          next[index] = !next[index];
-                          return next;
-                        }),
-                    })
+                  {choosingHints ? (
+                    <>
+                      {hintCreate.map((item, index) =>
+                        renderHintRow({
+                          key: `create-${item.title}`,
+                          title: item.title,
+                          meta: "New reminder",
+                          checked: !!hintMask[index],
+                          onToggle: () =>
+                            setHintMask((prev) => {
+                              const next = [...prev];
+                              next[index] = !next[index];
+                              return next;
+                            }),
+                        })
+                      )}
+                      {hintLinkTitles.map((title, index) => {
+                        const maskIndex = hintCreate.length + index;
+                        return renderHintRow({
+                          key: `link-${hintLinkIds[index]}`,
+                          title,
+                          meta: "Already on your schedule — link to this equipment",
+                          checked: !!hintMask[maskIndex],
+                          onToggle: () =>
+                            setHintMask((prev) => {
+                              const next = [...prev];
+                              next[maskIndex] = !next[maskIndex];
+                              return next;
+                            }),
+                        });
+                      })}
+                      <Button
+                        label={saving ? "Adding…" : "Add selected"}
+                        onPress={() => void applyEquipmentHints()}
+                        disabled={saving}
+                      />
+                      <View style={{ height: DesignSystem.spacing.sm }} />
+                      <Button
+                        label="Back"
+                        variant="ghost"
+                        onPress={() => setChoosingHints(false)}
+                        disabled={saving}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <View style={{ marginBottom: DesignSystem.spacing.md }}>
+                        {[
+                          ...hintCreate.map((item) => item.title),
+                          ...hintLinkTitles,
+                        ].map((title) => (
+                          <Text
+                            key={title}
+                            style={[
+                              styles.hintPreviewLine,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            · {title}
+                          </Text>
+                        ))}
+                      </View>
+                      <Button
+                        label={saving ? "Adding…" : "Add all reminders"}
+                        onPress={() => {
+                          setHintMask(
+                            Array(hintCreate.length + hintLinkIds.length).fill(
+                              true
+                            ) as boolean[]
+                          );
+                          void applyEquipmentHints();
+                        }}
+                        disabled={saving}
+                      />
+                      <View style={{ height: DesignSystem.spacing.sm }} />
+                      <Button
+                        label="Choose which…"
+                        variant="ghost"
+                        onPress={() => setChoosingHints(true)}
+                        disabled={saving}
+                      />
+                    </>
                   )}
-                  {hintLinkTitles.map((title, index) => {
-                    const maskIndex = hintCreate.length + index;
-                    return renderHintRow({
-                      key: `link-${hintLinkIds[index]}`,
-                      title,
-                      meta: "Already on your schedule — link to this equipment",
-                      checked: !!hintMask[maskIndex],
-                      onToggle: () =>
-                        setHintMask((prev) => {
-                          const next = [...prev];
-                          next[maskIndex] = !next[maskIndex];
-                          return next;
-                        }),
-                    });
-                  })}
-                  <Button
-                    label={saving ? "Adding…" : "Add selected"}
-                    onPress={() => void applyEquipmentHints()}
-                    disabled={saving}
-                  />
                   {onAddRecurringTask && hintEquipmentId ? (
                     <Button
                       label="Add a different task"

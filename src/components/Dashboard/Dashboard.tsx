@@ -84,6 +84,15 @@ import {
   WeekendPlanCelebrationSnapshot,
 } from "./WeekendPlanCelebration";
 import { WeatherAlertCard } from "./WeatherAlertCard";
+import { CampaignPlanStrip } from "./CampaignPlanStrip";
+import {
+  computeCampaignProgress,
+  hasCelebratedCampaign,
+  markCampaignCelebrated,
+} from "../../utils/campaignProgress";
+import { MaintenanceService } from "../../services/maintenanceService";
+import { MaintenanceRoutine } from "../../types/maintenance";
+import { getAppliedPlanIds } from "../../data/maintenancePlans";
 import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
 import {
   buildWeatherChecklistPayloads,
@@ -128,6 +137,7 @@ const DASHBOARD_HEADER_ENTRANCE_KEY =
 export function NewDashboard({
   tasks,
   overdueTasks = [],
+  completedTasks = [],
   onCompleteTask,
   onTaskPress,
   onRefresh,
@@ -200,6 +210,10 @@ export function NewDashboard({
   const [weatherChecklistApplied, setWeatherChecklistApplied] = useState(false);
   const [applyingWeatherChecklist, setApplyingWeatherChecklist] =
     useState(false);
+  const [activeRoutines, setActiveRoutines] = useState<MaintenanceRoutine[]>(
+    []
+  );
+  const [campaignCelebrated, setCampaignCelebrated] = useState(true);
   const pendingEditRef = useRef<MaintenanceTask | null>(null);
   const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
   const resumeWeekendAfterDetailRef = useRef(false);
@@ -466,6 +480,65 @@ export function NewDashboard({
   );
 
   const inSeasonPlanId = recommendInSeasonPlanId(month, profile?.latitude);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await MaintenanceService.getMaintenanceRoutines({
+        is_active: true,
+      });
+      if (!cancelled) setActiveRoutines(data ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tasks, overdueTasks, completedTasks, refreshing]);
+
+  const campaignProgress = useMemo(() => {
+    if (!inSeasonPlanId) return null;
+    const applied = getAppliedPlanIds(activeRoutines);
+    if (!applied.has(inSeasonPlanId)) return null;
+    return computeCampaignProgress(
+      inSeasonPlanId,
+      activeRoutines,
+      [...tasks, ...overdueTasks],
+      completedTasks
+    );
+  }, [
+    inSeasonPlanId,
+    activeRoutines,
+    tasks,
+    overdueTasks,
+    completedTasks,
+  ]);
+
+  useEffect(() => {
+    if (!campaignProgress?.planId) {
+      setCampaignCelebrated(true);
+      return;
+    }
+    let cancelled = false;
+    void hasCelebratedCampaign(campaignProgress.planId).then((done) => {
+      if (!cancelled) setCampaignCelebrated(done);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignProgress?.planId]);
+
+  useEffect(() => {
+    if (!campaignProgress?.isComplete || campaignCelebrated) return;
+    void (async () => {
+      await markCampaignCelebrated(campaignProgress.planId);
+      setCampaignCelebrated(true);
+      Alert.alert(
+        `${campaignProgress.title} complete`,
+        `You finished ${campaignProgress.total} seasonal reminder${
+          campaignProgress.total === 1 ? "" : "s"
+        }. Nice work.`
+      );
+    })();
+  }, [campaignProgress, campaignCelebrated]);
 
   const seasonLabel = useMemo(
     () => homeSeasonLabel(month, profile?.latitude),
@@ -828,6 +901,12 @@ export function NewDashboard({
           onAddPrepTasks={() => {
             void handleAddWeatherPrepTasks();
           }}
+        />
+      ) : null}
+      {campaignProgress ? (
+        <CampaignPlanStrip
+          progress={campaignProgress}
+          onPress={() => onBrowseMaintenancePlans?.(campaignProgress.planId)}
         />
       ) : null}
       <HomeSystemMap

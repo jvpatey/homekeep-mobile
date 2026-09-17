@@ -1,9 +1,12 @@
 import type { MaintenancePlanItemTemplate } from "./maintenancePlans/types";
 import { routineIdentityKey } from "./maintenancePlans/types";
 import type { MaintenanceCategory } from "../types/maintenance";
+import type { EquipmentType } from "../types/equipmentManual";
 
 export type EquipmentHintGroup = {
   keywords: string[];
+  /** Prefer this group when equipment_type matches (wins over name-only). */
+  types?: EquipmentType[];
   /** Skip this group when the name also contains one of these (e.g. range vs range hood). */
   excludeIf?: string[];
   items: MaintenancePlanItemTemplate[];
@@ -152,18 +155,43 @@ const MICROWAVE: MaintenancePlanItemTemplate = {
   start_offset_days: 12,
 };
 
+const WASHER: MaintenancePlanItemTemplate = {
+  title: "Clean washing machine gasket and dispenser",
+  description:
+    "Wipe the door seal, run a clean cycle, and clear the detergent drawer so mildew does not build up.",
+  category: "APPLIANCES",
+  priority: "medium",
+  estimated_duration_minutes: 20,
+  interval_days: 90,
+  start_offset_days: 18,
+};
+
 export const EQUIPMENT_TASK_HINTS: EquipmentHintGroup[] = [
-  { keywords: ["water heater", "hot water tank", "hot-water"], items: [WATER_HEATER] },
-  { keywords: ["furnace", "boiler"], items: [FURNACE] },
-  { keywords: ["dryer"], items: [DRYER] },
-  { keywords: ["air conditioner", "a/c", "ac unit", "central air"], items: [AC] },
+  {
+    keywords: ["water heater", "hot water tank", "hot-water"],
+    types: ["water_heater"],
+    items: [WATER_HEATER],
+  },
+  { keywords: ["furnace", "boiler"], types: ["furnace"], items: [FURNACE] },
+  { keywords: ["dryer"], types: ["dryer"], items: [DRYER] },
+  {
+    keywords: ["air conditioner", "a/c", "ac unit", "central air"],
+    types: ["ac"],
+    items: [AC],
+  },
   { keywords: ["softener"], items: [SOFTENER] },
   { keywords: ["heat pump", "mini split", "mini-split"], items: [HEAT_PUMP] },
   { keywords: ["mower", "lawn mower"], items: [MOWER] },
   { keywords: ["dishwasher"], items: [DISHWASHER] },
   {
     keywords: ["fridge", "refrigerator"],
+    types: ["fridge"],
     items: [FRIDGE_FILTER, FRIDGE_COILS],
+  },
+  {
+    keywords: ["washer", "washing machine"],
+    types: ["washer"],
+    items: [WASHER],
   },
   {
     keywords: ["range hood", "vent hood", "extractor hood", "cooker hood"],
@@ -180,16 +208,20 @@ export const EQUIPMENT_TASK_HINTS: EquipmentHintGroup[] = [
   },
 ];
 
+/**
+ * Resolve cadence hints. When `equipmentType` is set (and not `other`), type
+ * matches win; otherwise fall back to name keywords.
+ */
 export function hintsForEquipmentName(
-  name: string
+  name: string,
+  equipmentType?: EquipmentType | null
 ): MaintenancePlanItemTemplate[] {
   const hay = name.trim().toLowerCase();
-  if (!hay) return [];
   const matched: MaintenancePlanItemTemplate[] = [];
   const seen = new Set<string>();
-  for (const group of EQUIPMENT_TASK_HINTS) {
-    if (!group.keywords.some((keyword) => hay.includes(keyword))) continue;
-    if (group.excludeIf?.some((skip) => hay.includes(skip))) continue;
+
+  const pushGroup = (group: EquipmentHintGroup) => {
+    if (group.excludeIf?.some((skip) => hay.includes(skip))) return;
     for (const item of group.items) {
       const key = routineIdentityKey(
         item.title,
@@ -200,6 +232,19 @@ export function hintsForEquipmentName(
       seen.add(key);
       matched.push(item);
     }
+  };
+
+  if (equipmentType && equipmentType !== "other") {
+    for (const group of EQUIPMENT_TASK_HINTS) {
+      if (group.types?.includes(equipmentType)) pushGroup(group);
+    }
+    if (matched.length > 0) return matched;
+  }
+
+  if (!hay) return matched;
+  for (const group of EQUIPMENT_TASK_HINTS) {
+    if (!group.keywords.some((keyword) => hay.includes(keyword))) continue;
+    pushGroup(group);
   }
   return matched;
 }
