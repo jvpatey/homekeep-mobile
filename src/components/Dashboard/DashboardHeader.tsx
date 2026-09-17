@@ -132,6 +132,7 @@ export function DashboardHeader({
   }, [overdueCount, dueTodayCount, colors.error, colors.primary]);
 
   const handleContextPress = () => {
+    if (!contextLine?.needsAddress) return;
     triggerLight();
     onOpenAddressEditor();
   };
@@ -209,24 +210,44 @@ export function DashboardHeader({
       {contextLine || statusChip ? (
         <View style={styles.metaRow}>
           {contextLine ? (
-            <Pressable
-              onPress={handleContextPress}
-              accessibilityRole="button"
-              accessibilityLabel={contextLine.text}
-              style={styles.contextPressable}
-            >
-              <Ionicons
-                name={contextLine.icon}
-                size={15}
-                color={colors.textSecondary}
-              />
-              <Text
-                style={[styles.contextText, { color: colors.textSecondary }]}
-                numberOfLines={1}
+            contextLine.needsAddress ? (
+              <Pressable
+                onPress={handleContextPress}
+                accessibilityRole="button"
+                accessibilityLabel={contextLine.text}
+                style={styles.contextPressable}
               >
-                {contextLine.text}
-              </Text>
-            </Pressable>
+                <Ionicons
+                  name={contextLine.icon}
+                  size={15}
+                  color={colors.textSecondary}
+                />
+                <Text
+                  style={[styles.contextText, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {contextLine.text}
+                </Text>
+              </Pressable>
+            ) : (
+              <View
+                style={styles.contextPressable}
+                accessibilityRole="text"
+                accessibilityLabel={contextLine.text}
+              >
+                <Ionicons
+                  name={contextLine.icon}
+                  size={15}
+                  color={colors.textSecondary}
+                />
+                <Text
+                  style={[styles.contextText, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {contextLine.text}
+                </Text>
+              </View>
+            )
           ) : (
             <View style={styles.contextPressable} />
           )}

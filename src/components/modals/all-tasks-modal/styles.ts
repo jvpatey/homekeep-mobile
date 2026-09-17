@@ -140,6 +140,20 @@ export const styles = StyleSheet.create({
     fontSize: 12,
   },
 
+  rowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+  },
+
+  resumeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   deleteButton: {
     width: 40,
     height: 40,

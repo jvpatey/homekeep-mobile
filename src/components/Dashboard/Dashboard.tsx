@@ -30,7 +30,7 @@ import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeSetupModal } from "../modals/home-setup";
 import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdSharingModal";
 import { PlusStatusBanner } from "../plus";
-import { useRequirePlus } from "../../hooks/useRequirePlus";
+import { useRequirePlus, useRequirePlusOrFreeAction } from "../../hooks/useRequirePlus";
 import { useSubscription } from "../../context/SubscriptionContext";
 import { useProfile } from "../../context/ProfileContext";
 import { isHomeSystemsComplete } from "../../data/maintenancePlans";
@@ -46,6 +46,7 @@ import {
   DashboardScheduleListRef,
 } from "./DashboardScheduleList";
 import { confirmSkipTaskOccurrence } from "../../utils/skipTaskOccurrence";
+import { confirmPauseTask } from "../../utils/pauseTask";
 import { maybeRequestReviewAfterTaskComplete } from "../../utils/requestAppReview";
 import { useHaptics, useReducedMotion } from "../../hooks";
 import {
@@ -82,7 +83,17 @@ import {
   WeekendPlanCelebration,
   WeekendPlanCelebrationSnapshot,
 } from "./WeekendPlanCelebration";
+import { WeatherAlertCard } from "./WeatherAlertCard";
 import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
+import {
+  buildWeatherChecklistPayloads,
+  weatherChecklistForKind,
+} from "../../data/weatherChecklists";
+import {
+  hasAppliedWeatherChecklist,
+  markWeatherChecklistApplied,
+} from "../../utils/weatherChecklistStorage";
+import { useTasks } from "../../context/TasksContext";
 
 interface NewDashboardProps {
   tasks: MaintenanceTask[];
@@ -104,6 +115,9 @@ interface NewDashboardProps {
   onSkipTaskOccurrence?: (
     task: MaintenanceTask
   ) => Promise<{ success: boolean; error?: string }>;
+  onPauseTask?: (
+    routineId: string
+  ) => Promise<{ success: boolean; error?: string }>;
   tasksError?: string | null;
   onRetryTasks?: () => void;
 }
@@ -120,6 +134,7 @@ export function NewDashboard({
   refreshing = false,
   onBrowseMaintenancePlans,
   onSkipTaskOccurrence,
+  onPauseTask,
   tasksError = null,
   onRetryTasks,
 }: NewDashboardProps) {
@@ -130,7 +145,12 @@ export function NewDashboard({
   const reducedMotion = useReducedMotion();
   const { addressNeeded, homeSetupNeeded, profile } = useProfile();
   const requirePlus = useRequirePlus();
+  const {
+    requireAccess: requirePlusOrFree,
+    consume: consumeFreeAction,
+  } = useRequirePlusOrFreeAction();
   const { isPlus, offerPaywallAfterSetup } = useSubscription();
+  const { createTasks } = useTasks();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
   const navigation =
@@ -177,6 +197,9 @@ export function NewDashboard({
     null
   );
   const [climateAlert, setClimateAlert] = useState<ClimateAlert | null>(null);
+  const [weatherChecklistApplied, setWeatherChecklistApplied] = useState(false);
+  const [applyingWeatherChecklist, setApplyingWeatherChecklist] =
+    useState(false);
   const pendingEditRef = useRef<MaintenanceTask | null>(null);
   const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
   const resumeWeekendAfterDetailRef = useRef(false);
@@ -234,6 +257,7 @@ export function NewDashboard({
   useEffect(() => {
     if (profile?.latitude == null || profile?.longitude == null) {
       setClimateAlert(null);
+      setWeatherChecklistApplied(false);
       return;
     }
     const unit = pickTemperatureUnit(profile.country);
@@ -241,8 +265,63 @@ export function NewDashboard({
       profile.latitude,
       profile.longitude,
       unit
-    ).then(setClimateAlert);
+    ).then(async (alert) => {
+      setClimateAlert(alert);
+      if (alert) {
+        const applied = await hasAppliedWeatherChecklist(alert.kind);
+        setWeatherChecklistApplied(applied);
+      } else {
+        setWeatherChecklistApplied(false);
+      }
+    });
   }, [profile?.latitude, profile?.longitude, profile?.country]);
+
+  const handleAddWeatherPrepTasks = useCallback(async () => {
+    if (!climateAlert || applyingWeatherChecklist) return;
+    if (!(await requirePlusOrFree())) return;
+
+    const count = weatherChecklistForKind(climateAlert.kind).length;
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        "Add prep tasks?",
+        `Add ${count} one-time prep task${count === 1 ? "" : "s"} for this alert?`,
+        [
+          { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+          { text: "Add", onPress: () => resolve(true) },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) }
+      );
+    });
+    if (!confirmed) return;
+
+    setApplyingWeatherChecklist(true);
+    try {
+      const payloads = buildWeatherChecklistPayloads(climateAlert.kind);
+      const result = await createTasks(payloads);
+      if (!result.success) {
+        Alert.alert(
+          "Could not add tasks",
+          result.error || "Please try again."
+        );
+        return;
+      }
+      await consumeFreeAction();
+      await markWeatherChecklistApplied(climateAlert.kind);
+      setWeatherChecklistApplied(true);
+      await triggerLight();
+      onRefresh?.();
+    } finally {
+      setApplyingWeatherChecklist(false);
+    }
+  }, [
+    applyingWeatherChecklist,
+    climateAlert,
+    consumeFreeAction,
+    createTasks,
+    onRefresh,
+    requirePlusOrFree,
+    triggerLight,
+  ]);
 
   useEffect(() => {
     if (!addressNeeded && !homeSetupNeeded) return;
@@ -411,7 +490,7 @@ export function NewDashboard({
       }
     ): Promise<boolean> => {
       if (completingRef.current.has(instanceId)) return false;
-      if (!(await requirePlus())) return false;
+      if (!(await requirePlusOrFree())) return false;
 
       const completedTask =
         tasks.find((t) => t.instance_id === instanceId) ??
@@ -459,6 +538,7 @@ export function NewDashboard({
       try {
         const result = await onCompleteTask(instanceId, extras);
         if (result.success) {
+          await consumeFreeAction();
           setShowTaskDetail(false);
           setSelectedTask(null);
 
@@ -515,7 +595,8 @@ export function NewDashboard({
       onCompleteTask,
       overdueTasks,
       queueWeekendResume,
-      requirePlus,
+      requirePlusOrFree,
+      consumeFreeAction,
       seasonalOverdue,
       seasonalTasks,
       tasks,
@@ -575,6 +656,58 @@ export function NewDashboard({
     ]
   );
 
+  const handlePauseTask = useCallback(
+    async (
+      task: MaintenanceTask,
+      closeSwipe?: () => void
+    ): Promise<boolean> => {
+      if (!onPauseTask) {
+        closeSwipe?.();
+        return false;
+      }
+      if (!(await requirePlus())) {
+        closeSwipe?.();
+        return false;
+      }
+
+      const confirmed = await confirmPauseTask(task);
+      if (!confirmed) {
+        closeSwipe?.();
+        return false;
+      }
+
+      await triggerMedium();
+      const result = await onPauseTask(task.id);
+      closeSwipe?.();
+
+      if (result.success) {
+        await triggerLight();
+        if (
+          selectedTask?.instance_id === task.instance_id &&
+          showTaskDetail
+        ) {
+          setShowTaskDetail(false);
+          setSelectedTask(null);
+        }
+        return true;
+      }
+
+      Alert.alert(
+        "Pause Failed",
+        result.error || "Failed to pause this reminder. Please try again."
+      );
+      return false;
+    },
+    [
+      onPauseTask,
+      requirePlus,
+      triggerMedium,
+      triggerLight,
+      selectedTask,
+      showTaskDetail,
+    ]
+  );
+
   const handleTaskPress = (instanceId: string) => {
     const task =
       tasks.find((t) => t.instance_id === instanceId) ??
@@ -621,7 +754,7 @@ export function NewDashboard({
   };
 
   const openCreateModal = async () => {
-    if (!(await requirePlus())) return;
+    if (!(await requirePlusOrFree())) return;
     setEditTaskInitial(null);
     setCreateEquipmentId(null);
     setShowCreateModal(true);
@@ -688,6 +821,15 @@ export function NewDashboard({
         seasonLabel={seasonLabel}
       />
       <PlusStatusBanner />
+      {climateAlert && !weatherChecklistApplied ? (
+        <WeatherAlertCard
+          alert={climateAlert}
+          applying={applyingWeatherChecklist}
+          onAddPrepTasks={() => {
+            void handleAddWeatherPrepTasks();
+          }}
+        />
+      ) : null}
       <HomeSystemMap
         overdueTasks={seasonalOverdue}
         upcomingTasks={seasonalTasks}
@@ -758,6 +900,13 @@ export function NewDashboard({
           onSkipTaskOccurrence
             ? (task, closeSwipe) => {
                 void handleSkipOccurrence(task, closeSwipe);
+              }
+            : undefined
+        }
+        onPauseTask={
+          onPauseTask
+            ? (task, closeSwipe) => {
+                void handlePauseTask(task, closeSwipe);
               }
             : undefined
         }

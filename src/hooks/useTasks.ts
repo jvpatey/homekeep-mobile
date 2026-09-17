@@ -48,6 +48,9 @@ interface UseTasksReturn {
   createTask: (
     taskData: CreateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
+  createTasks: (
+    tasksData: CreateMaintenanceRoutineData[]
+  ) => Promise<{ success: boolean; error?: string; addedCount?: number }>;
   applyMaintenancePlan: (
     planId: string,
     itemsOverride?: MaintenancePlanItemTemplate[]
@@ -92,6 +95,10 @@ interface UseTasksReturn {
   ) => Promise<{ success: boolean; error?: string }>;
   skipTaskOccurrence: (
     task: MaintenanceTask
+  ) => Promise<{ success: boolean; error?: string }>;
+  pauseTask: (routineId: string) => Promise<{ success: boolean; error?: string }>;
+  resumeTask: (
+    routineId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (
@@ -280,6 +287,32 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
           error.message || "Failed to create maintenance routine";
         console.error("Error creating maintenance routine:", error);
         return { success: false, error: errorMessage };
+      }
+    },
+    [user?.id, loadTasks]
+  );
+
+  const createTasks = useCallback(
+    async (tasksData: CreateMaintenanceRoutineData[]) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+      if (tasksData.length === 0) {
+        return { success: true, addedCount: 0 };
+      }
+
+      try {
+        const { error } =
+          await MaintenanceService.createMaintenanceRoutines(tasksData);
+        if (error) throw error;
+        await loadTasks();
+        return { success: true, addedCount: tasksData.length };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          error: error.message || "Failed to create maintenance routines",
+        };
       }
     },
     [user?.id, loadTasks]
@@ -621,6 +654,54 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     [user?.id, loadTasks]
   );
 
+  const pauseTask = useCallback(
+    async (routineId: string) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+      try {
+        const { error } = await MaintenanceService.updateMaintenanceRoutine(
+          routineId,
+          { is_active: false }
+        );
+        if (error) throw error;
+        await loadTasks();
+        return { success: true };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          error: error.message || "Failed to pause reminder",
+        };
+      }
+    },
+    [user?.id, loadTasks]
+  );
+
+  const resumeTask = useCallback(
+    async (routineId: string) => {
+      if (!user) {
+        return { success: false, error: "User not authenticated" };
+      }
+      try {
+        const { error } = await MaintenanceService.updateMaintenanceRoutine(
+          routineId,
+          { is_active: true }
+        );
+        if (error) throw error;
+        await loadTasks();
+        return { success: true };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          error: error.message || "Failed to resume reminder",
+        };
+      }
+    },
+    [user?.id, loadTasks]
+  );
+
   // deleteTask - delete a maintenance routine
   const deleteTask = useCallback(
     async (taskId: string) => {
@@ -787,6 +868,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     lookbackDays,
     stats,
     createTask,
+    createTasks,
     applyMaintenancePlan,
     applyGeneratedHomeSchedule,
     reconcileHomeSchedule,
@@ -794,6 +876,8 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     completeTask,
     uncompleteTask,
     skipTaskOccurrence,
+    pauseTask,
+    resumeTask,
     deleteTask,
     bulkCompleteTasks,
     deleteAllTasks,

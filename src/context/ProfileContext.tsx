@@ -21,6 +21,7 @@ import {
 } from "../types/homeEmergency";
 import { AvatarCrop, parseAvatarCrop } from "../types/avatar";
 import { AvatarStorageService } from "../services/AvatarStorageService";
+import { FREE_ACTION_LIMIT } from "../lib/purchases";
 
 export interface UserProfile {
   id: string;
@@ -43,6 +44,8 @@ export interface UserProfile {
   home_setup_set_at?: string | null;
   home_emergency?: HomeEmergencyFacts | null;
   household_id?: string | null;
+  /** Free complete/create actions used while not on HomeKeep +. */
+  free_actions_used?: number;
 }
 
 export interface AddressInput {
@@ -109,11 +112,16 @@ interface ProfileContextValue {
   updateDisplayName: (
     fullName: string
   ) => Promise<{ success: boolean; error?: string }>;
+  /**
+   * Atomically consume one free action. Returns true if consumed.
+   * No-op success when already Plus should be handled by the caller.
+   */
+  consumeFreeAction: () => Promise<boolean>;
 }
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
 
-const PROFILE_SELECT_BASE = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at, home_systems, avatar_style, home_setup_set_at, home_emergency, household_id`;
+const PROFILE_SELECT_BASE = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at, home_systems, avatar_style, home_setup_set_at, home_emergency, household_id, free_actions_used`;
 const PROFILE_SELECT = `${PROFILE_SELECT_BASE}, avatar_storage_path, avatar_original_path, avatar_crop`;
 const PROFILE_SELECT_LEGACY = `id, full_name, email, address_line1, address_line2, city, region, postal_code, country, latitude, longitude, address_set_at`;
 
@@ -193,6 +201,7 @@ function normalizeProfile(data: unknown, fallbackId: string): UserProfile {
     home_systems?: unknown;
     avatar_style?: unknown;
     home_emergency?: unknown;
+    free_actions_used?: unknown;
   };
   return {
     ...row,
@@ -214,6 +223,11 @@ function normalizeProfile(data: unknown, fallbackId: string): UserProfile {
     home_emergency: parseHomeEmergency(row.home_emergency),
     household_id:
       typeof row.household_id === "string" ? row.household_id : null,
+    free_actions_used:
+      typeof row.free_actions_used === "number" &&
+      Number.isFinite(row.free_actions_used)
+        ? Math.max(0, Math.floor(row.free_actions_used))
+        : 0,
   };
 }
 
@@ -837,6 +851,37 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     user,
   ]);
 
+  const consumeFreeAction = useCallback(async (): Promise<boolean> => {
+    if (!supabase || !user) return false;
+    try {
+      const { data, error } = await supabase.rpc("consume_free_action", {
+        p_limit: FREE_ACTION_LIMIT,
+      });
+      if (error) {
+        console.warn("consume_free_action failed", error);
+        return false;
+      }
+      const consumed = data === true;
+      if (consumed) {
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                free_actions_used: Math.min(
+                  FREE_ACTION_LIMIT,
+                  (prev.free_actions_used ?? 0) + 1
+                ),
+              }
+            : prev
+        );
+      }
+      return consumed;
+    } catch (err) {
+      console.warn("consume_free_action error", err);
+      return false;
+    }
+  }, [user]);
+
   const addressNeeded = useMemo(() => {
     if (!user) return false;
     if (loading) return false;
@@ -873,6 +918,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       updateAvatarPhoto,
       removeAvatarPhoto,
       updateDisplayName,
+      consumeFreeAction,
     }),
     [
       profile,
@@ -892,6 +938,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       updateAvatarPhoto,
       removeAvatarPhoto,
       updateDisplayName,
+      consumeFreeAction,
     ]
   );
 

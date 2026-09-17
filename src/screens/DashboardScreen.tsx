@@ -16,6 +16,7 @@ export function DashboardScreen() {
     completedTasks,
     completeTask,
     skipTaskOccurrence,
+    pauseTask,
     refreshTasks,
     error: tasksError,
   } = useTasks();
@@ -45,6 +46,7 @@ export function DashboardScreen() {
         completedTasks={completedTasks}
         onCompleteTask={completeTask}
         onSkipTaskOccurrence={skipTaskOccurrence}
+        onPauseTask={pauseTask}
         onTaskPress={handleTaskPress}
         onRefresh={handleRefresh}
         refreshing={refreshing}

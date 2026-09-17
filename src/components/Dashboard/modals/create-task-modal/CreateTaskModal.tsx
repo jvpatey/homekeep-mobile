@@ -21,6 +21,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHaptics } from "../../../../hooks/useHaptics";
 import { useDevice } from "../../../../hooks";
+import { useRequirePlusOrFreeAction } from "../../../../hooks/useRequirePlus";
 import { useTasks } from "../../../../context/TasksContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
@@ -115,6 +116,8 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
+  const { requireAccess, consume: consumeFreeAction } =
+    useRequirePlusOrFreeAction();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
@@ -318,6 +321,12 @@ export function CreateTaskModal({
     setIsSubmitting(true);
 
     try {
+      if (!isEdit) {
+        if (!(await requireAccess())) {
+          return;
+        }
+      }
+
       const actualIntervalDays = getEffectiveIntervalDays();
       const startAtNoon = new Date(form.startDate);
       startAtNoon.setHours(12, 0, 0, 0);
@@ -347,6 +356,7 @@ export function CreateTaskModal({
       const result = await createTask(taskData);
 
       if (result.success) {
+        await consumeFreeAction();
         triggerLight();
         onTaskCreated();
       } else {

@@ -2,7 +2,10 @@ import { addDays, endOfDay, format, startOfDay } from "date-fns";
 import { MaintenanceTask } from "../types/maintenance";
 import { isGrowingSeason } from "./homeSeason";
 
-/** Hide frequent outdoor jobs (mow, fertilize, pool upkeep) when they are out of season instead of leaving them overdue. */
+/**
+ * Hide frequent outdoor jobs when they are out of season instead of leaving them overdue.
+ * Keep in sync with supabase/functions/_shared/seasonalTasks.ts
+ */
 export function isTaskInSeason(
   task: MaintenanceTask,
   month: number,
