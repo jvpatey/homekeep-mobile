@@ -19,9 +19,9 @@ export type HouseholdMemberView = HouseholdMember & {
 export function householdInviteMessage(code: string): string {
   const normalized = normalizeInviteCode(code);
   return [
-    `Join my home on HomeKeep with this invite code: ${normalized}`,
+    `Join my home on HomeKeep with this HomeShare invite code: ${normalized}`,
     "",
-    "In the app: Settings → Household sharing → enter the code.",
+    "In the app: Settings → HomeShare → enter the code, or Scan QR.",
   ].join("\n");
 }
 
@@ -42,7 +42,7 @@ export function memberDisplayName({
   if (name) return isSelf ? `${name} (you)` : name;
   const mail = email?.trim();
   if (mail) return isSelf ? `${mail} (you)` : mail;
-  return isSelf ? "You" : "Household member";
+  return isSelf ? "You" : "HomeShare member";
 }
 
 function memberInitial(displayName: string): string {
@@ -274,6 +274,13 @@ export class HouseholdService {
       .eq("id", userId);
 
     if (householdId) {
+      const { data: remaining } = await supabase
+        .from("household_members")
+        .select("user_id")
+        .eq("household_id", householdId);
+      if (!remaining || remaining.length === 0) {
+        await supabase.from("households").delete().eq("id", householdId);
+      }
       try {
         await supabase.functions.invoke("notify-household-event", {
           body: { event: "leave", householdId },
@@ -283,5 +290,34 @@ export class HouseholdService {
       }
     }
     return { error: null };
+  }
+
+  static async removeMember(memberUserId: string) {
+    if (!supabase) return { error: { message: "Not configured" } };
+    const { error } = await supabase.rpc("remove_household_member", {
+      p_user_id: memberUserId,
+    });
+    if (error) {
+      return { error: { message: error.message } };
+    }
+    return { error: null };
+  }
+
+  static async rotateInviteCode(householdId: string) {
+    if (!supabase) return { data: null, error: { message: "Not configured" } };
+    const invite_code = this.randomCode();
+    const { data, error } = await supabase
+      .from("households")
+      .update({ invite_code })
+      .eq("id", householdId)
+      .select("id, invite_code, created_by")
+      .single();
+    if (error || !data) {
+      return {
+        data: null,
+        error: { message: error?.message ?? "Couldn't rotate invite code" },
+      };
+    }
+    return { data, error: null };
   }
 }

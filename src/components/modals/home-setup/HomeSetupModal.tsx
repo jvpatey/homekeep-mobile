@@ -43,16 +43,58 @@ import {
   HomeAddressFields,
   HomeAddressFieldsHandle,
 } from "../home-address-onboarding/HomeAddressFields";
+import { EquipmentManualService } from "../../../services/EquipmentManualService";
+import {
+  EquipmentType,
+  EQUIPMENT_TYPE_LABELS,
+} from "../../../types/equipmentManual";
+import {
+  hintsForEquipmentName,
+} from "../../../data/equipmentTaskHints";
+import {
+  buildRoutinePayloadsFromItems,
+} from "../../../data/maintenancePlans";
+import type { MaintenancePlanItemTemplate } from "../../../data/maintenancePlans/types";
 
-type Phase = "address" | "questions" | "confirm";
+type Phase =
+  | "address"
+  | "questions"
+  | "equipment"
+  | "confirm"
+  | "hints"
+  | "homeshare";
+
+const SETUP_EQUIPMENT_TYPES: EquipmentType[] = [
+  "furnace",
+  "ac",
+  "water_heater",
+  "fridge",
+];
+
+type SessionEquipment = {
+  id: string;
+  name: string;
+  equipment_type: EquipmentType;
+};
+
+type PendingHintRow = {
+  key: string;
+  equipmentId: string;
+  equipmentName: string;
+  item: MaintenancePlanItemTemplate;
+  selected: boolean;
+};
 
 interface HomeSetupModalProps {
   visible: boolean;
   onClose: () => void;
   /** Settings edit — hide skip, still offer to add missing tasks. */
   hideSkip?: boolean;
-  /** After first-run dismiss, open household join (Dashboard). */
-  onJoinHousehold?: () => void;
+  /**
+   * First-run only. Fired after the sheet exit animation finishes so a follow-up
+   * Modal (HomeShare / Plus) does not stack on top of setup and block touches.
+   */
+  onFirstRunFinished?: (action: "invite" | "join" | "done") => void;
   /** Overlay a parent sheet route instead of opening a nested RN Modal. */
   embedded?: boolean;
 }
@@ -82,17 +124,26 @@ export function HomeSetupModal({
   visible,
   onClose,
   hideSkip = false,
-  onJoinHousehold,
+  onFirstRunFinished,
   embedded = false,
 }: HomeSetupModalProps) {
   const { colors } = useTheme();
-  const { profile, updateHomeSystems, markHomeSetupDone, skipAddressOnboarding } =
-    useProfile();
-  const { applyGeneratedHomeSchedule, reconcileHomeSchedule } = useTasks();
+  const {
+    profile,
+    updateHomeSystems,
+    markHomeSetupDone,
+    skipAddressOnboarding,
+    canEditHome,
+  } = useProfile();
+  const {
+    applyGeneratedHomeSchedule,
+    reconcileHomeSchedule,
+    createTask,
+  } = useTasks();
   const addressRef = useRef<HomeAddressFieldsHandle>(null);
   const [addressCanSubmit, setAddressCanSubmit] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(visible);
-  const joinAfterDismissRef = useRef(false);
+  const finishActionRef = useRef<"invite" | "join" | "done" | null>(null);
 
   const [phase, setPhase] = useState<Phase>("address");
   const [hasLawn, setHasLawn] = useState<boolean | null>(null);
@@ -126,6 +177,14 @@ export function HomeSetupModal({
   );
   const [saving, setSaving] = useState(false);
   const systemsBeforeEdit = useRef<HomeSystems | null>(null);
+  const [sessionEquipment, setSessionEquipment] = useState<SessionEquipment[]>(
+    []
+  );
+  const [pendingHints, setPendingHints] = useState<PendingHintRow[]>([]);
+  const [pendingFinishCopy, setPendingFinishCopy] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   const home = profile?.home_systems;
   const isReconcile = confirmMode === "reconcile";
@@ -144,6 +203,9 @@ export function HomeSetupModal({
       setConfirmMode("generate");
       setAddMask([]);
       setPauseMask([]);
+      setSessionEquipment([]);
+      setPendingHints([]);
+      setPendingFinishCopy(null);
       systemsBeforeEdit.current = null;
       return;
     }
@@ -158,6 +220,9 @@ export function HomeSetupModal({
     setHasPool(home?.hasPool ?? null);
     setHasSpa(home?.hasSpa ?? null);
     setPoolUsesSaltChlorination(home?.poolUsesSaltChlorination ?? null);
+    setSessionEquipment([]);
+    setPendingHints([]);
+    setPendingFinishCopy(null);
     setPhase("address");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the sheet opens
   }, [visible]);
@@ -304,14 +369,21 @@ export function HomeSetupModal({
     await markHomeSetupDone();
   };
 
-  const closeSheet = () => setSheetVisible(false);
+  const closeSheet = (action?: "invite" | "join" | "done") => {
+    if (!hideSkip && action) {
+      finishActionRef.current = action;
+    } else if (!hideSkip && finishActionRef.current == null) {
+      finishActionRef.current = "done";
+    }
+    setSheetVisible(false);
+  };
 
   const handleSkip = async () => {
     if (saving) return;
     setSaving(true);
     try {
       await persistFirstRunSkip();
-      closeSheet();
+      closeSheet("done");
     } finally {
       setSaving(false);
     }
@@ -323,6 +395,11 @@ export function HomeSetupModal({
       closeSheet();
       return;
     }
+    // Setup already finished (HomeShare step) — just dismiss.
+    if (phase === "homeshare") {
+      closeSheet("done");
+      return;
+    }
     void handleSkip();
   };
 
@@ -330,9 +407,8 @@ export function HomeSetupModal({
     if (saving) return;
     setSaving(true);
     try {
-      joinAfterDismissRef.current = true;
       await persistFirstRunSkip();
-      closeSheet();
+      closeSheet("join");
     } finally {
       setSaving(false);
     }
@@ -349,7 +425,144 @@ export function HomeSetupModal({
     }
   };
 
-  const handleContinueToConfirm = async () => {
+  const canOfferInvite =
+    !hideSkip && canEditHome && !profile?.household_id;
+
+  const goToHomeShareStep = (title: string, message: string) => {
+    if (!canOfferInvite) {
+      Alert.alert(title, message);
+      closeSheet("done");
+      return;
+    }
+    setPendingFinishCopy({ title, message });
+    setPhase("homeshare");
+  };
+
+  const finishHomeShareInvite = () => {
+    closeSheet("invite");
+  };
+
+  const finishHomeShareJoin = () => {
+    closeSheet("join");
+  };
+
+  const finishHomeShareSkip = () => {
+    closeSheet("done");
+  };
+
+  const buildPendingHints = (equipment: SessionEquipment[]): PendingHintRow[] => {
+    const rows: PendingHintRow[] = [];
+    for (const eq of equipment) {
+      const hints = hintsForEquipmentName(eq.name, eq.equipment_type);
+      for (const item of hints) {
+        rows.push({
+          key: `${eq.id}:${item.title}:${item.category}:${item.interval_days}`,
+          equipmentId: eq.id,
+          equipmentName: eq.name,
+          item,
+          selected: true,
+        });
+      }
+    }
+    return rows;
+  };
+
+  const finishAfterSchedule = (title: string, message: string) => {
+    const hints = buildPendingHints(sessionEquipment);
+    if (!hideSkip && hints.length > 0) {
+      setPendingHints(hints);
+      setPendingFinishCopy({ title, message });
+      setPhase("hints");
+      return;
+    }
+    goToHomeShareStep(title, message);
+  };
+
+  const applySelectedHints = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const selected = pendingHints.filter((row) => row.selected);
+      for (const row of selected) {
+        const [payload] = buildRoutinePayloadsFromItems([row.item]);
+        const result = await createTask({
+          ...payload,
+          equipment_id: row.equipmentId,
+        });
+        if (!result.success) {
+          throw new Error(result.error ?? "Could not add reminder");
+        }
+      }
+      const copy = pendingFinishCopy ?? {
+        title: "Schedule ready",
+        message: "Your home is set up.",
+      };
+      setPendingHints([]);
+      goToHomeShareStep(copy.title, copy.message);
+    } catch (e) {
+      Alert.alert(
+        "Could not add reminders",
+        e instanceof Error ? e.message : "Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const skipHintsAndFinish = () => {
+    const copy = pendingFinishCopy ?? {
+      title: "Schedule ready",
+      message: "Your home is set up.",
+    };
+    setPendingHints([]);
+    goToHomeShareStep(copy.title, copy.message);
+  };
+
+  const toggleSessionEquipmentType = async (type: EquipmentType) => {
+    if (saving) return;
+    const existing = sessionEquipment.find((e) => e.equipment_type === type);
+    if (existing) {
+      setSaving(true);
+      try {
+        await EquipmentManualService.deleteEquipmentManual(existing.id);
+        setSessionEquipment((prev) =>
+          prev.filter((e) => e.equipment_type !== type)
+        );
+      } catch {
+        Alert.alert("Couldn't remove", "Please try again.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    setSaving(true);
+    try {
+      const name = EQUIPMENT_TYPE_LABELS[type];
+      const result = await EquipmentManualService.createEquipmentManual({
+        name,
+        equipment_type: type,
+      });
+      if (result.error || !result.data) {
+        Alert.alert(
+          "Couldn't add equipment",
+          result.error?.message ?? "Please try again."
+        );
+        return;
+      }
+      setSessionEquipment((prev) => [
+        ...prev,
+        {
+          id: result.data!.id,
+          name: result.data!.name,
+          equipment_type: type,
+        },
+      ]);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const proceedToConfirmPhase = async () => {
     if (!draftSystems) return;
     systemsBeforeEdit.current = profile?.home_systems ?? {};
     const result = await updateHomeSystems(draftSystems);
@@ -367,8 +580,6 @@ export function HomeSetupModal({
     }
     const existing = data ?? [];
 
-    // Empty schedule (e.g. after reset) → full generated picker, not a
-    // systems-only diff that would say "already matches" and add nothing.
     if (existing.length === 0) {
       setReconcileDiff(null);
       setConfirmMode("generate");
@@ -385,8 +596,10 @@ export function HomeSetupModal({
     });
     if (diff.toAdd.length === 0 && diff.toPause.length === 0) {
       await markHomeSetupDone();
-      Alert.alert("You're set", "Your schedule already matches this home.");
-      closeSheet();
+      finishAfterSchedule(
+        "You're set",
+        "Your schedule already matches this home."
+      );
       return;
     }
     setReconcileDiff(diff);
@@ -394,6 +607,38 @@ export function HomeSetupModal({
     setPauseMask(diff.toPause.map(() => true));
     setConfirmMode("reconcile");
     setPhase("confirm");
+  };
+
+  const handleContinueFromQuestions = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (!hideSkip) {
+        // First-run: optional equipment before schedule confirm.
+        if (!draftSystems) return;
+        const result = await updateHomeSystems(draftSystems);
+        if (!result.success) {
+          Alert.alert("Couldn't save", result.error ?? "Please try again.");
+          return;
+        }
+        systemsBeforeEdit.current = draftSystems;
+        setPhase("equipment");
+        return;
+      }
+      await proceedToConfirmPhase();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleContinueFromEquipment = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await proceedToConfirmPhase();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleApply = async () => {
@@ -418,18 +663,22 @@ export function HomeSetupModal({
         if (added > 0 || paused > 0) {
           const parts: string[] = [];
           if (added > 0) {
-            parts.push(
-              `Added ${added} task${added === 1 ? "" : "s"}`
-            );
+            parts.push(`Added ${added} task${added === 1 ? "" : "s"}`);
           }
           if (paused > 0) {
             parts.push(
               `paused ${paused} reminder${paused === 1 ? "" : "s"}`
             );
           }
-          Alert.alert("Home updated", `${parts.join(", ")}.`);
+          if (hideSkip) {
+            Alert.alert("Home updated", `${parts.join(", ")}.`);
+            closeSheet();
+          } else {
+            finishAfterSchedule("Home updated", `${parts.join(", ")}.`);
+          }
+        } else {
+          closeSheet();
         }
-        closeSheet();
         return;
       }
 
@@ -441,20 +690,24 @@ export function HomeSetupModal({
       await markHomeSetupDone();
       const added = result.addedCount ?? 0;
       const skipped = result.skippedCount ?? 0;
-      if (added === 0 && skipped > 0) {
-        Alert.alert(
-          "You're set",
-          "Those routines are already on your schedule."
-        );
-      } else if (added > 0) {
-        Alert.alert(
-          "Schedule ready",
+      let title = "You're set";
+      let message = "Those routines are already on your schedule.";
+      if (added > 0) {
+        title = "Schedule ready";
+        message =
           skipped > 0
             ? `Added ${added} tasks. ${skipped} were already tracked.`
-            : `Added ${added} tasks for this home.`
-        );
+            : `Added ${added} tasks for this home.`;
+      } else if (added === 0 && skipped === 0) {
+        title = "You're set";
+        message = "Your home details are saved.";
       }
-      closeSheet();
+      if (hideSkip) {
+        Alert.alert(title, message);
+        closeSheet();
+      } else {
+        finishAfterSchedule(title, message);
+      }
     } finally {
       setSaving(false);
     }
@@ -487,9 +740,9 @@ export function HomeSetupModal({
     : (
         <>
           {footerLink(
-            "Join a household",
+            "Join a HomeShare",
             () => void handleJoinHousehold(),
-            "Skip setup and join someone else's household"
+            "Skip setup and join someone else's home"
           )}
           {footerLink("Skip for now", () => void handleSkip())}
         </>
@@ -509,13 +762,67 @@ export function HomeSetupModal({
     ) : phase === "questions" ? (
       <View style={styles.footerInner}>
         <Button
-          label="See what this house needs"
-          onPress={() => void handleContinueToConfirm()}
-          disabled={!canContinueQuestions}
-          accessibilityLabel="Continue to suggested schedule"
+          label={
+            hideSkip
+              ? "See what this house needs"
+              : saving
+                ? "Saving…"
+                : "Continue"
+          }
+          onPress={() => void handleContinueFromQuestions()}
+          disabled={!canContinueQuestions || saving}
+          accessibilityLabel="Continue"
         />
         <View style={styles.footerLinks}>
           {footerLink("Back", () => setPhase("address"))}
+        </View>
+      </View>
+    ) : phase === "equipment" ? (
+      <View style={styles.footerInner}>
+        <Button
+          label={saving ? "Loading…" : "See what this house needs"}
+          onPress={() => void handleContinueFromEquipment()}
+          disabled={saving}
+          accessibilityLabel="Continue to suggested schedule"
+        />
+        <View style={styles.footerLinks}>
+          {footerLink("Skip equipment", () => void handleContinueFromEquipment())}
+          {footerLink("Back", () => setPhase("questions"))}
+        </View>
+      </View>
+    ) : phase === "hints" ? (
+      <View style={styles.footerInner}>
+        <Button
+          label={
+            saving
+              ? "Adding…"
+              : `Add ${pendingHints.filter((h) => h.selected).length} reminders`
+          }
+          onPress={() => void applySelectedHints()}
+          disabled={
+            saving || pendingHints.filter((h) => h.selected).length === 0
+          }
+          accessibilityLabel="Add selected equipment reminders"
+        />
+        <View style={styles.footerLinks}>
+          {footerLink("Skip reminders", skipHintsAndFinish)}
+        </View>
+      </View>
+    ) : phase === "homeshare" ? (
+      <View style={styles.footerInner}>
+        <Button
+          label="Invite someone"
+          onPress={finishHomeShareInvite}
+          accessibilityLabel="Invite someone with HomeShare"
+        />
+        <Button
+          label="I have an invite code"
+          variant="ghost"
+          onPress={finishHomeShareJoin}
+          accessibilityLabel="Join a HomeShare with a code"
+        />
+        <View style={styles.footerLinks}>
+          {footerLink("Done for now", finishHomeShareSkip)}
         </View>
       </View>
     ) : (
@@ -543,7 +850,9 @@ export function HomeSetupModal({
           }
         />
         <View style={styles.footerLinks}>
-          {footerLink("Back", () => setPhase("questions"))}
+          {footerLink("Back", () =>
+            setPhase(hideSkip ? "questions" : "equipment")
+          )}
         </View>
       </View>
     );
@@ -553,7 +862,13 @@ export function HomeSetupModal({
       ? isReconcile
         ? "What changed"
         : "Here's what this house needs"
-      : "Set up your home";
+      : phase === "equipment"
+        ? "Key equipment"
+        : phase === "hints"
+          ? "Equipment reminders"
+          : phase === "homeshare"
+            ? "HomeShare"
+            : "Set up your home";
 
   return (
     <HearthSheet
@@ -561,10 +876,15 @@ export function HomeSetupModal({
       onClose={handleRequestClose}
       onDismissed={() => {
         onClose();
-        if (joinAfterDismissRef.current) {
-          joinAfterDismissRef.current = false;
-          onJoinHousehold?.();
-        }
+        if (hideSkip) return;
+        const action = finishActionRef.current ?? "done";
+        finishActionRef.current = null;
+        // Let the setup Modal fully leave the native hierarchy before opening
+        // another Modal (HomeShare / Plus), or iOS can leave an invisible
+        // touch-blocking overlay.
+        setTimeout(() => {
+          onFirstRunFinished?.(action);
+        }, 320);
       }}
       title={sheetTitle}
       fillMaxHeight
@@ -578,12 +898,12 @@ export function HomeSetupModal({
           keyboardDismissMode="interactive"
         >
           <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            1 of 3 · Address
+            {hideSkip ? "1 of 3 · Address" : "1 of 5 · Address"}
           </Text>
           <Text style={[styles.intro, { color: colors.textSecondary }]}>
             Start with where you live. We'll use this for weather, seasons, and
             your schedule. If someone already set up this home, join their
-            household instead.
+            HomeShare instead.
           </Text>
           <HomeAddressFields
             ref={addressRef}
@@ -597,7 +917,9 @@ export function HomeSetupModal({
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            2 of 3 · Home systems · {answered} of {questionCount} answered
+            {hideSkip
+              ? `2 of 3 · Home systems · ${answered} of ${questionCount} answered`
+              : `2 of 5 · Home systems · ${answered} of ${questionCount} answered`}
           </Text>
           <Text style={[styles.intro, { color: colors.textSecondary }]}>
             Answer a few questions once. We'll build a maintenance schedule that
@@ -785,10 +1107,134 @@ export function HomeSetupModal({
             </QuestionCard>
           ) : null}
         </ScrollView>
+      ) : phase === "equipment" ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={[styles.progress, { color: colors.textSecondary }]}>
+            3 of 5 · Equipment
+          </Text>
+          <Text style={[styles.intro, { color: colors.textSecondary }]}>
+            Add key systems so we can suggest reminders. You can skip this and
+            add equipment later.
+          </Text>
+          <View style={styles.chipWrap}>
+            {SETUP_EQUIPMENT_TYPES.map((type) => {
+              const selected = sessionEquipment.some(
+                (e) => e.equipment_type === type
+              );
+              return (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected
+                        ? colors.primary + "14"
+                        : colors.fieldFill,
+                    },
+                  ]}
+                  onPress={() => void toggleSessionEquipmentType(type)}
+                  disabled={saving}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selected, disabled: saving }}
+                  accessibilityLabel={EQUIPMENT_TYPE_LABELS[type]}
+                >
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      { color: selected ? colors.primary : colors.text },
+                    ]}
+                  >
+                    {EQUIPMENT_TYPE_LABELS[type]}
+                  </Text>
+                  <Ionicons
+                    name={selected ? "checkmark-circle" : "add-circle-outline"}
+                    size={18}
+                    color={selected ? colors.primary : colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      ) : phase === "hints" ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Text style={[styles.intro, { color: colors.textSecondary }]}>
+            Suggested reminders for the equipment you just added. Uncheck any
+            you don’t want.
+          </Text>
+          {pendingHints.map((row, index) => (
+            <TouchableOpacity
+              key={row.key}
+              style={[
+                styles.taskRow,
+                {
+                  borderColor: row.selected ? colors.primary : colors.border,
+                  backgroundColor: row.selected
+                    ? colors.primary + "12"
+                    : "transparent",
+                },
+              ]}
+              onPress={() => {
+                setPendingHints((prev) => {
+                  const next = [...prev];
+                  next[index] = {
+                    ...next[index],
+                    selected: !next[index].selected,
+                  };
+                  return next;
+                });
+              }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: row.selected }}
+              accessibilityLabel={`${row.item.title} for ${row.equipmentName}`}
+            >
+              <View style={styles.taskText}>
+                <Text style={[styles.taskTitle, { color: colors.text }]}>
+                  {row.item.title}
+                </Text>
+                <Text
+                  style={[styles.taskMeta, { color: colors.textSecondary }]}
+                >
+                  {row.equipmentName} ·{" "}
+                  {formatIntervalDays(row.item.interval_days)}
+                </Text>
+              </View>
+              <Ionicons
+                name={row.selected ? "checkmark-circle" : "ellipse-outline"}
+                size={22}
+                color={row.selected ? colors.primary : colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : phase === "homeshare" ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Text style={[styles.progress, { color: colors.textSecondary }]}>
+            5 of 5 · Share this home
+          </Text>
+          {pendingFinishCopy ? (
+            <Text style={[styles.readyBanner, { color: colors.text }]}>
+              {pendingFinishCopy.message}
+            </Text>
+          ) : null}
+          <Text style={[styles.intro, { color: colors.textSecondary }]}>
+            HomeShare lets people who live here use the same schedule — complete
+            reminders, see the same address and equipment, and keep one home in
+            sync.
+          </Text>
+          <Text style={[styles.intro, { color: colors.textSecondary }]}>
+            Invite with a code (HomeKeep + to create). Joining with a code is
+            free. You can always do this later in Settings → HomeShare.
+          </Text>
+        </ScrollView>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            3 of 3 · Schedule
+            {hideSkip ? "3 of 3 · Schedule" : "4 of 5 · Schedule"}
           </Text>
           {isReconcile && reconcileDiff ? (
             <>
@@ -1030,6 +1476,30 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.footnote,
     lineHeight: 18,
     marginBottom: DesignSystem.spacing.sm,
+  },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.sm,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  chipLabel: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
+  },
+  readyBanner: {
+    ...DesignSystem.typography.callout,
+    fontWeight: "600",
+    marginBottom: DesignSystem.spacing.md,
+    lineHeight: 22,
   },
   footerInner: {
     paddingTop: DesignSystem.spacing.md,

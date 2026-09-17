@@ -22,5 +22,5 @@ export function completerDisplayName({
   if (isSelf && selfAsYou) return "You";
   if (name) return name;
   if (isSelf) return "You";
-  return "Household member";
+  return "HomeShare member";
 }

@@ -180,6 +180,8 @@ export function HearthSheet({
         styles.keyboardRoot,
         keyboardInset > 0 && { paddingBottom: keyboardInset },
       ]}
+      // While exiting, visible is false but Modal stays mounted — don't eat taps.
+      pointerEvents={visible ? "auto" : "none"}
     >
       <Animated.View style={[styles.backdrop, backdropStyle]}>
         <Pressable

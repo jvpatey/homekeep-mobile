@@ -13,6 +13,7 @@ import {
 } from "../../components/ui";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
+import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
 import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
 import { PlusPaywallSheet } from "../../components/plus";
 import { EditNameModal } from "../../components/modals/edit-name-modal";
@@ -51,6 +52,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
+  const [householdVisible, setHouseholdVisible] = useState(false);
   const [emergencyVisible, setEmergencyVisible] = useState(false);
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
   const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
@@ -171,9 +173,20 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       title: "Your home",
       subtitle: canEditHome
         ? undefined
-        : "The household owner manages this home",
+        : "The HomeShare owner manages this home",
       onPress: handleEditHome,
       disabled: !canEditHome,
+    },
+    {
+      icon: "people-outline" as const,
+      title: "HomeShare",
+      subtitle: profile?.household_id
+        ? "Invite code and people"
+        : "Share this home or join with a code",
+      onPress: () => {
+        void triggerLight();
+        setHouseholdVisible(true);
+      },
     },
     {
       icon: "warning-outline" as const,
@@ -355,6 +368,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         onClose={() => setHomeSetupVisible(false)}
         hideSkip
         embedded
+      />
+
+      <HouseholdSharingModal
+        visible={householdVisible}
+        onClose={() => setHouseholdVisible(false)}
       />
 
       {emergencyVisible ? (

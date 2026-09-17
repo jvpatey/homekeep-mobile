@@ -180,6 +180,7 @@ export function NewDashboard({
   const completingRef = useRef<Set<string>>(new Set());
   const [showHomeSetupModal, setShowHomeSetupModal] = useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
+  const offerPlusAfterHomeShareRef = useRef(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
     null
   );
@@ -1109,18 +1110,28 @@ export function NewDashboard({
 
       <HomeSetupModal
         visible={showHomeSetupModal}
-        onClose={() => {
-          setShowHomeSetupModal(false);
+        onClose={() => setShowHomeSetupModal(false)}
+        onFirstRunFinished={(action) => {
+          if (action === "invite" || action === "join") {
+            offerPlusAfterHomeShareRef.current = !isPlus;
+            setShowHouseholdModal(true);
+            return;
+          }
           if (profile?.home_setup_set_at && !isPlus) {
-            offerPaywallAfterSetup();
+            setTimeout(() => offerPaywallAfterSetup(), 320);
           }
         }}
-        onJoinHousehold={() => setShowHouseholdModal(true)}
       />
 
       <HouseholdSharingModal
         visible={showHouseholdModal}
-        onClose={() => setShowHouseholdModal(false)}
+        onClose={() => {
+          setShowHouseholdModal(false);
+          if (offerPlusAfterHomeShareRef.current) {
+            offerPlusAfterHomeShareRef.current = false;
+            setTimeout(() => offerPaywallAfterSetup(), 320);
+          }
+        }}
       />
 
       {completeTarget ? (

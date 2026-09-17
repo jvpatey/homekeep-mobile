@@ -25,7 +25,7 @@ function mapCompletion(task: MaintenanceTask): HomeSummaryTaskCompletion {
     completedDateLabel: formatDateTime(task.completed_at || task.due_date),
     completedByLabel:
       task.completed_by_name?.trim() ||
-      (task.completed_by ? "Household member" : null),
+      (task.completed_by ? "HomeShare member" : null),
     notes: task.notes?.trim() || null,
     costAmount: cost,
     laborType: labor,

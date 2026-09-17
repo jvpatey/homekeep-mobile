@@ -34,7 +34,7 @@ A React Native mobile application built with Expo and TypeScript. HomeKeep treat
 - **Do this next** — One recommended task from the current house and season
 - **Upcoming / overdue** — Recurring reminders generated from the home profile
 - **Completion history** — A journal of what you have kept up with
-- **Household sharing** — Invite others to see the same home (owner’s profile is source of truth)
+- **HomeShare** — Invite others to see the same home (owner’s profile is source of truth)
 
 ### 🎨 Modern UI/UX
 

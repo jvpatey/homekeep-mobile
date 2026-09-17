@@ -39,7 +39,7 @@ type PlanKey = "yearly" | "monthly";
 
 const VALUE_LINES = [
   "Personalized reminders",
-  "Manuals and a shared household",
+  "Manuals and HomeShare",
   "The next cycle, automatically",
 ];
 
@@ -83,10 +83,10 @@ function planStatusMeta({
   if (includedViaHousehold) {
     return {
       pill: "Included",
-      plan: "Household",
+      plan: "HomeShare",
       detailLabel: null,
       detailValue: null,
-      note: "This home includes HomeKeep + for everyone in the household.",
+      note: "This home includes HomeKeep + for everyone on HomeShare.",
       tone: "included",
     };
   }
@@ -389,7 +389,7 @@ export function PlusPaywallSheet({
                 ? `Unlock ${HOMEKEEP_PLUS_NAME} for unlimited completes, custom tasks, and the full plan.`
                 : status === "promo"
                   ? currentStatus
-                  : "Reminders, household sharing, and the next cycle. Cancel anytime."}
+                  : "Reminders, HomeShare, and the next cycle. Cancel anytime."}
             </Text>
           ) : null}
         </View>

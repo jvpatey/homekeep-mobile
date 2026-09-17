@@ -348,7 +348,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       if (!canEditHome) {
         return {
           success: false,
-          error: "Only the household owner can edit this home.",
+          error: "Only the HomeShare owner can edit this home.",
           geocoded: false,
         };
       }
@@ -437,7 +437,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       if (!canEditHome) {
         return {
           success: false,
-          error: "Only the household owner can edit this home.",
+          error: "Only the HomeShare owner can edit this home.",
         };
       }
       const merged = mergeHomeSystems(profile?.home_systems, patch);
@@ -516,7 +516,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       if (!canEditHome) {
         return {
           success: false,
-          error: "Only the household owner can edit this home.",
+          error: "Only the HomeShare owner can edit this home.",
         };
       }
       setProfile((prev) =>
