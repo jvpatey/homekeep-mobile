@@ -33,6 +33,9 @@ interface UseTasksReturn {
   createTask: (
     taskData: CreateMaintenanceRoutineData
   ) => Promise<{ success: boolean; error?: string }>;
+  createTasks: (
+    tasksData: CreateMaintenanceRoutineData[]
+  ) => Promise<{ success: boolean; error?: string; addedCount?: number }>;
   applyMaintenancePlan: (
     planId: string,
     itemsOverride?: MaintenancePlanItemTemplate[]
@@ -77,6 +80,10 @@ interface UseTasksReturn {
   ) => Promise<{ success: boolean; error?: string }>;
   skipTaskOccurrence: (
     task: MaintenanceTask
+  ) => Promise<{ success: boolean; error?: string }>;
+  pauseTask: (routineId: string) => Promise<{ success: boolean; error?: string }>;
+  resumeTask: (
+    routineId: string
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
   bulkCompleteTasks: (

@@ -2,6 +2,7 @@
 import { dedupeKeyMorning, dedupeKeyUpcoming } from "./dedupe.ts";
 import { sendDeduped } from "./expo-push.ts";
 import { isTypeEnabled } from "./preferences.ts";
+import { isTaskInSeason } from "./seasonalTasks.ts";
 import {
   addUtcDays,
   getLocalParts,
@@ -33,6 +34,8 @@ interface VisibleRoutine {
   category: string;
   priority: string;
   estimated_duration_minutes: number;
+  interval_days: number;
+  source_plan_id: string | null;
 }
 
 interface VisibleTask {
@@ -57,11 +60,42 @@ async function getViewerHouseholdId(
   return typeof data?.household_id === "string" ? data.household_id : null;
 }
 
+async function getViewerLatitude(
+  supabase: any,
+  userId: string,
+  householdId: string | null
+): Promise<number | null> {
+  // Prefer the household owner's coords when sharing a home.
+  let profileId = userId;
+  if (householdId) {
+    const { data: household } = await supabase
+      .from("households")
+      .select("created_by")
+      .eq("id", householdId)
+      .maybeSingle();
+    if (typeof household?.created_by === "string") {
+      profileId = household.created_by;
+    }
+  }
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("latitude")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (error) {
+    console.warn("Failed to load latitude", error);
+    return null;
+  }
+  return typeof data?.latitude === "number" ? data.latitude : null;
+}
+
 async function loadVisibleIncompleteTasks(
   supabase: any,
-  userId: string
+  userId: string,
+  month: number
 ): Promise<VisibleTask[]> {
   const householdId = await getViewerHouseholdId(supabase, userId);
+  const latitude = await getViewerLatitude(supabase, userId, householdId);
 
   let query = supabase
     .from("routine_instances")
@@ -78,6 +112,8 @@ async function loadVisibleIncompleteTasks(
           category,
           priority,
           estimated_duration_minutes,
+          interval_days,
+          source_plan_id,
           is_active
         )
       `
@@ -92,7 +128,22 @@ async function loadVisibleIncompleteTasks(
   const { data, error } = await query;
   if (error) throw error;
 
-  return ((data || []) as VisibleTask[]).filter((task) => task.routine);
+  return ((data || []) as VisibleTask[]).filter((task) => {
+    if (!task.routine) return false;
+    return isTaskInSeason({
+      category: task.routine.category,
+      interval_days: task.routine.interval_days ?? 0,
+      source_plan_id: task.routine.source_plan_id,
+      month,
+      latitude,
+    });
+  });
+}
+
+function localMonthFromParts(local: LocalParts): number {
+  // localDate is YYYY-MM-DD in the user's timezone
+  const month = Number(local.localDate.slice(5, 7));
+  return Number.isFinite(month) ? month - 1 : new Date().getUTCMonth();
 }
 
 function sortByDueDate(tasks: VisibleTask[]): VisibleTask[] {
@@ -214,7 +265,11 @@ export async function processUpcoming(
     const enabled = await isTypeEnabled(supabase, userId, "due_soon_reminder");
     if (!enabled) return;
 
-    const tasks = await loadVisibleIncompleteTasks(supabase, userId);
+    const tasks = await loadVisibleIncompleteTasks(
+      supabase,
+      userId,
+      localMonthFromParts(local)
+    );
     const { dueTomorrow } = bucketTasks(tasks, now, tz);
     if (dueTomorrow.length === 0) return;
 
@@ -244,7 +299,11 @@ async function sendWeeklySummary(
   tz: string,
   local: LocalParts
 ): Promise<boolean> {
-  const tasks = await loadVisibleIncompleteTasks(supabase, userId);
+  const tasks = await loadVisibleIncompleteTasks(
+    supabase,
+    userId,
+    localMonthFromParts(local)
+  );
   const { thisWeek, nextWeek, overdue } = bucketTasks(tasks, now, tz);
   const total = thisWeek.length + nextWeek.length + overdue.length;
   if (total === 0) return false;
@@ -302,7 +361,11 @@ export async function processMorning(
     const enabled = await isTypeEnabled(supabase, userId, "overdue_reminder");
     if (!enabled) return;
 
-    const tasks = await loadVisibleIncompleteTasks(supabase, userId);
+    const tasks = await loadVisibleIncompleteTasks(
+      supabase,
+      userId,
+      localMonthFromParts(local)
+    );
     const { dueToday, overdue } = bucketTasks(tasks, now, tz);
     if (dueToday.length === 0 && overdue.length === 0) return;
 

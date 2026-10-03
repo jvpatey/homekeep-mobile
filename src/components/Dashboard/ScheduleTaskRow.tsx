@@ -31,6 +31,10 @@ interface ScheduleTaskRowProps {
     task: MaintenanceTask,
     closeSwipe: () => void
   ) => void | Promise<void>;
+  onPauseTask?: (
+    task: MaintenanceTask,
+    closeSwipe: () => void
+  ) => void | Promise<void>;
 }
 
 /** Timeline-style row reused by the unified dashboard schedule list. */
@@ -42,6 +46,7 @@ export function ScheduleTaskRow({
   isCompleting = false,
   onTaskPress,
   onSkipOccurrence,
+  onPauseTask,
 }: ScheduleTaskRowProps) {
   const { colors } = useTheme();
   const isOverdue = variant === "overdue";
@@ -67,6 +72,13 @@ export function ScheduleTaskRow({
 
   const canSkip =
     !!onSkipOccurrence && !task.is_completed && task.interval_days > 0;
+  const canPause = !!onPauseTask && !task.is_completed;
+  const canSwipe = canSkip || canPause;
+  const actionCount = (canPause ? 1 : 0) + (canSkip ? 1 : 0);
+  const actionsWidth =
+    actionCount * SWIPE_ACTION_WIDTH +
+    Math.max(0, actionCount - 1) * SWIPE_ACTION_GAP +
+    SWIPE_END_INSET;
 
   const closeSwipe = () => {
     swipeableRef.current?.close();
@@ -77,18 +89,43 @@ export function ScheduleTaskRow({
     void onSkipOccurrence?.(task, closeSwipe);
   };
 
+  const handlePausePress = () => {
+    closeSwipe();
+    void onPauseTask?.(task, closeSwipe);
+  };
+
   const renderRightActions = () => (
-    <View style={rowStyles.rightActionsContainer}>
-      <TouchableOpacity
-        style={[rowStyles.skipAction, { backgroundColor: colors.error }]}
-        onPress={handleSkipPress}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="Skip this occurrence"
-      >
-        <Ionicons name="play-skip-forward" size={22} color="#fff" />
-        <Text style={rowStyles.skipActionText}>Skip</Text>
-      </TouchableOpacity>
+    <View style={[rowStyles.rightActionsContainer, { width: actionsWidth }]}>
+      {canPause ? (
+        <TouchableOpacity
+          style={[
+            rowStyles.swipeAction,
+            { backgroundColor: colors.warning, width: SWIPE_ACTION_WIDTH },
+          ]}
+          onPress={handlePausePress}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Pause this reminder"
+        >
+          <Ionicons name="pause" size={18} color="#fff" />
+          <Text style={rowStyles.swipeActionText}>Pause</Text>
+        </TouchableOpacity>
+      ) : null}
+      {canSkip ? (
+        <TouchableOpacity
+          style={[
+            rowStyles.swipeAction,
+            { backgroundColor: colors.error, width: SWIPE_ACTION_WIDTH },
+          ]}
+          onPress={handleSkipPress}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Skip this occurrence"
+        >
+          <Ionicons name="play-skip-forward" size={18} color="#fff" />
+          <Text style={rowStyles.swipeActionText}>Skip</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
@@ -312,7 +349,7 @@ export function ScheduleTaskRow({
     </TouchableOpacity>
   );
 
-  if (!canSkip) {
+  if (!canSwipe) {
     return rowContent;
   }
 
@@ -322,7 +359,7 @@ export function ScheduleTaskRow({
       renderRightActions={renderRightActions}
       overshootRight={false}
       friction={2}
-      rightThreshold={SKIP_ACTION_WIDTH / 2}
+      rightThreshold={SWIPE_ACTION_WIDTH / 2}
     >
       <View
         style={[rowStyles.swipeForeground, { backgroundColor: colors.background }]}
@@ -333,7 +370,10 @@ export function ScheduleTaskRow({
   );
 }
 
-const SKIP_ACTION_WIDTH = 88;
+/** Compact so Pause + Skip fit inside the row’s right inset on small phones. */
+const SWIPE_ACTION_WIDTH = 64;
+const SWIPE_ACTION_GAP = 6;
+const SWIPE_END_INSET = DesignSystem.spacing.md;
 
 const rowStyles = StyleSheet.create({
   metaRow: {
@@ -375,20 +415,23 @@ const rowStyles = StyleSheet.create({
     width: "100%",
   },
   rightActionsContainer: {
-    width: SKIP_ACTION_WIDTH + DesignSystem.spacing.md,
+    flexDirection: "row",
+    alignItems: "stretch",
+    justifyContent: "flex-end",
+    paddingRight: SWIPE_END_INSET,
+    gap: SWIPE_ACTION_GAP,
     marginBottom: DesignSystem.spacing.sm,
   },
-  skipAction: {
-    flex: 1,
+  swipeAction: {
     justifyContent: "center",
     alignItems: "center",
     marginVertical: DesignSystem.spacing.xs,
-    marginRight: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.medium,
-    gap: DesignSystem.spacing.xs,
+    gap: 2,
   },
-  skipActionText: {
-    ...DesignSystem.typography.smallSemiBold,
+  swipeActionText: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "700",
     color: "#FFFFFF",
   },
 });

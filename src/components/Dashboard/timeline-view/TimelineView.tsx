@@ -27,6 +27,10 @@ interface TimelineViewProps {
     task: MaintenanceTask,
     closeSwipe: () => void
   ) => void | Promise<void>;
+  onPauseTask?: (
+    task: MaintenanceTask,
+    closeSwipe: () => void
+  ) => void | Promise<void>;
   visible?: boolean;
   onContentSizeChange?: (height: number) => void;
 }
@@ -37,6 +41,7 @@ export function TimelineView({
   onCompleteTask,
   onTaskPress,
   onSkipOccurrence,
+  onPauseTask,
   visible = true,
   onContentSizeChange,
 }: TimelineViewProps) {
@@ -318,6 +323,7 @@ export function TimelineView({
                 onCompleteTask={onCompleteTask}
                 onTaskPress={onTaskPress}
                 onSkipOccurrence={onSkipOccurrence}
+                onPauseTask={onPauseTask}
               />
             ))}
           </View>

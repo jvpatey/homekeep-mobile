@@ -73,9 +73,13 @@ interface SubscriptionContextValue {
   offeringsError: string | null;
   offeringsLoading: boolean;
   daysRemaining: number | null;
-  presentPaywall: (options?: { force?: boolean }) => Promise<boolean>;
+  presentPaywall: (options?: {
+    force?: boolean;
+    reason?: "free_exhausted";
+  }) => Promise<boolean>;
   closePaywall: () => void;
   offerPaywallAfterSetup: () => void;
+  paywallReason: "free_exhausted" | null;
   reloadOfferings: () => Promise<void>;
   purchasePackage: (pkg: PurchasesPackage) => Promise<PurchaseResult>;
   restore: () => Promise<RestoreResult>;
@@ -159,6 +163,9 @@ export function SubscriptionProvider({
   const [purchasing, setPurchasing] = useState(false);
   const [paywallVisible, setPaywallVisible] = useState(false);
   const [paywallEpoch, setPaywallEpoch] = useState(0);
+  const [paywallReason, setPaywallReason] = useState<"free_exhausted" | null>(
+    null
+  );
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [offeringsError, setOfferingsError] = useState<string | null>(null);
   const [offeringsLoading, setOfferingsLoading] = useState(false);
@@ -395,6 +402,7 @@ export function SubscriptionProvider({
     purchasingRef.current = false;
     setPurchasing(false);
     setPaywallVisible(false);
+    setPaywallReason(null);
     resolvePaywall(isPlusRef.current);
   }, [resolvePaywall]);
 
@@ -434,13 +442,14 @@ export function SubscriptionProvider({
   }, []);
 
   const presentPaywall = useCallback(
-    async (options?: { force?: boolean }) => {
+    async (options?: { force?: boolean; reason?: "free_exhausted" }) => {
       if (isPlusRef.current && !options?.force) return true;
       const prior = paywallResolverRef.current;
       if (prior) {
         paywallResolverRef.current = null;
         prior(isPlusRef.current);
       }
+      setPaywallReason(options?.reason ?? null);
       setPaywallEpoch((n) => n + 1);
       setPaywallVisible(true);
       void reloadOfferings();
@@ -590,6 +599,7 @@ export function SubscriptionProvider({
       presentPaywall,
       closePaywall,
       offerPaywallAfterSetup,
+      paywallReason,
       reloadOfferings,
       purchasePackage,
       restore,
@@ -611,6 +621,7 @@ export function SubscriptionProvider({
       offeringsLoading,
       paywallEmbeds,
       paywallEpoch,
+      paywallReason,
       paywallVisible,
       registerPaywallEmbed,
       presentPaywall,

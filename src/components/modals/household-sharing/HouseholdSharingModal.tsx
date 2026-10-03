@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Text,
   TextInput,
@@ -10,13 +10,15 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import QRCode from "react-native-qrcode-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useProfile } from "../../../context/ProfileContext";
 import { useTasks } from "../../../context/TasksContext";
 import { useHaptics } from "../../../hooks";
-import { useRequirePlus } from "../../../hooks/useRequirePlus";
+import { useSubscription } from "../../../context/SubscriptionContext";
 import { HearthSheet } from "../../ui/HearthSheet";
 import { Button } from "../../ui/Button";
 import { HearthSurfaceCard, TintedGlassAvatar } from "../../ui";
@@ -28,6 +30,10 @@ import {
   householdInviteMessage,
   normalizeInviteCode,
 } from "../../../services/HouseholdService";
+import {
+  homeShareInvitePayload,
+  parseHomeShareInvitePayload,
+} from "../../../utils/homeShareInvite";
 
 interface HouseholdSharingModalProps {
   visible: boolean;
@@ -49,7 +55,7 @@ export function HouseholdSharingModal({
   const { selectedGradient } = useUserPreferences();
   const { stats } = useTasks();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
-  const requirePlus = useRequirePlus();
+  const { isPlus, presentPaywall } = useSubscription();
   const [code, setCode] = useState("");
   const [invite, setInvite] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMemberView[]>([]);
@@ -58,10 +64,28 @@ export function HouseholdSharingModal({
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(visible);
+  const [mode, setMode] = useState<"main" | "scan">("main");
+  const [scanLocked, setScanLocked] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const scanHandledRef = useRef(false);
+  const pendingPaywallRef = useRef(false);
 
   useEffect(() => {
     setSheetVisible(visible);
+    if (!visible) {
+      setMode("main");
+      setScanLocked(false);
+      scanHandledRef.current = false;
+    }
   }, [visible]);
+
+  /** Close HomeShare first so Plus is not trapped under this Modal. */
+  const ensurePlus = async (): Promise<boolean> => {
+    if (isPlus) return true;
+    pendingPaywallRef.current = true;
+    setSheetVisible(false);
+    return false;
+  };
 
   const selfInfo = {
     id: user?.id ?? "",
@@ -115,7 +139,7 @@ export function HouseholdSharingModal({
 
   const copyInvite = async () => {
     if (!invite) return;
-    if (!(await requirePlus())) return;
+    if (!(await ensurePlus())) return;
     try {
       await Clipboard.setStringAsync(invite);
       setCopied(true);
@@ -129,7 +153,7 @@ export function HouseholdSharingModal({
 
   const shareInvite = async () => {
     if (!invite) return;
-    if (!(await requirePlus())) return;
+    if (!(await ensurePlus())) return;
     try {
       triggerLight();
       const result = await Share.share({
@@ -157,12 +181,12 @@ export function HouseholdSharingModal({
 
   const create = async () => {
     if (!user || busy) return;
-    if (!(await requirePlus())) return;
+    if (!(await ensurePlus())) return;
     setBusy(true);
     try {
       const result = await HouseholdService.createHousehold(user.id);
       if (result.error) {
-        Alert.alert("Couldn't create household", result.error.message);
+        Alert.alert("Couldn't create HomeShare", result.error.message);
         return;
       }
       const nextCode = result.data?.invite_code
@@ -178,9 +202,9 @@ export function HouseholdSharingModal({
     }
   };
 
-  const join = async () => {
+  const join = async (rawCode?: string) => {
     if (busy) return;
-    const normalized = normalizeInviteCode(code);
+    const normalized = normalizeInviteCode(rawCode ?? code);
     if (normalized.length < 4) {
       Alert.alert("Check the code", "Invite codes are 6 letters or numbers.");
       return;
@@ -191,10 +215,17 @@ export function HouseholdSharingModal({
         const result = await HouseholdService.joinHousehold(normalized);
         if (result.error) {
           Alert.alert("Couldn't join", result.error.message);
+          setScanLocked(false);
+          scanHandledRef.current = false;
           return;
         }
+        setCode("");
+        setMode("main");
         await refresh();
-        setSheetVisible(false);
+        if (result.data) {
+          await loadDetails(result.data);
+        }
+        triggerSuccess();
       } finally {
         setBusy(false);
       }
@@ -202,10 +233,17 @@ export function HouseholdSharingModal({
 
     if ((stats.activeRoutines ?? 0) > 0 || (stats.totalInstances ?? 0) > 0) {
       Alert.alert(
-        "Adopt this household's home?",
+        "Adopt this home?",
         "You'll see the owner's house and schedule. Your current reminders stay on your account but won't show while you share this home.",
         [
-          { text: "Cancel", style: "cancel" },
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => {
+              setScanLocked(false);
+              scanHandledRef.current = false;
+            },
+          },
           { text: "Join", onPress: () => void doJoin() },
         ]
       );
@@ -214,28 +252,129 @@ export function HouseholdSharingModal({
     await doJoin();
   };
 
+  const openScanner = async () => {
+    triggerLight();
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert(
+          "Camera needed",
+          "Allow camera access in Settings to scan a HomeShare QR code."
+        );
+        return;
+      }
+    }
+    scanHandledRef.current = false;
+    setScanLocked(false);
+    setMode("scan");
+  };
+
+  const onBarcodeScanned = (event: { data: string }) => {
+    if (scanLocked || scanHandledRef.current || busy) return;
+    const parsed = parseHomeShareInvitePayload(event.data);
+    if (!parsed) return;
+    scanHandledRef.current = true;
+    setScanLocked(true);
+    setCode(parsed);
+    triggerSuccess();
+    void join(parsed);
+  };
+
   const leave = async () => {
     if (!user || busy) return;
+    const isSoloOwner =
+      householdRole === "owner" &&
+      members.filter((m) => m.user_id !== user.id).length === 0;
+    const leaveMessage = isSoloOwner
+      ? "You're the only person here. Leaving ends this HomeShare and returns you to your personal schedule."
+      : householdRole === "owner"
+        ? "Others will keep this HomeShare. You will go back to your own schedule."
+        : "You'll go back to your own schedule and no longer see this home.";
+    Alert.alert("Leave HomeShare?", leaveMessage, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress: async () => {
+          setBusy(true);
+          try {
+            await HouseholdService.leaveHousehold(user.id);
+            setInvite(null);
+            setMembers([]);
+            await refresh();
+          } finally {
+            setBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const removeMember = (member: HouseholdMemberView) => {
+    if (busy || householdRole !== "owner") return;
     Alert.alert(
-      "Leave this household?",
-      householdRole === "owner"
-        ? "Others will keep the household unless you are the only person. You will go back to your own schedule."
-        : "You'll go back to your own schedule and no longer see this home.",
+      "Remove from HomeShare?",
+      `${member.displayName.replace(" (you)", "")} will return to their own schedule and stop seeing this home.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Leave",
+          text: "Remove",
           style: "destructive",
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await HouseholdService.leaveHousehold(user.id);
-              setInvite(null);
-              setMembers([]);
-              await refresh();
-            } finally {
-              setBusy(false);
-            }
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              try {
+                const result = await HouseholdService.removeMember(
+                  member.user_id
+                );
+                if (result.error) {
+                  Alert.alert("Couldn't remove", result.error.message);
+                  return;
+                }
+                if (profile?.household_id) {
+                  await loadDetails(profile.household_id);
+                }
+                triggerSuccess();
+              } finally {
+                setBusy(false);
+              }
+            })();
+          },
+        },
+      ]
+    );
+  };
+
+  const rotateInvite = async () => {
+    if (!profile?.household_id || busy) return;
+    if (!(await ensurePlus())) return;
+    Alert.alert(
+      "New invite code?",
+      "The current code will stop working. Anyone who already joined stays in this HomeShare.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "New code",
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              try {
+                const result = await HouseholdService.rotateInviteCode(
+                  profile.household_id!
+                );
+                if (result.error || !result.data?.invite_code) {
+                  Alert.alert(
+                    "Couldn't rotate code",
+                    result.error?.message ?? "Please try again."
+                  );
+                  return;
+                }
+                setInvite(normalizeInviteCode(result.data.invite_code));
+                triggerSuccess();
+              } finally {
+                setBusy(false);
+              }
+            })();
           },
         },
       ]
@@ -244,6 +383,7 @@ export function HouseholdSharingModal({
 
   const owners = members.filter((member) => member.role === "owner");
   const regularMembers = members.filter((member) => member.role !== "owner");
+  const isOwner = householdRole === "owner";
 
   const renderMember = (member: HouseholdMemberView) => (
     <View key={member.user_id} style={styles.memberRow}>
@@ -299,26 +439,106 @@ export function HouseholdSharingModal({
           {roleLabel(member.role)}
         </Text>
       </View>
+      {isOwner && member.role !== "owner" && member.user_id !== user?.id ? (
+        <TouchableOpacity
+          onPress={() => removeMember(member)}
+          disabled={busy}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${member.displayName}`}
+          style={styles.removeButton}
+        >
+          <Ionicons name="close-circle-outline" size={22} color={colors.error} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
   return (
     <HearthSheet
       visible={sheetVisible}
-      onClose={() => setSheetVisible(false)}
-      onDismissed={onClose}
-      title="Household"
+      onClose={() => {
+        if (mode === "scan") {
+          setMode("main");
+          setScanLocked(false);
+          scanHandledRef.current = false;
+          return;
+        }
+        setSheetVisible(false);
+      }}
+      onDismissed={() => {
+        const needPaywall = pendingPaywallRef.current;
+        pendingPaywallRef.current = false;
+        onClose();
+        if (needPaywall) {
+          setTimeout(() => {
+            void presentPaywall();
+          }, 320);
+        }
+      }}
+      title={mode === "scan" ? "Scan HomeShare" : "HomeShare"}
+      fillMaxHeight={mode === "scan"}
       footer={
-        <Button
-          label="Close"
-          variant="ghost"
-          onPress={() => setSheetVisible(false)}
-        />
+        mode === "scan" ? (
+          <Button
+            label="Enter code instead"
+            variant="ghost"
+            onPress={() => {
+              setMode("main");
+              setScanLocked(false);
+              scanHandledRef.current = false;
+            }}
+          />
+        ) : (
+          <Button
+            label="Close"
+            variant="ghost"
+            onPress={() => setSheetVisible(false)}
+          />
+        )
       }
     >
+      {mode === "scan" ? (
+        <View style={styles.scanBody}>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            Point the camera at their HomeShare QR code.
+          </Text>
+          <View
+            style={[
+              styles.cameraFrame,
+              { borderColor: colors.border, backgroundColor: "#000" },
+            ]}
+          >
+            {cameraPermission?.granted ? (
+              <CameraView
+                style={StyleSheet.absoluteFill}
+                facing="back"
+                barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+                onBarcodeScanned={
+                  scanLocked ? undefined : onBarcodeScanned
+                }
+              />
+            ) : (
+              <View style={styles.cameraFallback}>
+                <Text style={{ color: "#fff", textAlign: "center" }}>
+                  Camera permission is required to scan.
+                </Text>
+                <Button
+                  label="Allow camera"
+                  onPress={() => void openScanner()}
+                />
+              </View>
+            )}
+          </View>
+          {busy ? (
+            <ActivityIndicator color={colors.primary} style={styles.spinner} />
+          ) : null}
+        </View>
+      ) : (
+        <>
       <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        One household is one home. Members see the owner's address, systems,
-        and schedule.
+        HomeShare is one home for everyone who lives there. Members see the
+        owner's address, systems, and schedule.
       </Text>
       {profile?.household_id ? (
         <>
@@ -349,6 +569,29 @@ export function HouseholdSharingModal({
                 />
               </TouchableOpacity>
             </View>
+            {invite ? (
+              <View style={styles.qrWrap}>
+                <View
+                  style={[
+                    styles.qrCard,
+                    { backgroundColor: "#FFFFFF" },
+                  ]}
+                  accessibilityLabel="HomeShare invite QR code"
+                >
+                  <QRCode
+                    value={homeShareInvitePayload(invite)}
+                    size={168}
+                    backgroundColor="#FFFFFF"
+                    color="#1A1612"
+                  />
+                </View>
+                <Text
+                  style={[styles.copyHint, { color: colors.textSecondary }]}
+                >
+                  They can scan this in HomeKeep → HomeShare → Scan QR.
+                </Text>
+              </View>
+            ) : null}
             <Text style={[styles.copyHint, { color: colors.textSecondary }]}>
               {copied
                 ? "Copied to clipboard"
@@ -361,6 +604,15 @@ export function HouseholdSharingModal({
                 disabled={!invite || busy}
                 accessibilityLabel="Share invite code with a message"
               />
+              {isOwner ? (
+                <Button
+                  label="New invite code"
+                  variant="ghost"
+                  onPress={() => void rotateInvite()}
+                  disabled={!invite || busy}
+                  accessibilityLabel="Generate a new invite code"
+                />
+              ) : null}
             </View>
           </HearthSurfaceCard>
 
@@ -372,7 +624,7 @@ export function HouseholdSharingModal({
               <TouchableOpacity
                 onPress={() => void loadDetails(profile.household_id!)}
                 accessibilityRole="button"
-                accessibilityLabel="Refresh household members"
+                accessibilityLabel="Refresh HomeShare members"
               >
                 <Text style={[styles.refresh, { color: colors.primary }]}>
                   Refresh
@@ -422,7 +674,7 @@ export function HouseholdSharingModal({
           ) : null}
 
           <Button
-            label="Leave household"
+            label="Leave HomeShare"
             variant="ghost"
             onPress={() => void leave()}
             disabled={busy}
@@ -430,13 +682,17 @@ export function HouseholdSharingModal({
         </>
       ) : (
         <>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            Creating a HomeShare and sharing an invite code needs HomeKeep +.
+            Joining with a code is free.
+          </Text>
           <Button
-            label={busy ? "Working…" : "Create household"}
+            label={busy ? "Working…" : "Create HomeShare"}
             onPress={() => void create()}
             disabled={busy}
           />
           <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Or join with a code
+            Or join with a code (free)
           </Text>
           <TextInput
             value={code}
@@ -456,12 +712,23 @@ export function HouseholdSharingModal({
               },
             ]}
           />
-          <Button
-            label="Join"
-            variant="ghost"
-            onPress={() => void join()}
-            disabled={busy || normalizeInviteCode(code).length < 4}
-          />
+          <View style={styles.joinActions}>
+            <Button
+              label="Join"
+              variant="ghost"
+              onPress={() => void join()}
+              disabled={busy || normalizeInviteCode(code).length < 4}
+            />
+            <Button
+              label="Scan QR"
+              variant="ghost"
+              onPress={() => void openScanner()}
+              disabled={busy}
+              accessibilityLabel="Scan a HomeShare QR code"
+            />
+          </View>
+        </>
+      )}
         </>
       )}
     </HearthSheet>
@@ -532,6 +799,42 @@ const styles = StyleSheet.create({
   shareButtonWrap: {
     paddingHorizontal: DesignSystem.spacing.md,
     paddingBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
+  },
+  removeButton: {
+    padding: 2,
+  },
+  qrWrap: {
+    alignItems: "center",
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.xs,
+    gap: DesignSystem.spacing.sm,
+  },
+  qrCard: {
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.large,
+  },
+  joinActions: {
+    marginTop: DesignSystem.spacing.sm,
+    gap: DesignSystem.spacing.xs,
+  },
+  scanBody: {
+    flex: 1,
+    minHeight: 280,
+  },
+  cameraFrame: {
+    flex: 1,
+    minHeight: 280,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  cameraFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.md,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

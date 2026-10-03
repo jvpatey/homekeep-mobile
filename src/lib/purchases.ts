@@ -16,6 +16,9 @@ export const HOMEKEEP_PLUS_ENTITLEMENT = "homekeep_plus";
 export const HOMEKEEP_PLUS_MONTHLY_ID = "homekeep_plus_monthly";
 export const HOMEKEEP_PLUS_YEARLY_ID = "homekeep_plus_yearly";
 
+/** Unpaid complete/create actions before HomeKeep + is required. */
+export const FREE_ACTION_LIMIT = 5;
+
 /** Fallbacks when the store has not returned a localized price yet. CAD. */
 export const FALLBACK_MONTHLY_PRICE = "CA$5.99";
 export const FALLBACK_YEARLY_PRICE = "CA$29.99";

@@ -23,7 +23,8 @@ import {
   homeSummaryHasContent,
   resolveOwnerName,
 } from "../../services/HomeSummaryService";
-import { formatHomeSummaryHistoryMeta } from "../../utils/groupHomeSummaryTasks";
+import { formatHomeSummaryHistoryMeta, formatHomeSummaryCost, laborTypeLabel } from "../../utils/groupHomeSummaryTasks";
+import { warrantyStatusLabel } from "../../utils/equipmentWarranty";
 import { HomeSummaryTaskGroup } from "../../types/homeSummary";
 import { HomeSummaryPdfService } from "../../services/HomeSummaryPdfService";
 import { HomeSummaryReportData } from "../../types/homeSummary";
@@ -51,24 +52,33 @@ function TaskGroupRow({
           ? ` · ${group.completions.length} completions`
           : ""}
       </Text>
-      {group.completions.map((completion, completionIndex) => (
-        <View key={`${completion.completedDateLabel}-${completionIndex}`}>
-          <Text
-            style={[styles.completionDate, { color: colors.textSecondary }]}
-          >
-            {group.completions.length > 1 ? "· " : ""}
-            {completion.completedDateLabel}
-            {completion.completedByLabel
-              ? ` · ${completion.completedByLabel}`
-              : ""}
-          </Text>
-          {completion.notes ? (
-            <Text style={[styles.taskNotes, { color: colors.textSecondary }]}>
-              {completion.notes}
+      {group.completions.map((completion, completionIndex) => {
+        const labor = laborTypeLabel(completion.laborType);
+        const cost =
+          typeof completion.costAmount === "number"
+            ? formatHomeSummaryCost(completion.costAmount)
+            : null;
+        const extras = [labor, cost].filter(Boolean).join(" · ");
+        return (
+          <View key={`${completion.completedDateLabel}-${completionIndex}`}>
+            <Text
+              style={[styles.completionDate, { color: colors.textSecondary }]}
+            >
+              {group.completions.length > 1 ? "· " : ""}
+              {completion.completedDateLabel}
+              {completion.completedByLabel
+                ? ` · ${completion.completedByLabel}`
+                : ""}
+              {extras ? ` · ${extras}` : ""}
             </Text>
-          ) : null}
-        </View>
-      ))}
+            {completion.notes ? (
+              <Text style={[styles.taskNotes, { color: colors.textSecondary }]}>
+                {completion.notes}
+              </Text>
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -321,6 +331,25 @@ export function HomeSummaryPreviewScreen() {
                       Model: {item.modelNumber ?? "—"} · Purchased:{" "}
                       {item.purchaseDateLabel ?? "—"}
                     </Text>
+                    {item.warrantyExpiresLabel ? (
+                      <Text
+                        style={[
+                          styles.equipmentDetail,
+                          {
+                            color:
+                              item.warrantyStatus === "expired" ||
+                              item.warrantyStatus === "expiring_soon"
+                                ? colors.warning
+                                : colors.textSecondary,
+                          },
+                        ]}
+                      >
+                        Warranty: {item.warrantyExpiresLabel}
+                        {warrantyStatusLabel(item.warrantyStatus)
+                          ? ` · ${warrantyStatusLabel(item.warrantyStatus)}`
+                          : ""}
+                      </Text>
+                    ) : null}
                     {attachments.length > 0 ? (
                       <Text
                         style={[
@@ -344,6 +373,15 @@ export function HomeSummaryPreviewScreen() {
             <Text style={[styles.sectionMeta, { color: colors.textSecondary }]}>
               {formatHomeSummaryHistoryMeta(report?.taskGroups ?? [])}
             </Text>
+            {report?.spendTotals.hasAnyCost ? (
+              <Text
+                style={[styles.sectionMeta, { color: colors.textSecondary }]}
+              >
+                Spend {report.spendTotals.yearLabel}:{" "}
+                {formatHomeSummaryCost(report.spendTotals.yearTotal)} · All
+                time: {formatHomeSummaryCost(report.spendTotals.allTimeTotal)}
+              </Text>
+            ) : null}
             {(report?.taskGroups.length ?? 0) === 0 ? (
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 No completed maintenance yet.

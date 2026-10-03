@@ -5,7 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useSubscription } from "../../context/SubscriptionContext";
 import { DesignSystem } from "../../theme/designSystem";
-import { HOMEKEEP_PLUS_NAME } from "../../lib/purchases";
+import { HOMEKEEP_PLUS_NAME, FREE_ACTION_LIMIT } from "../../lib/purchases";
 import { useHaptics } from "../../hooks";
 
 export function PlusStatusBanner() {
@@ -26,24 +26,38 @@ export function PlusStatusBanner() {
     (status === "trialing" || status === "promo") &&
     daysRemaining != null &&
     daysRemaining <= 2;
-  const lapsed = setupDone && !isPlus && !loading;
+  const freeUsed = profile?.free_actions_used ?? 0;
+  const freeRemaining = Math.max(0, FREE_ACTION_LIMIT - freeUsed);
+  const freeTrialActions =
+    setupDone && !isPlus && !loading && freeRemaining > 0;
+  const lapsed =
+    setupDone && !isPlus && !loading && freeRemaining === 0;
 
-  if (!trialEnding && !lapsed) return null;
+  if (!trialEnding && !lapsed && !freeTrialActions) return null;
 
   const title = trialEnding
     ? daysRemaining === 1
       ? "1 day left on us"
       : `${daysRemaining} days left on us`
-    : `${HOMEKEEP_PLUS_NAME} is paused`;
+    : freeTrialActions
+      ? freeRemaining === 1
+        ? "1 free action left"
+        : `${freeRemaining} free actions left`
+      : `${HOMEKEEP_PLUS_NAME} is paused`;
   const subtitle = trialEnding
     ? "View your plan and billing."
-    : "Viewing only — subscribe to complete tasks, reminders, and sharing.";
+    : freeTrialActions
+      ? "Complete or add a task — then unlock the full plan."
+      : "Viewing only — subscribe to complete tasks, reminders, and sharing.";
 
   return (
     <Pressable
       onPress={() => {
         void triggerLight();
-        void presentPaywall({ force: true });
+        void presentPaywall({
+          force: true,
+          reason: freeTrialActions ? undefined : "free_exhausted",
+        });
       }}
       style={[
         styles.banner,

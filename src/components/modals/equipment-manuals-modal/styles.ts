@@ -343,4 +343,28 @@ export const styles = StyleSheet.create({
     ...DesignSystem.typography.body,
     flex: 1,
   },
+
+  typeChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+
+  typeChip: {
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+
+  typeChipText: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "600",
+  },
+
+  hintPreviewLine: {
+    ...DesignSystem.typography.footnote,
+    marginBottom: DesignSystem.spacing.xs,
+  },
 });

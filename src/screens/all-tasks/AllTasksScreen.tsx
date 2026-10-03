@@ -2,7 +2,6 @@ import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   Alert,
   StyleSheet,
@@ -12,65 +11,66 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
+import { useRequirePlus } from "../../hooks/useRequirePlus";
 import { HearthScreen } from "../../components/ui";
-import { PriorityMark } from "../../components/ui/PriorityMark";
+import { AllRemindersList } from "../../components/all-reminders";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { MaintenanceService } from "../../services/maintenanceService";
+import { DesignSystem } from "../../theme/designSystem";
 import { AllTasksScreenProps } from "./types";
 
 export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
   const { colors } = useTheme();
-  const { deleteTask, refreshTasks } = useTasks();
+  const { deleteTask, resumeTask, refreshTasks } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
   const { scrollPaddingBottom } = useScreenInsets();
+  const requirePlus = useRequirePlus();
   const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
+  const [resumingTasks, setResumingTasks] = useState<Set<string>>(new Set());
 
-  // Load routines when screen comes into focus
   const loadRoutines = useCallback(async () => {
-    setLoading(true);
     try {
       const { data, error } = await MaintenanceService.getMaintenanceRoutines();
       if (error) throw error;
       setRoutines(data || []);
     } catch (error) {
       console.error("Error loading routines:", error);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      loadRoutines();
+      void loadRoutines();
     }, [loadRoutines])
   );
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadRoutines();
+    setRefreshing(false);
+  }, [loadRoutines]);
 
   const handleDeleteRoutine = async (
     routineId: string,
     routineTitle: string
   ) => {
-    if (deletingTasks.has(routineId)) return; // Prevent multiple deletes
+    if (deletingTasks.has(routineId)) return;
 
     await triggerMedium();
     Alert.alert(
-      "Delete Task Series",
-      `Are you sure you want to permanently delete "${routineTitle}"? This will remove the entire task series and all its instances.`,
+      "Delete reminder?",
+      `Permanently delete “${routineTitle}” and all of its history?`,
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
             setDeletingTasks((prev) => new Set(prev).add(routineId));
-
             try {
               const result = await deleteTask(routineId);
-
               if (result.success) {
                 await triggerLight();
                 setRoutines((prev) =>
@@ -81,7 +81,7 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
                 Alert.alert(
                   "Delete Failed",
                   result.error ||
-                    "Failed to delete the task series. Please try again."
+                    "Failed to delete the reminder. Please try again."
                 );
               }
             } catch (error) {
@@ -92,9 +92,9 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
               );
             } finally {
               setDeletingTasks((prev) => {
-                const newSet = new Set(prev);
-                newSet.delete(routineId);
-                return newSet;
+                const next = new Set(prev);
+                next.delete(routineId);
+                return next;
               });
             }
           },
@@ -103,156 +103,79 @@ export function AllTasksScreen({ navigation }: AllTasksScreenProps) {
     );
   };
 
-  const formatCategory = (category: string) => {
-    if (category === "HVAC") {
-      return "HVAC";
-    }
-    return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-  };
+  const handleResumeRoutine = async (routineId: string) => {
+    if (resumingTasks.has(routineId)) return;
+    if (!(await requirePlus())) return;
 
-  const formatInterval = (intervalDays: number) => {
-    if (intervalDays < 7) {
-      return `Every ${intervalDays} day${intervalDays !== 1 ? "s" : ""}`;
-    } else if (intervalDays === 7) {
-      return "Weekly";
-    } else if (intervalDays === 14) {
-      return "Bi-weekly";
-    } else if (intervalDays === 30) {
-      return "Monthly";
-    } else if (intervalDays === 90) {
-      return "Quarterly";
-    } else if (intervalDays === 365) {
-      return "Yearly";
-    } else {
-      const weeks = Math.round(intervalDays / 7);
-      const months = Math.round(intervalDays / 30);
-
-      if (intervalDays % 7 === 0 && weeks <= 8) {
-        return `Every ${weeks} week${weeks !== 1 ? "s" : ""}`;
-      } else if (intervalDays % 30 === 0 && months <= 12) {
-        return `Every ${months} month${months !== 1 ? "s" : ""}`;
+    setResumingTasks((prev) => new Set(prev).add(routineId));
+    await triggerMedium();
+    try {
+      const result = await resumeTask(routineId);
+      if (result.success) {
+        await triggerLight();
+        setRoutines((prev) =>
+          prev.map((routine) =>
+            routine.id === routineId
+              ? { ...routine, is_active: true }
+              : routine
+          )
+        );
+        await refreshTasks();
       } else {
-        return `Every ${intervalDays} days`;
+        Alert.alert(
+          "Resume Failed",
+          result.error || "Failed to resume this reminder. Please try again."
+        );
       }
+    } catch (error) {
+      console.error("Error resuming routine:", error);
+      Alert.alert(
+        "Resume Failed",
+        "An unexpected error occurred. Please try again."
+      );
+    } finally {
+      setResumingTasks((prev) => {
+        const next = new Set(prev);
+        next.delete(routineId);
+        return next;
+      });
     }
   };
-
-  const renderRoutineItem = ({ item }: { item: MaintenanceRoutine }) => {
-    const isDeleting = deletingTasks.has(item.id);
-
-    return (
-      <View
-        style={[
-          styles.taskItem,
-          {
-            backgroundColor: colors.surface,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.taskContent}>
-          <View style={styles.taskHeader}>
-            <Text
-              style={[styles.taskTitle, { color: colors.text }]}
-              numberOfLines={2}
-            >
-              {item.title}
-            </Text>
-            <PriorityMark priority={item.priority} showLabel size={8} />
-          </View>
-
-          <View style={styles.taskDetails}>
-            <Text
-              style={[styles.taskCategory, { color: colors.textSecondary }]}
-            >
-              {formatCategory(item.category)}
-            </Text>
-            <Text
-              style={[styles.taskInterval, { color: colors.textSecondary }]}
-            >
-              {formatInterval(item.interval_days)}
-            </Text>
-          </View>
-
-          {item.estimated_duration_minutes && (
-            <Text
-              style={[styles.taskDuration, { color: colors.textSecondary }]}
-            >
-              ~{item.estimated_duration_minutes} min
-            </Text>
-          )}
-
-          <View style={styles.routineStatus}>
-            <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-              {item.is_active ? "Active" : "Inactive"}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.deleteButton,
-            { backgroundColor: colors.error + "15" },
-            isDeleting && styles.deletingButton,
-          ]}
-          onPress={() => handleDeleteRoutine(item.id, item.title)}
-          disabled={isDeleting}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name={isDeleting ? "hourglass-outline" : "trash-outline"}
-            size={20}
-            color={colors.error}
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Ionicons
-        name="checkmark-circle-outline"
-        size={64}
-        color={colors.textSecondary}
-      />
-      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        No task series found
-      </Text>
-      <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-        Create your first maintenance task series to get started!
-      </Text>
-    </View>
-  );
 
   return (
     <HearthScreen style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          All Task Series ({routines.length})
+          All reminders
         </Text>
         <View style={styles.headerRightSpacer} />
       </View>
 
-      {/* Routine List */}
-      <FlatList
-        data={routines}
-        renderItem={renderRoutineItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.listContainer,
-          { paddingBottom: scrollPaddingBottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyState}
+      <AllRemindersList
+        routines={routines}
+        deletingIds={deletingTasks}
+        resumingIds={resumingTasks}
+        onResume={(id) => void handleResumeRoutine(id)}
+        onDelete={(id, title) => void handleDeleteRoutine(id, title)}
+        contentPaddingBottom={scrollPaddingBottom}
+        refreshing={refreshing}
+        onRefresh={() => void handleRefresh()}
       />
     </HearthScreen>
   );
@@ -265,107 +188,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    padding: DesignSystem.spacing.sm,
+    marginLeft: -DesignSystem.spacing.sm,
+    minWidth: DesignSystem.components.minTouchTarget,
+    minHeight: DesignSystem.components.minTouchTarget,
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    ...DesignSystem.typography.h4,
     flex: 1,
     textAlign: "center",
   },
   headerRightSpacer: {
-    width: 40,
-  },
-  listContainer: {
-    padding: 16,
-    flexGrow: 1,
-  },
-  taskItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.05)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  taskContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  taskHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    flex: 1,
-    marginRight: 8,
-  },
-  taskDetails: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  taskCategory: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginRight: 12,
-  },
-  taskInterval: {
-    fontSize: 14,
-  },
-  taskDuration: {
-    fontSize: 12,
-    fontStyle: "italic",
-  },
-  routineStatus: {
-    marginTop: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  deleteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deletingButton: {
-    opacity: 0.5,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
+    width: DesignSystem.components.minTouchTarget,
   },
 });

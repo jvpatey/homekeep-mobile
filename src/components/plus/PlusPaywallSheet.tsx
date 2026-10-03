@@ -39,7 +39,7 @@ type PlanKey = "yearly" | "monthly";
 
 const VALUE_LINES = [
   "Personalized reminders",
-  "Manuals and a shared household",
+  "Manuals and HomeShare",
   "The next cycle, automatically",
 ];
 
@@ -83,10 +83,10 @@ function planStatusMeta({
   if (includedViaHousehold) {
     return {
       pill: "Included",
-      plan: "Household",
+      plan: "HomeShare",
       detailLabel: null,
       detailValue: null,
-      note: "This home includes HomeKeep + for everyone in the household.",
+      note: "This home includes HomeKeep + for everyone on HomeShare.",
       tone: "included",
     };
   }
@@ -175,6 +175,7 @@ export function PlusPaywallSheet({
     productId,
     includedViaHousehold,
     manageSubscription,
+    paywallReason,
   } = useSubscription();
   const { triggerLight } = useHaptics();
   const [plan, setPlan] = useState<PlanKey>("yearly");
@@ -376,15 +377,19 @@ export function PlusPaywallSheet({
           <Text style={[styles.headline, { color: colors.text }]}>
             {manageOnly
               ? "Your plan"
-              : status === "promo"
-                ? "Subscribe to keep HomeKeep +"
-                : "Try everything for 7 days"}
+              : paywallReason === "free_exhausted"
+                ? "You’ve handled your first tasks"
+                : status === "promo"
+                  ? "Subscribe to keep HomeKeep +"
+                  : "Try everything for 7 days"}
           </Text>
           {!manageOnly ? (
             <Text style={[styles.subhead, { color: colors.textSecondary }]}>
-              {status === "promo"
-                ? currentStatus
-                : "Reminders, household sharing, and the next cycle. Cancel anytime."}
+              {paywallReason === "free_exhausted"
+                ? `Unlock ${HOMEKEEP_PLUS_NAME} for unlimited completes, custom tasks, and the full plan.`
+                : status === "promo"
+                  ? currentStatus
+                  : "Reminders, HomeShare, and the next cycle. Cancel anytime."}
             </Text>
           ) : null}
         </View>

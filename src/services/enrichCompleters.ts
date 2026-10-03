@@ -59,7 +59,7 @@ export async function enrichTasksWithCompleters(
       email: typeof row.email === "string" ? row.email : null,
     });
     labels.set(row.id, {
-      name: name === "Household member" ? null : name,
+      name: name === "HomeShare member" || name === "Household member" ? null : name,
       avatarStyle:
         typeof row.avatar_style === "string" ? row.avatar_style : null,
       avatarPath:

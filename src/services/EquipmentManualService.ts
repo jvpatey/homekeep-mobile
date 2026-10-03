@@ -190,6 +190,8 @@ export class EquipmentManualService {
         name: payload.name.trim(),
         model_number: payload.model_number?.trim() || null,
         purchase_date: payload.purchase_date ?? null,
+        warranty_expires_on: payload.warranty_expires_on ?? null,
+        equipment_type: payload.equipment_type ?? null,
         created_at: now,
         updated_at: now,
       };

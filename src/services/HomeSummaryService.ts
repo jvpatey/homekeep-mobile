@@ -6,20 +6,26 @@ import {
   profileHasAddress,
 } from "../utils/formatProfileAddress";
 import { formatPurchaseDateLabel } from "../utils/formatPurchaseDate";
+import { resolveWarrantyFields } from "../utils/equipmentWarranty";
 import { EquipmentManualService } from "./EquipmentManualService";
 import { MaintenanceTaskService } from "./MaintenanceTaskService";
 import {
   countHomeSummaryCompletions,
+  computeHomeSummarySpendTotals,
   groupCompletedTasksByRoutine,
 } from "../utils/groupHomeSummaryTasks";
 
 function mapEquipmentItem(item: EquipmentManual) {
+  const warranty = resolveWarrantyFields(item.warranty_expires_on);
   return {
     name: item.name,
     modelNumber: item.model_number?.trim() || null,
     purchaseDateLabel: formatPurchaseDateLabel(item.purchase_date),
     hasManual: !!item.manual_storage_path,
     hasReceipt: !!item.receipt_storage_path,
+    warrantyExpiresOn: warranty.warrantyExpiresOn,
+    warrantyExpiresLabel: warranty.warrantyExpiresLabel,
+    warrantyStatus: warranty.warrantyStatus,
   };
 }
 
@@ -64,6 +70,7 @@ export class HomeSummaryService {
       const addressLines = formatProfileAddressLines(profile);
       const equipment = (equipmentResult.data ?? []).map(mapEquipmentItem);
       const taskGroups = groupCompletedTasksByRoutine(tasksResult.data ?? []);
+      const spendTotals = computeHomeSummarySpendTotals(taskGroups);
 
       const data: HomeSummaryReportData = {
         generatedAt: new Date(),
@@ -72,6 +79,7 @@ export class HomeSummaryService {
         hasAddress: profileHasAddress(profile),
         equipment,
         taskGroups,
+        spendTotals,
       };
 
       return { data, error: null };

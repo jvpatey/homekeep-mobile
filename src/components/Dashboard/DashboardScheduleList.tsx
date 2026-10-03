@@ -40,6 +40,10 @@ interface DashboardScheduleListProps {
     task: MaintenanceTask,
     closeSwipe: () => void
   ) => void | Promise<void>;
+  onPauseTask?: (
+    task: MaintenanceTask,
+    closeSwipe: () => void
+  ) => void | Promise<void>;
   onAddTask?: () => void;
   onBrowseMaintenancePlans?: (planId?: string) => void;
   onSetupHome?: () => void;
@@ -60,6 +64,7 @@ export const DashboardScheduleList = forwardRef<
     completingInstanceIds,
     onTaskPress,
     onSkipOccurrence,
+    onPauseTask,
     onAddTask,
     onBrowseMaintenancePlans,
     onSetupHome,
@@ -322,6 +327,7 @@ export const DashboardScheduleList = forwardRef<
           isCompleting={completingInstanceIds?.has(item.instance_id) ?? false}
           onTaskPress={onTaskPress}
           onSkipOccurrence={onSkipOccurrence}
+          onPauseTask={onPauseTask}
         />
       )}
     />

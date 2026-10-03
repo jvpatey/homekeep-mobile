@@ -1,6 +1,11 @@
 import { format } from "date-fns";
 import { HomeSummaryReportData, HomeSummaryTaskGroup } from "../types/homeSummary";
-import { formatHomeSummaryHistoryMeta } from "../utils/groupHomeSummaryTasks";
+import {
+  formatHomeSummaryCost,
+  formatHomeSummaryHistoryMeta,
+  laborTypeLabel,
+} from "../utils/groupHomeSummaryTasks";
+import { warrantyStatusLabel } from "../utils/equipmentWarranty";
 import { buildHouseMarkSvg } from "../utils/houseMarkSvg";
 
 function escapeHtml(value: string): string {
@@ -23,7 +28,13 @@ function completionLine(completion: HomeSummaryTaskGroup["completions"][number])
   const who = completion.completedByLabel
     ? ` · ${completion.completedByLabel}`
     : "";
-  return `${completion.completedDateLabel}${who}`;
+  const labor = laborTypeLabel(completion.laborType);
+  const laborPart = labor ? ` · ${labor}` : "";
+  const costPart =
+    typeof completion.costAmount === "number"
+      ? ` · ${formatHomeSummaryCost(completion.costAmount)}`
+      : "";
+  return `${completion.completedDateLabel}${who}${laborPart}${costPart}`;
 }
 
 function renderCompletionsCell(group: HomeSummaryTaskGroup): string {
@@ -77,14 +88,35 @@ export function buildHomeSummaryReportHtml(
               attachments.length > 0
                 ? `<span class="muted"> (${attachments.join(", ")} on file)</span>`
                 : "";
+            const warrantyBits: string[] = [];
+            if (item.warrantyExpiresLabel) {
+              warrantyBits.push(item.warrantyExpiresLabel);
+              const status = warrantyStatusLabel(item.warrantyStatus);
+              if (status) warrantyBits.push(status);
+            }
+            const warrantyCell =
+              warrantyBits.length > 0
+                ? escapeHtml(warrantyBits.join(" · "))
+                : "—";
             return `<tr>
               <td>${escapeHtml(item.name)}</td>
               <td>${escapeHtml(item.modelNumber ?? "—")}</td>
               <td>${escapeHtml(item.purchaseDateLabel ?? "—")}${attachmentNote}</td>
+              <td>${warrantyCell}</td>
             </tr>`;
           })
           .join("")
-      : `<tr><td colspan="3" class="empty-cell">No equipment recorded.</td></tr>`;
+      : `<tr><td colspan="4" class="empty-cell">No equipment recorded.</td></tr>`;
+
+  const spendBlock = data.spendTotals.hasAnyCost
+    ? `<p class="section-meta">Spend ${escapeHtml(
+        data.spendTotals.yearLabel
+      )}: ${escapeHtml(
+        formatHomeSummaryCost(data.spendTotals.yearTotal)
+      )} · All time: ${escapeHtml(
+        formatHomeSummaryCost(data.spendTotals.allTimeTotal)
+      )}</p>`
+    : "";
 
   const taskRows =
     data.taskGroups.length > 0
@@ -251,6 +283,7 @@ export function buildHomeSummaryReportHtml(
           <th>Name</th>
           <th>Model</th>
           <th>Purchase date</th>
+          <th>Warranty</th>
         </tr>
       </thead>
       <tbody>${equipmentRows}</tbody>
@@ -260,6 +293,7 @@ export function buildHomeSummaryReportHtml(
   <section>
     <h2>Maintenance history</h2>
     <p class="section-meta">${formatHomeSummaryHistoryMeta(data.taskGroups)}</p>
+    ${spendBlock}
     <table>
       <thead>
         <tr>

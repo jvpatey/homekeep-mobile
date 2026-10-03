@@ -128,7 +128,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
   };
 
   const householdShared = members.length > 1;
-  const householdTitle = householdShared ? "Shared household" : "Account";
+  const householdTitle = householdShared ? "HomeShare" : "Account";
   const householdSubtitle = householdShared
     ? formatHouseholdPeople(members, user?.id)
     : householdRole === "member"
@@ -211,7 +211,7 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
           }}
           activeOpacity={0.75}
           accessibilityRole="button"
-          accessibilityLabel={`${householdTitle}. ${householdSubtitle}. Open household sharing`}
+          accessibilityLabel={`${householdTitle}. ${householdSubtitle}. Open HomeShare`}
         >
           <View style={styles.householdCardTop}>
             {visibleAvatars.length > 0 ? (
