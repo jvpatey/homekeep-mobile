@@ -2,11 +2,17 @@ import { UserProfile } from "../context/ProfileContext";
 import { HomeSummaryReportData, HomeSummaryReportResponse } from "../types/homeSummary";
 import { EquipmentManual } from "../types/equipmentManual";
 import {
+  HomeNotes,
+  PAINT_FINISH_LABELS,
+  paintTitle,
+} from "../types/homeNotes";
+import {
   formatProfileAddressLines,
   profileHasAddress,
 } from "../utils/formatProfileAddress";
 import { formatPurchaseDateLabel } from "../utils/formatPurchaseDate";
 import { resolveWarrantyFields } from "../utils/equipmentWarranty";
+import { currencyForCountry } from "../utils/formatMoney";
 import { EquipmentManualService } from "./EquipmentManualService";
 import { MaintenanceTaskService } from "./MaintenanceTaskService";
 import {
@@ -19,7 +25,9 @@ function mapEquipmentItem(item: EquipmentManual) {
   const warranty = resolveWarrantyFields(item.warranty_expires_on);
   return {
     name: item.name,
+    manufacturer: item.manufacturer?.trim() || null,
     modelNumber: item.model_number?.trim() || null,
+    serialNumber: item.serial_number?.trim() || null,
     purchaseDateLabel: formatPurchaseDateLabel(item.purchase_date),
     hasManual: !!item.manual_storage_path,
     hasReceipt: !!item.receipt_storage_path,
@@ -43,6 +51,7 @@ export function homeSummaryHasContent(data: HomeSummaryReportData): boolean {
   return (
     data.hasAddress ||
     data.equipment.length > 0 ||
+    data.paints.length > 0 ||
     data.taskGroups.length > 0
   );
 }
@@ -52,7 +61,8 @@ export { countHomeSummaryCompletions };
 export class HomeSummaryService {
   static async fetchReportData(
     profile: UserProfile | null,
-    ownerName: string | null
+    ownerName: string | null,
+    homeNotes?: HomeNotes
   ): Promise<HomeSummaryReportResponse> {
     try {
       const [equipmentResult, tasksResult] = await Promise.all([
@@ -69,8 +79,9 @@ export class HomeSummaryService {
 
       const addressLines = formatProfileAddressLines(profile);
       const equipment = (equipmentResult.data ?? []).map(mapEquipmentItem);
-      const taskGroups = groupCompletedTasksByRoutine(tasksResult.data ?? []);
-      const spendTotals = computeHomeSummarySpendTotals(taskGroups);
+      const completed = tasksResult.data ?? [];
+      const taskGroups = groupCompletedTasksByRoutine(completed);
+      const spendTotals = computeHomeSummarySpendTotals(completed);
 
       const data: HomeSummaryReportData = {
         generatedAt: new Date(),
@@ -80,6 +91,17 @@ export class HomeSummaryService {
         equipment,
         taskGroups,
         spendTotals,
+        paints: (homeNotes?.paints ?? [])
+          .map((paint) => ({
+            room: paint.room,
+            name: paintTitle(paint),
+            brand: paint.brand?.trim() || null,
+            code: paint.colorCode?.trim() || null,
+            finish: paint.finish ? PAINT_FINISH_LABELS[paint.finish] : null,
+            hex: paint.hex ?? null,
+          }))
+          .sort((a, b) => a.room.localeCompare(b.room)),
+        currency: currencyForCountry(profile?.country),
       };
 
       return { data, error: null };

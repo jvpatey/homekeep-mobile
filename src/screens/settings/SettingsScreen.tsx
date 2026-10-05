@@ -1,21 +1,15 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics } from "../../hooks";
-import {
-  HearthSheet,
-  HearthSurfaceCard,
-  SheetActionRow,
-} from "../../components/ui";
+import { HearthSurfaceCard, SheetActionRow } from "../../components/ui";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
 import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
-import { PlusPaywallSheet } from "../../components/plus";
 import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { EditPasswordModal } from "../../components/modals/edit-password-modal";
 import { DesignSystem } from "../../theme/designSystem";
@@ -43,12 +37,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     includedViaHousehold,
     presentPaywall,
     openLegal,
-    registerPaywallEmbed,
   } = useSubscription();
-
-  useFocusEffect(
-    useCallback(() => registerPaywallEmbed(), [registerPaywallEmbed])
-  );
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
@@ -56,7 +45,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [emergencyVisible, setEmergencyVisible] = useState(false);
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
   const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(true);
 
   const nameInput = {
     authFullName: user?.user_metadata?.full_name as string | undefined,
@@ -67,11 +55,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const named = hasAccountName(nameInput);
   const email = user?.email ?? profile?.email ?? "";
   const canChangePassword = userHasEmailPassword(user);
-
-  const closeSheet = () => {
-    setSheetVisible(false);
-    navigation.goBack();
-  };
 
   const handleEditHome = async () => {
     await triggerLight();
@@ -208,157 +191,145 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   ];
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <HearthSheet
-        visible={sheetVisible}
-        onClose={closeSheet}
-        title="Settings"
-        embedded
-        keyboardAvoiding={false}
-        fillMaxHeight
-        maxHeightRatio={0.92}
-        contentStyle={styles.sheetContent}
+    <>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollInner}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollInner}
-        >
-          <View style={styles.identity}>
-            <Text style={[styles.identityName, { color: colors.text }]}>
-              {displayName}
+        <View style={styles.identity}>
+          <Text style={[styles.identityName, { color: colors.text }]}>
+            {displayName}
+          </Text>
+          {email ? (
+            <Text
+              style={[styles.identityEmail, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {email}
             </Text>
-            {email ? (
-              <Text
-                style={[styles.identityEmail, { color: colors.textSecondary }]}
-                numberOfLines={1}
-              >
-                {email}
-              </Text>
-            ) : null}
-          </View>
+          ) : null}
+        </View>
 
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Account
-          </Text>
-          <HearthSurfaceCard style={styles.groupSurface}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Account
+        </Text>
+        <HearthSurfaceCard style={styles.groupSurface}>
+          <SheetActionRow
+            icon="person-outline"
+            title="Name"
+            subtitle={named ? displayName : "Add your first and last name"}
+            onPress={() => {
+              void triggerLight();
+              setNameEditorVisible(true);
+            }}
+            showDivider={canChangePassword}
+          />
+          {canChangePassword ? (
             <SheetActionRow
-              icon="person-outline"
-              title="Name"
-              subtitle={
-                named ? displayName : "Add your first and last name"
-              }
+              icon="lock-closed-outline"
+              title="Change password"
+              subtitle="Update the password for this email"
               onPress={() => {
                 void triggerLight();
-                setNameEditorVisible(true);
+                setPasswordEditorVisible(true);
               }}
-              showDivider={canChangePassword}
-            />
-            {canChangePassword ? (
-              <SheetActionRow
-                icon="lock-closed-outline"
-                title="Change password"
-                subtitle="Update the password for this email"
-                onPress={() => {
-                  void triggerLight();
-                  setPasswordEditorVisible(true);
-                }}
-                showDivider={false}
-              />
-            ) : null}
-          </HearthSurfaceCard>
-
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            {HOMEKEEP_PLUS_NAME}
-          </Text>
-          <HearthSurfaceCard style={styles.groupSurface}>
-            <SheetActionRow
-              icon="sparkles-outline"
-              title="Plan"
-              subtitle={plusSubtitle}
-              onPress={() => {
-                void triggerLight();
-                void presentPaywall({ force: true });
-              }}
-              showDivider
-            />
-            {getPrivacyUrl() ? (
-              <SheetActionRow
-                icon="document-text-outline"
-                title="Privacy Policy"
-                onPress={() => {
-                  void triggerLight();
-                  void openLegal("privacy");
-                }}
-                showDivider
-              />
-            ) : null}
-            <SheetActionRow
-              icon="reader-outline"
-              title="Terms of Use"
-              onPress={() => {
-                void triggerLight();
-                void openLegal("terms");
-              }}
-              showChevron
               showDivider={false}
             />
-          </HearthSurfaceCard>
+          ) : null}
+        </HearthSurfaceCard>
 
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Home
-          </Text>
-          <HearthSurfaceCard style={styles.groupSurface}>
-            {homeRows.map((row, index) => (
-              <SheetActionRow
-                key={row.title}
-                {...row}
-                showDivider={index < homeRows.length - 1}
-              />
-            ))}
-          </HearthSurfaceCard>
-
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Notifications
-          </Text>
-          <HearthSurfaceCard style={styles.groupSurface}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          {HOMEKEEP_PLUS_NAME}
+        </Text>
+        <HearthSurfaceCard style={styles.groupSurface}>
+          <SheetActionRow
+            icon="sparkles-outline"
+            title="Plan"
+            subtitle={plusSubtitle}
+            onPress={() => {
+              void triggerLight();
+              void presentPaywall({ force: true });
+            }}
+            showDivider
+          />
+          {getPrivacyUrl() ? (
             <SheetActionRow
-              icon="notifications-outline"
-              title="Notification settings"
+              icon="document-text-outline"
+              title="Privacy Policy"
               onPress={() => {
                 void triggerLight();
-                setNotificationModalVisible(true);
+                void openLegal("privacy");
               }}
-            />
-          </HearthSurfaceCard>
-
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Data
-          </Text>
-          <HearthSurfaceCard style={styles.groupSurface}>
-            <SheetActionRow
-              icon="trash-bin-outline"
-              title="Reset this home's schedule"
-              onPress={() => void handleDeleteAllTasks()}
-              destructive
-              disabled={!hasAnyTasks}
-              showChevron={false}
               showDivider
             />
+          ) : null}
+          <SheetActionRow
+            icon="reader-outline"
+            title="Terms of Use"
+            onPress={() => {
+              void triggerLight();
+              void openLegal("terms");
+            }}
+            showChevron
+            showDivider={false}
+          />
+        </HearthSurfaceCard>
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Home
+        </Text>
+        <HearthSurfaceCard style={styles.groupSurface}>
+          {homeRows.map((row, index) => (
             <SheetActionRow
-              icon="person-remove-outline"
-              title="Delete account"
-              onPress={() => void handleDeleteAccount()}
-              destructive
-              showChevron={false}
+              key={row.title}
+              {...row}
+              showDivider={index < homeRows.length - 1}
             />
-          </HearthSurfaceCard>
-        </ScrollView>
-      </HearthSheet>
+          ))}
+        </HearthSurfaceCard>
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Notifications
+        </Text>
+        <HearthSurfaceCard style={styles.groupSurface}>
+          <SheetActionRow
+            icon="notifications-outline"
+            title="Notification settings"
+            onPress={() => {
+              void triggerLight();
+              setNotificationModalVisible(true);
+            }}
+          />
+        </HearthSurfaceCard>
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Data
+        </Text>
+        <HearthSurfaceCard style={styles.groupSurface}>
+          <SheetActionRow
+            icon="trash-bin-outline"
+            title="Reset this home's schedule"
+            onPress={() => void handleDeleteAllTasks()}
+            destructive
+            disabled={!hasAnyTasks}
+            showChevron={false}
+            showDivider
+          />
+          <SheetActionRow
+            icon="person-remove-outline"
+            title="Delete account"
+            onPress={() => void handleDeleteAccount()}
+            destructive
+            showChevron={false}
+          />
+        </HearthSurfaceCard>
+      </ScrollView>
 
       {notificationModalVisible ? (
         <NotificationSettingsModal
           visible
-          embedded
           onClose={() => setNotificationModalVisible(false)}
         />
       ) : null}
@@ -367,7 +338,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         visible={homeSetupVisible}
         onClose={() => setHomeSetupVisible(false)}
         hideSkip
-        embedded
       />
 
       <HouseholdSharingModal
@@ -378,16 +348,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       {emergencyVisible ? (
         <EmergencyFactsModal
           visible
-          embedded
           onClose={() => setEmergencyVisible(false)}
         />
       ) : null}
 
       {nameEditorVisible ? (
-        <EditNameModal
-          visible
-          onClose={() => setNameEditorVisible(false)}
-        />
+        <EditNameModal visible onClose={() => setNameEditorVisible(false)} />
       ) : null}
 
       {passwordEditorVisible ? (
@@ -396,21 +362,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           onClose={() => setPasswordEditorVisible(false)}
         />
       ) : null}
-
-      <PlusPaywallSheet embedded />
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetContent: {
-    paddingHorizontal: 0,
-    flex: 1,
-    minHeight: 0,
-  },
   scrollInner: {
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingBottom: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
+    paddingBottom: DesignSystem.spacing.xxl,
   },
   identity: {
     paddingBottom: DesignSystem.spacing.md,

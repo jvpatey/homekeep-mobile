@@ -287,6 +287,7 @@ export const DashboardScheduleList = forwardRef<
       keyExtractor={(item) => item.instance_id}
       stickySectionHeadersEnabled
       showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="automatic"
       onScrollToIndexFailed={({ index }) => {
         setTimeout(() => {
           listRef.current?.scrollToLocation({

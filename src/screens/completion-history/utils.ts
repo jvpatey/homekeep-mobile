@@ -9,17 +9,17 @@ import {
   subDays,
 } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
-import { MaintenanceTask } from "../../types/maintenance";
+import { MaintenanceTask, isRepairRoutine } from "../../types/maintenance";
 
 export type HistoryLookback = 30 | 90 | "all";
 
-export type CompletionHistoryStatus = "completed" | "completed_late";
+export type CompletionHistoryStatus = "completed" | "completed_late" | "repair";
 
 export interface CompletionHistoryStatusMeta {
   status: CompletionHistoryStatus;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  colorKey: "success" | "warning";
+  colorKey: "success" | "warning" | "primary";
 }
 
 export interface CompletionDaySection {
@@ -67,6 +67,7 @@ function daySectionTitle(key: string, referenceDate: Date): string {
 export function getCompletionHistoryStatus(
   task: MaintenanceTask
 ): CompletionHistoryStatus {
+  if (isRepairRoutine(task)) return "repair";
   const due = startOfDay(toLocalDate(task.due_date));
   const completedAt = startOfDay(
     toLocalDate(task.completed_at || task.due_date)
@@ -78,6 +79,14 @@ export function getCompletionHistoryStatus(
 export function completionHistoryStatusMeta(
   status: CompletionHistoryStatus
 ): CompletionHistoryStatusMeta {
+  if (status === "repair") {
+    return {
+      status,
+      label: "Repair",
+      icon: "hammer-outline",
+      colorKey: "primary",
+    };
+  }
   if (status === "completed_late") {
     return {
       status,
@@ -97,7 +106,27 @@ export function completionHistoryStatusMeta(
 export const COMPLETION_HISTORY_LEGEND: CompletionHistoryStatusMeta[] = [
   completionHistoryStatusMeta("completed"),
   completionHistoryStatusMeta("completed_late"),
+  completionHistoryStatusMeta("repair"),
 ];
+
+/** Case-insensitive match on title, notes, category, and pro. */
+export function filterCompletionsByQuery(
+  tasks: MaintenanceTask[],
+  query: string
+): MaintenanceTask[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return tasks;
+  return tasks.filter((task) =>
+    [
+      task.title,
+      task.notes,
+      task.category,
+      task.contact?.name,
+      task.contact?.company,
+      task.completed_by_name,
+    ].some((field) => field?.toLowerCase().includes(needle))
+  );
+}
 
 export function filterCompletionsByLookback(
   tasks: MaintenanceTask[],

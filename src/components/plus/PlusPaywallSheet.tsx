@@ -30,6 +30,7 @@ import {
   plusPlanLabel,
   plusStatusSubtitle,
 } from "../../lib/purchases";
+import { isPlusFeatureKey, PLUS_FEATURES } from "../../lib/plusFeatures";
 import {
   PlusSuccessCelebration,
   PlusSuccessKind,
@@ -38,10 +39,16 @@ import {
 type PlanKey = "yearly" | "monthly";
 
 const VALUE_LINES = [
-  "Personalized reminders",
-  "Manuals and HomeShare",
-  "The next cycle, automatically",
+  "Every job, cost, and photo, kept with the house",
+  "Spend by year and category",
+  "Manuals, parts, and your trusted pros",
+  "A home history PDF for buyers and insurers",
+  "Share the home with everyone who lives there",
 ];
+
+const DEFAULT_HEADLINE = "Keep your home's record";
+const DEFAULT_SUBHEAD =
+  "Your schedule is free. HomeKeep + keeps the history, costs, documents, and people behind it.";
 
 const COLUMN_MAX = 480;
 
@@ -298,6 +305,26 @@ export function PlusPaywallSheet({
     : null;
   const showRetry = showPurchaseOptions && Boolean(offeringsError);
 
+  const feature = isPlusFeatureKey(paywallReason)
+    ? PLUS_FEATURES[paywallReason]
+    : null;
+  const headline = manageOnly
+    ? "Your plan"
+    : feature
+      ? feature.headline
+      : paywallReason === "free_exhausted"
+        ? "You’ve used your free tasks"
+        : status === "promo"
+          ? "Subscribe to keep HomeKeep +"
+          : DEFAULT_HEADLINE;
+  const subhead = feature
+    ? feature.blurb
+    : paywallReason === "free_exhausted"
+      ? "Your schedule stays free to view. Subscribe to keep checking things off and keep the record of every job."
+      : status === "promo"
+        ? currentStatus
+        : DEFAULT_SUBHEAD;
+
   return (
     <>
     <HearthSheet
@@ -374,22 +401,22 @@ export function PlusPaywallSheet({
         ]}
       >
         <View style={styles.hero}>
+          {feature && !manageOnly ? (
+            <View
+              style={[
+                styles.featureIcon,
+                { backgroundColor: colors.primary + "18" },
+              ]}
+            >
+              <Ionicons name={feature.icon} size={22} color={colors.primary} />
+            </View>
+          ) : null}
           <Text style={[styles.headline, { color: colors.text }]}>
-            {manageOnly
-              ? "Your plan"
-              : paywallReason === "free_exhausted"
-                ? "You’ve handled your first tasks"
-                : status === "promo"
-                  ? "Subscribe to keep HomeKeep +"
-                  : "Try everything for 7 days"}
+            {headline}
           </Text>
           {!manageOnly ? (
             <Text style={[styles.subhead, { color: colors.textSecondary }]}>
-              {paywallReason === "free_exhausted"
-                ? `Unlock ${HOMEKEEP_PLUS_NAME} for unlimited completes, custom tasks, and the full plan.`
-                : status === "promo"
-                  ? currentStatus
-                  : "Reminders, HomeShare, and the next cycle. Cancel anytime."}
+              {subhead}
             </Text>
           ) : null}
         </View>
@@ -400,14 +427,36 @@ export function PlusPaywallSheet({
 
         {showPurchaseOptions ? (
           <View style={styles.values}>
-            {VALUE_LINES.map((line) => (
-              <View key={line} style={styles.valueRow}>
-                <Ionicons name="checkmark" size={16} color={colors.primary} />
-                <Text style={[styles.valueLine, { color: colors.text }]}>
-                  {line}
-                </Text>
-              </View>
-            ))}
+            {VALUE_LINES.map((line, index) => {
+              const highlighted = feature?.valueLine === index;
+              return (
+                <View
+                  key={line}
+                  style={[
+                    styles.valueRow,
+                    highlighted && [
+                      styles.valueRowHighlighted,
+                      { backgroundColor: colors.primary + "14" },
+                    ],
+                  ]}
+                >
+                  <Ionicons
+                    name={highlighted ? "checkmark-circle" : "checkmark"}
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.valueLine,
+                      { color: colors.text },
+                      highlighted && styles.valueLineHighlighted,
+                    ]}
+                  >
+                    {line}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         ) : null}
 
@@ -653,6 +702,14 @@ const styles = StyleSheet.create({
   hero: {
     gap: DesignSystem.spacing.xs,
   },
+  featureIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: DesignSystem.spacing.sm,
+  },
   headline: {
     ...DesignSystem.typography.title2,
   },
@@ -706,9 +763,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: DesignSystem.spacing.sm,
   },
+  valueRowHighlighted: {
+    marginHorizontal: -DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.xs + 2,
+    borderRadius: DesignSystem.borders.radius.medium,
+  },
   valueLine: {
     ...DesignSystem.typography.callout,
     flex: 1,
+  },
+  valueLineHighlighted: {
+    fontWeight: "600",
   },
   notice: {
     ...DesignSystem.typography.footnote,

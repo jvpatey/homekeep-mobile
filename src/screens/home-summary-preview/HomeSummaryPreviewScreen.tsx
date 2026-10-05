@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useLayoutEffect, useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -15,16 +15,22 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useAuth } from "../../context/AuthContext";
 import { useHaptics } from "../../hooks";
-import { useRequirePlus } from "../../hooks/useRequirePlus";
-import { HearthSheet, HomeKeepBrand } from "../../components/ui";
-import { AppStackParamList } from "../../navigation/types";
+import { usePlusFeature } from "../../lib/plusFeatures";
+import { HeaderIconButton, HomeKeepBrand } from "../../components/ui";
+import { RecordStackParamList } from "../../navigation/types";
+import { useAppNavigation } from "../../navigation/useAppNavigation";
 import {
   HomeSummaryService,
   homeSummaryHasContent,
   resolveOwnerName,
 } from "../../services/HomeSummaryService";
-import { formatHomeSummaryHistoryMeta, formatHomeSummaryCost, laborTypeLabel } from "../../utils/groupHomeSummaryTasks";
+import {
+  formatHomeSummaryHistoryMeta,
+  formatHomeSummaryCost,
+  laborTypeLabel,
+} from "../../utils/groupHomeSummaryTasks";
 import { warrantyStatusLabel } from "../../utils/equipmentWarranty";
+import { DEFAULT_CURRENCY } from "../../utils/formatMoney";
 import { HomeSummaryTaskGroup } from "../../types/homeSummary";
 import { HomeSummaryPdfService } from "../../services/HomeSummaryPdfService";
 import { HomeSummaryReportData } from "../../types/homeSummary";
@@ -36,16 +42,20 @@ function TaskGroupRow({
   group,
   colors,
   showBorder,
+  currency,
 }: {
   group: HomeSummaryTaskGroup;
   colors: ThemeColors;
   showBorder: boolean;
+  currency: string;
 }) {
   return (
     <View
       style={[styles.taskRow, showBorder && { borderTopColor: colors.border }]}
     >
-      <Text style={[styles.taskTitle, { color: colors.text }]}>{group.title}</Text>
+      <Text style={[styles.taskTitle, { color: colors.text }]}>
+        {group.title}
+      </Text>
       <Text style={[styles.taskMeta, { color: colors.textSecondary }]}>
         {group.category}
         {group.completions.length > 1
@@ -56,7 +66,7 @@ function TaskGroupRow({
         const labor = laborTypeLabel(completion.laborType);
         const cost =
           typeof completion.costAmount === "number"
-            ? formatHomeSummaryCost(completion.costAmount)
+            ? formatHomeSummaryCost(completion.costAmount, currency)
             : null;
         const extras = [labor, cost].filter(Boolean).join(" · ");
         return (
@@ -85,14 +95,14 @@ function TaskGroupRow({
 
 export function HomeSummaryPreviewScreen() {
   const { colors, isDark } = useTheme();
-  const { profile } = useProfile();
+  const { profile, homeNotes } = useProfile();
   const { user } = useAuth();
   const navigation =
-    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+    useNavigation<NativeStackNavigationProp<RecordStackParamList>>();
+  const { openSettings } = useAppNavigation();
   const { triggerLight, triggerMedium } = useHaptics();
-  const requirePlus = useRequirePlus();
+  const pdf = usePlusFeature("pdf");
 
-  const [sheetVisible, setSheetVisible] = useState(true);
   const [report, setReport] = useState<HomeSummaryReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -106,10 +116,8 @@ export function HomeSummaryPreviewScreen() {
   const loadReport = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: fetchError } = await HomeSummaryService.fetchReportData(
-      profile,
-      ownerName
-    );
+    const { data, error: fetchError } =
+      await HomeSummaryService.fetchReportData(profile, ownerName, homeNotes);
     if (fetchError) {
       setError(fetchError.message);
       setReport(null);
@@ -117,7 +125,7 @@ export function HomeSummaryPreviewScreen() {
       setReport({ ...data, generatedAt: new Date() });
     }
     setLoading(false);
-  }, [profile, ownerName]);
+  }, [profile, ownerName, homeNotes]);
 
   useFocusEffect(
     useCallback(() => {
@@ -127,7 +135,7 @@ export function HomeSummaryPreviewScreen() {
 
   const handleExport = async () => {
     if (!report || !homeSummaryHasContent(report)) return;
-    if (!(await requirePlus())) return;
+    if (!(await pdf.unlock())) return;
     await triggerMedium();
     setExporting(true);
     const result = await HomeSummaryPdfService.exportAndShare(report);
@@ -142,15 +150,11 @@ export function HomeSummaryPreviewScreen() {
 
   const handleOpenSettings = async () => {
     await triggerLight();
-    navigation.navigate("Settings");
+    openSettings();
   };
 
-  const closeSheet = () => {
-    setSheetVisible(false);
-    navigation.goBack();
-  };
-
-  const canExport = report && homeSummaryHasContent(report) && !loading && !exporting;
+  const canExport =
+    report && homeSummaryHasContent(report) && !loading && !exporting;
   const generatedLabel = report
     ? format(report.generatedAt, "MMMM d, yyyy")
     : format(new Date(), "MMMM d, yyyy");
@@ -160,42 +164,51 @@ export function HomeSummaryPreviewScreen() {
     borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.border,
   };
 
+  const exportButton = (
+    <TouchableOpacity
+      style={[
+        styles.exportButton,
+        {
+          backgroundColor: canExport ? colors.primary : colors.border,
+        },
+      ]}
+      onPress={() => void handleExport()}
+      disabled={!canExport}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Export PDF"
+      accessibilityState={{ disabled: !canExport }}
+    >
+      {exporting ? (
+        <ActivityIndicator color="#FFFFFF" />
+      ) : (
+        <Ionicons name="share-outline" size={20} color="#FFFFFF" />
+      )}
+      <Text style={styles.exportButtonText}>
+        {exporting ? "Creating PDF…" : "Export PDF"}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderIconButton
+          icon="share-outline"
+          onPress={() => void handleExport()}
+          disabled={!canExport}
+          accessibilityLabel="Export PDF"
+        />
+      ),
+    });
+  });
+
   return (
-    <HearthSheet
-      visible={sheetVisible}
-      onClose={closeSheet}
-      title="Home summary"
-      embedded
-      keyboardAvoiding={false}
-      fillMaxHeight
-      contentStyle={styles.sheetContent}
-      footer={
-        loading ? undefined : (
-          <TouchableOpacity
-            style={[
-              styles.exportButton,
-              {
-                backgroundColor: canExport ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={() => void handleExport()}
-            disabled={!canExport}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Export PDF"
-            accessibilityState={{ disabled: !canExport }}
-          >
-            {exporting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Ionicons name="document-text-outline" size={20} color="#FFFFFF" />
-            )}
-            <Text style={styles.exportButtonText}>
-              {exporting ? "Creating PDF…" : "Export PDF"}
-            </Text>
-          </TouchableOpacity>
-        )
-      }
+    <ScrollView
+      style={[styles.scroll, { backgroundColor: colors.background }]}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
     >
       {error ? (
         <View
@@ -207,7 +220,9 @@ export function HomeSummaryPreviewScreen() {
             },
           ]}
         >
-          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => void loadReport()}
@@ -229,11 +244,7 @@ export function HomeSummaryPreviewScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <>
           <Text
             style={[styles.headerSubtitle, { color: colors.textSecondary }]}
           >
@@ -276,7 +287,9 @@ export function HomeSummaryPreviewScreen() {
               ))
             ) : (
               <>
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   No home address on file.
                 </Text>
                 <TouchableOpacity
@@ -328,7 +341,11 @@ export function HomeSummaryPreviewScreen() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Model: {item.modelNumber ?? "—"} · Purchased:{" "}
+                      {[item.manufacturer, item.modelNumber]
+                        .filter(Boolean)
+                        .join(" ") || "Model —"}
+                      {item.serialNumber ? ` · S/N ${item.serialNumber}` : ""}
+                      {" · Purchased: "}
                       {item.purchaseDateLabel ?? "—"}
                     </Text>
                     {item.warrantyExpiresLabel ? (
@@ -366,6 +383,54 @@ export function HomeSummaryPreviewScreen() {
             )}
           </View>
 
+          {report && report.paints.length > 0 ? (
+            <View style={[styles.section, sectionSurface]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Paint colours
+              </Text>
+              {report.paints.map((paint, index) => (
+                <View
+                  key={`${paint.room}-${paint.name}-${index}`}
+                  style={[
+                    styles.equipmentRow,
+                    styles.paintRow,
+                    {
+                      borderTopColor: index > 0 ? colors.border : "transparent",
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.paintSwatch,
+                      {
+                        backgroundColor: paint.hex ?? colors.fieldFill,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  />
+                  <View style={styles.paintText}>
+                    <Text
+                      style={[styles.equipmentName, { color: colors.text }]}
+                    >
+                      {paint.room ? `${paint.room}: ` : ""}
+                      {paint.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.equipmentDetail,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {[paint.brand, paint.code, paint.finish]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           <View style={[styles.section, sectionSurface]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Maintenance history
@@ -378,8 +443,15 @@ export function HomeSummaryPreviewScreen() {
                 style={[styles.sectionMeta, { color: colors.textSecondary }]}
               >
                 Spend {report.spendTotals.yearLabel}:{" "}
-                {formatHomeSummaryCost(report.spendTotals.yearTotal)} · All
-                time: {formatHomeSummaryCost(report.spendTotals.allTimeTotal)}
+                {formatHomeSummaryCost(
+                  report.spendTotals.yearTotal,
+                  report.currency
+                )}{" "}
+                · All time:{" "}
+                {formatHomeSummaryCost(
+                  report.spendTotals.allTimeTotal,
+                  report.currency
+                )}
               </Text>
             ) : null}
             {(report?.taskGroups.length ?? 0) === 0 ? (
@@ -393,6 +465,7 @@ export function HomeSummaryPreviewScreen() {
                   group={group}
                   colors={colors}
                   showBorder={index > 0}
+                  currency={report?.currency ?? DEFAULT_CURRENCY}
                 />
               ))
             )}
@@ -403,8 +476,9 @@ export function HomeSummaryPreviewScreen() {
             entered in HomeKeep. Verify details independently for legal,
             insurance, or warranty purposes.
           </Text>
-        </ScrollView>
+          {exportButton}
+        </>
       )}
-    </HearthSheet>
+    </ScrollView>
   );
 }

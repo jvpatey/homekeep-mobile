@@ -8,6 +8,7 @@ import {
   ServiceResponse,
   RoutineInstance,
   RoutineInstanceResponse,
+  InstanceWithRoutine,
 } from "../types/maintenance";
 import { MaintenanceDataMapper } from "./maintenanceDataMapper";
 import { enrichTasksWithCompleters } from "./enrichCompleters";
@@ -29,6 +30,17 @@ export const TASK_LIST_LIMIT = 200;
 
 /** Higher cap for home summary PDF export (all-time history). */
 export const TASK_EXPORT_LIMIT = 2000;
+
+/** Pro who did a hired job; absent until the home_record migration is applied. */
+const CONTACT_EMBED =
+  "\n          contact:home_contacts(id, name, company, phone),";
+
+function isMissingContactEmbed(error: { message?: string; code?: string }) {
+  return (
+    error.code === "PGRST200" ||
+    /home_contacts|contact_id|relationship/i.test(error.message ?? "")
+  );
+}
 
 export class MaintenanceTaskService {
   // Get next open instance for a routine (earliest due, not completed)
@@ -127,7 +139,11 @@ export class MaintenanceTaskService {
       const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
       return { data: mappedTasks, error: null };
     } catch (error) {
-      return failedQuery(error, "Error fetching maintenance tasks:", "Couldn't load tasks");
+      return failedQuery(
+        error,
+        "Error fetching maintenance tasks:",
+        "Couldn't load tasks"
+      );
     }
   }
 
@@ -181,7 +197,11 @@ export class MaintenanceTaskService {
       const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
       return { data: mappedTasks, error: null };
     } catch (error) {
-      return failedQuery(error, "Error fetching upcoming tasks:", "Couldn't load upcoming tasks");
+      return failedQuery(
+        error,
+        "Error fetching upcoming tasks:",
+        "Couldn't load upcoming tasks"
+      );
     }
   }
 
@@ -235,7 +255,11 @@ export class MaintenanceTaskService {
       const mappedTasks = MaintenanceDataMapper.mapInstancesToTasks(data);
       return { data: mappedTasks, error: null };
     } catch (error) {
-      return failedQuery(error, "Error fetching overdue tasks:", "Couldn't load overdue tasks");
+      return failedQuery(
+        error,
+        "Error fetching overdue tasks:",
+        "Couldn't load overdue tasks"
+      );
     }
   }
 
@@ -249,13 +273,12 @@ export class MaintenanceTaskService {
     }
 
     try {
-      let query = supabase
-        .from("routine_instances")
-        .select(
-          `
+      const client = supabase;
+      const buildQuery = (withContact: boolean) => {
+        const columns: string = `
           *,
           completed_by,
-          completed_by_name,
+          completed_by_name,${withContact ? CONTACT_EMBED : ""}
           routine:maintenance_routines(
             id,
             user_id,
@@ -272,37 +295,50 @@ export class MaintenanceTaskService {
             created_at,
             updated_at
           )
-        `
-        )
-        .eq("is_completed", true)
-        .order("completed_at", {
-          ascending: false,
-          nullsFirst: false,
-        });
+        `;
+        let query = client
+          .from("routine_instances")
+          .select(columns)
+          .eq("is_completed", true)
+          .order("completed_at", {
+            ascending: false,
+            nullsFirst: false,
+          });
 
-      if (lookbackDays !== "all") {
-        const now = new Date();
-        const from = addDays(now, -lookbackDays);
-        const fromIso = from.toISOString();
-        // Include legacy rows where is_completed is true but completed_at is null
-        // (plain .gte on completed_at excludes NULL in SQL). Still bound them to the
-        // lookback window using due_date so old NULL rows do not bypass lookbackDays.
-        query = query.or(
-          `completed_at.gte."${fromIso}",and(completed_at.is.null,due_date.gte."${fromIso}")`
-        );
-      }
+        if (lookbackDays !== "all") {
+          const now = new Date();
+          const from = addDays(now, -lookbackDays);
+          const fromIso = from.toISOString();
+          // Include legacy rows where is_completed is true but completed_at is null
+          // (plain .gte on completed_at excludes NULL in SQL). Still bound them to the
+          // lookback window using due_date so old NULL rows do not bypass lookbackDays.
+          query = query.or(
+            `completed_at.gte."${fromIso}",and(completed_at.is.null,due_date.gte."${fromIso}")`
+          );
+        }
+        return query;
+      };
 
       const limit = options?.forExport ? TASK_EXPORT_LIMIT : TASK_LIST_LIMIT;
-      const { data, error } = await query.limit(limit);
+      let { data, error } = await buildQuery(true).limit(limit);
+      if (error && isMissingContactEmbed(error)) {
+        ({ data, error } = await buildQuery(false).limit(limit));
+      }
 
       if (error) throw error;
 
       const mappedTasks = await enrichTasksWithCompleters(
-        MaintenanceDataMapper.mapInstancesToTasks(data)
+        MaintenanceDataMapper.mapInstancesToTasks(
+          (data ?? []) as unknown as InstanceWithRoutine[]
+        )
       );
       return { data: mappedTasks, error: null };
     } catch (error) {
-      return failedQuery(error, "Error fetching completed tasks:", "Couldn't load completed tasks");
+      return failedQuery(
+        error,
+        "Error fetching completed tasks:",
+        "Couldn't load completed tasks"
+      );
     }
   }
 
@@ -346,7 +382,11 @@ export class MaintenanceTaskService {
 
       return { data: null, error: null };
     } catch (error) {
-      return failedQuery(error, "Error updating overdue status:", "Couldn't update overdue status");
+      return failedQuery(
+        error,
+        "Error updating overdue status:",
+        "Couldn't update overdue status"
+      );
     }
   }
 }

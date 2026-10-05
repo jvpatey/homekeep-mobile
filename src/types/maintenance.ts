@@ -30,6 +30,7 @@ export interface RoutineInstance {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  contact_id?: string | null;
   completed_by?: string | null;
   completed_by_name?: string | null;
   created_at: string;
@@ -60,10 +61,38 @@ export interface MaintenanceTask {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  contact_id?: string | null;
+  /** Embedded pro on completed rows (history / ledger queries). */
+  contact?: TaskContactSummary | null;
   completed_by?: string | null;
   completed_by_name?: string | null;
   completed_by_avatar_style?: string | null;
   completed_by_avatar_url?: string | null;
+}
+
+export interface TaskContactSummary {
+  id: string;
+  name: string;
+  company?: string | null;
+  phone?: string | null;
+}
+
+/** Optional record details saved with a completion or repair. */
+export interface CompletionExtras {
+  notes?: string;
+  cost_amount?: number | null;
+  labor_type?: "diy" | "hired" | null;
+  photo_storage_path?: string | null;
+  contact_id?: string | null;
+}
+
+/** `source_plan_id` sentinel for one-off repairs logged after the fact. */
+export const REPAIR_SOURCE_PLAN_ID = "repair";
+
+export function isRepairRoutine(
+  routine: { source_plan_id?: string | null } | null | undefined
+): boolean {
+  return routine?.source_plan_id === REPAIR_SOURCE_PLAN_ID;
 }
 
 export type MaintenanceCategory =
@@ -123,6 +152,7 @@ export interface UpdateRoutineInstanceData {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  contact_id?: string | null;
   completed_by?: string | null;
   completed_by_name?: string | null;
 }
@@ -362,6 +392,8 @@ export interface InstanceWithRoutine {
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
+  contact_id?: string | null;
+  contact?: TaskContactSummary | null;
   completed_by?: string | null;
   completed_by_name?: string | null;
   completed_by_avatar_style?: string | null;

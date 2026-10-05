@@ -11,6 +11,8 @@ import { Button } from "../../../ui/Button";
 import { PriorityMark } from "../../../ui/PriorityMark";
 import { categories } from "../create-task-modal/data";
 import { formatTaskSectionHeading } from "../../../../utils/formatTaskDates";
+import { EquipmentTaskCard } from "../../../equipment/EquipmentTaskCard";
+import { useAppNavigation } from "../../../../navigation/useAppNavigation";
 import {
   getMaintenancePlanById,
   getPlanTheme,
@@ -56,6 +58,7 @@ export function SimpleTaskDetailModal({
   const { isTablet } = useDevice();
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const { openRecord } = useAppNavigation();
 
   const sheetMaxHeight = windowHeight * 0.9;
   const scrollViewportMaxHeight = sheetMaxHeight * 0.55;
@@ -70,6 +73,7 @@ export function SimpleTaskDetailModal({
   };
 
   const formatInterval = (intervalDays: number) => {
+    if (!intervalDays || intervalDays <= 0) return "One-time";
     if (intervalDays === 7) return "Weekly";
     if (intervalDays === 30) return "Monthly";
     if (intervalDays === 90) return "Quarterly";
@@ -268,6 +272,17 @@ export function SimpleTaskDetailModal({
             </View>
           ) : null}
         </View>
+
+        {task.equipment_id ? (
+          <EquipmentTaskCard
+            equipmentId={task.equipment_id}
+            taskTitle={task.title}
+            onOpen={(equipmentId) => {
+              onClose();
+              openRecord("EquipmentDetail", { equipmentId });
+            }}
+          />
+        ) : null}
 
         {task.description ? (
           <View style={styles.section}>

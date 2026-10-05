@@ -2,42 +2,42 @@ import { StyleSheet } from "react-native";
 import { DesignSystem } from "../../theme/designSystem";
 
 export const completionHistoryStyles = StyleSheet.create({
-  sheetContent: {
-    paddingHorizontal: 0,
-    flex: 1,
-    minHeight: 0,
-  },
   list: {
     flex: 1,
   },
   listContent: {
     paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
     flexGrow: 1,
   },
   listHeader: {
     marginBottom: DesignSystem.spacing.md,
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.sm,
+  segmented: {
     marginBottom: DesignSystem.spacing.md,
   },
+  chipLine: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: DesignSystem.spacing.xs + 2,
+  },
   chip: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: DesignSystem.borders.radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
+    maxWidth: 180,
   },
   chipText: {
     ...DesignSystem.typography.captionSemiBold,
+    fontVariant: ["tabular-nums"],
+    flexShrink: 1,
   },
   subtitle: {
     ...DesignSystem.typography.footnote,
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  truncationNote: {
-    ...DesignSystem.typography.caption,
     marginBottom: DesignSystem.spacing.sm,
   },
   legendRow: {
@@ -111,17 +111,6 @@ export const completionHistoryStyles = StyleSheet.create({
     lineHeight: 18,
     marginTop: DesignSystem.spacing.xs,
   },
-  rowError: {
-    ...DesignSystem.typography.caption,
-    marginTop: DesignSystem.spacing.xs,
-  },
-  undoButton: {
-    paddingVertical: DesignSystem.spacing.xs,
-    paddingLeft: DesignSystem.spacing.sm,
-  },
-  undoText: {
-    ...DesignSystem.typography.smallSemiBold,
-  },
   loadingState: {
     alignItems: "center",
     justifyContent: "center",
@@ -156,5 +145,17 @@ export const completionHistoryStyles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
     maxWidth: 280,
+  },
+  emptyAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs,
+    marginTop: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.sm + 2,
+    borderRadius: DesignSystem.borders.radius.round,
+  },
+  emptyActionText: {
+    ...DesignSystem.typography.bodySemiBold,
   },
 });

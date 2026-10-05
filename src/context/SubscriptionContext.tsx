@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
+import type { PlusFeatureKey } from "../lib/plusFeatures";
 import Purchases, {
   CustomerInfo,
   PurchasesOffering,
@@ -56,6 +57,9 @@ type RestoreResult =
   | { restored: true }
   | { restored: false; error?: string };
 
+/** Why the paywall opened; picks the headline and highlighted value line. */
+export type PaywallReason = "free_exhausted" | PlusFeatureKey;
+
 interface SubscriptionContextValue {
   isPlus: boolean;
   isTrialing: boolean;
@@ -75,11 +79,11 @@ interface SubscriptionContextValue {
   daysRemaining: number | null;
   presentPaywall: (options?: {
     force?: boolean;
-    reason?: "free_exhausted";
+    reason?: PaywallReason;
   }) => Promise<boolean>;
   closePaywall: () => void;
   offerPaywallAfterSetup: () => void;
-  paywallReason: "free_exhausted" | null;
+  paywallReason: PaywallReason | null;
   reloadOfferings: () => Promise<void>;
   purchasePackage: (pkg: PurchasesPackage) => Promise<PurchaseResult>;
   restore: () => Promise<RestoreResult>;
@@ -163,7 +167,7 @@ export function SubscriptionProvider({
   const [purchasing, setPurchasing] = useState(false);
   const [paywallVisible, setPaywallVisible] = useState(false);
   const [paywallEpoch, setPaywallEpoch] = useState(0);
-  const [paywallReason, setPaywallReason] = useState<"free_exhausted" | null>(
+  const [paywallReason, setPaywallReason] = useState<PaywallReason | null>(
     null
   );
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
@@ -442,7 +446,7 @@ export function SubscriptionProvider({
   }, []);
 
   const presentPaywall = useCallback(
-    async (options?: { force?: boolean; reason?: "free_exhausted" }) => {
+    async (options?: { force?: boolean; reason?: PaywallReason }) => {
       if (isPlusRef.current && !options?.force) return true;
       const prior = paywallResolverRef.current;
       if (prior) {

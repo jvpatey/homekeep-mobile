@@ -24,7 +24,10 @@ const TEXT_SECONDARY = "#6B645C";
 const BORDER = "#E5DDD2";
 const SURFACE = "#F4EFE6";
 
-function completionLine(completion: HomeSummaryTaskGroup["completions"][number]): string {
+function completionLine(
+  completion: HomeSummaryTaskGroup["completions"][number],
+  currency: string
+): string {
   const who = completion.completedByLabel
     ? ` · ${completion.completedByLabel}`
     : "";
@@ -32,18 +35,21 @@ function completionLine(completion: HomeSummaryTaskGroup["completions"][number])
   const laborPart = labor ? ` · ${labor}` : "";
   const costPart =
     typeof completion.costAmount === "number"
-      ? ` · ${formatHomeSummaryCost(completion.costAmount)}`
+      ? ` · ${formatHomeSummaryCost(completion.costAmount, currency)}`
       : "";
   return `${completion.completedDateLabel}${who}${laborPart}${costPart}`;
 }
 
-function renderCompletionsCell(group: HomeSummaryTaskGroup): string {
+function renderCompletionsCell(
+  group: HomeSummaryTaskGroup,
+  currency: string
+): string {
   if (group.completions.length === 1) {
     const completion = group.completions[0];
     const notesBlock = completion.notes
       ? `<div class="notes">${escapeHtml(completion.notes)}</div>`
       : "";
-    return `${escapeHtml(completionLine(completion))}${notesBlock}`;
+    return `${escapeHtml(completionLine(completion, currency))}${notesBlock}`;
   }
 
   return `<ul class="completion-list">${group.completions
@@ -51,7 +57,7 @@ function renderCompletionsCell(group: HomeSummaryTaskGroup): string {
       const notesBlock = completion.notes
         ? `<div class="notes">${escapeHtml(completion.notes)}</div>`
         : "";
-      return `<li class="completion-item">${escapeHtml(completionLine(completion))}${notesBlock}</li>`;
+      return `<li class="completion-item">${escapeHtml(completionLine(completion, currency))}${notesBlock}</li>`;
     })
     .join("")}</ul>`;
 }
@@ -98,9 +104,15 @@ export function buildHomeSummaryReportHtml(
               warrantyBits.length > 0
                 ? escapeHtml(warrantyBits.join(" · "))
                 : "—";
+            const makeModel =
+              [item.manufacturer, item.modelNumber].filter(Boolean).join(" ") ||
+              "—";
+            const serialNote = item.serialNumber
+              ? `<div class="muted">S/N ${escapeHtml(item.serialNumber)}</div>`
+              : "";
             return `<tr>
               <td>${escapeHtml(item.name)}</td>
-              <td>${escapeHtml(item.modelNumber ?? "—")}</td>
+              <td>${escapeHtml(makeModel)}${serialNote}</td>
               <td>${escapeHtml(item.purchaseDateLabel ?? "—")}${attachmentNote}</td>
               <td>${warrantyCell}</td>
             </tr>`;
@@ -108,13 +120,44 @@ export function buildHomeSummaryReportHtml(
           .join("")
       : `<tr><td colspan="4" class="empty-cell">No equipment recorded.</td></tr>`;
 
+  const paintSection =
+    data.paints.length > 0
+      ? `<section>
+    <h2>Paint colours</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Room</th>
+          <th>Colour</th>
+          <th>Finish</th>
+        </tr>
+      </thead>
+      <tbody>${data.paints
+        .map((paint) => {
+          const swatch = paint.hex
+            ? `<span class="swatch" style="background:${escapeHtml(paint.hex)}"></span>`
+            : "";
+          const detail = [paint.brand, paint.code].filter(Boolean).join(" · ");
+          return `<tr>
+              <td>${escapeHtml(paint.room || "—")}</td>
+              <td>${swatch}${escapeHtml(paint.name)}${
+                detail ? `<div class="muted">${escapeHtml(detail)}</div>` : ""
+              }</td>
+              <td>${escapeHtml(paint.finish ?? "—")}</td>
+            </tr>`;
+        })
+        .join("")}</tbody>
+    </table>
+  </section>`
+      : "";
+
   const spendBlock = data.spendTotals.hasAnyCost
     ? `<p class="section-meta">Spend ${escapeHtml(
         data.spendTotals.yearLabel
       )}: ${escapeHtml(
-        formatHomeSummaryCost(data.spendTotals.yearTotal)
+        formatHomeSummaryCost(data.spendTotals.yearTotal, data.currency)
       )} · All time: ${escapeHtml(
-        formatHomeSummaryCost(data.spendTotals.allTimeTotal)
+        formatHomeSummaryCost(data.spendTotals.allTimeTotal, data.currency)
       )}</p>`
     : "";
 
@@ -125,7 +168,7 @@ export function buildHomeSummaryReportHtml(
             (group) => `<tr>
               <td>${escapeHtml(group.title)}</td>
               <td>${escapeHtml(group.category)}</td>
-              <td>${renderCompletionsCell(group)}</td>
+              <td>${renderCompletionsCell(group, data.currency)}</td>
             </tr>`
           )
           .join("")
@@ -244,6 +287,15 @@ export function buildHomeSummaryReportHtml(
     .completion-item:last-child {
       margin-bottom: 0;
     }
+    .swatch {
+      display: inline-block;
+      width: 10pt;
+      height: 10pt;
+      border-radius: 2pt;
+      border: 1px solid ${BORDER};
+      margin-right: 6pt;
+      vertical-align: -1pt;
+    }
     .muted {
       font-size: 9pt;
       color: ${TEXT_SECONDARY};
@@ -281,7 +333,7 @@ export function buildHomeSummaryReportHtml(
       <thead>
         <tr>
           <th>Name</th>
-          <th>Model</th>
+          <th>Make and model</th>
           <th>Purchase date</th>
           <th>Warranty</th>
         </tr>
@@ -289,6 +341,8 @@ export function buildHomeSummaryReportHtml(
       <tbody>${equipmentRows}</tbody>
     </table>
   </section>
+
+  ${paintSection}
 
   <section>
     <h2>Maintenance history</h2>

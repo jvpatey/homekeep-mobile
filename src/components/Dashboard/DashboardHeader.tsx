@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Pressable,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
@@ -27,9 +28,9 @@ interface DashboardHeaderProps {
   greeting: string;
   overdueCount: number;
   dueTodayCount: number;
-  onOpenEquipmentManuals?: () => void;
   onOpenAddressEditor: () => void;
-  onOpenHomeSummary?: () => void;
+  /** Opens the add menu (reminder, repair, library). */
+  onAddPress?: () => void;
   /** Header status chip — overdue preferred over due today when both exist. */
   onStatusChipPress?: (kind: "overdue" | "today") => void;
   animatedStyle?: object;
@@ -42,9 +43,8 @@ export function DashboardHeader({
   greeting,
   overdueCount,
   dueTodayCount,
-  onOpenEquipmentManuals,
   onOpenAddressEditor,
-  onOpenHomeSummary,
+  onAddPress,
   onStatusChipPress,
   animatedStyle,
   seasonLabel,
@@ -143,7 +143,11 @@ export function DashboardHeader({
     <Wrapper
       style={[
         styles.container,
-        { paddingTop: insets.top + DesignSystem.spacing.md },
+        {
+          // iOS: the list's automatic content inset already clears the status bar.
+          paddingTop:
+            (Platform.OS === "ios" ? 0 : insets.top) + DesignSystem.spacing.sm,
+        },
         animatedStyle,
       ]}
     >
@@ -158,41 +162,26 @@ export function DashboardHeader({
         </View>
 
         <View style={styles.topActions}>
-          {onOpenEquipmentManuals ? (
+          {onAddPress ? (
             <TouchableOpacity
               onPress={() => {
                 triggerLight();
-                onOpenEquipmentManuals();
+                onAddPress();
               }}
-              hitSlop={8}
+              hitSlop={6}
               style={styles.iconHit}
               accessibilityRole="button"
-              accessibilityLabel="Equipment manuals"
+              accessibilityLabel="Add"
+              accessibilityHint="Add a reminder, log a repair, or browse the task library"
             >
-              <Ionicons
-                name="book-outline"
-                size={22}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ) : null}
-
-          {onOpenHomeSummary ? (
-            <TouchableOpacity
-              onPress={() => {
-                triggerLight();
-                onOpenHomeSummary();
-              }}
-              hitSlop={8}
-              style={styles.iconHit}
-              accessibilityRole="button"
-              accessibilityLabel="Home maintenance summary"
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={22}
-                color={colors.textSecondary}
-              />
+              <View
+                style={[
+                  styles.addButton,
+                  { backgroundColor: colors.primary + "18" },
+                ]}
+              >
+                <Ionicons name="add" size={24} color={colors.primary} />
+              </View>
             </TouchableOpacity>
           ) : null}
 
@@ -313,6 +302,13 @@ const styles = StyleSheet.create({
   iconHit: {
     minWidth: DesignSystem.components.minTouchTarget,
     minHeight: DesignSystem.components.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },

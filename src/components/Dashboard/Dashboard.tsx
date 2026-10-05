@@ -8,10 +8,10 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AppStackParamList } from "../../navigation/types";
-import { MaintenanceTask } from "../../types/maintenance";
+import { useAppNavigation } from "../../navigation/useAppNavigation";
+import { showActionMenu } from "../../utils/actionMenu";
+import { useQuickActions } from "../../context/QuickActionsContext";
+import { CompletionExtras, MaintenanceTask } from "../../types/maintenance";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -24,8 +24,6 @@ import { NotificationPermissionRequest, HearthCanvas } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { NextRightThingCard } from "./NextRightThingCard";
 import { HomeSystemMap } from "./HomeSystemMap";
-import { FloatingActionButton } from "./FloatingActionButton";
-import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
 import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeSetupModal } from "../modals/home-setup";
 import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdSharingModal";
@@ -110,12 +108,7 @@ interface NewDashboardProps {
   completedTasks?: MaintenanceTask[];
   onCompleteTask: (
     instanceId: string,
-    extras?: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
+    extras?: CompletionExtras
   ) => Promise<{ success: boolean; error?: string }>;
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
@@ -163,8 +156,8 @@ export function NewDashboard({
   const { createTasks } = useTasks();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
-  const navigation =
-    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const { goToTab, openPlan } = useAppNavigation();
+  const { openLogRepair } = useQuickActions();
 
   const [celebration, setCelebration] = useState<{
     visible: boolean;
@@ -188,8 +181,6 @@ export function NewDashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTaskInitial, setEditTaskInitial] =
     useState<MaintenanceTask | null>(null);
-  const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
-    useState(false);
   const [createEquipmentId, setCreateEquipmentId] = useState<string | null>(
     null
   );
@@ -556,12 +547,7 @@ export function NewDashboard({
   const handleCompleteTask = useCallback(
     async (
       instanceId: string,
-      extras?: {
-        notes?: string;
-        cost_amount?: number | null;
-        labor_type?: "diy" | "hired" | null;
-        photo_storage_path?: string | null;
-      }
+      extras?: CompletionExtras
     ): Promise<boolean> => {
       if (completingRef.current.has(instanceId)) return false;
       if (!(await requirePlusOrFree())) return false;
@@ -795,6 +781,7 @@ export function NewDashboard({
 
   useEffect(() => {
     if (!pendingOpen) return;
+    goToTab("HomeTab");
 
     if (pendingOpen.action === "household") {
       setShowHouseholdModal(true);
@@ -819,7 +806,7 @@ export function NewDashboard({
     }
 
     clearPendingOpen();
-  }, [clearPendingOpen, overdueTasks, pendingOpen, tasks]);
+  }, [clearPendingOpen, goToTab, overdueTasks, pendingOpen, tasks]);
 
   const handleTaskCreated = () => {
     setShowCreateModal(false);
@@ -868,13 +855,29 @@ export function NewDashboard({
     [overdueTasks, seasonalOverdue, tasks]
   );
 
-  const contentPaddingBottom = hasScheduleTasks
-    ? insets.bottom +
-      DesignSystem.spacing.md +
-      DesignSystem.components.buttonLarge +
-      DesignSystem.spacing.md +
-      DesignSystem.spacing.lg
-    : insets.bottom + DesignSystem.spacing.xxxl;
+  const contentPaddingBottom = DesignSystem.spacing.xxl;
+
+  const openAddMenu = () => {
+    showActionMenu({
+      options: [
+        {
+          label: "Add a reminder",
+          icon: "add-circle-outline",
+          onPress: () => void openCreateModal(),
+        },
+        {
+          label: "Log a repair",
+          icon: "hammer-outline",
+          onPress: () => void openLogRepair(),
+        },
+        {
+          label: "Browse task library",
+          icon: "library-outline",
+          onPress: () => openPlan({ segment: "library" }),
+        },
+      ],
+    });
+  };
 
   const listHeader = (
     <>
@@ -887,9 +890,8 @@ export function NewDashboard({
         greeting={getGreeting()}
         overdueCount={seasonalOverdue.length}
         dueTodayCount={dueTodayCount}
-        onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowHomeSetupModal(true)}
-        onOpenHomeSummary={() => navigation.navigate("HomeSummaryPreview")}
+        onAddPress={openAddMenu}
         onStatusChipPress={handleStatusChipPress}
         animatedStyle={headerAnimatedStyle}
         seasonLabel={seasonLabel}
@@ -997,10 +999,6 @@ export function NewDashboard({
         contentPaddingBottom={contentPaddingBottom}
       />
 
-      {hasScheduleTasks ? (
-        <FloatingActionButton onPress={openCreateModal} />
-      ) : null}
-
       {selectedTask ? (
         <SimpleTaskDetailModal
           task={selectedTask}
@@ -1091,22 +1089,6 @@ export function NewDashboard({
         snapshot={weekendCelebration.snapshot}
         onClose={handleCloseWeekendCelebration}
       />
-
-      {showEquipmentManualsModal ? (
-        <EquipmentManualsModal
-          visible
-          onClose={() => setShowEquipmentManualsModal(false)}
-          onAddRecurringTask={(equipmentId) => {
-            void (async () => {
-              if (!(await requirePlus())) return;
-              setShowEquipmentManualsModal(false);
-              setCreateEquipmentId(equipmentId);
-              setEditTaskInitial(null);
-              setShowCreateModal(true);
-            })();
-          }}
-        />
-      ) : null}
 
       <HomeSetupModal
         visible={showHomeSetupModal}

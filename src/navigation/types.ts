@@ -7,23 +7,46 @@ import { NavigatorScreenParams } from "@react-navigation/native";
  */
 export type RootStackParamList = {
   Auth: undefined; // Authentication flow for unauthenticated users
-  App: undefined; // Main app flow for authenticated users
+  App: NavigatorScreenParams<AppStackParamList> | undefined; // Main app flow for authenticated users
   EmailVerification: { url: string }; // Email verification screen with URL parameter
 };
 
 /**
- * App Stack Navigator Params (for authenticated users)
- * Contains all screens that require user authentication.
- * This is the main navigation structure for the app's core functionality.
+ * App Stack (authenticated). Tabs sit at the root; full-screen flows that
+ * should cover the tab bar are pushed above them.
  */
 export type AppStackParamList = {
-  Dashboard: undefined; // Main dashboard for authenticated users
-  CompletionHistory: undefined; // Completion history screen
-  NotificationPreferences: undefined; // Notification preferences screen
-  Settings: undefined; // Settings screen
-  AllTasks: undefined; // All tasks screen
+  Tabs: NavigatorScreenParams<AppTabsParamList> | undefined;
+  Settings: undefined;
+  NotificationPreferences: undefined;
+  /** Plan bundle flow (questionnaire + task picker). */
   MaintenancePlans: { planId?: string } | undefined;
-  HomeSummaryPreview: undefined; // Home maintenance summary preview + PDF export
+};
+
+export type AppTabsParamList = {
+  HomeTab: NavigatorScreenParams<HomeStackParamList> | undefined;
+  RecordTab: NavigatorScreenParams<RecordStackParamList> | undefined;
+  PlanTab: NavigatorScreenParams<PlanStackParamList> | undefined;
+};
+
+export type HomeStackParamList = {
+  Dashboard: undefined;
+};
+
+export type RecordStackParamList = {
+  RecordHome: undefined;
+  CompletionHistory: undefined;
+  SpendLedger: { year?: number } | undefined;
+  HomeSummaryPreview: undefined;
+  Pros: undefined;
+  ProDetail: { contactId: string };
+  EquipmentList: undefined;
+  EquipmentDetail: { equipmentId: string };
+  HomeNotes: { segment?: "paint" | "notes" } | undefined;
+};
+
+export type PlanStackParamList = {
+  PlanHome: { segment?: "library" | "reminders" } | undefined;
 };
 
 /**

@@ -8,8 +8,46 @@ import {
   EquipmentManualResponse,
   EquipmentManualsResponse,
   EquipmentManualSignedUrlResponse,
+  parseConsumables,
+  LEGACY_EQUIPMENT_TYPES,
 } from "../types/equipmentManual";
 import { logServiceFailure } from "../utils/serviceError";
+
+type PgError = { code?: string; message?: string } | null;
+
+/** Columns added by the equipment-details migration. */
+const DETAIL_COLUMNS = ["manufacturer", "serial_number", "consumables"] as const;
+
+function isMissingDetailColumn(error: PgError) {
+  const message = error?.message ?? "";
+  return (
+    DETAIL_COLUMNS.some((column) => message.includes(column)) &&
+    /column|schema|could not find/i.test(message)
+  );
+}
+
+function isTypeCheckViolation(error: PgError) {
+  return error?.code === "23514" && /equipment_type/i.test(error?.message ?? "");
+}
+
+/**
+ * Before the migration, drop the new columns and fold the new types into
+ * "other" so saves still succeed.
+ */
+function legacyRow(row: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...row };
+  for (const column of DETAIL_COLUMNS) delete next[column];
+  const type = next.equipment_type as string | null | undefined;
+  if (type && !(LEGACY_EQUIPMENT_TYPES as readonly string[]).includes(type)) {
+    next.equipment_type = "other";
+  }
+  return next;
+}
+
+function normalizeEquipment<T extends Record<string, unknown> | null>(row: T): T {
+  if (!row) return row;
+  return { ...row, consumables: parseConsumables(row.consumables) };
+}
 
 export const EQUIPMENT_MANUALS_BUCKET = "equipment-manuals";
 
@@ -151,7 +189,10 @@ export class EquipmentManualService {
 
       if (error) throw error;
 
-      return { data: data ?? [], error: null };
+      return {
+        data: (data ?? []).map((row) => normalizeEquipment(row)),
+        error: null,
+      };
     } catch (error) {
       console.error("Error listing equipment manuals:", error);
       return {
@@ -184,7 +225,7 @@ export class EquipmentManualService {
 
       const now = new Date().toISOString();
       const householdId = await getViewerHouseholdId();
-      const row = {
+      const row: Record<string, unknown> = {
         user_id: user.id,
         household_id: householdId,
         name: payload.name.trim(),
@@ -195,16 +236,28 @@ export class EquipmentManualService {
         created_at: now,
         updated_at: now,
       };
+      if (payload.manufacturer !== undefined) {
+        row.manufacturer = payload.manufacturer?.trim() || null;
+      }
+      if (payload.serial_number !== undefined) {
+        row.serial_number = payload.serial_number?.trim() || null;
+      }
+      if (payload.consumables !== undefined) {
+        row.consumables = payload.consumables;
+      }
 
-      const { data, error } = await supabase
-        .from("equipment_manuals")
-        .insert([row])
-        .select()
-        .single();
+      const client = supabase;
+      const insert = (values: Record<string, unknown>) =>
+        client.from("equipment_manuals").insert([values]).select().single();
+
+      let { data, error } = await insert(row);
+      if (error && (isMissingDetailColumn(error) || isTypeCheckViolation(error))) {
+        ({ data, error } = await insert(legacyRow(row)));
+      }
 
       if (error) throw error;
 
-      return { data, error: null };
+      return { data: normalizeEquipment(data), error: null };
     } catch (error) {
       console.error("Error creating equipment manual:", error);
       return {
@@ -249,6 +302,12 @@ export class EquipmentManualService {
       if (payload.purchase_date !== undefined) {
         updates.purchase_date = payload.purchase_date;
       }
+      if (payload.warranty_expires_on !== undefined) {
+        updates.warranty_expires_on = payload.warranty_expires_on;
+      }
+      if (payload.equipment_type !== undefined) {
+        updates.equipment_type = payload.equipment_type;
+      }
       if (payload.manual_storage_path !== undefined) {
         updates.manual_storage_path = payload.manual_storage_path;
       }
@@ -261,18 +320,33 @@ export class EquipmentManualService {
       if (payload.receipt_mime_type !== undefined) {
         updates.receipt_mime_type = payload.receipt_mime_type;
       }
+      if (payload.manufacturer !== undefined) {
+        updates.manufacturer = payload.manufacturer?.trim() || null;
+      }
+      if (payload.serial_number !== undefined) {
+        updates.serial_number = payload.serial_number?.trim() || null;
+      }
+      if (payload.consumables !== undefined) {
+        updates.consumables = payload.consumables;
+      }
 
-      const { data, error } = await supabase
-        .from("equipment_manuals")
-        .update(updates)
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .select()
-        .single();
+      const client = supabase;
+      const update = (values: Record<string, unknown>) =>
+        client
+          .from("equipment_manuals")
+          .update(values)
+          .eq("id", id)
+          .select()
+          .single();
+
+      let { data, error } = await update(updates);
+      if (error && (isMissingDetailColumn(error) || isTypeCheckViolation(error))) {
+        ({ data, error } = await update(legacyRow(updates)));
+      }
 
       if (error) throw error;
 
-      return { data, error: null };
+      return { data: normalizeEquipment(data), error: null };
     } catch (error) {
       console.error("Error updating equipment manual:", error);
       return {
@@ -406,6 +480,31 @@ export class EquipmentManualService {
     }
   }
 
+  /** Batch-sign storage paths. Missing or failed paths are omitted from the map. */
+  static async createSignedUrls(
+    storagePaths: string[],
+    expiresInSeconds = 3600
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    const unique = [...new Set(storagePaths.filter(Boolean))];
+    if (!supabase || unique.length === 0) return result;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from(EQUIPMENT_MANUALS_BUCKET)
+        .createSignedUrls(unique, expiresInSeconds);
+      if (error) throw error;
+      for (const row of data ?? []) {
+        if (row.path && row.signedUrl && !row.error) {
+          result.set(row.path, row.signedUrl);
+        }
+      }
+    } catch (error) {
+      logServiceFailure("Error batch-signing equipment files:", error);
+    }
+    return result;
+  }
+
   static async getEquipmentManualById(
     id: string
   ): Promise<EquipmentManualResponse> {
@@ -427,12 +526,11 @@ export class EquipmentManualService {
         .from("equipment_manuals")
         .select("*")
         .eq("id", id)
-        .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) throw error;
 
-      return { data: data ?? null, error: null };
+      return { data: normalizeEquipment(data ?? null), error: null };
     } catch (error) {
       console.error("Error fetching equipment manual:", error);
       return {
@@ -490,8 +588,7 @@ export class EquipmentManualService {
       const { error } = await supabase
         .from("equipment_manuals")
         .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("id", id);
 
       if (error) throw error;
 

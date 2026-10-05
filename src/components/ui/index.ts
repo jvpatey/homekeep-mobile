@@ -16,7 +16,10 @@ export { HearthCanvas } from "./HearthCanvas";
 export { HearthSurfaceCard } from "./HearthSurfaceCard";
 export { SheetActionRow } from "./sheet-action-row";
 export { PriorityMark, getPriorityColor } from "./PriorityMark";
+export { SegmentedControl, type SegmentOption } from "./SegmentedControl";
+export { HeaderIconButton } from "./HeaderIconButton";
 export {
   SearchableSelectModal,
   type SearchableOption,
 } from "./searchable-select-modal";
+export { ActionMenuHost } from "./ActionMenuHost";

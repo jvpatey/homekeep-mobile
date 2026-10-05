@@ -5,7 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useSubscription } from "../../context/SubscriptionContext";
 import { DesignSystem } from "../../theme/designSystem";
-import { HOMEKEEP_PLUS_NAME, FREE_ACTION_LIMIT } from "../../lib/purchases";
+import { FREE_ACTION_LIMIT } from "../../lib/purchases";
 import { useHaptics } from "../../hooks";
 
 export function PlusStatusBanner() {
@@ -43,12 +43,12 @@ export function PlusStatusBanner() {
       ? freeRemaining === 1
         ? "1 free action left"
         : `${freeRemaining} free actions left`
-      : `${HOMEKEEP_PLUS_NAME} is paused`;
+      : "You’ve used your free tasks";
   const subtitle = trialEnding
     ? "View your plan and billing."
     : freeTrialActions
-      ? "Complete or add a task — then unlock the full plan."
-      : "Viewing only — subscribe to complete tasks, reminders, and sharing.";
+      ? "Your schedule is free. HomeKeep + keeps the record behind it."
+      : "Your schedule is still here. Subscribe to keep checking things off and keep the record.";
 
   return (
     <Pressable

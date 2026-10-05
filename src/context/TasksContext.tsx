@@ -4,6 +4,7 @@ import {
   MaintenanceTask,
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
+  CompletionExtras,
 } from "../types/maintenance";
 import type { MaintenancePlanItemTemplate, ScheduledHomeItem } from "../data/maintenancePlans";
 
@@ -68,12 +69,7 @@ interface UseTasksReturn {
   ) => Promise<{ success: boolean; error?: string }>;
   completeTask: (
     instanceId: string,
-    extras?: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
+    extras?: CompletionExtras
   ) => Promise<{ success: boolean; error?: string }>;
   uncompleteTask: (
     instanceId: string

@@ -1,15 +1,13 @@
 import React, { useState } from "react";
 import { StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Dashboard } from "../components/Dashboard";
 import { HearthScreen } from "../components/ui";
 import { useTasks } from "../context/TasksContext";
-import { AppStackParamList } from "../navigation/types";
+import { useAppNavigation } from "../navigation/useAppNavigation";
+import { refreshEquipmentIndex } from "../hooks/useEquipmentIndex";
 
 export function DashboardScreen() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const { openPlan, openPlanFlow } = useAppNavigation();
   const {
     upcomingTasks,
     overdueTasks,
@@ -31,7 +29,7 @@ export function DashboardScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshTasks();
+    await Promise.all([refreshTasks(), refreshEquipmentIndex()]);
     setRefreshing(false);
   };
 
@@ -53,10 +51,7 @@ export function DashboardScreen() {
         tasksError={tasksError}
         onRetryTasks={refreshTasks}
         onBrowseMaintenancePlans={(planId) =>
-          navigation.navigate(
-            "MaintenancePlans",
-            planId ? { planId } : undefined
-          )
+          planId ? openPlanFlow(planId) : openPlan({ segment: "library" })
         }
       />
     </HearthScreen>

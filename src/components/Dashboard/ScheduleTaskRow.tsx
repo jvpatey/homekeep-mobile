@@ -18,6 +18,11 @@ import {
   formatTaskLatenessLabel,
 } from "../../utils/formatTaskDates";
 import { isToday, parseISO, isValid } from "date-fns";
+import { useEquipmentIndex } from "../../hooks/useEquipmentIndex";
+import {
+  bestConsumableForTask,
+  consumableSummary,
+} from "../../data/equipmentTaskHints";
 
 interface ScheduleTaskRowProps {
   task: MaintenanceTask;
@@ -269,6 +274,12 @@ export function ScheduleTaskRow({
                 </Text>
               </View>
             ) : null}
+            {task.equipment_id ? (
+              <ConsumableChip
+                equipmentId={task.equipment_id}
+                taskTitle={task.title}
+              />
+            ) : null}
             {showPriority ? (
               <View
                 style={[
@@ -375,7 +386,46 @@ const SWIPE_ACTION_WIDTH = 64;
 const SWIPE_ACTION_GAP = 6;
 const SWIPE_END_INSET = DesignSystem.spacing.md;
 
+/** The part this task likely needs, e.g. "Air filter · 16x25x1". */
+function ConsumableChip({
+  equipmentId,
+  taskTitle,
+}: {
+  equipmentId: string;
+  taskTitle: string;
+}) {
+  const { colors } = useTheme();
+  const { byId } = useEquipmentIndex({ refreshOnFocus: false });
+  const part = bestConsumableForTask(
+    taskTitle,
+    byId.get(equipmentId)?.consumables ?? []
+  );
+  if (!part) return null;
+  return (
+    <View
+      style={[
+        rowStyles.chip,
+        rowStyles.chipPlain,
+        rowStyles.chipShrink,
+        { backgroundColor: colors.fieldFill },
+      ]}
+    >
+      <Ionicons name="cube-outline" size={13} color={colors.textSecondary} />
+      <Text
+        style={[rowStyles.chipLabel, { color: colors.textSecondary }]}
+        numberOfLines={1}
+      >
+        {consumableSummary(part)}
+      </Text>
+    </View>
+  );
+}
+
 const rowStyles = StyleSheet.create({
+  chipShrink: {
+    flexShrink: 1,
+    maxWidth: "100%",
+  },
   metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",

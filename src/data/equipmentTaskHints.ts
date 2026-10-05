@@ -1,7 +1,10 @@
 import type { MaintenancePlanItemTemplate } from "./maintenancePlans/types";
 import { routineIdentityKey } from "./maintenancePlans/types";
 import type { MaintenanceCategory } from "../types/maintenance";
-import type { EquipmentType } from "../types/equipmentManual";
+import type {
+  EquipmentConsumable,
+  EquipmentType,
+} from "../types/equipmentManual";
 
 export type EquipmentHintGroup = {
   keywords: string[];
@@ -179,10 +182,14 @@ export const EQUIPMENT_TASK_HINTS: EquipmentHintGroup[] = [
     types: ["ac"],
     items: [AC],
   },
-  { keywords: ["softener"], items: [SOFTENER] },
-  { keywords: ["heat pump", "mini split", "mini-split"], items: [HEAT_PUMP] },
-  { keywords: ["mower", "lawn mower"], items: [MOWER] },
-  { keywords: ["dishwasher"], items: [DISHWASHER] },
+  { keywords: ["softener"], types: ["water_softener"], items: [SOFTENER] },
+  {
+    keywords: ["heat pump", "mini split", "mini-split"],
+    types: ["heat_pump"],
+    items: [HEAT_PUMP],
+  },
+  { keywords: ["mower", "lawn mower"], types: ["lawn_mower"], items: [MOWER] },
+  { keywords: ["dishwasher"], types: ["dishwasher"], items: [DISHWASHER] },
   {
     keywords: ["fridge", "refrigerator"],
     types: ["fridge"],
@@ -195,18 +202,84 @@ export const EQUIPMENT_TASK_HINTS: EquipmentHintGroup[] = [
   },
   {
     keywords: ["range hood", "vent hood", "extractor hood", "cooker hood"],
+    types: ["range_hood"],
     items: [RANGE_HOOD],
   },
   {
     keywords: ["stove", "range", "oven", "cooktop", "cook top"],
+    types: ["stove"],
     excludeIf: ["hood"],
     items: [STOVE],
   },
   {
     keywords: ["microwave", "over-the-range", "over the range"],
+    types: ["microwave"],
     items: [MICROWAVE, RANGE_HOOD],
   },
 ];
+
+type ConsumableSuggestion = Omit<EquipmentConsumable, "id">;
+
+/** One-tap suggestions in the equipment form's "Parts and consumables". */
+export const DEFAULT_CONSUMABLES_BY_TYPE: Partial<
+  Record<EquipmentType, ConsumableSuggestion[]>
+> = {
+  furnace: [{ label: "Air filter", size: "16x25x1" }, { label: "Humidifier pad" }],
+  ac: [{ label: "Air filter", size: "16x25x1" }],
+  heat_pump: [{ label: "Air filter" }, { label: "Indoor unit filter" }],
+  water_heater: [{ label: "Anode rod" }],
+  water_softener: [{ label: "Salt", notes: "Pellets or crystals" }, { label: "Resin cleaner" }],
+  fridge: [{ label: "Water filter" }, { label: "Air filter" }],
+  dishwasher: [{ label: "Filter" }, { label: "Rinse aid" }],
+  washer: [{ label: "Washer cleaner tablets" }],
+  dryer: [{ label: "Vent duct", size: "4 in" }],
+  range_hood: [{ label: "Grease filter" }, { label: "Charcoal filter" }],
+  microwave: [{ label: "Charcoal filter" }, { label: "Grease filter" }],
+  stove: [{ label: "Oven light bulb" }],
+  lawn_mower: [
+    { label: "Oil", size: "SAE 30" },
+    { label: "Blade" },
+    { label: "Spark plug" },
+    { label: "Air filter" },
+  ],
+};
+
+const STOP_WORDS = new Set(["the", "and", "or", "of", "a", "an", "replace", "clean", "check", "change"]);
+
+function words(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+}
+
+/**
+ * The consumable a task most likely uses: label words that appear in the task
+ * title win; otherwise the first consumable.
+ */
+export function bestConsumableForTask(
+  taskTitle: string,
+  consumables: EquipmentConsumable[]
+): EquipmentConsumable | null {
+  if (consumables.length === 0) return null;
+  const titleWords = new Set(words(taskTitle));
+  let best: EquipmentConsumable | null = null;
+  let bestScore = 0;
+  for (const item of consumables) {
+    const score = words(item.label).filter((w) => titleWords.has(w)).length;
+    if (score > bestScore) {
+      best = item;
+      bestScore = score;
+    }
+  }
+  return best ?? consumables[0];
+}
+
+/** "Air filter · 16x25x1" style summary for chips and rows. */
+export function consumableSummary(item: EquipmentConsumable): string {
+  const detail = item.size || item.partNumber;
+  return detail ? `${item.label} · ${detail}` : item.label;
+}
 
 /**
  * Resolve cadence hints. When `equipmentType` is set (and not `other`), type

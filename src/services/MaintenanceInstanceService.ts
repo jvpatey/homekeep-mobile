@@ -1,5 +1,6 @@
 import { addDays, parseISO, isValid } from "date-fns";
 import { supabase } from "../lib/supabase";
+import { HomeContactService } from "./HomeContactService";
 import {
   CreateRoutineInstanceData,
   RoutineInstance,
@@ -9,7 +10,27 @@ import {
   RoutineInstanceResponse,
   RoutineInstancesResponse,
   DeleteResponse,
+  CompletionExtras,
+  MaintenanceCategory,
 } from "../types/maintenance";
+
+export interface LogRepairInput {
+  title: string;
+  category: MaintenanceCategory;
+  completedOn: Date;
+  description?: string | null;
+  equipmentId?: string | null;
+  extras?: CompletionExtras;
+}
+
+function isMissingFunction(error: { code?: string; message?: string } | null) {
+  return (
+    error?.code === "PGRST202" ||
+    /could not find the function|function .* does not exist/i.test(
+      error?.message ?? ""
+    )
+  );
+}
 
 function toServiceError(error: unknown) {
   return {
@@ -58,15 +79,47 @@ export function computeNextOccurrenceDueDate(
 }
 
 export class MaintenanceInstanceService {
+  /**
+   * One-off repair: an inactive, zero-interval routine plus its completed
+   * instance, created atomically by the `log_repair` RPC. Returns the instance id.
+   */
+  static async logRepair(
+    input: LogRepairInput
+  ): Promise<{ data: string | null; error: { message: string } | null }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    const extras = input.extras ?? {};
+    const { data, error } = await supabase.rpc("log_repair", {
+      p_title: input.title.trim(),
+      p_category: input.category,
+      p_completed_on: input.completedOn.toISOString(),
+      p_description: input.description?.trim() || null,
+      p_equipment_id: input.equipmentId ?? null,
+      p_notes: extras.notes?.trim() || null,
+      p_cost_amount: extras.cost_amount ?? null,
+      p_labor_type: extras.labor_type ?? null,
+      p_contact_id: extras.contact_id ?? null,
+      p_photo_storage_path: extras.photo_storage_path ?? null,
+    });
+    if (error) {
+      console.error("Error logging repair:", error);
+      return {
+        data: null,
+        error: {
+          message: isMissingFunction(error)
+            ? "Repair logging isn't available yet. Please update the app's database and try again."
+            : error.message || "Couldn't save the repair.",
+        },
+      };
+    }
+    return { data: (data as string | null) ?? null, error: null };
+  }
+
   // Complete a routine instance
   static async completeInstance(
     instanceId: string,
-    extras?: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
+    extras?: CompletionExtras
   ): Promise<RoutineInstanceResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -94,6 +147,9 @@ export class MaintenanceInstanceService {
       if (extras?.photo_storage_path) {
         updateData.photo_storage_path = extras.photo_storage_path;
       }
+      if (extras?.contact_id) {
+        updateData.contact_id = extras.contact_id;
+      }
 
       let { data, error } = await supabase
         .from("routine_instances")
@@ -118,7 +174,27 @@ export class MaintenanceInstanceService {
         error = retry.error;
       }
 
+      if (
+        error &&
+        updateData.contact_id &&
+        /contact_id/i.test(error.message ?? "")
+      ) {
+        const { contact_id: _contactId, ...withoutContact } = updateData;
+        const retry = await supabase
+          .from("routine_instances")
+          .update(withoutContact)
+          .eq("id", instanceId)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (error) throw error;
+
+      if (extras?.contact_id) {
+        void HomeContactService.touch(extras.contact_id);
+      }
 
       return { data, error: null };
     } catch (error) {

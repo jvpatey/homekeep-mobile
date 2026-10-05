@@ -30,6 +30,12 @@ interface AllRemindersListProps {
   onRefresh?: () => void;
   /** Compact top summary for sheet/modal layouts. */
   showSummary?: boolean;
+  /** Rendered above the summary, scrolling with the list. */
+  header?: React.ReactElement | null;
+  /** Lets a native large-title header collapse and the list clear the tab bar. */
+  automaticInsets?: boolean;
+  /** Suppresses the empty state until the first load finishes. */
+  loading?: boolean;
 }
 
 export function AllRemindersList({
@@ -42,6 +48,9 @@ export function AllRemindersList({
   refreshing = false,
   onRefresh,
   showSummary = true,
+  header = null,
+  automaticInsets = false,
+  loading = false,
 }: AllRemindersListProps) {
   const { colors } = useTheme();
   const sections = useMemo(
@@ -101,35 +110,39 @@ export function AllRemindersList({
   const pausedCount = routines.length - activeCount;
 
   const renderHeader = () => {
-    if (!showSummary || routines.length === 0) return null;
+    if (!showSummary || routines.length === 0) return header;
     return (
-      <View style={styles.summaryWrap}>
-        <Text style={[styles.summaryTitle, { color: colors.text }]}>
-          Your reminders
-        </Text>
-        <Text style={[styles.summaryMeta, { color: colors.textSecondary }]}>
-          {activeCount} active
-          {pausedCount > 0 ? ` · ${pausedCount} paused` : ""}
-        </Text>
-      </View>
+      <>
+        {header}
+        <View style={styles.summaryWrap}>
+          <Text style={[styles.summaryTitle, { color: colors.text }]}>
+            Your reminders
+          </Text>
+          <Text style={[styles.summaryMeta, { color: colors.textSecondary }]}>
+            {activeCount} active
+            {pausedCount > 0 ? ` · ${pausedCount} paused` : ""}
+          </Text>
+        </View>
+      </>
     );
   };
 
-  const renderEmpty = () => (
-    <View style={styles.empty}>
-      <View
-        style={[styles.emptyIcon, { backgroundColor: `${colors.primary}15` }]}
-      >
-        <Ionicons name="list-outline" size={28} color={colors.primary} />
+  const renderEmpty = () =>
+    loading ? null : (
+      <View style={styles.empty}>
+        <View
+          style={[styles.emptyIcon, { backgroundColor: `${colors.primary}15` }]}
+        >
+          <Ionicons name="list-outline" size={28} color={colors.primary} />
+        </View>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          No reminders yet
+        </Text>
+        <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
+          Add a task from the dashboard or apply a plan from the task library.
+        </Text>
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        No reminders yet
-      </Text>
-      <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        Add a task from the dashboard or apply a plan from the task library.
-      </Text>
-    </View>
-  );
+    );
 
   return (
     <SectionList<MaintenanceRoutine, ReminderSection>
@@ -137,13 +150,15 @@ export function AllRemindersList({
       keyExtractor={(item) => item.id}
       stickySectionHeadersEnabled={false}
       showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior={automaticInsets ? "automatic" : undefined}
       contentContainerStyle={[
         styles.listContent,
-        routines.length === 0 && styles.listContentEmpty,
+        routines.length === 0 && !header && styles.listContentEmpty,
         { paddingBottom: contentPaddingBottom },
       ]}
       ListHeaderComponent={renderHeader}
-      ListEmptyComponent={renderEmpty}
+      ListEmptyComponent={header ? null : renderEmpty}
+      ListFooterComponent={header && routines.length === 0 ? renderEmpty : null}
       refreshControl={
         onRefresh ? (
           <RefreshControl

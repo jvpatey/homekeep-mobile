@@ -20,6 +20,11 @@ import {
   parseHomeEmergency,
 } from "../types/homeEmergency";
 import { AvatarCrop, parseAvatarCrop } from "../types/avatar";
+import {
+  EMPTY_HOME_NOTES,
+  HomeNotes,
+  parseHomeNotes,
+} from "../types/homeNotes";
 import { AvatarStorageService } from "../services/AvatarStorageService";
 import { FREE_ACTION_LIMIT } from "../lib/purchases";
 
@@ -95,6 +100,13 @@ interface ProfileContextValue {
   ) => Promise<{ success: boolean; error?: string }>;
   /** Marks home setup finished (complete or skipped) so the modal does not return. */
   markHomeSetupDone: () => Promise<void>;
+  /** Paint colours and free-form notes for the household's home. */
+  homeNotes: HomeNotes;
+  /** False until the home_notes column exists. */
+  homeNotesAvailable: boolean;
+  updateHomeNotes: (
+    notes: HomeNotes
+  ) => Promise<{ success: boolean; error?: string }>;
   /** Replace emergency shutoff / panel facts. */
   updateHomeEmergency: (
     facts: HomeEmergencyFacts
@@ -146,12 +158,46 @@ function applyOwnerHomeFields(
   };
 }
 
+/**
+ * Loaded on its own so a missing column (migration not applied) can't take
+ * the rest of the profile select down with it.
+ */
+async function fetchHomeNotes(
+  homeOwnerId: string
+): Promise<{ notes: HomeNotes; available: boolean }> {
+  if (!supabase) return { notes: EMPTY_HOME_NOTES, available: false };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("home_notes")
+    .eq("id", homeOwnerId)
+    .maybeSingle();
+  if (error) return { notes: EMPTY_HOME_NOTES, available: false };
+  return {
+    notes: parseHomeNotes((data as { home_notes?: unknown } | null)?.home_notes),
+    available: true,
+  };
+}
+
 async function overlayHouseholdHome(
   own: UserProfile
 ): Promise<{
   profile: UserProfile;
   canEditHome: boolean;
   householdRole: "owner" | "member" | null;
+  /** Whose profile row holds the shared home fields. */
+  homeOwnerId: string;
+}> {
+  const result = await resolveHouseholdHome(own);
+  return { ...result, homeOwnerId: result.homeOwnerId ?? own.id };
+}
+
+async function resolveHouseholdHome(
+  own: UserProfile
+): Promise<{
+  profile: UserProfile;
+  canEditHome: boolean;
+  householdRole: "owner" | "member" | null;
+  homeOwnerId?: string;
 }> {
   if (!supabase || !own.household_id) {
     return { profile: own, canEditHome: true, householdRole: null };
@@ -184,12 +230,18 @@ async function overlayHouseholdHome(
         .maybeSingle()
     ).data;
   if (!ownerRow) {
-    return { profile: own, canEditHome: false, householdRole: "member" };
+    return {
+      profile: own,
+      canEditHome: false,
+      householdRole: "member",
+      homeOwnerId: ownerId,
+    };
   }
   return {
     profile: applyOwnerHomeFields(own, normalizeProfile(ownerRow, ownerId)),
     canEditHome: false,
     householdRole: "member",
+    homeOwnerId: ownerId,
   };
 }
 
@@ -241,6 +293,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     "owner" | "member" | null
   >(null);
   const userIdRef = useRef<string | null>(null);
+  const [homeNotes, setHomeNotes] = useState<HomeNotes>(EMPTY_HOME_NOTES);
+  const [homeNotesAvailable, setHomeNotesAvailable] = useState(false);
+
+  const loadHomeNotes = useCallback(async (homeOwnerId: string) => {
+    const result = await fetchHomeNotes(homeOwnerId);
+    setHomeNotes(result.notes);
+    setHomeNotesAvailable(result.available);
+  }, []);
 
   const loadProfile = useCallback(async () => {
     if (!supabase || !user) {
@@ -294,6 +354,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           setCanEditHome(overlaid.canEditHome);
           setHouseholdRole(overlaid.householdRole);
           setAvatarUrl(null);
+          void loadHomeNotes(overlaid.homeOwnerId);
           return;
         }
         setProfile({ id: user.id, home_systems: {} });
@@ -309,6 +370,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setProfile(overlaid.profile);
       setCanEditHome(overlaid.canEditHome);
       setHouseholdRole(overlaid.householdRole);
+      void loadHomeNotes(overlaid.homeOwnerId);
       if (overlaid.profile.avatar_storage_path) {
         const signed = await AvatarStorageService.createSignedUrl(
           overlaid.profile.avatar_storage_path
@@ -324,11 +386,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, loadHomeNotes]);
 
   useEffect(() => {
     if (user?.id !== userIdRef.current) {
       userIdRef.current = user?.id ?? null;
+      setHomeNotes(EMPTY_HOME_NOTES);
+      setHomeNotesAvailable(false);
       void loadProfile();
     } else if (!user) {
       setProfile(null);
@@ -547,6 +611,39 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     },
     [user, canEditHome]
+  );
+
+  const updateHomeNotes = useCallback(
+    async (next: HomeNotes): Promise<{ success: boolean; error?: string }> => {
+      if (!canEditHome) {
+        return {
+          success: false,
+          error: "Only the HomeShare owner can edit this home.",
+        };
+      }
+      if (!supabase || !user) {
+        return { success: false, error: "Not signed in" };
+      }
+      const previous = homeNotes;
+      setHomeNotes(next);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ home_notes: next, updated_at: new Date().toISOString() })
+        .eq("id", user.id);
+      if (error) {
+        console.warn("Failed to persist home_notes", error);
+        setHomeNotes(previous);
+        return {
+          success: false,
+          error: /home_notes/.test(error.message)
+            ? "Paint and notes need a quick app update on our side. Try again soon."
+            : error.message,
+        };
+      }
+      setHomeNotesAvailable(true);
+      return { success: true };
+    },
+    [user, canEditHome, homeNotes]
   );
 
   const updateAvatarStyle = useCallback(
@@ -913,6 +1010,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       skipAddressOnboarding,
       updateHomeSystems,
       markHomeSetupDone,
+      homeNotes,
+      homeNotesAvailable,
+      updateHomeNotes,
       updateHomeEmergency,
       updateAvatarStyle,
       updateAvatarPhoto,
@@ -933,6 +1033,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       skipAddressOnboarding,
       updateHomeSystems,
       markHomeSetupDone,
+      homeNotes,
+      homeNotesAvailable,
+      updateHomeNotes,
       updateHomeEmergency,
       updateAvatarStyle,
       updateAvatarPhoto,

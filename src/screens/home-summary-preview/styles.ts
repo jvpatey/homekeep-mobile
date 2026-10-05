@@ -78,6 +78,20 @@ export const homeSummaryPreviewStyles = StyleSheet.create({
     ...DesignSystem.typography.small,
     marginTop: 2,
   },
+  paintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm + 2,
+  },
+  paintSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  paintText: {
+    flex: 1,
+  },
   equipmentAttachments: {
     ...DesignSystem.typography.caption,
     marginTop: 2,
@@ -114,6 +128,7 @@ export const homeSummaryPreviewStyles = StyleSheet.create({
     gap: DesignSystem.spacing.sm,
     paddingVertical: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.large,
+    marginTop: DesignSystem.spacing.xl,
   },
   exportButtonText: {
     ...DesignSystem.typography.bodySemiBold,

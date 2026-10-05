@@ -35,6 +35,8 @@ export class MaintenanceDataMapper {
       completed_by: instance.completed_by ?? null,
       completed_by_name: instance.completed_by_name ?? null,
       completed_by_avatar_style: instance.completed_by_avatar_style ?? null,
+      contact_id: instance.contact_id ?? null,
+      contact: instance.contact ?? null,
     };
   }
 

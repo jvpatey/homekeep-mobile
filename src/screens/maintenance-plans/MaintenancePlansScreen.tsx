@@ -24,18 +24,11 @@ import {
   QUESTIONNAIRE_PLAN_IDS,
   MaintenancePlanDefinition,
   MaintenancePlanItemTemplate,
-  MaintenancePlanTag,
   filterSpringRefreshItems,
   filterColdWeatherPrepItems,
   filterNewHomeownerStarterItems,
   filterPoolSpaItems,
-  getPlanTheme,
-  getPlanIconBubbleStyle,
-  getPlanTagPillStyle,
   routineIdentityKey,
-  recommendMaintenancePlanId,
-  getAppliedPlanIds,
-  getVisibleMaintenancePlans,
   getMaintenancePlanById,
   answersForPlan,
   partialSpringAnswers,
@@ -58,15 +51,7 @@ import { SpringRefreshQuestionnaire } from "./SpringRefreshQuestionnaire";
 import { ColdWeatherPrepQuestionnaire } from "./ColdWeatherPrepQuestionnaire";
 import { NewHomeownerStarterQuestionnaire } from "./NewHomeownerStarterQuestionnaire";
 import { PoolSpaQuestionnaire } from "./PoolSpaQuestionnaire";
-
-const TAG_LABELS: Record<MaintenancePlanTag, string> = {
-  spring: "Spring",
-  fall: "Fall",
-  safety: "Safety",
-  starter: "Starter",
-  general: "General",
-  pool: "Pool & spa",
-};
+import { PlanLibraryCards, usePlanCatalog } from "./PlanLibraryCards";
 
 type FlowPhase = "list" | "questionnaire" | "pickTasks";
 
@@ -96,19 +81,18 @@ function categoryLabel(category: MaintenancePlanItemTemplate["category"]) {
 }
 
 export function MaintenancePlansScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { scrollPaddingBottom, footerPaddingBottom } = useScreenInsets();
   const { triggerMedium, triggerLight } = useHaptics();
   const requirePlus = useRequirePlus();
-  const { applyMaintenancePlan, stats } = useTasks();
+  const { applyMaintenancePlan } = useTasks();
   const { profile, updateHomeSystems } = useProfile();
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const route = useRoute<RouteProp<AppStackParamList, "MaintenancePlans">>();
+  const catalog = usePlanCatalog();
+  const enteredWithPlan = Boolean(route.params?.planId);
   const [phase, setPhase] = useState<FlowPhase>("list");
-  const [appliedPlanIds, setAppliedPlanIds] = useState<Set<string>>(
-    () => new Set()
-  );
   const [detailPlan, setDetailPlan] =
     useState<MaintenancePlanDefinition | null>(null);
   const [springAnswers, setSpringAnswers] =
@@ -196,21 +180,6 @@ export function MaintenancePlansScreen() {
     resolvedDetailItems,
   ]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadApplied = async () => {
-      const { data } = await MaintenanceService.getMaintenanceRoutines({
-        is_active: true,
-      });
-      if (cancelled) return;
-      setAppliedPlanIds(getAppliedPlanIds(data ?? []));
-    };
-    void loadApplied();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const selectedItems = useMemo(() => {
     return resolvedDetailItems.filter((_, i) => selectedMask[i]);
   }, [resolvedDetailItems, selectedMask]);
@@ -264,6 +233,15 @@ export function MaintenancePlansScreen() {
     setPhase("list");
   }, []);
 
+  /** Opened on a specific plan from the Plan tab: leaving the plan closes the flow. */
+  const backToList = useCallback(() => {
+    if (enteredWithPlan) {
+      navigation.goBack();
+      return;
+    }
+    resetToList();
+  }, [enteredWithPlan, navigation, resetToList]);
+
   const persistHomeFromAnswers = useCallback(
     (patchHome: HomeSystems) => {
       void updateHomeSystems(patchHome);
@@ -283,34 +261,6 @@ export function MaintenancePlansScreen() {
     () => partialPoolSpaAnswers(profile?.home_systems),
     [profile?.home_systems]
   );
-
-  const homeSetupComplete = Boolean(profile?.home_setup_set_at);
-
-  const suggestedPlanId = useMemo(
-    () =>
-      recommendMaintenancePlanId({
-        month: new Date().getMonth(),
-        latitude: profile?.latitude,
-        activeRoutineCount: stats.activeRoutines,
-        homeSetupComplete,
-        appliedPlanIds,
-        homeSystems: profile?.home_systems,
-      }),
-    [
-      profile?.latitude,
-      profile?.home_systems,
-      stats.activeRoutines,
-      homeSetupComplete,
-      appliedPlanIds,
-    ]
-  );
-
-  const catalogPlans = useMemo(() => {
-    const visible = getVisibleMaintenancePlans({ homeSetupComplete });
-    const suggested = visible.find((plan) => plan.id === suggestedPlanId);
-    const rest = visible.filter((plan) => plan.id !== suggestedPlanId);
-    return suggested ? [suggested, ...rest] : visible;
-  }, [homeSetupComplete, suggestedPlanId]);
 
   const openPlan = useCallback(
     (plan: MaintenancePlanDefinition) => {
@@ -411,11 +361,7 @@ export function MaintenancePlansScreen() {
               try {
                 const result = await applyMaintenancePlan(plan.id, items);
                 if (result.success) {
-                  setAppliedPlanIds((prev) => {
-                    const next = new Set(prev);
-                    next.add(plan.id);
-                    return next;
-                  });
+                  catalog.markApplied(plan.id);
                   const added = result.addedCount ?? n;
                   const skipped = result.skippedCount ?? 0;
                   let message: string;
@@ -437,7 +383,7 @@ export function MaintenancePlansScreen() {
                     [
                       {
                         text: "Add another plan",
-                        onPress: resetToList,
+                        onPress: backToList,
                       },
                       {
                         text: "Done",
@@ -464,16 +410,17 @@ export function MaintenancePlansScreen() {
     [
       applyMaintenancePlan,
       applying,
+      backToList,
+      catalog,
       existingRoutineKeys,
       navigation,
       requirePlus,
-      resetToList,
     ]
   );
 
   const headerBack = useCallback(() => {
     if (phase === "questionnaire") {
-      resetToList();
+      backToList();
       return;
     }
     if (phase === "pickTasks") {
@@ -485,11 +432,11 @@ export function MaintenancePlansScreen() {
         setPhase("questionnaire");
         return;
       }
-      resetToList();
+      backToList();
       return;
     }
     navigation.goBack();
-  }, [phase, detailPlan, navigation, resetToList, usedHomeProfile]);
+  }, [phase, detailPlan, navigation, backToList, usedHomeProfile]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -517,156 +464,7 @@ export function MaintenancePlansScreen() {
         { paddingBottom: scrollPaddingBottom },
       ]}
     >
-      <Text
-        style={[
-          maintenancePlansStyles.listIntro,
-          { color: colors.textSecondary },
-        ]}
-      >
-        {homeSetupComplete
-          ? "Add more recurring tasks tailored to your home. Your home profile is already saved—we'll skip the questionnaire when we can."
-          : "Choose a bundle and pick what to add. For a full schedule at once, finish Set up your home on the dashboard."}
-      </Text>
-      {catalogPlans.map((plan) => {
-        const theme = getPlanTheme(plan.id);
-        const bubble = theme
-          ? getPlanIconBubbleStyle(theme, isDark)
-          : { backgroundColor: colors.fieldFill };
-        const pill = theme ? getPlanTagPillStyle(theme, isDark) : null;
-        const isSuggested = plan.id === suggestedPlanId;
-        const isApplied = appliedPlanIds.has(plan.id);
-        const usesHomeProfile = Boolean(answersForPlan(plan.id, profile?.home_systems));
-
-        return (
-          <HearthSurfaceCard
-            key={plan.id}
-            containerStyle={maintenancePlansStyles.cardContainer}
-            style={maintenancePlansStyles.cardSurface}
-          >
-            <TouchableOpacity
-              onPress={() => openPlan(plan)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={plan.title}
-              style={maintenancePlansStyles.planRow}
-            >
-              {theme ? (
-                <View
-                  style={[
-                    maintenancePlansStyles.planIconBubble,
-                    bubble,
-                  ]}
-                >
-                  <Ionicons name={theme.icon} size={22} color={theme.primary} />
-                </View>
-              ) : null}
-              <View style={maintenancePlansStyles.planRowText}>
-                {isSuggested || isApplied || (plan.tag && pill) ? (
-                  <View style={maintenancePlansStyles.pillRow}>
-                    {isSuggested ? (
-                      <View
-                        style={[
-                          maintenancePlansStyles.suggestedPill,
-                          {
-                            backgroundColor: colors.primary + "18",
-                            borderColor: colors.primary,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            maintenancePlansStyles.suggestedPillText,
-                            { color: colors.primary },
-                          ]}
-                        >
-                          Suggested
-                        </Text>
-                      </View>
-                    ) : null}
-                    {isApplied ? (
-                      <View
-                        style={[
-                          maintenancePlansStyles.suggestedPill,
-                          {
-                            backgroundColor: colors.success + "18",
-                            borderColor: colors.success,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            maintenancePlansStyles.suggestedPillText,
-                            { color: colors.success },
-                          ]}
-                        >
-                          On your schedule
-                        </Text>
-                      </View>
-                    ) : null}
-                    {plan.tag && pill ? (
-                      <View
-                        style={[
-                          maintenancePlansStyles.tagPill,
-                          {
-                            backgroundColor: pill.backgroundColor,
-                            borderColor: pill.borderColor,
-                            marginBottom: 0,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            maintenancePlansStyles.tagPillText,
-                            { color: pill.color },
-                          ]}
-                        >
-                          {TAG_LABELS[plan.tag]}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ) : null}
-                <Text
-                  style={[
-                    maintenancePlansStyles.planTitle,
-                    { color: colors.text },
-                  ]}
-                >
-                  {plan.title}
-                </Text>
-                <Text
-                  style={[
-                    maintenancePlansStyles.planSubtitle,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {plan.shortDescription}
-                </Text>
-                <Text
-                  style={[
-                    maintenancePlansStyles.planCaption,
-                    { color: colors.primary },
-                  ]}
-                >
-                  {usesHomeProfile
-                    ? "Using your home profile"
-                    : QUESTIONNAIRE_PLAN_IDS.has(plan.id)
-                      ? "Questionnaire"
-                      : `${plan.items.length} recurring task${
-                          plan.items.length === 1 ? "" : "s"
-                        }`}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.textSecondary}
-                style={maintenancePlansStyles.chevron}
-              />
-            </TouchableOpacity>
-          </HearthSurfaceCard>
-        );
-      })}
+      <PlanLibraryCards catalog={catalog} onOpenPlan={openPlan} />
     </ScrollView>
   );
 
@@ -960,7 +758,7 @@ export function MaintenancePlansScreen() {
             );
             setPhase("pickTasks");
           }}
-          onBack={resetToList}
+          onBack={backToList}
         />
       );
     }
@@ -979,7 +777,7 @@ export function MaintenancePlansScreen() {
             );
             setPhase("pickTasks");
           }}
-          onBack={resetToList}
+          onBack={backToList}
         />
       );
     }
@@ -998,7 +796,7 @@ export function MaintenancePlansScreen() {
             );
             setPhase("pickTasks");
           }}
-          onBack={resetToList}
+          onBack={backToList}
         />
       );
     }
@@ -1017,7 +815,7 @@ export function MaintenancePlansScreen() {
             );
             setPhase("pickTasks");
           }}
-          onBack={resetToList}
+          onBack={backToList}
         />
       );
     }
