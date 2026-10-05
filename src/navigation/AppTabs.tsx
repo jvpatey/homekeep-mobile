@@ -12,8 +12,12 @@ import { SpendLedgerScreen } from "../screens/spend-ledger/SpendLedgerScreen";
 import { ProsScreen } from "../screens/pros/ProsScreen";
 import { EquipmentListScreen } from "../screens/equipment/EquipmentListScreen";
 import { EquipmentDetailScreen } from "../screens/equipment/EquipmentDetailScreen";
-import { HomeNotesScreen } from "../screens/home-notes/HomeNotesScreen";
+import {
+  HouseNotesScreen,
+  PaintColorsScreen,
+} from "../screens/home-notes/HomeNotesScreen";
 import { ProDetailScreen } from "../screens/pros/ProDetailScreen";
+import { EmergencyInfoScreen } from "../screens/emergency/EmergencyInfoScreen";
 import {
   AppTabsParamList,
   HomeStackParamList,
@@ -71,9 +75,19 @@ function RecordStackNavigator() {
         component={EquipmentDetailScreen}
       />
       <RecordStack.Screen
-        name="HomeNotes"
-        component={HomeNotesScreen}
-        options={{ title: "Paint and notes" }}
+        name="PaintColors"
+        component={PaintColorsScreen}
+        options={{ title: "Paint colours" }}
+      />
+      <RecordStack.Screen
+        name="HouseNotes"
+        component={HouseNotesScreen}
+        options={{ title: "House notes" }}
+      />
+      <RecordStack.Screen
+        name="EmergencyInfo"
+        component={EmergencyInfoScreen}
+        options={{ title: "Emergency info" }}
       />
       <RecordStack.Screen
         name="HomeSummaryPreview"

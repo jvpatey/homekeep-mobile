@@ -31,11 +31,26 @@ export interface PaintColor {
   hex?: string | null;
 }
 
+export const NOTE_KINDS = [
+  "wifi",
+  "access",
+  "trash",
+  "utilities",
+  "yard",
+  "guests",
+  "quirks",
+  "general",
+] as const;
+
+export type NoteKind = (typeof NOTE_KINDS)[number];
+
 export interface HomeNote {
   id: string;
   title: string;
   body: string;
   updatedAt: string;
+  /** Template the note started from; drives its icon and colour. */
+  kind?: NoteKind | null;
 }
 
 export interface HomeNotes {
@@ -144,12 +159,16 @@ export function parseHomeNotes(raw: unknown): HomeNotes {
         const title = str(row.title);
         const body = typeof row.body === "string" ? row.body : "";
         if (!title && !body.trim()) return [];
+        const kind = str(row.kind);
         return [
           {
             id: str(row.id) ?? `note_${index}`,
             title: title ?? "",
             body,
             updatedAt: str(row.updatedAt) ?? new Date(0).toISOString(),
+            kind: (NOTE_KINDS as readonly string[]).includes(kind ?? "")
+              ? (kind as NoteKind)
+              : null,
           },
         ];
       })

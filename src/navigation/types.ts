@@ -42,7 +42,9 @@ export type RecordStackParamList = {
   ProDetail: { contactId: string };
   EquipmentList: undefined;
   EquipmentDetail: { equipmentId: string };
-  HomeNotes: { segment?: "paint" | "notes" } | undefined;
+  PaintColors: undefined;
+  HouseNotes: undefined;
+  EmergencyInfo: undefined;
 };
 
 export type PlanStackParamList = {

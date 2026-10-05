@@ -27,7 +27,6 @@ import {
   TabScreenHeader,
 } from "../../components/ui";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
-import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
 import {
   HouseholdMemberView,
@@ -50,21 +49,16 @@ const TINTS = {
   history: "#2F5D50",
   ledger: "#C45C26",
   equipment: "#5B6C8F",
-  notes: "#B5739D",
+  paint: "#B5739D",
+  notes: "#3E7CB1",
   emergency: "#C0392B",
   pros: "#C49A3C",
   share: "#3E8E7E",
   pdf: "#6B645C",
 };
 
-function homeNotesSubtitle(paints: number, notes: number) {
-  if (paints === 0 && notes === 0) return "Colours, codes, and house quirks";
-  return [
-    paints > 0 ? `${paints} colour${paints === 1 ? "" : "s"}` : null,
-    notes > 0 ? `${notes} note${notes === 1 ? "" : "s"}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+function countSubtitle(count: number, noun: string, empty: string) {
+  return count > 0 ? `${count} ${noun}${count === 1 ? "" : "s"} saved` : empty;
 }
 
 export function RecordHomeScreen() {
@@ -80,7 +74,6 @@ export function RecordHomeScreen() {
   const contacts = useHomeContacts();
   const { locked: recordLocked } = usePlusFeature("history");
   const [refreshing, setRefreshing] = useState(false);
-  const [showEmergency, setShowEmergency] = useState(false);
   const [showHomeShare, setShowHomeShare] = useState(false);
   const [members, setMembers] = useState<HouseholdMemberView[]>([]);
 
@@ -264,13 +257,25 @@ export function RecordHomeScreen() {
           />
           <RecordRow
             icon="color-palette"
-            tint={TINTS.notes}
-            title="Paint and notes"
-            subtitle={homeNotesSubtitle(
+            tint={TINTS.paint}
+            title="Paint colours"
+            subtitle={countSubtitle(
               homeNotes.paints.length,
-              homeNotes.notes.length
+              "colour",
+              "Brands, codes, and finishes by room"
             )}
-            onPress={() => go(() => navigation.navigate("HomeNotes"))}
+            onPress={() => go(() => navigation.navigate("PaintColors"))}
+          />
+          <RecordRow
+            icon="document-text"
+            tint={TINTS.notes}
+            title="House notes"
+            subtitle={countSubtitle(
+              homeNotes.notes.length,
+              "note",
+              "Wi‑Fi, codes, trash day, and quirks"
+            )}
+            onPress={() => go(() => navigation.navigate("HouseNotes"))}
           />
           <RecordRow
             icon="flash"
@@ -280,7 +285,7 @@ export function RecordHomeScreen() {
               profile?.home_emergency,
               profile?.home_systems
             )}
-            onPress={() => go(() => setShowEmergency(true))}
+            onPress={() => go(() => navigation.navigate("EmergencyInfo"))}
           />
         </RecordSection>
 
@@ -326,9 +331,6 @@ export function RecordHomeScreen() {
         </RecordSection>
       </ScrollView>
 
-      {showEmergency ? (
-        <EmergencyFactsModal visible onClose={() => setShowEmergency(false)} />
-      ) : null}
       <HouseholdSharingModal
         visible={showHomeShare}
         onClose={() => setShowHomeShare(false)}

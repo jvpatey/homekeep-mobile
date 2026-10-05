@@ -16,19 +16,23 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { format, parseISO } from "date-fns";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics } from "../../hooks";
-import {
-  Button,
-  HeaderIconButton,
-  SegmentedControl,
-  SegmentOption,
-} from "../../components/ui";
+import { Button, HeaderIconButton } from "../../components/ui";
 import { PaintFormSheet } from "../../components/home-notes/PaintFormSheet";
 import { NoteFormSheet } from "../../components/home-notes/NoteFormSheet";
+import { WifiQrSheet } from "../../components/home-notes/WifiQrSheet";
+import { shareHomeText } from "../../components/home-notes/shareHomeText";
+import {
+  noteDisplayBody,
+  noteShareText,
+  noteTemplate,
+  parseWifiNote,
+  WifiDetails,
+} from "../../components/home-notes/noteTemplates";
 import {
   HomeNote,
   isLightHex,
@@ -37,26 +41,27 @@ import {
   paintSubtitle,
   paintTitle,
 } from "../../types/homeNotes";
+import { showActionMenu } from "../../utils/actionMenu";
 import { RecordStackParamList } from "../../navigation/types";
 import { DesignSystem } from "../../theme/designSystem";
 
-type Nav = NativeStackNavigationProp<RecordStackParamList, "HomeNotes">;
-type Segment = "paint" | "notes";
+type Nav = NativeStackNavigationProp<RecordStackParamList>;
+type Section = "paint" | "notes";
 
-const SEGMENTS: SegmentOption<Segment>[] = [
-  { value: "paint", label: "Paint", icon: "color-palette-outline" },
-  { value: "notes", label: "Notes", icon: "document-text-outline" },
-];
+export function PaintColorsScreen() {
+  return <HomeNotesScreen section="paint" />;
+}
 
-export function HomeNotesScreen() {
+export function HouseNotesScreen() {
+  return <HomeNotesScreen section="notes" />;
+}
+
+/** Paint colours and house notes share storage (profiles.home_notes) and editing rules. */
+function HomeNotesScreen({ section }: { section: Section }) {
   const navigation = useNavigation<Nav>();
-  const route = useRoute<RouteProp<RecordStackParamList, "HomeNotes">>();
   const { colors } = useTheme();
   const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
   const { homeNotes, updateHomeNotes, canEditHome } = useProfile();
-  const [segment, setSegment] = useState<Segment>(
-    route.params?.segment ?? "paint"
-  );
   const [paintSheet, setPaintSheet] = useState<{
     visible: boolean;
     paint: PaintColor | null;
@@ -66,12 +71,9 @@ export function HomeNotesScreen() {
     note: HomeNote | null;
   }>({ visible: false, note: null });
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  const [wifiQr, setWifiQr] = useState<WifiDetails | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (route.params?.segment) setSegment(route.params.segment);
-  }, [route.params?.segment]);
 
   useEffect(
     () => () => {
@@ -82,7 +84,7 @@ export function HomeNotesScreen() {
 
   const openAdd = () => {
     triggerLight();
-    if (segment === "paint") setPaintSheet({ visible: true, paint: null });
+    if (section === "paint") setPaintSheet({ visible: true, paint: null });
     else setNoteSheet({ visible: true, note: null });
   };
 
@@ -94,7 +96,7 @@ export function HomeNotesScreen() {
               icon="add"
               onPress={openAdd}
               accessibilityLabel={
-                segment === "paint" ? "Add a paint colour" : "Add a note"
+                section === "paint" ? "Add a paint colour" : "Add a note"
               }
             />
           )
@@ -184,6 +186,96 @@ export function HomeNotesScreen() {
   const paintCopyValue = (paint: PaintColor) =>
     [paint.brand, paint.colorName, paint.colorCode].filter(Boolean).join(" ");
 
+  const paintShareText = (paint: PaintColor) =>
+    [
+      paint.room,
+      paintCopyValue(paint),
+      paint.finish ? `Finish: ${PAINT_FINISH_LABELS[paint.finish]}` : null,
+      paint.hex ? `Hex: ${paint.hex}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+  const openPaintMenu = (paint: PaintColor) => {
+    triggerMedium();
+    showActionMenu({
+      title: [paint.room, paintTitle(paint)].filter(Boolean).join(" · "),
+      options: [
+        {
+          label: "Copy colour",
+          icon: "copy-outline",
+          onPress: () => void copy(paint.id, paintCopyValue(paint)),
+        },
+        {
+          label: "Share…",
+          icon: "share-outline",
+          onPress: () =>
+            void shareHomeText(paintShareText(paint), paintTitle(paint)),
+        },
+        ...(canEditHome
+          ? [
+              {
+                label: "Edit",
+                icon: "create-outline" as const,
+                onPress: () => setPaintSheet({ visible: true, paint }),
+              },
+              {
+                label: "Delete",
+                icon: "trash-outline" as const,
+                destructive: true,
+                onPress: () => deletePaint(paint),
+              },
+            ]
+          : []),
+      ],
+    });
+  };
+
+  const openNoteMenu = (note: HomeNote) => {
+    triggerMedium();
+    const text = noteShareText(note);
+    const wifi = parseWifiNote(note);
+    showActionMenu({
+      title: note.title || noteTemplate(note).label,
+      options: [
+        {
+          label: "Copy",
+          icon: "copy-outline",
+          onPress: () => void copy(note.id, text),
+        },
+        {
+          label: "Share…",
+          icon: "share-outline",
+          onPress: () => void shareHomeText(text, note.title || undefined),
+        },
+        ...(wifi
+          ? [
+              {
+                label: "Show Wi‑Fi QR code",
+                icon: "qr-code-outline" as const,
+                onPress: () => setWifiQr(wifi),
+              },
+            ]
+          : []),
+        ...(canEditHome
+          ? [
+              {
+                label: "Edit",
+                icon: "create-outline" as const,
+                onPress: () => setNoteSheet({ visible: true, note }),
+              },
+              {
+                label: "Delete",
+                icon: "trash-outline" as const,
+                destructive: true,
+                onPress: () => deleteNote(note),
+              },
+            ]
+          : []),
+      ],
+    });
+  };
+
   return (
     <>
       <ScrollView
@@ -191,15 +283,7 @@ export function HomeNotesScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
-        <SegmentedControl
-          options={SEGMENTS}
-          value={segment}
-          onChange={setSegment}
-          accessibilityLabel="Paint or notes"
-          style={styles.segmented}
-        />
-
-        {segment === "paint" ? (
+        {section === "paint" ? (
           paints.length === 0 ? (
             <EmptyState
               icon="color-palette-outline"
@@ -225,6 +309,7 @@ export function HomeNotesScreen() {
                         void copy(paint.id, paintCopyValue(paint));
                       }
                     }}
+                    onLongPress={() => openPaintMenu(paint)}
                     style={({ pressed }) => [
                       styles.paintCard,
                       {
@@ -245,8 +330,8 @@ export function HomeNotesScreen() {
                       .join(", ")}
                     accessibilityHint={
                       canEditHome
-                        ? "Opens the colour to edit"
-                        : "Copies the colour"
+                        ? "Opens the colour to edit. Long press for more options"
+                        : "Copies the colour. Long press for more options"
                     }
                   >
                     <View
@@ -338,14 +423,21 @@ export function HomeNotesScreen() {
           <EmptyState
             icon="document-text-outline"
             title="The things only you know"
-            body="Guest Wi-Fi, the spare key, which breaker runs the garage, the sprinkler schedule. Write it down once and everyone in the home can find it."
-            action={canEditHome ? "Write a note" : null}
+            body="Guest Wi‑Fi, the spare key, trash day, the sprinkler schedule. Start from a template, write it once, and share it with anyone who needs it."
+            action={canEditHome ? "Start a note" : null}
             onAction={openAdd}
           />
         ) : (
           notes.map((note) => {
             const expanded = expandedNoteId === note.id;
             const updated = parseISO(note.updatedAt);
+            const template = noteTemplate(note);
+            const body = noteDisplayBody(note);
+            const wifi = parseWifiNote(note);
+            const updatedLabel =
+              Number.isNaN(updated.getTime()) || updated.getTime() === 0
+                ? null
+                : `Updated ${format(updated, "MMM d, yyyy")}`;
             return (
               <Pressable
                 key={note.id}
@@ -354,7 +446,7 @@ export function HomeNotesScreen() {
                   if (canEditHome) setNoteSheet({ visible: true, note });
                   else setExpandedNoteId(expanded ? null : note.id);
                 }}
-                onLongPress={() => void copy(note.id, note.body)}
+                onLongPress={() => openNoteMenu(note)}
                 style={({ pressed }) => [
                   styles.noteCard,
                   {
@@ -365,30 +457,104 @@ export function HomeNotesScreen() {
                   pressed && { opacity: 0.85 },
                 ]}
                 accessibilityRole="button"
-                accessibilityHint="Long press to copy"
+                accessibilityLabel={[note.title || template.label, body]
+                  .filter(Boolean)
+                  .join(". ")}
+                accessibilityHint="Long press for copy, share, and more"
               >
-                {note.title ? (
-                  <Text style={[styles.noteTitle, { color: colors.text }]}>
-                    {note.title}
-                  </Text>
-                ) : null}
-                {note.body ? (
+                <View style={styles.noteHeader}>
+                  <View
+                    style={[
+                      styles.noteIcon,
+                      { backgroundColor: template.tint + "1F" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={template.icon}
+                      size={16}
+                      color={template.tint}
+                    />
+                  </View>
+                  <View style={styles.noteHeaderText}>
+                    <Text
+                      style={[styles.noteTitle, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {note.title || template.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.noteMeta,
+                        {
+                          color:
+                            copiedId === note.id
+                              ? colors.success
+                              : colors.textSecondary,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {copiedId === note.id
+                        ? "Copied"
+                        : [
+                            note.kind && note.kind !== "general"
+                              ? template.label
+                              : null,
+                            updatedLabel,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => openNoteMenu(note)}
+                    hitSlop={10}
+                    style={styles.moreHit}
+                    accessibilityRole="button"
+                    accessibilityLabel="More options"
+                  >
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+                {body ? (
                   <Text
                     style={[styles.noteBody, { color: colors.text }]}
                     numberOfLines={expanded ? undefined : 4}
                   >
-                    {note.body}
+                    {body}
                   </Text>
                 ) : null}
-                <Text
-                  style={[styles.noteMeta, { color: colors.textSecondary }]}
-                >
-                  {copiedId === note.id
-                    ? "Copied"
-                    : Number.isNaN(updated.getTime()) || updated.getTime() === 0
-                      ? ""
-                      : `Updated ${format(updated, "MMM d, yyyy")}`}
-                </Text>
+                {wifi ? (
+                  <Pressable
+                    onPress={() => {
+                      triggerLight();
+                      setWifiQr(wifi);
+                    }}
+                    style={({ pressed }) => [
+                      styles.wifiChip,
+                      {
+                        backgroundColor: template.tint + "14",
+                        borderColor: template.tint + "40",
+                      },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show Wi‑Fi QR code"
+                  >
+                    <Ionicons
+                      name="qr-code-outline"
+                      size={14}
+                      color={template.tint}
+                    />
+                    <Text style={[styles.wifiChipText, { color: template.tint }]}>
+                      Show QR code to join
+                    </Text>
+                  </Pressable>
+                ) : null}
               </Pressable>
             );
           })
@@ -396,7 +562,9 @@ export function HomeNotesScreen() {
 
         {!canEditHome ? (
           <Text style={[styles.memberNote, { color: colors.textSecondary }]}>
-            Only the home's owner can edit paint and notes.
+            {section === "paint"
+              ? "Only the home's owner can edit paint colours."
+              : "Only the home's owner can edit house notes."}
           </Text>
         ) : null}
       </ScrollView>
@@ -415,6 +583,7 @@ export function HomeNotesScreen() {
         onSave={saveNote}
         onDelete={deleteNote}
       />
+      <WifiQrSheet wifi={wifiQr} onClose={() => setWifiQr(null)} />
     </>
   );
 }
@@ -458,9 +627,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.md,
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
-  },
-  segmented: {
-    marginBottom: DesignSystem.spacing.lg,
   },
   grid: {
     flexDirection: "row",
@@ -518,6 +684,42 @@ const styles = StyleSheet.create({
     padding: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.sm + 4,
     gap: DesignSystem.spacing.xs + 2,
+  },
+  noteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm + 2,
+  },
+  noteIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noteHeaderText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  moreHit: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: -DesignSystem.spacing.xs,
+  },
+  wifiChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingHorizontal: DesignSystem.spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: DesignSystem.borders.radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  wifiChipText: {
+    ...DesignSystem.typography.smallSemiBold,
   },
   noteTitle: {
     ...DesignSystem.typography.bodySemiBold,

@@ -636,7 +636,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         return {
           success: false,
           error: /home_notes/.test(error.message)
-            ? "Paint and notes need a quick app update on our side. Try again soon."
+            ? "Paint colours and house notes need a quick update on our side. Try again soon."
             : error.message,
         };
       }

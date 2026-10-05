@@ -263,6 +263,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: DesignSystem.borders.radius.xlarge + 4,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
+    // Lets long content scroll inside maxHeight instead of pushing the footer off-screen.
+    flexShrink: 1,
   },
   sheetSurfaceFill: {
     flex: 1,

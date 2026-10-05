@@ -9,7 +9,7 @@ import { HearthSurfaceCard, SheetActionRow } from "../../components/ui";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
-import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
+import { useAppNavigation } from "../../navigation/useAppNavigation";
 import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { EditPasswordModal } from "../../components/modals/edit-password-modal";
 import { DesignSystem } from "../../theme/designSystem";
@@ -42,7 +42,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
   const [householdVisible, setHouseholdVisible] = useState(false);
-  const [emergencyVisible, setEmergencyVisible] = useState(false);
+  const { openRecord } = useAppNavigation();
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
   const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
 
@@ -173,10 +173,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     },
     {
       icon: "warning-outline" as const,
-      title: "Emergency map",
+      title: "Emergency info",
+      subtitle: "Shutoffs, photos, and who to call",
       onPress: () => {
         void triggerLight();
-        setEmergencyVisible(true);
+        openRecord("EmergencyInfo");
       },
     },
     {
@@ -344,13 +345,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         visible={householdVisible}
         onClose={() => setHouseholdVisible(false)}
       />
-
-      {emergencyVisible ? (
-        <EmergencyFactsModal
-          visible
-          onClose={() => setEmergencyVisible(false)}
-        />
-      ) : null}
 
       {nameEditorVisible ? (
         <EditNameModal visible onClose={() => setNameEditorVisible(false)} />

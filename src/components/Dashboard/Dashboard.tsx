@@ -74,7 +74,6 @@ import {
   WeekendPlanHistoryEntry,
 } from "../../utils/weekendPlanStorage";
 import { CompleteTaskSheet } from "../modals/complete-task/CompleteTaskSheet";
-import { EmergencyFactsModal } from "../modals/emergency-facts/EmergencyFactsModal";
 import { WeekendBudgetSheet } from "./WeekendBudgetSheet";
 import { WeekendPlanStrip } from "./WeekendPlanStrip";
 import {
@@ -156,7 +155,7 @@ export function NewDashboard({
   const { createTasks } = useTasks();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
-  const { goToTab, openPlan } = useAppNavigation();
+  const { goToTab, openPlan, openRecord } = useAppNavigation();
   const { openLogRepair } = useQuickActions();
 
   const [celebration, setCelebration] = useState<{
@@ -194,7 +193,6 @@ export function NewDashboard({
   >([]);
   const [showWeekendBudget, setShowWeekendBudget] = useState(false);
   const [sheetBudget, setSheetBudget] = useState(90);
-  const [showEmergencyFacts, setShowEmergencyFacts] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<MaintenanceTask | null>(
     null
   );
@@ -921,7 +919,7 @@ export function NewDashboard({
         onSetupHome={() => setShowHomeSetupModal(true)}
         weatherOverlay={climateAlert?.kind ?? null}
         showPins={isHomeSystemsComplete(profile?.home_systems)}
-        onPinPress={() => setShowEmergencyFacts(true)}
+        onPinPress={() => openRecord("EmergencyInfo")}
       />
       {nextTask ? (
         <NextRightThingCard
@@ -1131,13 +1129,6 @@ export function NewDashboard({
             }
           }}
           onSubmit={handleCompleteTask}
-        />
-      ) : null}
-
-      {showEmergencyFacts ? (
-        <EmergencyFactsModal
-          visible
-          onClose={() => setShowEmergencyFacts(false)}
         />
       ) : null}
 
