@@ -43,7 +43,7 @@ function RecordStackNavigator() {
       <RecordStack.Screen
         name="RecordHome"
         component={RecordHomeScreen}
-        options={{ title: "Record" }}
+        options={{ title: "Record", headerShown: false }}
       />
       <RecordStack.Screen
         name="CompletionHistory"
@@ -91,7 +91,7 @@ function PlanStackNavigator() {
       <PlanStack.Screen
         name="PlanHome"
         component={PlanHomeScreen}
-        options={{ title: "Plan" }}
+        options={{ title: "Plan", headerShown: false }}
       />
     </PlanStack.Navigator>
   );

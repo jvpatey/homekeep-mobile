@@ -96,9 +96,11 @@ export function usePlanCatalog() {
 export function PlanLibraryCards({
   catalog,
   onOpenPlan,
+  showIntro = true,
 }: {
   catalog: ReturnType<typeof usePlanCatalog>;
   onOpenPlan: (plan: MaintenancePlanDefinition) => void;
+  showIntro?: boolean;
 }) {
   const { colors, isDark } = useTheme();
   const { profile } = useProfile();
@@ -107,16 +109,18 @@ export function PlanLibraryCards({
 
   return (
     <>
-      <Text
-        style={[
-          maintenancePlansStyles.listIntro,
-          { color: colors.textSecondary },
-        ]}
-      >
-        {homeSetupComplete
-          ? "Add more recurring tasks tailored to your home. Your home profile is already saved—we'll skip the questionnaire when we can."
-          : "Choose a bundle and pick what to add. For a full schedule at once, finish Set up your home on the dashboard."}
-      </Text>
+      {showIntro ? (
+        <Text
+          style={[
+            maintenancePlansStyles.listIntro,
+            { color: colors.textSecondary },
+          ]}
+        >
+          {homeSetupComplete
+            ? "Add more recurring tasks tailored to your home. Your home profile is already saved—we'll skip the questionnaire when we can."
+            : "Choose a bundle and pick what to add. For a full schedule at once, finish Set up your home on the dashboard."}
+        </Text>
+      ) : null}
       {catalogPlans.map((plan) => {
         const theme = getPlanTheme(plan.id);
         const bubble = theme

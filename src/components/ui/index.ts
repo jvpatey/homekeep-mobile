@@ -18,6 +18,7 @@ export { SheetActionRow } from "./sheet-action-row";
 export { PriorityMark, getPriorityColor } from "./PriorityMark";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl";
 export { HeaderIconButton } from "./HeaderIconButton";
+export { TabScreenHeader, TabHeaderAction } from "./TabScreenHeader";
 export {
   SearchableSelectModal,
   type SearchableOption,

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -21,7 +21,11 @@ import { useHomeContacts } from "../../hooks/useHomeContacts";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
-import { HeaderIconButton, HouseMark } from "../../components/ui";
+import {
+  HouseMark,
+  TabHeaderAction,
+  TabScreenHeader,
+} from "../../components/ui";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { EmergencyFactsModal } from "../../components/modals/emergency-facts/EmergencyFactsModal";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
@@ -84,18 +88,6 @@ export function RecordHomeScreen() {
   const ledger = useMemo(() => computeSpendLedger(completions), [completions]);
   const yearSpend = spendForYear(ledger, year)?.total ?? 0;
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <HeaderIconButton
-          icon="add"
-          accessibilityLabel="Log a repair"
-          onPress={() => void openLogRepair()}
-        />
-      ),
-    });
-  }, [navigation, openLogRepair]);
-
   useEffect(() => {
     const householdId = profile?.household_id;
     if (!householdId || !user) {
@@ -150,6 +142,19 @@ export function RecordHomeScreen() {
           />
         }
       >
+        <TabScreenHeader
+          title="Record"
+          subtitle="Your home's history, things, and people"
+          style={styles.header}
+          actions={
+            <TabHeaderAction
+              icon="add"
+              accessibilityLabel="Log a repair"
+              accessibilityHint="Record a one-off repair or job"
+              onPress={() => void openLogRepair()}
+            />
+          }
+        />
         <View
           style={[
             styles.hero,
@@ -379,8 +384,10 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
+  },
+  header: {
+    marginHorizontal: -DesignSystem.spacing.md,
   },
   hero: {
     borderRadius: DesignSystem.borders.radius.xlarge,
