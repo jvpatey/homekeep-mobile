@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -6,7 +6,10 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
 import { HearthSurfaceCard } from "../../components/ui";
-import { MaintenanceService } from "../../services/maintenanceService";
+import {
+  refreshRoutines,
+  useRoutineSnapshot,
+} from "../../components/all-reminders/useReminderRoutines";
 import {
   QUESTIONNAIRE_PLAN_IDS,
   MaintenancePlanDefinition,
@@ -34,23 +37,26 @@ const TAG_LABELS: Record<MaintenancePlanTag, string> = {
 export function usePlanCatalog() {
   const { stats } = useTasks();
   const { profile } = useProfile();
-  const [appliedPlanIds, setAppliedPlanIds] = useState<Set<string>>(
-    () => new Set()
-  );
+  const { routines } = useRoutineSnapshot();
+  const [justApplied, setJustApplied] = useState<Set<string>>(() => new Set());
 
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      void MaintenanceService.getMaintenanceRoutines({ is_active: true }).then(
-        ({ data }) => {
-          if (!cancelled) setAppliedPlanIds(getAppliedPlanIds(data ?? []));
-        }
-      );
-      return () => {
-        cancelled = true;
-      };
+      void refreshRoutines();
     }, [])
   );
+
+  useEffect(() => {
+    setJustApplied((prev) => (prev.size === 0 ? prev : new Set()));
+  }, [routines]);
+
+  const appliedPlanIds = useMemo(() => {
+    const ids = getAppliedPlanIds(
+      routines.filter((routine) => routine.is_active)
+    );
+    justApplied.forEach((id) => ids.add(id));
+    return ids;
+  }, [routines, justApplied]);
 
   const homeSetupComplete = Boolean(profile?.home_setup_set_at);
 
@@ -81,7 +87,7 @@ export function usePlanCatalog() {
   }, [homeSetupComplete, suggestedPlanId]);
 
   const markApplied = useCallback((planId: string) => {
-    setAppliedPlanIds((prev) => new Set(prev).add(planId));
+    setJustApplied((prev) => new Set(prev).add(planId));
   }, []);
 
   return {

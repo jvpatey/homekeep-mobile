@@ -12,7 +12,7 @@ export { TextField } from "./TextField";
 export { OtpInput } from "./OtpInput";
 export { HearthScreen } from "./HearthScreen";
 export { HearthSheet } from "./HearthSheet";
-export { HearthCanvas } from "./HearthCanvas";
+export { HearthCanvas, ScrollAtmosphere } from "./HearthCanvas";
 export { HearthSurfaceCard } from "./HearthSurfaceCard";
 export { SheetActionRow } from "./sheet-action-row";
 export { PriorityMark, getPriorityColor } from "./PriorityMark";

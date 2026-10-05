@@ -8,6 +8,7 @@ import { QuickActionsProvider } from "../context/QuickActionsContext";
 import { resetRecordData } from "../hooks/useRecordData";
 import { resetEquipmentIndex } from "../hooks/useEquipmentIndex";
 import { resetHomeContacts } from "../hooks/useHomeContacts";
+import { resetRoutineCache } from "../components/all-reminders/useReminderRoutines";
 import { AppStackParamList } from "./types";
 import { AppTabs } from "./AppTabs";
 import { useTabStackScreenOptions } from "./stackScreenOptions";
@@ -27,6 +28,7 @@ export function AppNavigator() {
       resetRecordData();
       resetEquipmentIndex();
       resetHomeContacts();
+      resetRoutineCache();
     },
     []
   );

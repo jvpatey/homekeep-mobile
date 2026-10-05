@@ -5,9 +5,11 @@ import { HearthScreen } from "../components/ui";
 import { useTasks } from "../context/TasksContext";
 import { useAppNavigation } from "../navigation/useAppNavigation";
 import { refreshEquipmentIndex } from "../hooks/useEquipmentIndex";
+import { usePrefetchTabs } from "../navigation/usePrefetchTabs";
 
 export function DashboardScreen() {
   const { openPlan, openPlanFlow } = useAppNavigation();
+  usePrefetchTabs();
   const {
     upcomingTasks,
     overdueTasks,

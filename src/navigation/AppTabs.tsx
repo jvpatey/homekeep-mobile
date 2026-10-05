@@ -113,6 +113,7 @@ export function AppTabs() {
             ? { backgroundColor: colors.surface }
             : undefined,
         popToTopOnBlur: false,
+        tabBarMinimizeBehavior: "onScrollDown",
       }}
     >
       <Tabs.Screen

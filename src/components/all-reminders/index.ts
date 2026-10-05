@@ -4,4 +4,9 @@ export {
   groupRoutinesIntoSections,
   formatRoutineInterval,
 } from "./groupRoutines";
-export { useReminderRoutines } from "./useReminderRoutines";
+export {
+  useReminderRoutines,
+  useRoutineSnapshot,
+  refreshRoutines,
+  resetRoutineCache,
+} from "./useReminderRoutines";

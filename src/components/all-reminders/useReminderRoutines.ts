@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTasks } from "../../context/TasksContext";
@@ -17,40 +17,81 @@ function withoutId(set: Set<string>, id: string) {
   return next;
 }
 
+interface RoutinesSnapshot {
+  routines: MaintenanceRoutine[];
+  loaded: boolean;
+}
+
+const EMPTY_SNAPSHOT: RoutinesSnapshot = { routines: [], loaded: false };
+let snapshot = EMPTY_SNAPSHOT;
+let inflight: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+
+function emit(next: RoutinesSnapshot) {
+  snapshot = next;
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function setRoutines(
+  update: (routines: MaintenanceRoutine[]) => MaintenanceRoutine[]
+) {
+  emit({ ...snapshot, routines: update(snapshot.routines) });
+}
+
+/** Every routine (active and paused); dedupes concurrent callers. */
+export function refreshRoutines(): Promise<void> {
+  if (inflight) return inflight;
+  inflight = (async () => {
+    try {
+      const { data, error } = await MaintenanceService.getMaintenanceRoutines();
+      if (error) throw error;
+      emit({ routines: data ?? [], loaded: true });
+    } catch (error) {
+      console.error("Error loading routines:", error);
+      emit({ ...snapshot, loaded: true });
+    }
+  })().finally(() => {
+    inflight = null;
+  });
+  return inflight;
+}
+
+/** Shared routine list without the delete / resume actions. */
+export function useRoutineSnapshot(): RoutinesSnapshot {
+  return useSyncExternalStore(subscribe, () => snapshot);
+}
+
+/** Clear on sign-out so the next account never sees stale rows. */
+export function resetRoutineCache() {
+  emit(EMPTY_SNAPSHOT);
+}
+
 /** Every routine (active and paused) with delete / resume actions; reloads on focus. */
 export function useReminderRoutines() {
   const { deleteTask, resumeTask, refreshTasks } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
   const requirePlus = useRequirePlus();
-  const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const { routines, loaded } = useRoutineSnapshot();
   const [refreshing, setRefreshing] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [resumingIds, setResumingIds] = useState<Set<string>>(new Set());
 
-  const load = useCallback(async () => {
-    try {
-      const { data, error } = await MaintenanceService.getMaintenanceRoutines();
-      if (error) throw error;
-      setRoutines(data || []);
-    } catch (error) {
-      console.error("Error loading routines:", error);
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
-      void load();
-    }, [load])
+      void refreshRoutines();
+    }, [])
   );
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    await refreshRoutines();
     setRefreshing(false);
-  }, [load]);
+  }, []);
 
   const remove = useCallback(
     async (routineId: string, routineTitle: string) => {

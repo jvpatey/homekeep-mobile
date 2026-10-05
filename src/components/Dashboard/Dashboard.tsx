@@ -20,7 +20,7 @@ import {
   CompletionCelebration,
   CompletionCelebrationSnapshot,
 } from "./popups";
-import { NotificationPermissionRequest, HearthCanvas } from "../ui";
+import { NotificationPermissionRequest, ScrollAtmosphere } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { NextRightThingCard } from "./NextRightThingCard";
 import { HomeSystemMap } from "./HomeSystemMap";
@@ -881,6 +881,7 @@ export function NewDashboard({
 
   const listHeader = (
     <>
+      <ScrollAtmosphere />
       <DashboardHeader
         userName={accountFirstName({
           authFullName: user?.user_metadata?.full_name as string | undefined,
@@ -968,7 +969,7 @@ export function NewDashboard({
   );
 
   return (
-    <HearthCanvas>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <DashboardScheduleList
         ref={listRef}
         sections={sections}
@@ -1172,6 +1173,6 @@ export function NewDashboard({
       ) : null}
 
       <NotificationPermissionRequest />
-    </HearthCanvas>
+    </View>
   );
 }

@@ -10,13 +10,13 @@ type TabKey = "home" | "record" | "plan";
 const SF_SYMBOLS: Record<TabKey, { normal: SFSymbol; focused: SFSymbol }> = {
   home: { normal: "house", focused: "house.fill" },
   record: { normal: "tray.full", focused: "tray.full.fill" },
-  plan: { normal: "calendar", focused: "calendar" },
+  plan: { normal: "list.bullet.clipboard", focused: "list.bullet.clipboard.fill" },
 };
 
 const IONICONS: Record<TabKey, keyof typeof Ionicons.glyphMap> = {
   home: "home",
   record: "file-tray-full",
-  plan: "calendar",
+  plan: "clipboard",
 };
 
 let androidCache: Partial<Record<TabKey, ImageSourcePropType>> | null = null;
