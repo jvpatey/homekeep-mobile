@@ -3,13 +3,21 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   Pressable,
   Alert,
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
+import { useNotifications } from "../../../context/NotificationContext";
+import { useSubscription } from "../../../context/SubscriptionContext";
+import { useHaptics, useReducedMotion } from "../../../hooks";
 import { useProfile } from "../../../context/ProfileContext";
 import { useTasks } from "../../../context/TasksContext";
 import { HearthSheet } from "../../ui/HearthSheet";
@@ -23,30 +31,44 @@ import {
   ScheduledHomeItem,
   isHomeSystemsComplete,
   homeHeatSources,
-  HOME_HEAT_SOURCE_OPTIONS,
   isHeatPumpFamily,
   diffHomeSchedule,
   HomeScheduleDiff,
   isValidYearBuilt,
-  MIN_YEAR_BUILT,
   FireplaceType,
-  HomeFeatureFlag,
-  HOME_FEATURE_FLAGS,
-  HOME_FEATURE_OPTIONS,
-  FIREPLACE_TYPE_OPTIONS,
 } from "../../../data/maintenancePlans";
-import { TextField } from "../../ui/TextField";
 import { MaintenanceService } from "../../../services/maintenanceService";
 import {
   CategoryKey,
   HOME_MAINTENANCE_CATEGORIES,
 } from "../../../types/maintenance";
 import {
-  QuestionCard,
-  QuestionLabel,
-  QuestionHint,
-  ChoiceRow,
-} from "../../../screens/maintenance-plans/questionnaireChrome";
+  InlineChoice,
+  OptionGrid,
+  OptionTile,
+  SetupLead,
+  SetupProgress,
+  SetupSection,
+} from "./setupChrome";
+import { SetupWelcome } from "./SetupWelcome";
+import { YearBuiltPicker } from "./YearBuiltPicker";
+import { SetupNotify } from "./SetupNotify";
+import {
+  ScheduleGroup,
+  ScheduleSummary,
+  categoryIcon,
+  formatDuration,
+} from "./ScheduleReview";
+import {
+  FIREPLACE_FUEL_CHOICES,
+  HEAT_SOURCE_TILES,
+  HOME_HAS_GROUPS,
+  HomeHasKey,
+  POOL_SANITIZER_CHOICES,
+  PoolSanitizer,
+  PROPERTY_TYPE_TILES,
+  savedHomeHasKeys,
+} from "./homeSetupOptions";
 import {
   HomeAddressFields,
   HomeAddressFieldsHandle,
@@ -55,6 +77,7 @@ import { EquipmentManualService } from "../../../services/EquipmentManualService
 import {
   EquipmentType,
   EQUIPMENT_TYPE_LABELS,
+  equipmentTypeIcon,
 } from "../../../types/equipmentManual";
 import {
   hintsForEquipmentName,
@@ -65,19 +88,55 @@ import {
 import type { MaintenancePlanItemTemplate } from "../../../data/maintenancePlans/types";
 
 type Phase =
+  | "welcome"
   | "address"
-  | "questions"
+  | "basics"
+  | "features"
   | "equipment"
   | "confirm"
   | "hints"
+  | "notify"
   | "homeshare";
 
-const SETUP_EQUIPMENT_TYPES: EquipmentType[] = [
-  "furnace",
-  "ac",
-  "water_heater",
-  "fridge",
+const FIRST_RUN_STEPS: Phase[] = [
+  "address",
+  "basics",
+  "features",
+  "equipment",
+  "confirm",
+  "homeshare",
 ];
+const EDIT_STEPS: Phase[] = ["address", "basics", "features", "confirm"];
+const PHASE_ORDER: Phase[] = [
+  "welcome",
+  "address",
+  "basics",
+  "features",
+  "equipment",
+  "confirm",
+  "hints",
+  "notify",
+  "homeshare",
+];
+const STEP_EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
+
+const FURNACE_HEAT: HomeHeatSource[] = ["gas_furnace", "oil", "propane"];
+
+/** Equipment tiles that fit this home's answers, heating first. */
+function setupEquipmentTypes(
+  heatSources: HomeHeatSource[],
+  homeHas: HomeHasKey[]
+): EquipmentType[] {
+  const types: EquipmentType[] = [];
+  if (heatSources.some((source) => FURNACE_HEAT.includes(source))) {
+    types.push("furnace");
+  }
+  if (heatSources.some(isHeatPumpFamily)) types.push("heat_pump");
+  types.push("ac", "water_heater", "fridge", "dishwasher", "washer", "dryer");
+  if (homeHas.includes("hasWaterSoftener")) types.push("water_softener");
+  if (homeHas.includes("hasLawn")) types.push("lawn_mower");
+  return types;
+}
 
 type SessionEquipment = {
   id: string;
@@ -120,6 +179,23 @@ function formatIntervalDays(days: number): string {
   return `Every ${days} days`;
 }
 
+function taskMeta(item: MaintenancePlanItemTemplate): string {
+  return `${formatIntervalDays(item.interval_days)} · ${formatDuration(
+    item.estimated_duration_minutes
+  )}`;
+}
+
+function toggleMask(
+  setMask: React.Dispatch<React.SetStateAction<boolean[]>>,
+  index: number
+) {
+  setMask((prev) => {
+    const next = [...prev];
+    next[index] = !next[index];
+    return next;
+  });
+}
+
 function categoryLabel(category: ScheduledHomeItem["category"]) {
   return (
     HOME_MAINTENANCE_CATEGORIES[
@@ -149,34 +225,25 @@ export function HomeSetupModal({
     createTask,
   } = useTasks();
   const addressRef = useRef<HomeAddressFieldsHandle>(null);
+  const basicsScrollRef = useRef<ScrollView>(null);
   const [addressCanSubmit, setAddressCanSubmit] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(visible);
   const finishActionRef = useRef<"invite" | "join" | "done" | null>(null);
 
-  const [phase, setPhase] = useState<Phase>("address");
-  const [hasLawn, setHasLawn] = useState<boolean | null>(null);
+  const [phase, setPhaseState] = useState<Phase>(
+    hideSkip ? "address" : "welcome"
+  );
+  // 0 = no slide, so the first step doesn't animate under the sheet's own entrance.
+  const [stepDirection, setStepDirection] = useState<-1 | 0 | 1>(0);
   const [propertyType, setPropertyType] = useState<HomePropertyType | null>(
     null
   );
   const [heatSources, setHeatSources] = useState<HomeHeatSource[]>([]);
-  const [hasAirExchanger, setHasAirExchanger] = useState<boolean | null>(null);
-  const [hasWaterSoftener, setHasWaterSoftener] = useState<boolean | null>(
-    null
-  );
-  const [hasRefrigeratorWaterFilter, setHasRefrigeratorWaterFilter] =
-    useState<boolean | null>(null);
-  const [hasVentHoodFilters, setHasVentHoodFilters] = useState<boolean | null>(
-    null
-  );
-  const [hasSeptic, setHasSeptic] = useState<boolean | null>(null);
-  const [hasPool, setHasPool] = useState<boolean | null>(null);
-  const [hasSpa, setHasSpa] = useState<boolean | null>(null);
-  const [poolUsesSaltChlorination, setPoolUsesSaltChlorination] = useState<
-    boolean | null
-  >(null);
   const [yearBuiltText, setYearBuiltText] = useState("");
-  const [features, setFeatures] = useState<HomeFeatureFlag[]>([]);
-  const [hasFireplace, setHasFireplace] = useState(false);
+  const [homeHas, setHomeHas] = useState<HomeHasKey[]>([]);
+  const [poolSanitizer, setPoolSanitizer] = useState<PoolSanitizer | null>(
+    null
+  );
   const [fireplaceFuel, setFireplaceFuel] = useState<
     Exclude<FireplaceType, "none"> | null
   >(null);
@@ -203,6 +270,36 @@ export function HomeSetupModal({
   const home = profile?.home_systems;
   const isReconcile = confirmMode === "reconcile";
 
+  const reducedMotion = useReducedMotion();
+  const { triggerLight, triggerSuccess } = useHaptics();
+  const { permissionStatus, syncPushToken } = useNotifications();
+  const { isPlus } = useSubscription();
+  const shouldAskNotifications =
+    !hideSkip && permissionStatus.status === "undetermined";
+
+  const setPhase = (next: Phase) => {
+    if (next === phase) return;
+    triggerLight();
+    setStepDirection(
+      PHASE_ORDER.indexOf(next) > PHASE_ORDER.indexOf(phase) ? 1 : -1
+    );
+    setPhaseState(next);
+  };
+
+  const resetPhase = () => {
+    setStepDirection(0);
+    setPhaseState(hideSkip ? "address" : "welcome");
+  };
+
+  const stepEntering =
+    stepDirection === 0
+      ? undefined
+      : reducedMotion
+        ? FadeIn.duration(160)
+        : (stepDirection > 0 ? FadeInRight : FadeInLeft)
+            .duration(340)
+            .easing(STEP_EASE_OUT);
+
   useEffect(() => {
     setSheetVisible(visible);
   }, [visible]);
@@ -211,7 +308,7 @@ export function HomeSetupModal({
   // not snap the wizard back to step 1.
   useEffect(() => {
     if (!visible) {
-      setPhase("address");
+      resetPhase();
       setSaving(false);
       setReconcileDiff(null);
       setConfirmMode("generate");
@@ -223,36 +320,29 @@ export function HomeSetupModal({
       systemsBeforeEdit.current = null;
       return;
     }
-    setHasLawn(home?.hasLawn ?? null);
     setPropertyType(home?.propertyType ?? null);
     setHeatSources(homeHeatSources(home));
-    setHasAirExchanger(home?.hasAirExchanger ?? null);
-    setHasWaterSoftener(home?.hasWaterSoftener ?? null);
-    setHasRefrigeratorWaterFilter(home?.hasRefrigeratorWaterFilter ?? null);
-    setHasVentHoodFilters(home?.hasVentHoodFilters ?? null);
-    setHasSeptic(home?.hasSeptic ?? null);
-    setHasPool(home?.hasPool ?? null);
-    setHasSpa(home?.hasSpa ?? null);
-    setPoolUsesSaltChlorination(home?.poolUsesSaltChlorination ?? null);
     setYearBuiltText(home?.yearBuilt ? String(home.yearBuilt) : "");
-    setFeatures(HOME_FEATURE_FLAGS.filter((flag) => home?.[flag] === true));
+    setHomeHas(savedHomeHasKeys(home));
+    setPoolSanitizer(
+      home?.hasPool !== true
+        ? null
+        : home.poolUsesSaltChlorination === true
+          ? "salt"
+          : home.poolUsesSaltChlorination === false
+            ? "chlorine"
+            : null
+    );
     const savedFireplace = home?.fireplaceType;
-    setHasFireplace(savedFireplace === "wood" || savedFireplace === "gas");
     setFireplaceFuel(
-      savedFireplace === "wood" || savedFireplace === "gas"
-        ? savedFireplace
-        : null
+      savedFireplace && savedFireplace !== "none" ? savedFireplace : null
     );
     setSessionEquipment([]);
     setPendingHints([]);
     setPendingFinishCopy(null);
-    setPhase("address");
+    resetPhase();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the sheet opens
   }, [visible]);
-
-  useEffect(() => {
-    if (hasPool === false) setPoolUsesSaltChlorination(false);
-  }, [hasPool]);
 
   const toggleHeatSource = (source: HomeHeatSource) => {
     setHeatSources((prev) =>
@@ -262,28 +352,17 @@ export function HomeSetupModal({
     );
   };
 
-  const toggleFeature = (flag: HomeFeatureFlag) => {
-    setFeatures((prev) =>
-      prev.includes(flag)
-        ? prev.filter((item) => item !== flag)
-        : [...prev, flag]
+  const has = (key: HomeHasKey) => homeHas.includes(key);
+
+  const toggleHomeHas = (key: HomeHasKey) => {
+    setHomeHas((prev) =>
+      prev.includes(key)
+        ? prev.filter((item) => item !== key)
+        : [...prev, key]
     );
+    if (key === "fireplace") setFireplaceFuel(null);
+    if (key === "hasPool") setPoolSanitizer(null);
   };
-
-  const saltNeeded = hasPool === true;
-
-  const answered =
-    Number(hasLawn !== null) +
-    Number(propertyType !== null) +
-    Number(heatSources.length > 0) +
-    Number(hasAirExchanger !== null) +
-    Number(hasWaterSoftener !== null) +
-    Number(hasRefrigeratorWaterFilter !== null) +
-    Number(hasVentHoodFilters !== null) +
-    Number(hasSeptic !== null) +
-    Number(hasPool !== null) +
-    Number(hasSpa !== null) +
-    Number(!saltNeeded || poolUsesSaltChlorination !== null);
 
   const trimmedYearBuilt = yearBuiltText.trim();
   const parsedYearBuilt = trimmedYearBuilt
@@ -293,67 +372,51 @@ export function HomeSetupModal({
     parsedYearBuilt === undefined || isValidYearBuilt(parsedYearBuilt);
   const yearBuilt = yearBuiltValid ? parsedYearBuilt : undefined;
 
-  const canContinueQuestions =
-    yearBuiltValid &&
-    (!hasFireplace || fireplaceFuel !== null) &&
-    hasLawn !== null &&
-    propertyType !== null &&
-    heatSources.length > 0 &&
-    hasAirExchanger !== null &&
-    hasWaterSoftener !== null &&
-    hasRefrigeratorWaterFilter !== null &&
-    hasVentHoodFilters !== null &&
-    hasSeptic !== null &&
-    hasPool !== null &&
-    hasSpa !== null &&
-    (!saltNeeded || poolUsesSaltChlorination !== null);
+  const canContinueBasics =
+    yearBuiltValid && propertyType !== null && heatSources.length > 0;
+  const needsFireplaceFuel = homeHas.includes("fireplace") && !fireplaceFuel;
+  const needsPoolSanitizer = homeHas.includes("hasPool") && !poolSanitizer;
+  const canContinueFeatures = !needsFireplaceFuel && !needsPoolSanitizer;
 
+  // Unselected tiles on the "what's here" step are explicit "no" answers.
   const draftSystems = useMemo<HomeSystems | null>(() => {
-    if (!canContinueQuestions) return null;
+    if (!canContinueBasics || !canContinueFeatures) return null;
+    const yes = (key: HomeHasKey) => homeHas.includes(key);
     return {
-      hasLawn: hasLawn!,
+      hasLawn: yes("hasLawn"),
       propertyType: propertyType!,
       heatSource: heatSources[0],
       heatSources,
       hasHeatPump: heatSources.some(isHeatPumpFamily),
-      hasAirExchanger: hasAirExchanger!,
-      hasWaterSoftener: hasWaterSoftener!,
-      hasRefrigeratorWaterFilter: hasRefrigeratorWaterFilter!,
-      hasVentHoodFilters: hasVentHoodFilters!,
-      hasSeptic: hasSeptic!,
-      hasPool: hasPool!,
-      hasSpa: hasSpa!,
-      poolUsesSaltChlorination: hasPool
-        ? Boolean(poolUsesSaltChlorination)
-        : false,
+      hasAirExchanger: yes("hasAirExchanger"),
+      hasWaterSoftener: yes("hasWaterSoftener"),
+      hasRefrigeratorWaterFilter: yes("hasRefrigeratorWaterFilter"),
+      hasVentHoodFilters: yes("hasVentHoodFilters"),
+      hasSeptic: yes("hasSeptic"),
+      hasPool: yes("hasPool"),
+      hasSpa: yes("hasSpa"),
+      poolUsesSaltChlorination: yes("hasPool") && poolSanitizer === "salt",
       yearBuilt,
-      hasSumpPump: features.includes("hasSumpPump"),
-      hasWell: features.includes("hasWell"),
-      hasIrrigation: features.includes("hasIrrigation"),
-      hasGarageDoor: features.includes("hasGarageDoor"),
-      hasGenerator: features.includes("hasGenerator"),
-      hasSolar: features.includes("hasSolar"),
-      hasEvCharger: features.includes("hasEvCharger"),
-      hasDeck: features.includes("hasDeck"),
-      fireplaceType: hasFireplace && fireplaceFuel ? fireplaceFuel : "none",
+      hasSumpPump: yes("hasSumpPump"),
+      hasWell: yes("hasWell"),
+      hasIrrigation: yes("hasIrrigation"),
+      hasGarageDoor: yes("hasGarageDoor"),
+      hasGenerator: yes("hasGenerator"),
+      hasSolar: yes("hasSolar"),
+      hasEvCharger: yes("hasEvCharger"),
+      hasDeck: yes("hasDeck"),
+      fireplaceType:
+        yes("fireplace") && fireplaceFuel ? fireplaceFuel : "none",
     };
   }, [
-    canContinueQuestions,
-    yearBuilt,
-    features,
-    hasFireplace,
-    fireplaceFuel,
-    hasLawn,
+    canContinueBasics,
+    canContinueFeatures,
+    homeHas,
     propertyType,
     heatSources,
-    hasAirExchanger,
-    hasWaterSoftener,
-    hasRefrigeratorWaterFilter,
-    hasVentHoodFilters,
-    hasSeptic,
-    hasPool,
-    hasSpa,
-    poolUsesSaltChlorination,
+    poolSanitizer,
+    yearBuilt,
+    fireplaceFuel,
   ]);
 
   const generatedItems = useMemo(() => {
@@ -418,7 +481,7 @@ export function HomeSetupModal({
   );
 
   const persistFirstRunSkip = async () => {
-    if (phase === "address") {
+    if (phase === "welcome" || phase === "address") {
       await skipAddressOnboarding();
     }
     await markHomeSetupDone();
@@ -450,8 +513,8 @@ export function HomeSetupModal({
       closeSheet();
       return;
     }
-    // Setup already finished (HomeShare step) — just dismiss.
-    if (phase === "homeshare") {
+    // Setup already finished — just dismiss.
+    if (phase === "notify" || phase === "homeshare") {
       closeSheet("done");
       return;
     }
@@ -474,7 +537,7 @@ export function HomeSetupModal({
     setSaving(true);
     try {
       const ok = await addressRef.current?.save({ quietGeocodeMiss: true });
-      if (ok) setPhase("questions");
+      if (ok) setPhase("basics");
     } finally {
       setSaving(false);
     }
@@ -490,6 +553,36 @@ export function HomeSetupModal({
       return;
     }
     setPendingFinishCopy({ title, message });
+    setPhase("homeshare");
+  };
+
+  /** After the schedule is saved: notifications ask (if needed), then HomeShare. */
+  const goToFinishSteps = (title: string, message: string) => {
+    if (shouldAskNotifications) {
+      setPendingFinishCopy({ title, message });
+      setPhase("notify");
+      return;
+    }
+    goToHomeShareStep(title, message);
+  };
+
+  const finishNotifyStep = async (enable: boolean) => {
+    if (saving) return;
+    if (enable) {
+      setSaving(true);
+      try {
+        const registered = await syncPushToken();
+        if (registered) triggerSuccess();
+      } finally {
+        setSaving(false);
+      }
+    }
+    if (!canOfferInvite) {
+      closeSheet("done");
+      return;
+    }
+    // The ready banner already showed on the notify step.
+    setPendingFinishCopy(null);
     setPhase("homeshare");
   };
 
@@ -530,7 +623,7 @@ export function HomeSetupModal({
       setPhase("hints");
       return;
     }
-    goToHomeShareStep(title, message);
+    goToFinishSteps(title, message);
   };
 
   const applySelectedHints = async () => {
@@ -553,7 +646,7 @@ export function HomeSetupModal({
         message: "Your home is set up.",
       };
       setPendingHints([]);
-      goToHomeShareStep(copy.title, copy.message);
+      goToFinishSteps(copy.title, copy.message);
     } catch (e) {
       Alert.alert(
         "Could not add reminders",
@@ -570,7 +663,7 @@ export function HomeSetupModal({
       message: "Your home is set up.",
     };
     setPendingHints([]);
-    goToHomeShareStep(copy.title, copy.message);
+    goToFinishSteps(copy.title, copy.message);
   };
 
   const toggleSessionEquipmentType = async (type: EquipmentType) => {
@@ -664,7 +757,7 @@ export function HomeSetupModal({
     setPhase("confirm");
   };
 
-  const handleContinueFromQuestions = async () => {
+  const handleContinueFromFeatures = async () => {
     if (saving) return;
     setSaving(true);
     try {
@@ -768,7 +861,14 @@ export function HomeSetupModal({
     }
   };
 
-  const questionCount = 10 + (saltNeeded ? 1 : 0);
+  const steps = hideSkip ? EDIT_STEPS : FIRST_RUN_STEPS;
+  const stepIndex = Math.max(
+    0,
+    steps.indexOf(phase === "hints" || phase === "notify" ? "confirm" : phase)
+  );
+  const progress = (
+    <SetupProgress total={steps.length} current={stepIndex} />
+  );
 
   const footerLink = (
     label: string,
@@ -795,16 +895,26 @@ export function HomeSetupModal({
     : (
         <>
           {footerLink(
-            "Join a HomeShare",
+            "I have an invite code",
             () => void handleJoinHousehold(),
-            "Skip setup and join someone else's home"
+            "Skip setup and join someone else's home with an invite code"
           )}
           {footerLink("Skip for now", () => void handleSkip())}
         </>
       );
 
   const footer =
-    phase === "address" ? (
+    phase === "welcome" ? (
+      <View style={styles.footerInner}>
+        <Button
+          label="Get started"
+          onPress={() => setPhase("address")}
+          disabled={saving}
+          accessibilityLabel="Get started with home setup"
+        />
+        <View style={styles.footerLinks}>{firstRunExits}</View>
+      </View>
+    ) : phase === "address" ? (
       <View style={styles.footerInner}>
         <Button
           label={saving ? "Saving…" : "Continue"}
@@ -814,35 +924,54 @@ export function HomeSetupModal({
         />
         <View style={styles.footerLinks}>{firstRunExits}</View>
       </View>
-    ) : phase === "questions" ? (
+    ) : phase === "basics" ? (
       <View style={styles.footerInner}>
         <Button
-          label={
-            hideSkip
-              ? "See what this house needs"
-              : saving
-                ? "Saving…"
-                : "Continue"
-          }
-          onPress={() => void handleContinueFromQuestions()}
-          disabled={!canContinueQuestions || saving}
+          label="Continue"
+          onPress={() => setPhase("features")}
+          disabled={!canContinueBasics}
           accessibilityLabel="Continue"
         />
         <View style={styles.footerLinks}>
           {footerLink("Back", () => setPhase("address"))}
         </View>
       </View>
+    ) : phase === "features" ? (
+      <View style={styles.footerInner}>
+        <Button
+          label={
+            saving
+              ? "Saving…"
+              : hideSkip
+                ? "Review schedule"
+                : homeHas.length === 0
+                  ? "None of these"
+                  : "Continue"
+          }
+          onPress={() => void handleContinueFromFeatures()}
+          disabled={!canContinueFeatures || saving}
+          accessibilityLabel="Continue"
+        />
+        <View style={styles.footerLinks}>
+          {footerLink("Back", () => setPhase("basics"))}
+        </View>
+      </View>
     ) : phase === "equipment" ? (
       <View style={styles.footerInner}>
         <Button
-          label={saving ? "Loading…" : "See what this house needs"}
+          label={
+            saving
+              ? "Loading…"
+              : sessionEquipment.length === 0
+                ? "Skip for now"
+                : "Continue"
+          }
           onPress={() => void handleContinueFromEquipment()}
           disabled={saving}
           accessibilityLabel="Continue to suggested schedule"
         />
         <View style={styles.footerLinks}>
-          {footerLink("Skip equipment", () => void handleContinueFromEquipment())}
-          {footerLink("Back", () => setPhase("questions"))}
+          {footerLink("Back", () => setPhase("features"))}
         </View>
       </View>
     ) : phase === "hints" ? (
@@ -861,6 +990,18 @@ export function HomeSetupModal({
         />
         <View style={styles.footerLinks}>
           {footerLink("Skip reminders", skipHintsAndFinish)}
+        </View>
+      </View>
+    ) : phase === "notify" ? (
+      <View style={styles.footerInner}>
+        <Button
+          label={saving ? "Turning on…" : "Turn on notifications"}
+          onPress={() => void finishNotifyStep(true)}
+          disabled={saving}
+          accessibilityLabel="Turn on notifications"
+        />
+        <View style={styles.footerLinks}>
+          {footerLink("Not now", () => void finishNotifyStep(false))}
         </View>
       </View>
     ) : phase === "homeshare" ? (
@@ -906,24 +1047,24 @@ export function HomeSetupModal({
         />
         <View style={styles.footerLinks}>
           {footerLink("Back", () =>
-            setPhase(hideSkip ? "questions" : "equipment")
+            setPhase(hideSkip ? "features" : "equipment")
           )}
         </View>
       </View>
     );
 
-  const sheetTitle =
-    phase === "confirm"
-      ? isReconcile
-        ? "What changed"
-        : "Here's what this house needs"
-      : phase === "equipment"
-        ? "Key equipment"
-        : phase === "hints"
-          ? "Equipment reminders"
-          : phase === "homeshare"
-            ? "HomeShare"
-            : "Set up your home";
+  const SHEET_TITLES: Record<Phase, string> = {
+    welcome: "",
+    address: "Where's your home?",
+    basics: "About your home",
+    features: "What's at your home?",
+    equipment: "Track your equipment",
+    confirm: isReconcile ? "What changed" : "Your schedule",
+    hints: "Equipment reminders",
+    notify: "Notifications",
+    homeshare: "Share this home",
+  };
+  const sheetTitle = SHEET_TITLES[phase];
 
   return (
     <HearthSheet
@@ -946,679 +1087,332 @@ export function HomeSetupModal({
       embedded={embedded}
       footer={footer}
     >
-      {phase === "address" ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+      <View style={styles.stage}>
+        {phase !== "welcome" ? (
+          <Animated.View
+            entering={
+              reducedMotion || stepDirection === 0
+                ? undefined
+                : FadeIn.duration(240)
+            }
+          >
+            {progress}
+          </Animated.View>
+        ) : null}
+        <Animated.View
+          key={phase}
+          entering={stepEntering}
+          style={styles.stage}
         >
-          <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            {hideSkip ? "1 of 3 · Address" : "1 of 5 · Address"}
-          </Text>
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            Start with where you live. We'll use this for weather, seasons, and
-            your schedule. If someone already set up this home, join their
-            HomeShare instead.
-          </Text>
-          <HomeAddressFields
-            ref={addressRef}
-            active={sheetVisible && phase === "address"}
-            onCanSubmitChange={setAddressCanSubmit}
-          />
-        </ScrollView>
-      ) : phase === "questions" ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            {hideSkip
-              ? `2 of 3 · Home systems · ${answered} of ${questionCount} answered`
-              : `2 of 5 · Home systems · ${answered} of ${questionCount} answered`}
-          </Text>
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            Answer a few questions once. We'll build a maintenance schedule that
-            matches this house.
-          </Text>
-
-          <QuestionCard>
-            <QuestionLabel>Do you have a lawn?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasLawn === true}
-              onPress={() => setHasLawn(true)}
-              accessibilityLabel="Yes, I have a lawn"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasLawn === false}
-              onPress={() => setHasLawn(false)}
-              accessibilityLabel="No lawn"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>What best describes your home?</QuestionLabel>
-            <ChoiceRow
-              label="House (I maintain my own exterior)"
-              selected={propertyType === "house"}
-              onPress={() => setPropertyType("house")}
-              accessibilityLabel="House"
-            />
-            <ChoiceRow
-              label="Condo or townhome"
-              selected={propertyType === "condo_townhome"}
-              onPress={() => setPropertyType("condo_townhome")}
-              accessibilityLabel="Condo or townhome"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>When was it built?</QuestionLabel>
-            <QuestionHint>
-              Optional. Older homes get extra checks for wiring, sewer lines,
-              and lead or asbestos.
-            </QuestionHint>
-            <TextField
-              label="Year built"
-              value={yearBuiltText}
-              onChangeText={(text) =>
-                setYearBuiltText(text.replace(/[^0-9]/g, "").slice(0, 4))
-              }
-              placeholder="e.g. 1985"
-              keyboardType="number-pad"
-              maxLength={4}
-              returnKeyType="done"
-              error={
-                yearBuiltValid
-                  ? undefined
-                  : `Enter a year between ${MIN_YEAR_BUILT} and ${new Date().getFullYear()}.`
-              }
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>How do you heat your home?</QuestionLabel>
-            <QuestionHint>Select all that apply.</QuestionHint>
-            {HOME_HEAT_SOURCE_OPTIONS.map((option) => (
-              <ChoiceRow
-                key={option.id}
-                label={option.label}
-                selected={heatSources.includes(option.id)}
-                onPress={() => toggleHeatSource(option.id)}
-                accessibilityLabel={option.label}
-                multiple
-              />
-            ))}
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>HRV, ERV, or whole-home air exchanger?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasAirExchanger === true}
-              onPress={() => setHasAirExchanger(true)}
-              accessibilityLabel="Yes, air exchanger"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasAirExchanger === false}
-              onPress={() => setHasAirExchanger(false)}
-              accessibilityLabel="No air exchanger"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>Water softener?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasWaterSoftener === true}
-              onPress={() => setHasWaterSoftener(true)}
-              accessibilityLabel="Yes, water softener"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasWaterSoftener === false}
-              onPress={() => setHasWaterSoftener(false)}
-              accessibilityLabel="No water softener"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>Refrigerator with a water filter?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasRefrigeratorWaterFilter === true}
-              onPress={() => setHasRefrigeratorWaterFilter(true)}
-              accessibilityLabel="Yes, fridge filter"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasRefrigeratorWaterFilter === false}
-              onPress={() => setHasRefrigeratorWaterFilter(false)}
-              accessibilityLabel="No fridge filter"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>Vent hood or microwave grease filters?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasVentHoodFilters === true}
-              onPress={() => setHasVentHoodFilters(true)}
-              accessibilityLabel="Yes, vent hood filters"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasVentHoodFilters === false}
-              onPress={() => setHasVentHoodFilters(false)}
-              accessibilityLabel="No vent hood filters"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>Private septic system?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasSeptic === true}
-              onPress={() => setHasSeptic(true)}
-              accessibilityLabel="Yes, septic"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasSeptic === false}
-              onPress={() => setHasSeptic(false)}
-              accessibilityLabel="No septic"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>Swimming pool?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasPool === true}
-              onPress={() => setHasPool(true)}
-              accessibilityLabel="Yes, pool"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasPool === false}
-              onPress={() => setHasPool(false)}
-              accessibilityLabel="No pool"
-            />
-          </QuestionCard>
-
-          <QuestionCard>
-            <QuestionLabel>Hot tub or spa?</QuestionLabel>
-            <ChoiceRow
-              label="Yes"
-              selected={hasSpa === true}
-              onPress={() => setHasSpa(true)}
-              accessibilityLabel="Yes, spa"
-            />
-            <ChoiceRow
-              label="No"
-              selected={hasSpa === false}
-              onPress={() => setHasSpa(false)}
-              accessibilityLabel="No spa"
-            />
-          </QuestionCard>
-
-          {saltNeeded ? (
-            <QuestionCard>
-              <QuestionLabel>Does your pool use salt chlorination?</QuestionLabel>
-              <QuestionHint>
-                Choose No if you use tablets, liquid chlorine, or a non-salt
-                sanitizer.
-              </QuestionHint>
-              <ChoiceRow
-                label="Yes"
-                selected={poolUsesSaltChlorination === true}
-                onPress={() => setPoolUsesSaltChlorination(true)}
-                accessibilityLabel="Yes, salt chlorination"
-              />
-              <ChoiceRow
-                label="No"
-                selected={poolUsesSaltChlorination === false}
-                onPress={() => setPoolUsesSaltChlorination(false)}
-                accessibilityLabel="No salt chlorination"
-              />
-            </QuestionCard>
-          ) : null}
-
-          <QuestionCard>
-            <QuestionLabel>Does your home have any of these?</QuestionLabel>
-            <QuestionHint>Optional. Select all that apply.</QuestionHint>
-            {HOME_FEATURE_OPTIONS.map((option) => (
-              <ChoiceRow
-                key={option.id}
-                label={option.label}
-                selected={features.includes(option.id)}
-                onPress={() => toggleFeature(option.id)}
-                accessibilityLabel={option.label}
-                multiple
-              />
-            ))}
-            <ChoiceRow
-              label="Fireplace or wood stove"
-              selected={hasFireplace}
-              onPress={() => {
-                setHasFireplace((prev) => !prev);
-                setFireplaceFuel(null);
-              }}
-              accessibilityLabel="Fireplace or wood stove"
-              multiple
-            />
-          </QuestionCard>
-
-          {hasFireplace ? (
-            <QuestionCard>
-              <QuestionLabel>What kind of fireplace?</QuestionLabel>
-              {FIREPLACE_TYPE_OPTIONS.map((option) => (
-                <ChoiceRow
-                  key={option.id}
-                  label={option.label}
-                  selected={fireplaceFuel === option.id}
-                  onPress={() => setFireplaceFuel(option.id)}
-                  accessibilityLabel={option.label}
-                />
-              ))}
-            </QuestionCard>
-          ) : null}
-        </ScrollView>
-      ) : phase === "equipment" ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            3 of 5 · Equipment
-          </Text>
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            Add key systems so we can suggest reminders. You can skip this and
-            add equipment later.
-          </Text>
-          <View style={styles.chipWrap}>
-            {SETUP_EQUIPMENT_TYPES.map((type) => {
-              const selected = sessionEquipment.some(
-                (e) => e.equipment_type === type
-              );
-              return (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.chip,
-                    {
-                      borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected
-                        ? colors.primary + "14"
-                        : colors.fieldFill,
-                    },
-                  ]}
-                  onPress={() => void toggleSessionEquipmentType(type)}
-                  disabled={saving}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selected, disabled: saving }}
-                  accessibilityLabel={EQUIPMENT_TYPE_LABELS[type]}
-                >
-                  <Text
-                    style={[
-                      styles.chipLabel,
-                      { color: selected ? colors.primary : colors.text },
-                    ]}
-                  >
-                    {EQUIPMENT_TYPE_LABELS[type]}
-                  </Text>
-                  <Ionicons
-                    name={selected ? "checkmark-circle" : "add-circle-outline"}
-                    size={18}
-                    color={selected ? colors.primary : colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-      ) : phase === "hints" ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            Suggested reminders for the equipment you just added. Uncheck any
-            you don’t want.
-          </Text>
-          {pendingHints.map((row, index) => (
-            <TouchableOpacity
-              key={row.key}
-              style={[
-                styles.taskRow,
-                {
-                  borderColor: row.selected ? colors.primary : colors.border,
-                  backgroundColor: row.selected
-                    ? colors.primary + "12"
-                    : "transparent",
-                },
-              ]}
-              onPress={() => {
-                setPendingHints((prev) => {
-                  const next = [...prev];
-                  next[index] = {
-                    ...next[index],
-                    selected: !next[index].selected,
-                  };
-                  return next;
-                });
-              }}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: row.selected }}
-              accessibilityLabel={`${row.item.title} for ${row.equipmentName}`}
+          {phase === "welcome" ? (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.welcomeScroll}
             >
-              <View style={styles.taskText}>
-                <Text style={[styles.taskTitle, { color: colors.text }]}>
-                  {row.item.title}
-                </Text>
-                <Text
-                  style={[styles.taskMeta, { color: colors.textSecondary }]}
-                >
-                  {row.equipmentName} ·{" "}
-                  {formatIntervalDays(row.item.interval_days)}
-                </Text>
-              </View>
-              <Ionicons
-                name={row.selected ? "checkmark-circle" : "ellipse-outline"}
-                size={22}
-                color={row.selected ? colors.primary : colors.textSecondary}
+              <SetupWelcome />
+            </ScrollView>
+          ) : phase === "address" ? (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+            >
+              <SetupLead>Used for local seasons and weather.</SetupLead>
+              <HomeAddressFields
+                ref={addressRef}
+                active={sheetVisible && phase === "address"}
+                onCanSubmitChange={setAddressCanSubmit}
               />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      ) : phase === "homeshare" ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            5 of 5 · Share this home
-          </Text>
-          {pendingFinishCopy ? (
-            <Text style={[styles.readyBanner, { color: colors.text }]}>
-              {pendingFinishCopy.message}
-            </Text>
-          ) : null}
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            HomeShare lets people who live here use the same schedule — complete
-            reminders, see the same address and equipment, and keep one home in
-            sync.
-          </Text>
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            Invite with a code (HomeKeep + to create). Joining with a code is
-            free. You can always do this later in Settings → HomeShare.
-          </Text>
-        </ScrollView>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            {hideSkip ? "3 of 3 · Schedule" : "4 of 5 · Schedule"}
-          </Text>
-          {isReconcile && reconcileDiff ? (
-            <>
-              <Text style={[styles.intro, { color: colors.textSecondary }]}>
-                Because this home changed, add new reminders or pause ones that
-                no longer apply.
-              </Text>
-              {reconcileDiff.toAdd.length > 0 ? (
-                <View style={styles.sectionBlock}>
-                  <Text
-                    style={[
-                      styles.sectionHeading,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Add
-                  </Text>
-                  {reconcileDiff.toAdd.map((item, index) => {
-                    const selected = !!addMask[index];
-                    return (
-                      <TouchableOpacity
-                        key={`add-${item.source_plan_id}-${item.title}-${index}`}
-                        style={[
-                          styles.taskRow,
-                          {
-                            borderColor: selected
-                              ? colors.primary
-                              : colors.border,
-                            backgroundColor: selected
-                              ? colors.primary + "12"
-                              : "transparent",
-                          },
-                        ]}
-                        onPress={() => {
-                          setAddMask((prev) => {
-                            const next = [...prev];
-                            next[index] = !next[index];
-                            return next;
-                          });
-                        }}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: selected }}
-                        accessibilityLabel={`Add ${item.title}`}
-                      >
-                        <View style={styles.taskText}>
-                          <Text
-                            style={[styles.taskTitle, { color: colors.text }]}
-                          >
-                            {item.title}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.taskMeta,
-                              { color: colors.textSecondary },
-                            ]}
-                          >
-                            {formatIntervalDays(item.interval_days)}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={
-                            selected ? "checkmark-circle" : "ellipse-outline"
-                          }
-                          size={22}
-                          color={
-                            selected ? colors.primary : colors.textSecondary
-                          }
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ) : null}
-              {reconcileDiff.toPause.length > 0 ? (
-                <View style={styles.sectionBlock}>
-                  <Text
-                    style={[
-                      styles.sectionHeading,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    No longer applies
-                  </Text>
-                  <Text
-                    style={[styles.pauseHint, { color: colors.textSecondary }]}
-                  >
-                    Pause these reminders. History stays in completion history.
-                  </Text>
-                  {reconcileDiff.toPause.map((item, index) => {
-                    const selected = !!pauseMask[index];
-                    return (
-                      <TouchableOpacity
-                        key={`pause-${item.id}`}
-                        style={[
-                          styles.taskRow,
-                          {
-                            borderColor: selected
-                              ? colors.warning
-                              : colors.border,
-                            backgroundColor: selected
-                              ? colors.warning + "14"
-                              : "transparent",
-                          },
-                        ]}
-                        onPress={() => {
-                          setPauseMask((prev) => {
-                            const next = [...prev];
-                            next[index] = !next[index];
-                            return next;
-                          });
-                        }}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: selected }}
-                        accessibilityLabel={`Pause ${item.title}`}
-                      >
-                        <View style={styles.taskText}>
-                          <Text
-                            style={[styles.taskTitle, { color: colors.text }]}
-                          >
-                            {item.title}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.taskMeta,
-                              { color: colors.textSecondary },
-                            ]}
-                          >
-                            {formatIntervalDays(item.interval_days)}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={
-                            selected ? "pause-circle" : "ellipse-outline"
-                          }
-                          size={22}
-                          color={
-                            selected ? colors.warning : colors.textSecondary
-                          }
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <>
-          <Text style={[styles.intro, { color: colors.textSecondary }]}>
-            We'll add these as recurring tasks. Uncheck anything that does not
-            apply.
-          </Text>
-          {confirmSections.map((section) => (
-            <View key={section.key} style={styles.sectionBlock}>
-              <Text
-                style={[styles.sectionHeading, { color: colors.textSecondary }]}
-              >
-                {section.title}
-              </Text>
-              {section.rows.map(({ item, index }) => {
-                const selected = !!selectedMask[index];
-                return (
-                  <TouchableOpacity
-                    key={`${item.source_plan_id}-${item.title}-${index}`}
-                    style={[
-                      styles.taskRow,
-                      {
-                        borderColor: selected ? colors.primary : colors.border,
-                        backgroundColor: selected
-                          ? colors.primary + "12"
-                          : "transparent",
-                      },
-                    ]}
-                    onPress={() => {
-                      setSelectedMask((prev) => {
-                        const next = [...prev];
-                        next[index] = !next[index];
-                        return next;
-                      });
-                    }}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: selected }}
-                    accessibilityLabel={item.title}
-                  >
-                    <View style={styles.taskText}>
-                      <Text style={[styles.taskTitle, { color: colors.text }]}>
-                        {item.title}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.taskMeta,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {formatIntervalDays(item.interval_days)}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name={selected ? "checkmark-circle" : "ellipse-outline"}
-                      size={22}
-                      color={selected ? colors.primary : colors.textSecondary}
+            </ScrollView>
+          ) : phase === "basics" ? (
+            <ScrollView
+              ref={basicsScrollRef}
+              showsVerticalScrollIndicator={false}
+            >
+              <SetupSection title="Type of home">
+                <OptionGrid>
+                  {PROPERTY_TYPE_TILES.map((option) => (
+                    <OptionTile
+                      key={option.id}
+                      icon={option.icon}
+                      label={option.label}
+                      selected={propertyType === option.id}
+                      onPress={() => setPropertyType(option.id)}
+                      multiple={false}
                     />
-                  </TouchableOpacity>
+                  ))}
+                </OptionGrid>
+              </SetupSection>
+
+              <SetupSection title="Heating" hint="Select all that apply.">
+                <OptionGrid>
+                  {HEAT_SOURCE_TILES.map((option) => (
+                    <OptionTile
+                      key={option.id}
+                      icon={option.icon}
+                      label={option.label}
+                      selected={heatSources.includes(option.id)}
+                      onPress={() => toggleHeatSource(option.id)}
+                    />
+                  ))}
+                </OptionGrid>
+              </SetupSection>
+
+              <SetupSection
+                title="Year built"
+                hint="Optional. Older homes get a few extra safety checks."
+              >
+                <YearBuiltPicker
+                  value={yearBuilt ?? null}
+                  onChange={(year) =>
+                    setYearBuiltText(year === null ? "" : String(year))
+                  }
+                  onOpen={() =>
+                    setTimeout(() => {
+                      basicsScrollRef.current?.scrollToEnd({ animated: true });
+                    }, 60)
+                  }
+                />
+              </SetupSection>
+            </ScrollView>
+          ) : phase === "features" ? (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <SetupLead>Tap everything you have. We'll skip the rest.</SetupLead>
+              {HOME_HAS_GROUPS.map((group) => (
+                <SetupSection key={group.title} title={group.title}>
+                  <OptionGrid>
+                    {group.items.map((item) => (
+                      <OptionTile
+                        key={item.id}
+                        icon={item.icon}
+                        label={item.label}
+                        selected={has(item.id)}
+                        onPress={() => toggleHomeHas(item.id)}
+                      />
+                    ))}
+                  </OptionGrid>
+                  {group.items.some((item) => item.id === "fireplace") &&
+                  has("fireplace") ? (
+                    <InlineChoice
+                      label="Fireplace fuel"
+                      options={FIREPLACE_FUEL_CHOICES}
+                      value={fireplaceFuel}
+                      onChange={setFireplaceFuel}
+                    />
+                  ) : null}
+                  {group.items.some((item) => item.id === "hasPool") &&
+                  has("hasPool") ? (
+                    <InlineChoice
+                      label="Pool water"
+                      options={POOL_SANITIZER_CHOICES}
+                      value={poolSanitizer}
+                      onChange={setPoolSanitizer}
+                    />
+                  ) : null}
+                </SetupSection>
+              ))}
+            </ScrollView>
+          ) : phase === "equipment" ? (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <SetupLead>Add what you have and we'll suggest reminders for it.</SetupLead>
+              <OptionGrid>
+                {setupEquipmentTypes(heatSources, homeHas).map((type) => (
+                  <OptionTile
+                    key={type}
+                    icon={equipmentTypeIcon(type)}
+                    label={EQUIPMENT_TYPE_LABELS[type]}
+                    selected={sessionEquipment.some(
+                      (e) => e.equipment_type === type
+                    )}
+                    onPress={() => void toggleSessionEquipmentType(type)}
+                  />
+                ))}
+              </OptionGrid>
+              <Text style={[styles.footnote, { color: colors.textSecondary }]}>
+                You can add model numbers, manuals, and more later.
+              </Text>
+            </ScrollView>
+          ) : phase === "hints" ? (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <SetupLead>Suggested for the equipment you added.</SetupLead>
+              {sessionEquipment.map((equipment) => {
+                const rows = pendingHints
+                  .map((row, index) => ({ row, index }))
+                  .filter(({ row }) => row.equipmentId === equipment.id);
+                if (rows.length === 0) return null;
+                return (
+                  <ScheduleGroup
+                    key={equipment.id}
+                    title={equipment.name}
+                    icon={equipmentTypeIcon(equipment.equipment_type)}
+                    initiallyOpen
+                    rows={rows.map(({ row, index }) => ({
+                      key: row.key,
+                      title: row.item.title,
+                      meta: taskMeta(row.item),
+                      selected: row.selected,
+                      onToggle: () =>
+                        setPendingHints((prev) => {
+                          const next = [...prev];
+                          next[index] = {
+                            ...next[index],
+                            selected: !next[index].selected,
+                          };
+                          return next;
+                        }),
+                      accessibilityLabel: `${row.item.title} for ${row.equipmentName}`,
+                    }))}
+                  />
                 );
               })}
-            </View>
-          ))}
-            </>
+            </ScrollView>
+          ) : phase === "notify" ? (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {pendingFinishCopy ? (
+                <View
+                  style={[
+                    styles.readyCard,
+                    { backgroundColor: colors.success + "14" },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.success}
+                  />
+                  <Text style={[styles.readyBanner, { color: colors.text }]}>
+                    {pendingFinishCopy.message}
+                  </Text>
+                </View>
+              ) : null}
+              <SetupNotify isPlus={isPlus} />
+            </ScrollView>
+          ) : phase === "homeshare" ? (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {pendingFinishCopy ? (
+                <View
+                  style={[
+                    styles.readyCard,
+                    { backgroundColor: colors.success + "14" },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.success}
+                  />
+                  <Text style={[styles.readyBanner, { color: colors.text }]}>
+                    {pendingFinishCopy.message}
+                  </Text>
+                </View>
+              ) : null}
+              <SetupLead>
+                Live with someone? Share this home so you both see the same tasks
+                and can check them off.
+              </SetupLead>
+              <Text style={[styles.footnote, { color: colors.textSecondary }]}>
+                Sending an invite needs HomeKeep+. Joining is free. You can also do
+                this later in Settings.
+              </Text>
+            </ScrollView>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {isReconcile && reconcileDiff ? (
+                <>
+                  <SetupLead>
+                    Based on your changes. Uncheck anything you want to keep as is.
+                  </SetupLead>
+                  {reconcileDiff.toAdd.length > 0 ? (
+                    <ScheduleGroup
+                      title="New tasks"
+                      icon="add-circle-outline"
+                      initiallyOpen
+                      rows={reconcileDiff.toAdd.map((item, index) => ({
+                        key: `add-${item.source_plan_id}-${item.title}-${index}`,
+                        title: item.title,
+                        meta: taskMeta(item),
+                        selected: !!addMask[index],
+                        onToggle: () => toggleMask(setAddMask, index),
+                        accessibilityLabel: `Add ${item.title}`,
+                      }))}
+                    />
+                  ) : null}
+                  {reconcileDiff.toPause.length > 0 ? (
+                    <ScheduleGroup
+                      title="No longer applies"
+                      icon="pause-circle-outline"
+                      tint={colors.warning}
+                      selectedIcon="pause-circle"
+                      initiallyOpen
+                      rows={reconcileDiff.toPause.map((item, index) => ({
+                        key: `pause-${item.id}`,
+                        title: item.title,
+                        meta: `${formatIntervalDays(item.interval_days)} · Pausing keeps its history`,
+                        selected: !!pauseMask[index],
+                        onToggle: () => toggleMask(setPauseMask, index),
+                        accessibilityLabel: `Pause ${item.title}`,
+                      }))}
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <ScheduleSummary items={selectedItems} />
+                  <SetupLead>Tap a group to review or turn tasks off.</SetupLead>
+                  {confirmSections.map((section) => (
+                    <ScheduleGroup
+                      key={section.key}
+                      title={section.title}
+                      icon={categoryIcon(section.key)}
+                      rows={section.rows.map(({ item, index }) => ({
+                        key: `${item.source_plan_id}-${item.title}-${index}`,
+                        title: item.title,
+                        meta: taskMeta(item),
+                        selected: !!selectedMask[index],
+                        onToggle: () => toggleMask(setSelectedMask, index),
+                      }))}
+                    />
+                  ))}
+                </>
+              )}
+            </ScrollView>
           )}
-        </ScrollView>
-      )}
+        </Animated.View>
+      </View>
     </HearthSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  progress: {
+  stage: {
+    flex: 1,
+    minHeight: 0,
+  },
+  welcomeScroll: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  footnote: {
     ...DesignSystem.typography.caption,
-    fontWeight: "600",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  intro: {
-    ...DesignSystem.typography.footnote,
-    lineHeight: 20,
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  sectionBlock: {
-    marginBottom: DesignSystem.spacing.md,
-  },
-  sectionHeading: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "600",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  pauseHint: {
-    ...DesignSystem.typography.footnote,
     lineHeight: 18,
-    marginBottom: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.md,
   },
-  chipWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.sm,
-  },
-  chip: {
+  readyCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: DesignSystem.spacing.xs,
-    paddingVertical: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
+    padding: DesignSystem.spacing.md,
     borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  chipLabel: {
-    ...DesignSystem.typography.callout,
-    fontWeight: "600",
+    marginBottom: DesignSystem.spacing.lg,
   },
   readyBanner: {
     ...DesignSystem.typography.callout,
     fontWeight: "600",
-    marginBottom: DesignSystem.spacing.md,
     lineHeight: 22,
+    flex: 1,
   },
   footerInner: {
     paddingTop: DesignSystem.spacing.md,
@@ -1641,25 +1435,5 @@ const styles = StyleSheet.create({
   footerLinkText: {
     ...DesignSystem.typography.footnote,
     fontWeight: "600",
-  },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: DesignSystem.spacing.sm,
-    gap: DesignSystem.spacing.sm,
-  },
-  taskText: {
-    flex: 1,
-  },
-  taskTitle: {
-    ...DesignSystem.typography.body,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  taskMeta: {
-    ...DesignSystem.typography.footnote,
   },
 });

@@ -9,6 +9,7 @@ export type HomeFeatureItemKey =
   | "well_pressure_tank"
   | "chimney_sweep"
   | "gas_fireplace_service"
+  | "electric_fireplace_clean"
   | "garage_door_service"
   | "generator_exercise"
   | "generator_service"
@@ -80,6 +81,18 @@ const HOME_FEATURE_CATALOG: HomeFeatureItemDefinition[] = [
     category: "HVAC",
     priority: "medium",
     estimated_duration_minutes: 60,
+    interval_days: 365,
+    start_offset_days: 12,
+  },
+  {
+    key: "electric_fireplace_clean",
+    applies: (home) => home.fireplaceType === "electric",
+    title: "Clean electric fireplace",
+    description:
+      "Unplug it, vacuum dust from the heater vents and fan, and check the cord and outlet for heat damage.",
+    category: "ELECTRICAL",
+    priority: "low",
+    estimated_duration_minutes: 20,
     interval_days: 365,
     start_offset_days: 12,
   },

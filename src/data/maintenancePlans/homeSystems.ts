@@ -78,7 +78,7 @@ export interface HomeSystems {
   hasDeck?: boolean;
 }
 
-export type FireplaceType = "none" | "wood" | "gas";
+export type FireplaceType = "none" | "wood" | "gas" | "electric";
 
 export type HomeFeatureFlag =
   | "hasSumpPump"
@@ -118,6 +118,7 @@ export const FIREPLACE_TYPE_OPTIONS: {
 }[] = [
   { id: "wood", label: "Wood-burning fireplace or stove" },
   { id: "gas", label: "Gas fireplace" },
+  { id: "electric", label: "Electric fireplace" },
 ];
 
 export const MIN_YEAR_BUILT = 1700;
@@ -232,7 +233,8 @@ export function parseHomeSystems(value: unknown): HomeSystems {
   if (
     value.fireplaceType === "none" ||
     value.fireplaceType === "wood" ||
-    value.fireplaceType === "gas"
+    value.fireplaceType === "gas" ||
+    value.fireplaceType === "electric"
   ) {
     next.fireplaceType = value.fireplaceType;
   }

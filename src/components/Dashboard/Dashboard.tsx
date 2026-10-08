@@ -171,6 +171,9 @@ export function NewDashboard({
   >(new Set());
   const completingRef = useRef<Set<string>>(new Set());
   const [showHomeSetupModal, setShowHomeSetupModal] = useState(false);
+  // Setup asks for notifications itself; don't re-prompt in the same session.
+  const [setupFinishedThisSession, setSetupFinishedThisSession] =
+    useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
   const offerPlusAfterHomeShareRef = useRef(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
@@ -1000,7 +1003,6 @@ export function NewDashboard({
         }
         onAddTask={openCreateModal}
         onBrowseMaintenancePlans={onBrowseMaintenancePlans}
-        onSetupHome={() => setShowHomeSetupModal(true)}
         homeSetupIncomplete={!isHomeSystemsComplete(profile?.home_systems)}
         contentPaddingBottom={contentPaddingBottom}
       />
@@ -1098,7 +1100,10 @@ export function NewDashboard({
 
       <HomeSetupModal
         visible={showHomeSetupModal}
-        onClose={() => setShowHomeSetupModal(false)}
+        onClose={() => {
+          setShowHomeSetupModal(false);
+          setSetupFinishedThisSession(true);
+        }}
         onFirstRunFinished={(action) => {
           if (action === "invite" || action === "join") {
             offerPlusAfterHomeShareRef.current = !isPlus;
@@ -1170,7 +1175,15 @@ export function NewDashboard({
         />
       ) : null}
 
-      <NotificationPermissionRequest />
+      <NotificationPermissionRequest
+        suppressed={
+          addressNeeded ||
+          homeSetupNeeded ||
+          showHomeSetupModal ||
+          showHouseholdModal ||
+          setupFinishedThisSession
+        }
+      />
     </View>
   );
 }

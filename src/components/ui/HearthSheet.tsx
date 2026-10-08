@@ -110,10 +110,14 @@ export function HearthSheet({
 
   if (!mounted) return null;
 
-  const maxHeight = Math.min(
+  const contentMaxHeight = Math.min(
     SCREEN_HEIGHT * maxHeightRatio,
     SCREEN_HEIGHT - insets.top - keyboardInset
   );
+  // The surface stays anchored to the screen bottom and extends behind the
+  // keyboard; iOS 26 keyboards (and their accessory bar) are translucent, so
+  // lifting the whole sheet would expose the screen underneath.
+  const maxHeight = contentMaxHeight + keyboardInset;
 
   const sheetInterior = (
     <View
@@ -122,7 +126,9 @@ export function HearthSheet({
         fillMaxHeight && styles.safeAreaFill,
         {
           paddingBottom:
-            keyboardInset > 0 ? DesignSystem.spacing.sm : insets.bottom,
+            keyboardInset > 0
+              ? keyboardInset + DesignSystem.spacing.sm
+              : insets.bottom,
         },
       ]}
     >
@@ -176,10 +182,7 @@ export function HearthSheet({
 
   const sheetLayer = (
     <View
-      style={[
-        styles.keyboardRoot,
-        keyboardInset > 0 && { paddingBottom: keyboardInset },
-      ]}
+      style={styles.keyboardRoot}
       // While exiting, visible is false but Modal stays mounted — don't eat taps.
       pointerEvents={visible ? "auto" : "none"}
     >

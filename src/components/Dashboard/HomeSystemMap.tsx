@@ -393,13 +393,6 @@ export function HomeSystemMap({
           </Pressable>
         ) : null}
 
-        {!setupComplete ? (
-          <View style={styles.footer}>
-            <Text style={[styles.caption, { color: colors.textSecondary }]}>
-              Tell us about this house to light up the map
-            </Text>
-          </View>
-        ) : null}
       </HearthSurfaceCard>
 
       {!setupComplete && onSetupHome ? (
@@ -469,8 +462,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.xl,
-    paddingBottom: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.lg,
   },
   setupIconRing: {
     width: 52,
