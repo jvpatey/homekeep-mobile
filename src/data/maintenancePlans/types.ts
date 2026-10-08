@@ -3,6 +3,7 @@ import {
   MaintenanceCategory,
   Priority,
 } from "../../types/maintenance";
+import type { HomeSystems } from "./homeSystems";
 
 /** Display grouping for the plan library (not persisted). */
 export type MaintenancePlanTag =
@@ -11,7 +12,11 @@ export type MaintenancePlanTag =
   | "safety"
   | "starter"
   | "general"
-  | "pool";
+  | "pool"
+  | "condo"
+  | "water"
+  | "garage"
+  | "irrigation";
 
 /** One row in a bundled plan — maps to CreateMaintenanceRoutineData after resolving dates. */
 export interface MaintenancePlanItemTemplate {
@@ -36,6 +41,16 @@ export interface MaintenancePlanDefinition {
   /** When true, the UI collects answers before filtering tasks; apply must pass selected items. */
   requiresQuestionnaire?: boolean;
   items: MaintenancePlanItemTemplate[];
+  /** Narrows `items` using saved home systems (no questionnaire). */
+  filterForHome?: (
+    home: HomeSystems | null | undefined,
+    context: PlanFilterContext
+  ) => MaintenancePlanItemTemplate[];
+}
+
+export interface PlanFilterContext {
+  latitude?: number | null;
+  now?: Date;
 }
 
 export type MaintenancePlanSummary = Pick<

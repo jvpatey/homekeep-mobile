@@ -8,6 +8,8 @@ import { QuickActionsProvider } from "../context/QuickActionsContext";
 import { resetRecordData } from "../hooks/useRecordData";
 import { resetEquipmentIndex } from "../hooks/useEquipmentIndex";
 import { resetHomeContacts } from "../hooks/useHomeContacts";
+import { resetHomeDocuments } from "../hooks/useHomeDocuments";
+import { resetEquipmentRecalls } from "../hooks/useEquipmentRecalls";
 import { resetRoutineCache } from "../components/all-reminders/useReminderRoutines";
 import { AppStackParamList } from "./types";
 import { AppTabs } from "./AppTabs";
@@ -28,6 +30,8 @@ export function AppNavigator() {
       resetRecordData();
       resetEquipmentIndex();
       resetHomeContacts();
+      resetHomeDocuments();
+      resetEquipmentRecalls();
       resetRoutineCache();
     },
     []

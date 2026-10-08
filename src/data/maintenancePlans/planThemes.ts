@@ -46,6 +46,22 @@ export const PLAN_THEMES: Record<string, MaintenancePlanTheme> = {
     icon: "home-outline",
     primary: "#4F46E5",
   },
+  "condo-living": {
+    icon: "business-outline",
+    primary: "#7C3AED",
+  },
+  "basement-water": {
+    icon: "rainy-outline",
+    primary: "#2563EB",
+  },
+  "garage-vehicles": {
+    icon: "car-outline",
+    primary: "#475569",
+  },
+  "irrigation-open-close": {
+    icon: "flower-outline",
+    primary: "#0D9488",
+  },
 };
 
 export function getPlanTheme(

@@ -1,6 +1,13 @@
-import { File as ExpoFile } from "expo-file-system";
 import { supabase } from "../lib/supabase";
 import { getViewerHouseholdId } from "./householdScope";
+import {
+  HOME_FILES_BUCKET,
+  createSignedFileUrl,
+  createSignedFileUrls,
+  deleteStoredFile,
+  sanitizeFileName,
+  uploadFileFromUri,
+} from "./storageFiles";
 import {
   EquipmentManual,
   CreateEquipmentManualData,
@@ -11,7 +18,6 @@ import {
   parseConsumables,
   LEGACY_EQUIPMENT_TYPES,
 } from "../types/equipmentManual";
-import { logServiceFailure } from "../utils/serviceError";
 
 type PgError = { code?: string; message?: string } | null;
 
@@ -49,49 +55,7 @@ function normalizeEquipment<T extends Record<string, unknown> | null>(row: T): T
   return { ...row, consumables: parseConsumables(row.consumables) };
 }
 
-export const EQUIPMENT_MANUALS_BUCKET = "equipment-manuals";
-
-function sanitizeFileName(name: string): string {
-  const base = name.split(/[/\\]/).pop() || "manual";
-  return base.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "manual";
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`${label} timed out`)),
-      ms
-    );
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
-}
-
-async function readUriAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
-  const isRemote = /^https?:\/\//i.test(uri);
-  if (!isRemote) {
-    try {
-      const file = new ExpoFile(uri);
-      return await withTimeout(file.arrayBuffer(), 20_000, "Read photo");
-    } catch {
-      // Some library URIs need fetch; bound it so it cannot hang the UI.
-    }
-  }
-
-  const response = await withTimeout(fetch(uri), 20_000, "Read photo");
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  return await response.arrayBuffer();
-}
+export const EQUIPMENT_MANUALS_BUCKET = HOME_FILES_BUCKET;
 
 export class EquipmentManualService {
   static buildManualObjectPath(
@@ -99,7 +63,7 @@ export class EquipmentManualService {
     equipmentId: string,
     fileName: string
   ): string {
-    const safe = sanitizeFileName(fileName);
+    const safe = sanitizeFileName(fileName, "manual");
     return `${userId}/${equipmentId}/${safe}`;
   }
 
@@ -108,48 +72,16 @@ export class EquipmentManualService {
     equipmentId: string,
     fileName: string
   ): string {
-    const safe = sanitizeFileName(fileName);
+    const safe = sanitizeFileName(fileName, "manual");
     return `${userId}/${equipmentId}/receipts/${safe}`;
   }
 
-  private static async uploadFromUri(
+  private static uploadFromUri(
     objectPath: string,
     localUri: string,
     mimeType: string
   ): Promise<{ path: string | null; error: { message: string } | null }> {
-    if (!supabase) {
-      return { path: null, error: { message: "Supabase not configured" } };
-    }
-
-    try {
-      const buffer = await readUriAsArrayBuffer(localUri);
-
-      const { error: uploadError } = await withTimeout(
-        supabase.storage.from(EQUIPMENT_MANUALS_BUCKET).upload(
-          objectPath,
-          new Uint8Array(buffer),
-          {
-            contentType: mimeType || "application/octet-stream",
-            upsert: true,
-          }
-        ),
-        45_000,
-        "Upload photo"
-      );
-
-      if (uploadError) throw uploadError;
-
-      return { path: objectPath, error: null };
-    } catch (error) {
-      const serviceError = logServiceFailure(
-        "Error uploading equipment file:",
-        error
-      );
-      return {
-        path: null,
-        error: { message: serviceError.message },
-      };
-    }
+    return uploadFileFromUri(objectPath, localUri, mimeType);
   }
 
   static uploadFromUriPublic(
@@ -360,16 +292,8 @@ export class EquipmentManualService {
     }
   }
 
-  static async deleteStorageObject(path: string): Promise<{ error: Error | null }> {
-    if (!supabase) {
-      return { error: new Error("Supabase not configured") };
-    }
-
-    const { error } = await supabase.storage
-      .from(EQUIPMENT_MANUALS_BUCKET)
-      .remove([path]);
-
-    return { error: error ? new Error(error.message) : null };
+  static deleteStorageObject(path: string): Promise<{ error: Error | null }> {
+    return deleteStoredFile(path);
   }
 
   static async uploadManualFromUri(
@@ -450,59 +374,19 @@ export class EquipmentManualService {
     }
   }
 
-  static async getManualSignedUrl(
+  static getManualSignedUrl(
     storagePath: string,
     expiresInSeconds = 3600
   ): Promise<EquipmentManualSignedUrlResponse> {
-    if (!supabase) {
-      return { data: null, error: { message: "Supabase not configured" } };
-    }
-
-    try {
-      const { data, error } = await supabase.storage
-        .from(EQUIPMENT_MANUALS_BUCKET)
-        .createSignedUrl(storagePath, expiresInSeconds);
-
-      if (error) throw error;
-      if (!data?.signedUrl) throw new Error("No signed URL returned");
-
-      return { data: data.signedUrl, error: null };
-    } catch (error) {
-      console.error("Error creating signed URL:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
-    }
+    return createSignedFileUrl(storagePath, expiresInSeconds);
   }
 
   /** Batch-sign storage paths. Missing or failed paths are omitted from the map. */
-  static async createSignedUrls(
+  static createSignedUrls(
     storagePaths: string[],
     expiresInSeconds = 3600
   ): Promise<Map<string, string>> {
-    const result = new Map<string, string>();
-    const unique = [...new Set(storagePaths.filter(Boolean))];
-    if (!supabase || unique.length === 0) return result;
-
-    try {
-      const { data, error } = await supabase.storage
-        .from(EQUIPMENT_MANUALS_BUCKET)
-        .createSignedUrls(unique, expiresInSeconds);
-      if (error) throw error;
-      for (const row of data ?? []) {
-        if (row.path && row.signedUrl && !row.error) {
-          result.set(row.path, row.signedUrl);
-        }
-      }
-    } catch (error) {
-      logServiceFailure("Error batch-signing equipment files:", error);
-    }
-    return result;
+    return createSignedFileUrls(storagePaths, expiresInSeconds);
   }
 
   static async getEquipmentManualById(

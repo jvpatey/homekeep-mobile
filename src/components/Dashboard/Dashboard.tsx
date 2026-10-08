@@ -779,6 +779,13 @@ export function NewDashboard({
 
   useEffect(() => {
     if (!pendingOpen) return;
+
+    if (pendingOpen.action === "recall" && pendingOpen.equipmentId) {
+      openRecord("EquipmentDetail", { equipmentId: pendingOpen.equipmentId });
+      clearPendingOpen();
+      return;
+    }
+
     goToTab("HomeTab");
 
     if (pendingOpen.action === "household") {
@@ -804,7 +811,7 @@ export function NewDashboard({
     }
 
     clearPendingOpen();
-  }, [clearPendingOpen, goToTab, overdueTasks, pendingOpen, tasks]);
+  }, [clearPendingOpen, goToTab, openRecord, overdueTasks, pendingOpen, tasks]);
 
   const handleTaskCreated = () => {
     setShowCreateModal(false);

@@ -113,6 +113,10 @@ export class HouseholdService {
       .from("home_contacts")
       .update({ household_id: data.id })
       .eq("user_id", userId);
+    await supabase
+      .from("documents")
+      .update({ household_id: data.id })
+      .eq("user_id", userId);
     return { data, error: null };
   }
 

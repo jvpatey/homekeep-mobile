@@ -77,11 +77,14 @@ export function buildHomeSummaryReportHtml(
   });
   const brandRow = `<div class="brand-row">${brandMark}<span class="brand-wordmark"><span class="brand-home">Home</span><span class="brand-keep">Keep</span></span></div>`;
 
+  const homeAgeLine = data.homeAgeLabel
+    ? `<p class="meta">${escapeHtml(data.homeAgeLabel)}</p>`
+    : "";
   const addressBlock = data.hasAddress
     ? `<div class="address">${data.addressLines
         .map((line) => `<div>${escapeHtml(line)}</div>`)
-        .join("")}</div>`
-    : `<p class="empty">No home address on file.</p>`;
+        .join("")}</div>${homeAgeLine}`
+    : `<p class="empty">No home address on file.</p>${homeAgeLine}`;
 
   const equipmentRows =
     data.equipment.length > 0

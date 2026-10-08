@@ -42,8 +42,9 @@ Notifications.setNotificationHandler({
 });
 
 export type NotificationOpenTarget = {
-  action: "view" | "household";
+  action: "view" | "household" | "recall";
   instanceId?: string;
+  equipmentId?: string;
 };
 
 interface NotificationContextType {
@@ -110,6 +111,13 @@ function parseOpenTarget(
   if (!data) return null;
   if (data.action === "household") {
     return { action: "household" };
+  }
+  if (
+    data.action === "recall" &&
+    typeof data.equipment_id === "string" &&
+    data.equipment_id
+  ) {
+    return { action: "recall", equipmentId: data.equipment_id };
   }
   const instanceId =
     typeof data.instance_id === "string" && data.instance_id

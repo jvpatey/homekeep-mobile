@@ -45,6 +45,7 @@ export type RecordStackParamList = {
   PaintColors: undefined;
   HouseNotes: undefined;
   EmergencyInfo: undefined;
+  DocumentVault: undefined;
 };
 
 export type PlanStackParamList = {

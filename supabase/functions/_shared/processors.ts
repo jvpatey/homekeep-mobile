@@ -1,5 +1,10 @@
 // deno-lint-ignore-file no-explicit-any
-import { dedupeKeyMorning, dedupeKeyUpcoming } from "./dedupe.ts";
+import {
+  dedupeKeyMonthly,
+  dedupeKeyMorning,
+  dedupeKeyRecall,
+  dedupeKeyUpcoming,
+} from "./dedupe.ts";
 import { sendDeduped } from "./expo-push.ts";
 import { isTypeEnabled } from "./preferences.ts";
 import { isTaskInSeason } from "./seasonalTasks.ts";
@@ -16,6 +21,8 @@ export interface NotificationResults {
   upcomingNotifications: number;
   morningNotifications: number;
   weeklySummaries: number;
+  monthlySummaries: number;
+  recallAlerts: number;
   errors: number;
 }
 
@@ -24,6 +31,8 @@ export function emptyResults(): NotificationResults {
     upcomingNotifications: 0,
     morningNotifications: 0,
     weeklySummaries: 0,
+    monthlySummaries: 0,
+    recallAlerts: 0,
     errors: 0,
   };
 }
@@ -406,7 +415,301 @@ export async function processWeekly(
   }
 }
 
-export type NotificationType = "upcoming" | "morning" | "weekly";
+/**
+ * Channel-neutral monthly recap. Push uses `monthlyPushBody`; an email
+ * formatter can render the same object later.
+ */
+export interface MonthlySummary {
+  /** Local send month, YYYY-MM. */
+  month: string;
+  /** Month being recapped, YYYY-MM. */
+  previousMonth: string;
+  previousMonthLabel: string;
+  monthLabel: string;
+  completedLastMonth: number;
+  spentLastMonth: number;
+  overdue: number;
+  dueThisMonth: number;
+  dueThisMonthIds: string[];
+}
+
+function monthLabel(year: number, monthIndex: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, monthIndex, 1)));
+}
+
+function monthKey(date: Date): string {
+  return date.toISOString().slice(0, 7);
+}
+
+async function loadCompletedBetween(
+  supabase: any,
+  userId: string,
+  householdId: string | null,
+  startLocal: Date,
+  endLocal: Date,
+  tz: string
+): Promise<{ count: number; spent: number }> {
+  // Pad the UTC query by a day each side, then filter on local dates.
+  let query = supabase
+    .from("routine_instances")
+    .select(
+      `
+        id,
+        completed_at,
+        cost_amount,
+        routine:maintenance_routines!inner(user_id, household_id)
+      `
+    )
+    .eq("is_completed", true)
+    .gte("completed_at", addUtcDays(startLocal, -1).toISOString())
+    .lt("completed_at", addUtcDays(endLocal, 1).toISOString());
+
+  query = householdId
+    ? query.eq("routine.household_id", householdId)
+    : query.eq("routine.user_id", userId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  let count = 0;
+  let spent = 0;
+  for (const row of (data || []) as Array<{
+    completed_at: string | null;
+    cost_amount: number | string | null;
+  }>) {
+    if (!row.completed_at) continue;
+    if (!isBetweenDaysInTz(row.completed_at, startLocal, endLocal, tz)) {
+      continue;
+    }
+    count++;
+    const cost = Number(row.cost_amount);
+    if (Number.isFinite(cost) && cost > 0) spent += cost;
+  }
+  return { count, spent: Math.round(spent * 100) / 100 };
+}
+
+export async function buildMonthlySummary(
+  supabase: any,
+  userId: string,
+  tz: string,
+  now: Date
+): Promise<MonthlySummary> {
+  const local = getLocalParts(now, tz);
+  const year = Number(local.localDate.slice(0, 4));
+  const monthIndex = localMonthFromParts(local);
+
+  const thisMonthStart = new Date(Date.UTC(year, monthIndex, 1));
+  const lastMonthStart = new Date(Date.UTC(year, monthIndex - 1, 1));
+  const nextMonthStart = new Date(Date.UTC(year, monthIndex + 1, 1));
+
+  const householdId = await getViewerHouseholdId(supabase, userId);
+  const completed = await loadCompletedBetween(
+    supabase,
+    userId,
+    householdId,
+    lastMonthStart,
+    thisMonthStart,
+    tz
+  );
+
+  const tasks = await loadVisibleIncompleteTasks(supabase, userId, monthIndex);
+  const { overdue } = bucketTasks(tasks, now, tz);
+  const dueThisMonth = sortByDueDate(
+    tasks.filter((task) =>
+      isBetweenDaysInTz(task.due_date, thisMonthStart, nextMonthStart, tz)
+    )
+  );
+
+  return {
+    month: monthKey(thisMonthStart),
+    previousMonth: monthKey(lastMonthStart),
+    previousMonthLabel: monthLabel(
+      lastMonthStart.getUTCFullYear(),
+      lastMonthStart.getUTCMonth()
+    ),
+    monthLabel: monthLabel(year, monthIndex),
+    completedLastMonth: completed.count,
+    spentLastMonth: completed.spent,
+    overdue: overdue.length,
+    dueThisMonth: dueThisMonth.length,
+    dueThisMonthIds: dueThisMonth.map((task) => task.id),
+  };
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+export function monthlyPushBody(summary: MonthlySummary): string {
+  const recap =
+    summary.completedLastMonth > 0
+      ? `${summary.previousMonthLabel}: ${plural(summary.completedLastMonth, "task", "tasks")} done.`
+      : `Nothing logged in ${summary.previousMonthLabel}.`;
+
+  const ahead: string[] = [];
+  if (summary.dueThisMonth > 0) {
+    ahead.push(`${summary.dueThisMonth} due in ${summary.monthLabel}`);
+  }
+  if (summary.overdue > 0) {
+    ahead.push(`${summary.overdue} overdue`);
+  }
+  if (ahead.length === 0) {
+    return `${recap} You're all caught up for ${summary.monthLabel}.`;
+  }
+  return `${recap} ${ahead.join(", ")}.`;
+}
+
+export async function processMonthly(
+  supabase: any,
+  now: Date,
+  results: NotificationResults,
+  userId: string,
+  tz: string
+) {
+  try {
+    const enabled = await isTypeEnabled(supabase, userId, "monthly_summary");
+    if (!enabled) return;
+
+    const summary = await buildMonthlySummary(supabase, userId, tz, now);
+    const hasNews =
+      summary.completedLastMonth > 0 ||
+      summary.dueThisMonth > 0 ||
+      summary.overdue > 0;
+    if (!hasNews) return;
+
+    const sent = await sendDeduped(
+      supabase,
+      userId,
+      dedupeKeyMonthly(userId, summary.month),
+      "monthly_summary",
+      {
+        title: `Your ${summary.previousMonthLabel} home recap`,
+        body: monthlyPushBody(summary),
+        data: {
+          action: "view",
+          summary: {
+            kind: "monthly",
+            month: summary.previousMonth,
+            completed: summary.completedLastMonth,
+            spent: summary.spentLastMonth,
+            overdue: summary.overdue,
+            dueThisMonth: summary.dueThisMonth,
+          },
+          instance_ids: summary.dueThisMonthIds,
+        },
+      }
+    );
+    if (sent) results.monthlySummaries++;
+  } catch (error) {
+    console.error("Error processing monthly summary:", error);
+    results.errors++;
+  }
+}
+
+/** Recalls older than this are left to the in-app banner. */
+const RECALL_PUSH_WINDOW_DAYS = 30;
+const MAX_RECALL_PUSHES_PER_RUN = 3;
+
+interface OpenRecall {
+  id: string;
+  equipment_id: string;
+  recall_number: string;
+  title: string;
+  hazard: string | null;
+  notified_at: string | null;
+  equipment: { name: string | null } | null;
+}
+
+function truncate(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
+ * Pushes undismissed recalls for the viewer's home. Dedupe is per user, so
+ * every household member hears about each recall once; `notified_at`
+ * records the first push.
+ */
+export async function processRecalls(
+  supabase: any,
+  now: Date,
+  results: NotificationResults,
+  userId: string
+) {
+  try {
+    const enabled = await isTypeEnabled(supabase, userId, "recall_alerts");
+    if (!enabled) return;
+
+    const householdId = await getViewerHouseholdId(supabase, userId);
+    let query = supabase
+      .from("equipment_recalls")
+      .select(
+        "id, equipment_id, recall_number, title, hazard, notified_at, equipment:equipment_manuals(name)"
+      )
+      .is("dismissed_at", null)
+      .gte(
+        "created_at",
+        addUtcDays(now, -RECALL_PUSH_WINDOW_DAYS).toISOString()
+      )
+      .order("created_at", { ascending: true })
+      .limit(20);
+    query = householdId
+      ? query.eq("household_id", householdId)
+      : query.eq("user_id", userId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    let sentCount = 0;
+    for (const recall of (data || []) as OpenRecall[]) {
+      if (sentCount >= MAX_RECALL_PUSHES_PER_RUN) break;
+      const equipmentName = recall.equipment?.name?.trim() || "your equipment";
+      const sent = await sendDeduped(
+        supabase,
+        userId,
+        dedupeKeyRecall(userId, recall.equipment_id, recall.recall_number),
+        "recall",
+        {
+          title: `Recall: ${equipmentName}`,
+          body: truncate(recall.title, 178),
+          data: {
+            action: "recall",
+            equipment_id: recall.equipment_id,
+            recall_id: recall.id,
+          },
+        }
+      );
+      if (!sent) continue;
+      sentCount++;
+      results.recallAlerts++;
+      if (!recall.notified_at) {
+        await supabase
+          .from("equipment_recalls")
+          .update({ notified_at: now.toISOString() })
+          .eq("id", recall.id);
+      }
+    }
+  } catch (error) {
+    console.error("Error processing recall alerts:", error);
+    results.errors++;
+  }
+}
+
+export type NotificationType =
+  | "upcoming"
+  | "morning"
+  | "weekly"
+  | "monthly"
+  | "recall";
+
+/** Job types that only run for HomeKeep+ members. */
+export const PLUS_ONLY_TYPES: ReadonlySet<NotificationType> = new Set([
+  "upcoming",
+  "morning",
+  "weekly",
+]);
 
 export async function runProcessorsForUser(
   supabase: any,
@@ -429,5 +732,11 @@ export async function runProcessorsForUser(
     });
   } else if (activeTypes.has("weekly")) {
     await processWeekly(supabase, now, results, userId, tz, local);
+  }
+  if (activeTypes.has("monthly")) {
+    await processMonthly(supabase, now, results, userId, tz);
+  }
+  if (activeTypes.has("recall")) {
+    await processRecalls(supabase, now, results, userId);
   }
 }

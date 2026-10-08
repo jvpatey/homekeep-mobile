@@ -13,6 +13,7 @@ import {
 import { formatPurchaseDateLabel } from "../utils/formatPurchaseDate";
 import { resolveWarrantyFields } from "../utils/equipmentWarranty";
 import { currencyForCountry } from "../utils/formatMoney";
+import { formatHomeAge } from "../data/maintenancePlans/homeSystems";
 import { EquipmentManualService } from "./EquipmentManualService";
 import { MaintenanceTaskService } from "./MaintenanceTaskService";
 import {
@@ -88,6 +89,7 @@ export class HomeSummaryService {
         ownerName,
         addressLines,
         hasAddress: profileHasAddress(profile),
+        homeAgeLabel: formatHomeAge(profile?.home_systems),
         equipment,
         taskGroups,
         spendTotals,

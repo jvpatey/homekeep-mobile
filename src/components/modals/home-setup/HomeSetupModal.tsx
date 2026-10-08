@@ -27,7 +27,15 @@ import {
   isHeatPumpFamily,
   diffHomeSchedule,
   HomeScheduleDiff,
+  isValidYearBuilt,
+  MIN_YEAR_BUILT,
+  FireplaceType,
+  HomeFeatureFlag,
+  HOME_FEATURE_FLAGS,
+  HOME_FEATURE_OPTIONS,
+  FIREPLACE_TYPE_OPTIONS,
 } from "../../../data/maintenancePlans";
+import { TextField } from "../../ui/TextField";
 import { MaintenanceService } from "../../../services/maintenanceService";
 import {
   CategoryKey,
@@ -166,6 +174,12 @@ export function HomeSetupModal({
   const [poolUsesSaltChlorination, setPoolUsesSaltChlorination] = useState<
     boolean | null
   >(null);
+  const [yearBuiltText, setYearBuiltText] = useState("");
+  const [features, setFeatures] = useState<HomeFeatureFlag[]>([]);
+  const [hasFireplace, setHasFireplace] = useState(false);
+  const [fireplaceFuel, setFireplaceFuel] = useState<
+    Exclude<FireplaceType, "none"> | null
+  >(null);
   const [selectedMask, setSelectedMask] = useState<boolean[]>([]);
   const [addMask, setAddMask] = useState<boolean[]>([]);
   const [pauseMask, setPauseMask] = useState<boolean[]>([]);
@@ -220,6 +234,15 @@ export function HomeSetupModal({
     setHasPool(home?.hasPool ?? null);
     setHasSpa(home?.hasSpa ?? null);
     setPoolUsesSaltChlorination(home?.poolUsesSaltChlorination ?? null);
+    setYearBuiltText(home?.yearBuilt ? String(home.yearBuilt) : "");
+    setFeatures(HOME_FEATURE_FLAGS.filter((flag) => home?.[flag] === true));
+    const savedFireplace = home?.fireplaceType;
+    setHasFireplace(savedFireplace === "wood" || savedFireplace === "gas");
+    setFireplaceFuel(
+      savedFireplace === "wood" || savedFireplace === "gas"
+        ? savedFireplace
+        : null
+    );
     setSessionEquipment([]);
     setPendingHints([]);
     setPendingFinishCopy(null);
@@ -239,6 +262,14 @@ export function HomeSetupModal({
     );
   };
 
+  const toggleFeature = (flag: HomeFeatureFlag) => {
+    setFeatures((prev) =>
+      prev.includes(flag)
+        ? prev.filter((item) => item !== flag)
+        : [...prev, flag]
+    );
+  };
+
   const saltNeeded = hasPool === true;
 
   const answered =
@@ -254,7 +285,17 @@ export function HomeSetupModal({
     Number(hasSpa !== null) +
     Number(!saltNeeded || poolUsesSaltChlorination !== null);
 
+  const trimmedYearBuilt = yearBuiltText.trim();
+  const parsedYearBuilt = trimmedYearBuilt
+    ? Number(trimmedYearBuilt)
+    : undefined;
+  const yearBuiltValid =
+    parsedYearBuilt === undefined || isValidYearBuilt(parsedYearBuilt);
+  const yearBuilt = yearBuiltValid ? parsedYearBuilt : undefined;
+
   const canContinueQuestions =
+    yearBuiltValid &&
+    (!hasFireplace || fireplaceFuel !== null) &&
     hasLawn !== null &&
     propertyType !== null &&
     heatSources.length > 0 &&
@@ -285,9 +326,23 @@ export function HomeSetupModal({
       poolUsesSaltChlorination: hasPool
         ? Boolean(poolUsesSaltChlorination)
         : false,
+      yearBuilt,
+      hasSumpPump: features.includes("hasSumpPump"),
+      hasWell: features.includes("hasWell"),
+      hasIrrigation: features.includes("hasIrrigation"),
+      hasGarageDoor: features.includes("hasGarageDoor"),
+      hasGenerator: features.includes("hasGenerator"),
+      hasSolar: features.includes("hasSolar"),
+      hasEvCharger: features.includes("hasEvCharger"),
+      hasDeck: features.includes("hasDeck"),
+      fireplaceType: hasFireplace && fireplaceFuel ? fireplaceFuel : "none",
     };
   }, [
     canContinueQuestions,
+    yearBuilt,
+    features,
+    hasFireplace,
+    fireplaceFuel,
     hasLawn,
     propertyType,
     heatSources,
@@ -959,6 +1014,30 @@ export function HomeSetupModal({
           </QuestionCard>
 
           <QuestionCard>
+            <QuestionLabel>When was it built?</QuestionLabel>
+            <QuestionHint>
+              Optional. Older homes get extra checks for wiring, sewer lines,
+              and lead or asbestos.
+            </QuestionHint>
+            <TextField
+              label="Year built"
+              value={yearBuiltText}
+              onChangeText={(text) =>
+                setYearBuiltText(text.replace(/[^0-9]/g, "").slice(0, 4))
+              }
+              placeholder="e.g. 1985"
+              keyboardType="number-pad"
+              maxLength={4}
+              returnKeyType="done"
+              error={
+                yearBuiltValid
+                  ? undefined
+                  : `Enter a year between ${MIN_YEAR_BUILT} and ${new Date().getFullYear()}.`
+              }
+            />
+          </QuestionCard>
+
+          <QuestionCard>
             <QuestionLabel>How do you heat your home?</QuestionLabel>
             <QuestionHint>Select all that apply.</QuestionHint>
             {HOME_HEAT_SOURCE_OPTIONS.map((option) => (
@@ -1104,6 +1183,46 @@ export function HomeSetupModal({
                 onPress={() => setPoolUsesSaltChlorination(false)}
                 accessibilityLabel="No salt chlorination"
               />
+            </QuestionCard>
+          ) : null}
+
+          <QuestionCard>
+            <QuestionLabel>Does your home have any of these?</QuestionLabel>
+            <QuestionHint>Optional. Select all that apply.</QuestionHint>
+            {HOME_FEATURE_OPTIONS.map((option) => (
+              <ChoiceRow
+                key={option.id}
+                label={option.label}
+                selected={features.includes(option.id)}
+                onPress={() => toggleFeature(option.id)}
+                accessibilityLabel={option.label}
+                multiple
+              />
+            ))}
+            <ChoiceRow
+              label="Fireplace or wood stove"
+              selected={hasFireplace}
+              onPress={() => {
+                setHasFireplace((prev) => !prev);
+                setFireplaceFuel(null);
+              }}
+              accessibilityLabel="Fireplace or wood stove"
+              multiple
+            />
+          </QuestionCard>
+
+          {hasFireplace ? (
+            <QuestionCard>
+              <QuestionLabel>What kind of fireplace?</QuestionLabel>
+              {FIREPLACE_TYPE_OPTIONS.map((option) => (
+                <ChoiceRow
+                  key={option.id}
+                  label={option.label}
+                  selected={fireplaceFuel === option.id}
+                  onPress={() => setFireplaceFuel(option.id)}
+                  accessibilityLabel={option.label}
+                />
+              ))}
             </QuestionCard>
           ) : null}
         </ScrollView>

@@ -7,6 +7,8 @@ import { EquipmentManual } from "../../types/equipmentManual";
 import { showActionMenu } from "../../utils/actionMenu";
 
 export type AttachmentKind = "manual" | "receipt";
+/** Anything the picker can attach, including vault documents. */
+export type PickerKind = AttachmentKind | "document";
 
 export interface PickedFile {
   uri: string;
@@ -14,12 +16,19 @@ export interface PickedFile {
   fileName: string;
 }
 
-const KIND_LABEL: Record<AttachmentKind, string> = {
+const KIND_LABEL: Record<PickerKind, string> = {
   manual: "manual",
   receipt: "receipt",
+  document: "document",
 };
 
-async function pickDocument(kind: AttachmentKind): Promise<PickedFile | null> {
+const PROMPT_TITLE: Record<PickerKind, string> = {
+  manual: "Attach manual",
+  receipt: "Attach receipt",
+  document: "Attach document",
+};
+
+async function pickDocument(kind: PickerKind): Promise<PickedFile | null> {
   try {
     const result = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
@@ -39,7 +48,7 @@ async function pickDocument(kind: AttachmentKind): Promise<PickedFile | null> {
 }
 
 async function pickImage(
-  kind: AttachmentKind,
+  kind: PickerKind,
   source: "library" | "camera"
 ): Promise<PickedFile | null> {
   try {
@@ -78,7 +87,7 @@ async function pickImage(
 
 /** Ask for a PDF or photo; resolves null when the user backs out. */
 export function promptForAttachment(
-  kind: AttachmentKind
+  kind: PickerKind
 ): Promise<PickedFile | null> {
   return new Promise((resolve) => {
     let settled = false;
@@ -88,7 +97,7 @@ export function promptForAttachment(
       resolve(file);
     };
     showActionMenu({
-      title: kind === "manual" ? "Attach manual" : "Attach receipt",
+      title: PROMPT_TITLE[kind],
       message: "PDF or photo",
       onCancel: () => finish(null),
       options: [
@@ -180,7 +189,7 @@ export async function removeFile(
 
 export async function openStoredFile(
   path: string | null | undefined,
-  kind: AttachmentKind
+  kind: PickerKind
 ) {
   if (!path) return;
   const { data: url, error } =

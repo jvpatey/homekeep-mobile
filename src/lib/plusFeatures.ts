@@ -35,10 +35,10 @@ export const PLUS_FEATURES: Record<PlusFeatureKey, PlusFeature> = {
     valueLine: 1,
   },
   documents: {
-    title: "Manuals and receipts",
-    headline: "Keep manuals and receipts with the house",
+    title: "Documents",
+    headline: "Keep the house paperwork with the house",
     blurb:
-      "Store manuals, receipts, warranties, and part numbers for everything you maintain.",
+      "Store manuals, receipts, warranties, insurance policies, inspection reports, and permits in one place.",
     icon: "document-text",
     valueLine: 2,
   },

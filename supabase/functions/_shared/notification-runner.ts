@@ -5,6 +5,7 @@ import { jsonResponse } from "./cors.ts";
 import {
   emptyResults,
   getUserTimezoneMap,
+  PLUS_ONLY_TYPES,
   runProcessorsForUser,
   type NotificationResults,
   type NotificationType,
@@ -21,7 +22,11 @@ function activeTypesForLocalHour(
   local: ReturnType<typeof getLocalParts>
 ): Set<NotificationType> {
   const types = new Set<NotificationType>();
-  if (local.hour === 8) types.add("morning");
+  if (local.hour === 8) {
+    types.add("morning");
+    types.add("recall");
+  }
+  if (local.hour === 10 && local.dayOfMonth === 1) types.add("monthly");
   if (local.hour === 18) types.add("upcoming");
   return types;
 }
@@ -31,6 +36,8 @@ function parseForceType(forceType: string): Set<NotificationType> | null {
     upcoming: "upcoming",
     morning: "morning",
     weekly: "weekly",
+    monthly: "monthly",
+    recall: "recall",
     due_soon: "upcoming",
     daily: "morning",
     overdue: "morning",
@@ -94,13 +101,6 @@ export async function runNotificationJob(
       continue;
     }
 
-    const entitled = await userHasPlus(supabase, profile.id);
-    if (entitled === false) {
-      skips.not_entitled += 1;
-      continue;
-    }
-    // entitled === null → fail open (RPC error)
-
     const tz = tzByUser[profile.id] || "UTC";
     const local = getLocalParts(now, tz);
 
@@ -124,6 +124,18 @@ export async function runNotificationJob(
     if (activeTypes.size === 0) {
       skips.wrong_hour += 1;
       continue;
+    }
+
+    if ([...activeTypes].some((type) => PLUS_ONLY_TYPES.has(type))) {
+      // null → fail open (RPC error)
+      const entitled = await userHasPlus(supabase, profile.id);
+      if (entitled === false) {
+        for (const type of PLUS_ONLY_TYPES) activeTypes.delete(type);
+        if (activeTypes.size === 0) {
+          skips.not_entitled += 1;
+          continue;
+        }
+      }
     }
 
     await runProcessorsForUser(

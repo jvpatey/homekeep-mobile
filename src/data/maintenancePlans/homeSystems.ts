@@ -64,6 +64,95 @@ export interface HomeSystems {
   hasPool?: boolean;
   hasSpa?: boolean;
   poolUsesSaltChlorination?: boolean;
+  /** Optional; drives age-conditional tasks. Not required for completeness. */
+  yearBuilt?: number;
+  /** Optional features below are not required for completeness; unset means "no". */
+  hasSumpPump?: boolean;
+  hasWell?: boolean;
+  fireplaceType?: FireplaceType;
+  hasIrrigation?: boolean;
+  hasGarageDoor?: boolean;
+  hasGenerator?: boolean;
+  hasSolar?: boolean;
+  hasEvCharger?: boolean;
+  hasDeck?: boolean;
+}
+
+export type FireplaceType = "none" | "wood" | "gas";
+
+export type HomeFeatureFlag =
+  | "hasSumpPump"
+  | "hasWell"
+  | "hasIrrigation"
+  | "hasGarageDoor"
+  | "hasGenerator"
+  | "hasSolar"
+  | "hasEvCharger"
+  | "hasDeck";
+
+export const HOME_FEATURE_FLAGS: HomeFeatureFlag[] = [
+  "hasSumpPump",
+  "hasWell",
+  "hasIrrigation",
+  "hasGarageDoor",
+  "hasGenerator",
+  "hasSolar",
+  "hasEvCharger",
+  "hasDeck",
+];
+
+export const HOME_FEATURE_OPTIONS: { id: HomeFeatureFlag; label: string }[] = [
+  { id: "hasSumpPump", label: "Sump pump" },
+  { id: "hasWell", label: "Private well" },
+  { id: "hasIrrigation", label: "Sprinkler / irrigation system" },
+  { id: "hasGarageDoor", label: "Garage door opener" },
+  { id: "hasGenerator", label: "Standby or portable generator" },
+  { id: "hasSolar", label: "Solar panels" },
+  { id: "hasEvCharger", label: "EV charger" },
+  { id: "hasDeck", label: "Deck" },
+];
+
+export const FIREPLACE_TYPE_OPTIONS: {
+  id: Exclude<FireplaceType, "none">;
+  label: string;
+}[] = [
+  { id: "wood", label: "Wood-burning fireplace or stove" },
+  { id: "gas", label: "Gas fireplace" },
+];
+
+export const MIN_YEAR_BUILT = 1700;
+
+export function isValidYearBuilt(
+  value: unknown,
+  now: Date = new Date()
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= MIN_YEAR_BUILT &&
+    value <= now.getFullYear()
+  );
+}
+
+/** Whole years since the home was built, or null when unknown. */
+export function homeAgeYears(
+  home: HomeSystems | null | undefined,
+  now: Date = new Date()
+): number | null {
+  if (!home || !isValidYearBuilt(home.yearBuilt, now)) return null;
+  return Math.max(0, now.getFullYear() - home.yearBuilt);
+}
+
+/** "Built 1962 · 64 years", or null when the year is unknown. */
+export function formatHomeAge(
+  home: HomeSystems | null | undefined,
+  now: Date = new Date()
+): string | null {
+  const age = homeAgeYears(home, now);
+  if (age === null || !home?.yearBuilt) return null;
+  const ageLabel =
+    age === 0 ? "new this year" : `${age} year${age === 1 ? "" : "s"}`;
+  return `Built ${home.yearBuilt} · ${ageLabel}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -135,6 +224,18 @@ export function parseHomeSystems(value: unknown): HomeSystems {
   if (typeof value.poolUsesSaltChlorination === "boolean") {
     next.poolUsesSaltChlorination = value.poolUsesSaltChlorination;
   }
+  if (isValidYearBuilt(value.yearBuilt)) next.yearBuilt = value.yearBuilt;
+  for (const flag of HOME_FEATURE_FLAGS) {
+    const raw = value[flag];
+    if (typeof raw === "boolean") next[flag] = raw;
+  }
+  if (
+    value.fireplaceType === "none" ||
+    value.fireplaceType === "wood" ||
+    value.fireplaceType === "gas"
+  ) {
+    next.fireplaceType = value.fireplaceType;
+  }
   return next;
 }
 
@@ -162,6 +263,7 @@ export function toSpringAnswers(
     propertyType: home.propertyType,
     heatSource: sources[0],
     heatSources: sources,
+    hasIrrigation: home.hasIrrigation === true,
   };
 }
 

@@ -10,6 +10,8 @@ export interface NotificationPreferences {
   overdue_reminder: boolean;
   daily_digest: boolean;
   weekly_summary: boolean;
+  monthly_summary: boolean;
+  recall_alerts: boolean;
   reminder_hours_before: number;
   created_at?: string;
   updated_at?: string;

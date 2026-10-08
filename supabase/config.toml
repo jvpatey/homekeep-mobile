@@ -5,6 +5,7 @@
 #   supabase functions deploy notification-worker
 #   supabase functions deploy notify-household-event
 #   supabase functions deploy process-scheduled-notifications
+#   supabase functions deploy recall-scan
 #
 # send-push-notification is self-contained and can be deployed via Dashboard.
 
@@ -25,3 +26,8 @@ import_map = "./functions/deno.json"
 
 [functions.revenuecat-webhook]
 verify_jwt = false
+
+# Daily CPSC recall scan; privileged callers only (service role or x-cron-secret).
+[functions.recall-scan]
+verify_jwt = false
+import_map = "./functions/deno.json"

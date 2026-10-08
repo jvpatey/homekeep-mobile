@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
 import { useEquipmentIndex } from "../../hooks/useEquipmentIndex";
+import { useEquipmentRecalls } from "../../hooks/useEquipmentRecalls";
 import { Button, HeaderIconButton } from "../../components/ui";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { EquipmentFormSheet } from "../../components/equipment/EquipmentFormSheet";
@@ -47,6 +48,8 @@ export function EquipmentListScreen() {
   const { triggerLight } = useHaptics();
   const documents = usePlusFeature("documents");
   const { items, loaded, error, refresh } = useEquipmentIndex();
+  const { byEquipmentId: recallsByEquipment, refresh: refreshRecalls } =
+    useEquipmentRecalls();
   const [refreshing, setRefreshing] = useState(false);
   const [formVisible, setFormVisible] = useState(false);
 
@@ -81,7 +84,7 @@ export function EquipmentListScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refresh();
+    await Promise.all([refresh(), refreshRecalls()]);
     setRefreshing(false);
   };
 
@@ -143,6 +146,7 @@ export function EquipmentListScreen() {
                   item.warranty_expires_on
                 );
                 const status = warrantyStatusLabel(warranty.warrantyStatus);
+                const recalled = recallsByEquipment.has(item.id);
                 return (
                   <RecordRow
                     key={item.id}
@@ -152,7 +156,26 @@ export function EquipmentListScreen() {
                     subtitle={subtitleFor(item)}
                     onPress={() => open(item)}
                     trailing={
-                      status ? (
+                      recalled ? (
+                        <View
+                          style={[
+                            styles.badge,
+                            styles.recallBadge,
+                            { backgroundColor: colors.error + "1F" },
+                          ]}
+                        >
+                          <Ionicons
+                            name="warning"
+                            size={11}
+                            color={colors.error}
+                          />
+                          <Text
+                            style={[styles.badgeText, { color: colors.error }]}
+                          >
+                            Recall
+                          </Text>
+                        </View>
+                      ) : status ? (
                         <View
                           style={[
                             styles.badge,
@@ -246,6 +269,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.sm,
     paddingVertical: 3,
     borderRadius: DesignSystem.borders.radius.round,
+  },
+  recallBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   badgeText: {
     ...DesignSystem.typography.captionSemiBold,

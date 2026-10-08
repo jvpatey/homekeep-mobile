@@ -56,6 +56,36 @@ export function isGrowingSeason(
   return month >= 2 && month <= 9;
 }
 
+/**
+ * Days from `now` until the given season starts (0 when already in it).
+ * Season start is the first day of its first month.
+ */
+export function daysUntilSeason(
+  season: Exclude<HomeSeason, "off">,
+  now: Date = new Date(),
+  latitude?: number | null
+): number {
+  const month = now.getMonth();
+  const inSeason =
+    season === "spring"
+      ? isSpringSeason(month, latitude)
+      : isFallSeason(month, latitude);
+  if (inSeason) return 0;
+  const southern = (latitude ?? 0) < 0;
+  const startMonth =
+    season === "spring" ? (southern ? 8 : 2) : southern ? 2 : 8;
+  const year =
+    month < startMonth ? now.getFullYear() : now.getFullYear() + 1;
+  const start = new Date(year, startMonth, 1, 12);
+  const today = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    12
+  );
+  return Math.round((start.getTime() - today.getTime()) / 86_400_000);
+}
+
 /** In-season plan only — never starter or year-round safety. */
 export function recommendInSeasonPlanId(
   month: number,

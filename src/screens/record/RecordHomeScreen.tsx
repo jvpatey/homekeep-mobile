@@ -18,6 +18,7 @@ import { useProfile } from "../../context/ProfileContext";
 import { useRecordData } from "../../hooks/useRecordData";
 import { useEquipmentIndex } from "../../hooks/useEquipmentIndex";
 import { useHomeContacts } from "../../hooks/useHomeContacts";
+import { useHomeDocuments } from "../../hooks/useHomeDocuments";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
@@ -40,6 +41,7 @@ import {
   formatProfileLocality,
 } from "../../utils/formatProfileAddress";
 import { usePlusFeature } from "../../lib/plusFeatures";
+import { formatHomeAge } from "../../data/maintenancePlans";
 import { RecordStackParamList } from "../../navigation/types";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -49,6 +51,7 @@ const TINTS = {
   history: "#2F5D50",
   ledger: "#C45C26",
   equipment: "#5B6C8F",
+  documents: "#7A6A4F",
   paint: "#B5739D",
   notes: "#3E7CB1",
   emergency: "#C0392B",
@@ -73,6 +76,8 @@ export function RecordHomeScreen() {
   const equipment = useEquipmentIndex();
   const contacts = useHomeContacts();
   const { locked: recordLocked } = usePlusFeature("history");
+  const documents = useHomeDocuments();
+  const { locked: documentsLocked } = usePlusFeature("documents");
   const [refreshing, setRefreshing] = useState(false);
   const [showHomeShare, setShowHomeShare] = useState(false);
   const [members, setMembers] = useState<HouseholdMemberView[]>([]);
@@ -102,7 +107,12 @@ export function RecordHomeScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refresh(), equipment.refresh(), contacts.refresh()]);
+    await Promise.all([
+      refresh(),
+      equipment.refresh(),
+      contacts.refresh(),
+      documents.refresh(),
+    ]);
     setRefreshing(false);
   };
 
@@ -114,6 +124,7 @@ export function RecordHomeScreen() {
   const addressLines = formatProfileAddressLines(profile);
   const street = addressLines[0] ?? "Your home";
   const locality = formatProfileLocality(profile);
+  const homeAgeLabel = formatHomeAge(profile?.home_systems);
   const sinceLabel = ledger.firstRecordedAt
     ? `Recorded since ${format(ledger.firstRecordedAt, "MMMM yyyy")}`
     : "Your home's record starts with the next job";
@@ -189,6 +200,14 @@ export function RecordHomeScreen() {
                   {locality}
                 </Text>
               ) : null}
+              {homeAgeLabel ? (
+                <Text
+                  style={[styles.heroLocality, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {homeAgeLabel}
+                </Text>
+              ) : null}
             </View>
           </View>
           <Text style={[styles.since, { color: colors.textSecondary }]}>
@@ -254,6 +273,18 @@ export function RecordHomeScreen() {
                 : "Manuals, parts, and warranties"
             }
             onPress={() => go(() => navigation.navigate("EquipmentList"))}
+          />
+          <RecordRow
+            icon="folder-open"
+            tint={TINTS.documents}
+            title="Documents"
+            subtitle={
+              documents.items.length > 0
+                ? `${documents.items.length} saved · insurance, inspections, permits`
+                : "Insurance, inspections, closing papers, permits"
+            }
+            locked={documentsLocked}
+            onPress={() => go(() => navigation.navigate("DocumentVault"))}
           />
           <RecordRow
             icon="color-palette"

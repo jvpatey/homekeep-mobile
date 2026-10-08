@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
+import * as WebBrowser from "expo-web-browser";
 import { differenceInMonths, format, parseISO } from "date-fns";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -30,6 +31,18 @@ import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { RecordEntrySheet } from "../../components/record/RecordEntrySheet";
 import { useRecordEntryActions } from "../../components/record/useRecordEntryActions";
 import { EquipmentFormSheet } from "../../components/equipment/EquipmentFormSheet";
+import { DocumentFormSheet } from "../../components/documents/DocumentFormSheet";
+import { useHomeDocuments } from "../../hooks/useHomeDocuments";
+import {
+  dismissEquipmentRecall,
+  useEquipmentRecalls,
+} from "../../hooks/useEquipmentRecalls";
+import { EquipmentRecall } from "../../types/equipmentRecall";
+import {
+  DOCUMENT_KIND_ICONS,
+  DOCUMENT_KIND_LABELS,
+  HomeDocument,
+} from "../../types/homeDocument";
 import {
   AttachmentKind,
   attachFile,
@@ -87,9 +100,18 @@ export function EquipmentDetailScreen() {
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selected, setSelected] = useState<MaintenanceTask | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const { byEquipmentId: documentsByEquipment } = useHomeDocuments({
+    refreshOnFocus: false,
+  });
+  const [documentForm, setDocumentForm] = useState<{
+    document: HomeDocument | null;
+  } | null>(null);
+  const { byEquipmentId: recallsByEquipment } = useEquipmentRecalls();
 
   const equipmentId = route.params.equipmentId;
   const item = byId.get(equipmentId) ?? null;
+  const linkedDocuments = documentsByEquipment.get(equipmentId) ?? [];
+  const recalls = recallsByEquipment.get(equipmentId) ?? [];
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -255,6 +277,56 @@ export function EquipmentDetailScreen() {
     });
   };
 
+  const openLinkedDocument = async (document: HomeDocument | null) => {
+    triggerLight();
+    if (!(await documents.unlock())) return;
+    if (document?.storage_path) {
+      showActionMenu({
+        title: document.title,
+        options: [
+          {
+            label: "Open file",
+            icon: "open-outline",
+            onPress: () =>
+              void openStoredFile(document.storage_path, "document"),
+          },
+          {
+            label: "Edit",
+            icon: "create-outline",
+            onPress: () => setDocumentForm({ document }),
+          },
+        ],
+      });
+      return;
+    }
+    setDocumentForm({ document });
+  };
+
+  const openRecall = (recall: EquipmentRecall) => {
+    triggerLight();
+    if (!recall.url) return;
+    void WebBrowser.openBrowserAsync(recall.url);
+  };
+
+  const confirmDismissRecall = (recall: EquipmentRecall) => {
+    triggerLight();
+    Alert.alert(
+      "Dismiss this recall?",
+      "Do this once you've checked your unit or had it fixed. It won't come back.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Dismiss",
+          onPress: async () => {
+            if (!(await dismissEquipmentRecall(recall))) {
+              Alert.alert("Couldn't dismiss", "Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const confirmDelete = () => {
     void triggerMedium();
     Alert.alert(
@@ -358,6 +430,15 @@ export function EquipmentDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {recalls.map((recall) => (
+          <RecallBanner
+            key={recall.id}
+            recall={recall}
+            onOpen={() => openRecall(recall)}
+            onDismiss={() => confirmDismissRecall(recall)}
+          />
+        ))}
 
         <View style={styles.actions}>
           <ActionButton
@@ -512,6 +593,25 @@ export function EquipmentDetailScreen() {
             }
             onPress={() => documentMenu("receipt")}
           />
+          {linkedDocuments.map((document) => (
+            <RecordRow
+              key={document.id}
+              icon={DOCUMENT_KIND_ICONS[document.kind]}
+              tint={tint}
+              title={document.title}
+              subtitle={DOCUMENT_KIND_LABELS[document.kind]}
+              value={document.storage_path ? "On file" : null}
+              locked={documents.locked}
+              onPress={() => void openLinkedDocument(document)}
+            />
+          ))}
+          <RecordRow
+            icon="add"
+            tint={colors.primary}
+            title="Add a warranty or other document"
+            locked={documents.locked}
+            onPress={() => void openLinkedDocument(null)}
+          />
         </RecordSection>
 
         <RecordSection
@@ -582,6 +682,13 @@ export function EquipmentDetailScreen() {
         equipment={item}
         onClose={() => setEditing(false)}
       />
+      <DocumentFormSheet
+        visible={documentForm !== null}
+        document={documentForm?.document ?? null}
+        defaultKind="warranty"
+        defaultEquipmentId={item.id}
+        onClose={() => setDocumentForm(null)}
+      />
       <RecordEntrySheet
         task={selected}
         visible={sheetVisible}
@@ -590,6 +697,85 @@ export function EquipmentDetailScreen() {
         action={selected ? actionFor(selected) : null}
       />
     </>
+  );
+}
+
+function RecallBanner({
+  recall,
+  onOpen,
+  onDismiss,
+}: {
+  recall: EquipmentRecall;
+  onOpen: () => void;
+  onDismiss: () => void;
+}) {
+  const { colors } = useTheme();
+  const date = parseDay(recall.recall_date);
+  const meta = [
+    date ? `Recalled ${format(date, "MMM d, yyyy")}` : "Product recall",
+    recall.matched_on === "name" ? "Possible match" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <View
+      style={[
+        styles.recall,
+        { backgroundColor: colors.error + "14", borderColor: colors.error + "40" },
+      ]}
+      accessibilityRole="alert"
+    >
+      <View style={styles.recallHeader}>
+        <Ionicons name="warning" size={18} color={colors.error} />
+        <Text style={[styles.recallMeta, { color: colors.error }]}>{meta}</Text>
+      </View>
+      <Text style={[styles.recallTitle, { color: colors.text }]}>
+        {recall.title}
+      </Text>
+      {recall.hazard ? (
+        <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
+          {recall.hazard}
+        </Text>
+      ) : null}
+      {recall.remedy ? (
+        <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
+          Remedy: {recall.remedy}
+        </Text>
+      ) : null}
+      {recall.matched_on === "name" ? (
+        <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
+          Matched on the name, not the model number. Check the recall's model
+          list against your unit.
+        </Text>
+      ) : null}
+      <View style={styles.recallActions}>
+        {recall.url ? (
+          <Pressable
+            onPress={onOpen}
+            style={({ pressed }) => [
+              styles.recallButton,
+              { backgroundColor: colors.error, opacity: pressed ? 0.8 : 1 },
+            ]}
+            accessibilityRole="link"
+          >
+            <Text style={styles.recallButtonText}>View recall</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={onDismiss}
+          style={({ pressed }) => [
+            styles.recallButton,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.recallDismissText, { color: colors.error }]}>
+            Dismiss
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -682,6 +868,45 @@ const styles = StyleSheet.create({
   },
   warrantyText: {
     ...DesignSystem.typography.captionSemiBold,
+  },
+  recall: {
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.xs,
+  },
+  recallHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  recallMeta: {
+    ...DesignSystem.typography.captionSemiBold,
+  },
+  recallTitle: {
+    ...DesignSystem.typography.bodySemiBold,
+  },
+  recallBody: {
+    ...DesignSystem.typography.footnote,
+  },
+  recallActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.xs,
+  },
+  recallButton: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.round,
+  },
+  recallButtonText: {
+    ...DesignSystem.typography.smallSemiBold,
+    color: "#FFFFFF",
+  },
+  recallDismissText: {
+    ...DesignSystem.typography.smallSemiBold,
   },
   actions: {
     flexDirection: "row",

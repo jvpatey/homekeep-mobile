@@ -3,6 +3,7 @@ export {
   type MaintenancePlanItemTemplate,
   type MaintenancePlanDefinition,
   type MaintenancePlanSummary,
+  type PlanFilterContext,
   buildRoutinePayloads,
   buildRoutinePayloadsFromItems,
   getPlanSummary,
@@ -75,7 +76,26 @@ export {
   mergeFromStarterAnswers,
   mergeFromPoolSpaAnswers,
   answersForPlan,
+  MIN_YEAR_BUILT,
+  isValidYearBuilt,
+  homeAgeYears,
+  formatHomeAge,
+  type FireplaceType,
+  type HomeFeatureFlag,
+  HOME_FEATURE_FLAGS,
+  HOME_FEATURE_OPTIONS,
+  FIREPLACE_TYPE_OPTIONS,
 } from "./homeSystems";
+export { HOME_AGE_PLAN_ID, filterHomeAgeItems } from "./homeAgeItems";
+export { CONDO_LIVING_PLAN_ID } from "./condoLiving";
+export { BASEMENT_WATER_PLAN_ID } from "./basementWater";
+export { GARAGE_VEHICLES_PLAN_ID } from "./garageVehicles";
+export { IRRIGATION_OPEN_CLOSE_PLAN_ID } from "./irrigationOpenClose";
+export {
+  HOME_FEATURES_PLAN_ID,
+  filterHomeFeatureItems,
+  homeFeatureItem,
+} from "./homeFeatureItems";
 export { recommendMaintenancePlanId } from "./recommendPlan";
 export {
   STARTER_PLAN_ID,

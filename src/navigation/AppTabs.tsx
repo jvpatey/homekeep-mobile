@@ -18,6 +18,7 @@ import {
 } from "../screens/home-notes/HomeNotesScreen";
 import { ProDetailScreen } from "../screens/pros/ProDetailScreen";
 import { EmergencyInfoScreen } from "../screens/emergency/EmergencyInfoScreen";
+import { DocumentVaultScreen } from "../screens/documents/DocumentVaultScreen";
 import {
   AppTabsParamList,
   HomeStackParamList,
@@ -88,6 +89,11 @@ function RecordStackNavigator() {
         name="EmergencyInfo"
         component={EmergencyInfoScreen}
         options={{ title: "Emergency info" }}
+      />
+      <RecordStack.Screen
+        name="DocumentVault"
+        component={DocumentVaultScreen}
+        options={{ title: "Documents" }}
       />
       <RecordStack.Screen
         name="HomeSummaryPreview"

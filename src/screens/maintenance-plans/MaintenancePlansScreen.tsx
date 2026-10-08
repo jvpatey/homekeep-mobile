@@ -110,15 +110,23 @@ export function MaintenancePlansScreen() {
   const [usedHomeProfile, setUsedHomeProfile] = useState(false);
   const [applying, setApplying] = useState(false);
 
+  const homeHasIrrigation = profile?.home_systems?.hasIrrigation === true;
+
   const resolvedDetailItems = useMemo((): MaintenancePlanItemTemplate[] => {
     if (!detailPlan) return [];
     if (detailPlan.id === "spring-refresh") {
       if (!springAnswers) return [];
-      return filterSpringRefreshItems(springAnswers);
+      return filterSpringRefreshItems({
+        ...springAnswers,
+        hasIrrigation: homeHasIrrigation,
+      });
     }
     if (detailPlan.id === "cold-weather-prep") {
       if (!coldWeatherAnswers) return [];
-      return filterColdWeatherPrepItems(coldWeatherAnswers);
+      return filterColdWeatherPrepItems({
+        ...coldWeatherAnswers,
+        hasIrrigation: homeHasIrrigation,
+      });
     }
     if (detailPlan.id === "new-homeowner-starter") {
       if (!starterAnswers) return [];
@@ -128,6 +136,11 @@ export function MaintenancePlansScreen() {
       if (!poolSpaAnswers) return [];
       return filterPoolSpaItems(poolSpaAnswers);
     }
+    if (detailPlan.filterForHome) {
+      return detailPlan.filterForHome(profile?.home_systems, {
+        latitude: profile?.latitude,
+      });
+    }
     return detailPlan.items;
   }, [
     detailPlan,
@@ -135,6 +148,9 @@ export function MaintenancePlansScreen() {
     coldWeatherAnswers,
     starterAnswers,
     poolSpaAnswers,
+    homeHasIrrigation,
+    profile?.home_systems,
+    profile?.latitude,
   ]);
 
   const resolvedDetailItemsFingerprint = useMemo(

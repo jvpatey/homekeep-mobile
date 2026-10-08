@@ -31,6 +31,10 @@ const TAG_LABELS: Record<MaintenancePlanTag, string> = {
   starter: "Starter",
   general: "General",
   pool: "Pool & spa",
+  condo: "Condo",
+  water: "Water",
+  garage: "Garage",
+  irrigation: "Irrigation",
 };
 
 /** Visible plans (suggested first) plus which are already applied. */
@@ -138,6 +142,11 @@ export function PlanLibraryCards({
         const usesHomeProfile = Boolean(
           answersForPlan(plan.id, profile?.home_systems)
         );
+        const taskCount = plan.filterForHome
+          ? plan.filterForHome(profile?.home_systems, {
+              latitude: profile?.latitude,
+            }).length
+          : plan.items.length;
 
         return (
           <HearthSurfaceCard
@@ -246,8 +255,8 @@ export function PlanLibraryCards({
                     ? "Using your home profile"
                     : QUESTIONNAIRE_PLAN_IDS.has(plan.id)
                       ? "Questionnaire"
-                      : `${plan.items.length} recurring task${
-                          plan.items.length === 1 ? "" : "s"
+                      : `${taskCount} recurring task${
+                          taskCount === 1 ? "" : "s"
                         }`}
                 </Text>
               </View>

@@ -303,6 +303,11 @@ export function HomeSummaryPreviewScreen() {
                 </TouchableOpacity>
               </>
             )}
+            {report?.homeAgeLabel ? (
+              <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+                {report.homeAgeLabel}
+              </Text>
+            ) : null}
           </View>
 
           <View style={[styles.section, sectionSurface]}>

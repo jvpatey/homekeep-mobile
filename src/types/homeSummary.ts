@@ -52,6 +52,8 @@ export interface HomeSummaryReportData {
   ownerName: string | null;
   addressLines: string[];
   hasAddress: boolean;
+  /** "Built 1962 · 64 years" when the year built is known. */
+  homeAgeLabel: string | null;
   equipment: HomeSummaryEquipmentItem[];
   taskGroups: HomeSummaryTaskGroup[];
   spendTotals: HomeSummarySpendTotals;

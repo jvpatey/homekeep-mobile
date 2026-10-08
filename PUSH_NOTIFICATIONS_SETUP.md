@@ -7,14 +7,19 @@
 - **`notification-worker`** — hourly job; sends at **per-user local times** with deduplication via `notification_deliveries`.
 - **`notify-household-event`** — one-shot join/leave alerts to remaining household members.
 - **`process-scheduled-notifications`** — deprecated wrapper (bypasses hour check); use `notification-worker` instead.
+- **`recall-scan`** — daily job; matches equipment manufacturer + model against CPSC recalls and writes `equipment_recalls`. The 08:00 worker run pushes new matches.
 
 ### Local delivery schedule (user timezone)
 
 | Local time | Notification type |
 |------------|-------------------|
 | 8:00 | Morning — overdue and/or due today (one batched push) |
+| 8:00 | Recall alerts — new CPSC recalls matched to your equipment (up to 3 per day) |
 | 8:00 Saturday | Weekly summary (optional; replaces Saturday morning) |
+| 10:00 on the 1st | Monthly recap — last month's completions and spend, this month's due and overdue counts |
 | 18:00 | Upcoming — due tomorrow (one batched push) |
+
+Upcoming, morning, and weekly pushes require HomeKeep+. Recall alerts go to everyone with `recall_alerts` on. The monthly recap is sent to everyone with `monthly_summary` on (the default); it is skipped when there is nothing to report.
 
 Timezone comes from `user_settings.timezone` (synced on sign-in and when the app returns to the foreground).
 
@@ -38,6 +43,7 @@ npx supabase functions deploy send-push-notification
 npx supabase functions deploy notification-worker
 npx supabase functions deploy notify-household-event
 npx supabase functions deploy process-scheduled-notifications
+npx supabase functions deploy recall-scan
 ```
 
 Or deploy all:
@@ -60,6 +66,25 @@ npm run functions:deploy
 The worker checks each user's **local hour** and only runs matching notification types.
 
 Invoke with the **service role** key or `x-cron-secret` (if `CRON_SECRET` is set). A user JWT may force types for that user only.
+
+## Schedule the daily recall scan (Supabase)
+
+1. **Edge Functions** → `recall-scan`
+2. **Schedules** → Add cron: `0 6 * * *` (06:00 UTC, before most users' 08:00 local slot)
+3. Header `x-cron-secret: <CRON_SECRET>` (or `Authorization: Bearer <service_role>`). User JWTs are rejected.
+
+The first run fetches every recall for each manufacturer in `equipment_manuals`. Later runs only ask for recalls published since the last completed pass (`recall_scan_state.last_run_at`, with a day of overlap), except for equipment added or edited since then, which gets the maker's full history. Requests go one at a time and stop at 60 per run; a capped pass resumes from `recall_scan_state.cursor` the next day.
+
+Manual run:
+
+```bash
+curl -X POST "https://YOUR_PROJECT.supabase.co/functions/v1/recall-scan?full=1" \
+  -H "x-cron-secret: YOUR_CRON_SECRET"
+```
+
+Optional params: `full=1` ignores the incremental window; `max_requests=N` overrides the cap. The response reports `manufacturers`, `requests`, `fetch_errors`, `matches`, `inserted`, and whether the pass finished.
+
+Recall pushes go out at 08:00 local to every household member with `recall_alerts` on (the default), whether or not they have HomeKeep+. Test one user with `notification-worker?user_id=...&force_type=recall`.
 
 ## Environment variables
 
@@ -99,7 +124,7 @@ curl -X POST \
   -d '{}'
 ```
 
-`force_type` values: `upcoming`, `morning`, `weekly` (legacy aliases: `due_soon`, `daily`, `overdue`).
+`force_type` values: `upcoming`, `morning`, `weekly`, `monthly`, `recall` (legacy aliases: `due_soon`, `daily`, `overdue`).
 
 Run twice the same day — second run should send **0** additional pushes (dedupe).
 
@@ -161,5 +186,7 @@ WHERE user_id = 'YOUR_USER_UUID';
 |------|-------------|
 | upcoming | `upcoming:{user_id}:{local_date}` |
 | morning / Saturday weekly | `morning:{user_id}:{local_date}` |
+| monthly recap | `monthly:{user_id}:{local_month}` (YYYY-MM) |
+| recall | `recall:{user_id}:{equipment_id}:{recall_number}` |
 | household join | `household_join:{household_id}:{actor_id}` |
 | household leave | `household_leave:{household_id}:{actor_id}` |

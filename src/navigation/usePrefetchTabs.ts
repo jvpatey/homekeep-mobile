@@ -2,7 +2,9 @@ import { useEffect, useRef } from "react";
 import { useTasks } from "../context/TasksContext";
 import { refreshRecordData } from "../hooks/useRecordData";
 import { refreshHomeContacts } from "../hooks/useHomeContacts";
+import { refreshHomeDocuments } from "../hooks/useHomeDocuments";
 import { refreshEquipmentIndex } from "../hooks/useEquipmentIndex";
+import { refreshEquipmentRecalls } from "../hooks/useEquipmentRecalls";
 import { refreshRoutines } from "../components/all-reminders/useReminderRoutines";
 
 /**
@@ -21,7 +23,9 @@ export function usePrefetchTabs() {
         void Promise.all([
           refreshRecordData(),
           refreshHomeContacts(),
+          refreshHomeDocuments(),
           refreshEquipmentIndex(),
+          refreshEquipmentRecalls(),
           refreshRoutines(),
         ]);
       },
