@@ -11,18 +11,45 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { useDevice, useGradients, useHaptics, useReducedMotion } from "../hooks";
 import { HouseMark, Button, TextLink, HearthSurfaceCard } from "../components/ui";
 import { AppleContinueButton } from "../components/auth";
+import { HeroIconName, useEnter } from "../components/ui/hero/heroKit";
+import {
+  WelcomeHero,
+  WELCOME_HERO_WIDTH,
+} from "../components/welcome/WelcomeHero";
 import { AuthStackParamList } from "../navigation/types";
 import { DesignSystem } from "../theme/designSystem";
 
 type WelcomeNavigation = NativeStackNavigationProp<AuthStackParamList, "Home">;
 
-const PROOFS = ["Organize", "Schedule", "Track"];
+const BENEFITS: { icon: HeroIconName; title: string; detail: string }[] = [
+  {
+    icon: "calendar-outline",
+    title: "A plan made for your home",
+    detail: "Seasonal tasks for your climate and equipment",
+  },
+  {
+    icon: "folder-open-outline",
+    title: "Your home's record",
+    detail: "Equipment, documents, shutoffs, and recalls",
+  },
+  {
+    icon: "people-outline",
+    title: "Share it, ask it anything",
+    detail: "Invite your household and ask Keeper",
+  },
+];
+
+/** Phones shorter than this (e.g. iPhone SE) get a smaller hero to keep the CTAs above the fold. */
+const COMPACT_HEIGHT = 720;
+/** The support line only fits alongside the benefits on tall phones. */
+const SUPPORT_MIN_HEIGHT = 900;
 
 export function HomeScreen() {
   const { colors, isDark } = useTheme();
@@ -61,26 +88,26 @@ export function HomeScreen() {
       )
     : DesignSystem.spacing.lg;
   const wordmarkSize = isRegularWidth ? getResponsiveValue(20, 22, 24) : 20;
-  // Keep the mark present, not towering — tall marks unbalance the split CTA.
-  const heroSize = isRegularWidth
-    ? getResponsiveValue(isTabletPortrait ? 72 : 88, 96, 112)
-    : 120;
+  const isCompact = !isRegularWidth && height < COMPACT_HEIGHT;
+  const showSupport = isRegularWidth || height >= SUPPORT_MIN_HEIGHT;
+  const phoneHeroScale = isCompact ? 0.8 : showSupport ? 1.15 : 1;
+  const heroScale = isRegularWidth
+    ? getResponsiveValue(isTabletPortrait ? 0.9 : 1, 1, 1.15)
+    : Math.min(phoneHeroScale, (width - gutter * 2) / WELCOME_HERO_WIDTH);
   const headlineFontSize = isRegularWidth
     ? getResponsiveValue(36, 42, 48)
-    : 38;
+    : isCompact
+      ? 30
+      : 34;
   const headlineLineHeight = isRegularWidth
     ? getResponsiveValue(42, 48, 54)
-    : 44;
+    : isCompact
+      ? 36
+      : 40;
   const supportFontSize = isRegularWidth ? getResponsiveValue(16, 17, 18) : 16;
   const supportLineHeight = isRegularWidth
     ? getResponsiveValue(22, 24, 26)
     : 22;
-  const heroMarkMarginTop = isRegularWidth
-    ? DesignSystem.spacing.sm
-    : DesignSystem.spacing.xxxl;
-  const heroMarkMarginBottom = isRegularWidth
-    ? DesignSystem.spacing.md
-    : DesignSystem.spacing.xl;
   const cardPadding = isRegularWidth
     ? getResponsiveValue(
         DesignSystem.spacing.xl,
@@ -99,6 +126,7 @@ export function HomeScreen() {
   const entering = reducedMotion
     ? undefined
     : FadeIn.duration(DesignSystem.motion.duration.base);
+  const enter = useEnter();
 
   const handleCreateAccount = () => {
     triggerMedium();
@@ -134,69 +162,46 @@ export function HomeScreen() {
     }
   };
 
+  const headlineStyle = [
+    styles.headline,
+    {
+      color: colors.text,
+      fontSize: headlineFontSize,
+      lineHeight: headlineLineHeight,
+    },
+  ];
+
   const copy = (
-    <>
-      <Animated.View
-        {...(entering
-          ? {
-              entering: FadeIn.delay(60).duration(
-                DesignSystem.motion.duration.base,
-              ),
-            }
-          : {})}
-        style={[
-          styles.heroMarkContainer,
-          {
-            marginTop: heroMarkMarginTop,
-            marginBottom: heroMarkMarginBottom,
-          },
-        ]}
-      >
-        <HouseMark size={heroSize} />
-      </Animated.View>
+    <View style={styles.copyBlock}>
+      <WelcomeHero scale={heroScale} />
 
       <Animated.View
-        {...(entering
-          ? {
-              entering: FadeIn.delay(120).duration(
-                DesignSystem.motion.duration.base,
-              ),
-            }
-          : {})}
-        style={styles.copyBlock}
+        entering={enter(260)}
+        style={[
+          styles.headlineBlock,
+          { marginBottom: showSupport ? DesignSystem.spacing.sm : DesignSystem.spacing.lg },
+        ]}
+        accessible
+        accessibilityRole="header"
+        accessibilityLabel="Home maintenance, handled."
       >
-        <View style={styles.headlineBlock}>
-          <Text
-            style={[
-              styles.headline,
-              {
-                color: colors.text,
-                fontSize: headlineFontSize,
-                lineHeight: headlineLineHeight,
-              },
-            ]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.78}
-            maxFontSizeMultiplier={1.25}
-          >
-            Home maintenance,
-          </Text>
-          <Text
-            style={[
-              styles.headline,
-              {
-                color: colors.text,
-                fontSize: headlineFontSize,
-                lineHeight: headlineLineHeight,
-              },
-            ]}
-            maxFontSizeMultiplier={1.25}
-          >
-            handled.
-          </Text>
-        </View>
         <Text
+          style={headlineStyle}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+          maxFontSizeMultiplier={1.25}
+        >
+          Home maintenance,
+        </Text>
+        <Text style={headlineStyle} maxFontSizeMultiplier={1.25}>
+          handled.
+        </Text>
+      </Animated.View>
+
+      {showSupport ? (
+        <Animated.Text
+          entering={enter(340)}
           style={[
             styles.support,
             {
@@ -208,12 +213,44 @@ export function HomeScreen() {
           maxFontSizeMultiplier={1.4}
         >
           Reminders, history, and a plan — without the mental load.
-        </Text>
-        <Text style={[styles.proofs, { color: colors.textSecondary }]}>
-          {PROOFS.join("  ·  ")}
-        </Text>
-      </Animated.View>
-    </>
+        </Animated.Text>
+      ) : null}
+
+      <View
+        style={[
+          styles.benefits,
+          { gap: isCompact ? DesignSystem.spacing.sm : DesignSystem.spacing.sm + 4 },
+        ]}
+      >
+        {BENEFITS.map((benefit, index) => (
+          <Animated.View
+            key={benefit.title}
+            entering={enter(420 + index * 70)}
+            style={styles.benefit}
+          >
+            <View
+              style={[styles.benefitIcon, { backgroundColor: colors.glassGlow }]}
+            >
+              <Ionicons name={benefit.icon} size={18} color={colors.primary} />
+            </View>
+            <View style={styles.benefitText}>
+              <Text
+                style={[styles.benefitTitle, { color: colors.text }]}
+                maxFontSizeMultiplier={1.3}
+              >
+                {benefit.title}
+              </Text>
+              <Text
+                style={[styles.benefitDetail, { color: colors.textSecondary }]}
+                maxFontSizeMultiplier={1.3}
+              >
+                {benefit.detail}
+              </Text>
+            </View>
+          </Animated.View>
+        ))}
+      </View>
+    </View>
   );
 
   const dock = (
@@ -267,8 +304,10 @@ export function HomeScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: insets.top + DesignSystem.spacing.md,
-            paddingBottom: insets.bottom + DesignSystem.spacing.lg,
+            paddingTop: insets.top + DesignSystem.spacing.sm,
+            paddingBottom:
+              insets.bottom +
+              (isCompact ? DesignSystem.spacing.md : DesignSystem.spacing.lg),
             paddingHorizontal: gutter,
           },
         ]}
@@ -331,6 +370,7 @@ export function HomeScreen() {
             </View>
           ) : (
             <>
+              <View style={styles.topSpacer} />
               {copy}
               <View style={styles.spacer} />
               {dock}
@@ -386,7 +426,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 2,
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
   },
   wordmarkMark: {
     height: 20,
@@ -399,33 +439,56 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     includeFontPadding: false,
   },
-  heroMarkContainer: {
-    alignItems: "flex-start",
-  },
   copyBlock: {
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   headlineBlock: {
     width: "100%",
-    marginBottom: DesignSystem.spacing.md,
   },
   headline: {
     ...DesignSystem.typography.display,
-    fontSize: 38,
-    lineHeight: 44,
+    fontSize: 34,
+    lineHeight: 40,
     letterSpacing: -1,
+    textAlign: "center",
   },
   support: {
     ...DesignSystem.typography.callout,
+    textAlign: "center",
+    maxWidth: 360,
     marginBottom: DesignSystem.spacing.lg,
   },
-  proofs: {
+  benefits: {
+    width: "100%",
+    maxWidth: 400,
+  },
+  benefit: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.md,
+  },
+  benefitIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  benefitText: {
+    flex: 1,
+  },
+  benefitTitle: {
+    ...DesignSystem.typography.bodySemiBold,
+  },
+  benefitDetail: {
     ...DesignSystem.typography.footnote,
-    letterSpacing: 0.3,
+  },
+  topSpacer: {
+    flex: 1,
   },
   spacer: {
-    flex: 1,
-    minHeight: DesignSystem.spacing.xl,
+    flex: 1.5,
+    minHeight: DesignSystem.spacing.md,
   },
   dock: {
     gap: DesignSystem.spacing.sm,

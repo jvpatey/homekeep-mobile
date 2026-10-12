@@ -1,25 +1,19 @@
 import React, { useEffect } from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  Easing,
-  FadeInDown,
-  cancelAnimation,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { interpolate, useAnimatedStyle } from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
 import { useHaptics, useReducedMotion } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
+import {
+  FloatingChip,
+  HeroIconName as IconName,
+  Sparkle,
+  useEnter,
+  useLoop,
+  usePop,
+} from "../../ui/hero/heroKit";
 
-type IconName = keyof typeof Ionicons.glyphMap;
-
-const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const HERO_HEIGHT = 228;
 const PLATE = 96;
 const AVATAR = 58;
@@ -47,87 +41,6 @@ const CHIPS: {
   { label: "Gutters cleaned · Sam", x: 44, y: -88, tone: "secondary" },
   { label: "Filter changed · You", x: -40, y: 88, tone: "primary" },
 ];
-
-function useLoop(
-  reducedMotion: boolean,
-  duration: number,
-  delay = 0,
-  reverse = true
-) {
-  const value = useSharedValue(0);
-  useEffect(() => {
-    if (reducedMotion) {
-      cancelAnimation(value);
-      value.value = 0;
-      return;
-    }
-    value.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(1, {
-          duration,
-          easing: reverse ? Easing.inOut(Easing.sin) : Easing.linear,
-        }),
-        -1,
-        reverse
-      )
-    );
-    return () => cancelAnimation(value);
-  }, [reducedMotion, duration, delay, reverse, value]);
-  return value;
-}
-
-function usePop(reducedMotion: boolean, delay: number) {
-  const value = useSharedValue(reducedMotion ? 1 : 0);
-  useEffect(() => {
-    if (reducedMotion) {
-      cancelAnimation(value);
-      value.value = 1;
-      return;
-    }
-    value.value = 0;
-    value.value = withDelay(
-      delay,
-      withSpring(1, DesignSystem.motion.spring.bouncy)
-    );
-  }, [delay, reducedMotion, value]);
-  return value;
-}
-
-function Sparkle({
-  x,
-  y,
-  size,
-  delay,
-  color,
-  reducedMotion,
-}: {
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
-  color: string;
-  reducedMotion: boolean;
-}) {
-  const twinkle = useLoop(reducedMotion, 1400, delay);
-  const style = useAnimatedStyle(() => ({
-    opacity: reducedMotion ? 0.5 : interpolate(twinkle.value, [0, 1], [0, 0.9]),
-    transform: [
-      { translateX: x },
-      { translateY: y },
-      { scale: interpolate(twinkle.value, [0, 1], [0.6, 1.2]) },
-    ],
-  }));
-  return (
-    <Animated.View
-      style={[
-        styles.sparkle,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: color },
-        style,
-      ]}
-    />
-  );
-}
 
 /** Dashed link between a person and the house, with a dot flowing inward. */
 function Link({
@@ -221,58 +134,6 @@ function Avatar({
   );
 }
 
-function DoneChip({
-  label,
-  x,
-  y,
-  color,
-  index,
-  reducedMotion,
-}: {
-  label: string;
-  x: number;
-  y: number;
-  color: string;
-  index: number;
-  reducedMotion: boolean;
-}) {
-  const { colors } = useTheme();
-  const pop = usePop(reducedMotion, CHIPS_START + index * 420);
-  const bob = useLoop(reducedMotion, 2300 + index * 300, CHIPS_START + 600);
-  const style = useAnimatedStyle(() => ({
-    opacity: interpolate(pop.value, [0, 0.5], [0, 1], "clamp"),
-    transform: [
-      { translateX: x },
-      {
-        translateY:
-          y +
-          interpolate(pop.value, [0, 1], [10, 0]) +
-          interpolate(bob.value, [0, 1], [-2, 2]),
-      },
-      { scale: interpolate(pop.value, [0, 1], [0.8, 1]) },
-    ],
-  }));
-  return (
-    <Animated.View
-      style={[
-        styles.chip,
-        DesignSystem.shadows.softKey,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-        style,
-      ]}
-    >
-      <Ionicons name="checkmark-circle" size={14} color={color} />
-      <Text
-        style={[styles.chipText, { color: colors.text }]}
-        numberOfLines={1}
-        maxFontSizeMultiplier={1.2}
-      >
-        {label}
-      </Text>
-    </Animated.View>
-  );
-}
-
 function HomeShareHero() {
   const { colors } = useTheme();
   const { triggerLight } = useHaptics();
@@ -337,26 +198,20 @@ function HomeShareHero() {
       </Animated.View>
 
       {CHIPS.map((chip, index) => (
-        <DoneChip
+        <FloatingChip
           key={chip.label}
           label={chip.label}
           x={chip.x}
           y={chip.y}
           color={tones[chip.tone]}
-          index={index}
+          popDelay={CHIPS_START + index * 420}
+          bobDelay={CHIPS_START + 600}
+          bobDuration={2300 + index * 300}
           reducedMotion={reducedMotion}
         />
       ))}
     </View>
   );
-}
-
-function useEnter() {
-  const reducedMotion = useReducedMotion();
-  return (delay: number) =>
-    reducedMotion
-      ? undefined
-      : FadeInDown.delay(delay).duration(460).easing(EASE_OUT);
 }
 
 /** Animated scene, headline, and benefits. Shared by setup and Settings → HomeShare. */
@@ -532,9 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     opacity: 0.8,
   },
-  sparkle: {
-    position: "absolute",
-  },
   link: {
     position: "absolute",
     height: 0,
@@ -578,19 +430,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
-  },
-  chip: {
-    position: "absolute",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: DesignSystem.borders.radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  chipText: {
-    ...DesignSystem.typography.captionSemiBold,
   },
   eyebrow: {
     ...DesignSystem.typography.captionSemiBold,
