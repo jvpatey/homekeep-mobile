@@ -6,6 +6,9 @@
 #   supabase functions deploy notify-household-event
 #   supabase functions deploy process-scheduled-notifications
 #   supabase functions deploy recall-scan
+#   supabase functions deploy homekeep-ai
+#
+# homekeep-ai secrets: supabase secrets set GEMINI_API_KEY=... [GEMINI_MODEL=gemini-3.5-flash-lite]
 #
 # send-push-notification is self-contained and can be deployed via Dashboard.
 
@@ -29,5 +32,10 @@ verify_jwt = false
 
 # Daily CPSC recall scan; privileged callers only (service role or x-cron-secret).
 [functions.recall-scan]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+# Gemini-backed AI tasks; authenticates the user JWT itself.
+[functions.homekeep-ai]
 verify_jwt = false
 import_map = "./functions/deno.json"

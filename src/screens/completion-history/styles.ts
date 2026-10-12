@@ -112,6 +112,7 @@ export const completionHistoryStyles = StyleSheet.create({
     marginTop: DesignSystem.spacing.xs,
   },
   loadingState: {
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: DesignSystem.spacing.xxxl,

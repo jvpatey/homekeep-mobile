@@ -48,6 +48,8 @@ export interface HomeDocument {
   expires_on: string | null;
   created_at: string;
   updated_at: string;
+  /** Cached inspection import (server-written); null until imported. */
+  ai_extraction?: { extracted_at?: string; findings?: unknown[] } | null;
 }
 
 export interface HomeDocumentInput {

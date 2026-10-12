@@ -31,6 +31,8 @@ interface DashboardHeaderProps {
   onOpenAddressEditor: () => void;
   /** Opens the add menu (reminder, repair, library). */
   onAddPress?: () => void;
+  /** Opens Ask HomeKeep. */
+  onAskPress?: () => void;
   /** Header status chip — overdue preferred over due today when both exist. */
   onStatusChipPress?: (kind: "overdue" | "today") => void;
   animatedStyle?: object;
@@ -45,6 +47,7 @@ export function DashboardHeader({
   dueTodayCount,
   onOpenAddressEditor,
   onAddPress,
+  onAskPress,
   onStatusChipPress,
   animatedStyle,
   seasonLabel,
@@ -162,6 +165,32 @@ export function DashboardHeader({
         </View>
 
         <View style={styles.topActions}>
+          {onAskPress ? (
+            <TouchableOpacity
+              onPress={() => {
+                triggerLight();
+                onAskPress();
+              }}
+              hitSlop={6}
+              style={styles.iconHit}
+              accessibilityRole="button"
+              accessibilityLabel="Ask HomeKeep"
+              accessibilityHint="Ask a question about your home"
+            >
+              <View
+                style={[
+                  styles.addButton,
+                  { backgroundColor: colors.primary + "18" },
+                ]}
+              >
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+            </TouchableOpacity>
+          ) : null}
           {onAddPress ? (
             <TouchableOpacity
               onPress={() => {

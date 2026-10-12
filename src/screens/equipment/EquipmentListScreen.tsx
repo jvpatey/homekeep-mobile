@@ -28,6 +28,8 @@ import {
   warrantyStatusLabel,
 } from "../../utils/equipmentWarranty";
 import { usePlusFeature } from "../../lib/plusFeatures";
+import { useAiScanAccess } from "../../hooks/useAiScanAccess";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { RecordStackParamList } from "../../navigation/types";
 import { DesignSystem } from "../../theme/designSystem";
 
@@ -45,28 +47,55 @@ function subtitleFor(item: EquipmentManual) {
 export function EquipmentListScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const overlay = useOverlayInsets();
   const { triggerLight } = useHaptics();
   const documents = usePlusFeature("documents");
   const { items, loaded, error, refresh } = useEquipmentIndex();
   const { byEquipmentId: recallsByEquipment, refresh: refreshRecalls } =
     useEquipmentRecalls();
+  const scanAccess = useAiScanAccess();
   const [refreshing, setRefreshing] = useState(false);
   const [formVisible, setFormVisible] = useState(false);
+  const [formMode, setFormMode] = useState<"manual" | "scan" | "scanOnly">(
+    "manual"
+  );
 
   const openAdd = async () => {
     triggerLight();
     if (!(await documents.unlock())) return;
+    setFormMode("manual");
+    setFormVisible(true);
+  };
+
+  /** Free accounts can add equipment by scanning while free scans last. */
+  const openScan = async () => {
+    triggerLight();
+    if (scanAccess.isPlus) {
+      setFormMode("scan");
+      setFormVisible(true);
+      return;
+    }
+    const hasFreeScans = scanAccess.canScan;
+    if (!(await scanAccess.requireAccess())) return;
+    setFormMode(hasFreeScans ? "scanOnly" : "scan");
     setFormVisible(true);
   };
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <HeaderIconButton
-          icon="add"
-          onPress={() => void openAdd()}
-          accessibilityLabel="Add equipment"
-        />
+        <View style={styles.headerActions}>
+          <HeaderIconButton
+            icon="scan"
+            onPress={() => void openScan()}
+            accessibilityLabel="Scan an equipment label"
+          />
+          <HeaderIconButton
+            icon="add"
+            onPress={() => void openAdd()}
+            accessibilityLabel="Add equipment"
+          />
+        </View>
       ),
     });
   });
@@ -98,7 +127,13 @@ export function EquipmentListScreen() {
       <ScrollView
         style={{ backgroundColor: colors.background }}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          (!loaded || items.length === 0) && [
+            styles.contentCentered,
+            { paddingBottom: overlay.top + overlay.bottom },
+          ],
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -108,7 +143,7 @@ export function EquipmentListScreen() {
         }
       >
         {!loaded ? (
-          <ActivityIndicator style={styles.loading} color={colors.primary} />
+          <ActivityIndicator color={colors.primary} />
         ) : items.length === 0 ? (
           <View style={styles.empty}>
             <View
@@ -133,9 +168,16 @@ export function EquipmentListScreen() {
             </Text>
             <View style={styles.emptyAction}>
               <Button
-                label={error ? "Try again" : "Add equipment"}
-                onPress={() => void (error ? refresh() : openAdd())}
+                label={error ? "Try again" : "Scan a label"}
+                onPress={() => void (error ? refresh() : openScan())}
               />
+              {!error ? (
+                <Button
+                  label="Add by hand"
+                  variant="ghost"
+                  onPress={() => void openAdd()}
+                />
+              ) : null}
             </View>
           </View>
         ) : (
@@ -216,6 +258,8 @@ export function EquipmentListScreen() {
       <EquipmentFormSheet
         visible={formVisible}
         equipment={null}
+        startWithScan={formMode !== "manual"}
+        requireScan={formMode === "scanOnly"}
         onClose={() => setFormVisible(false)}
         onSaved={(item, created) => {
           if (created) {
@@ -233,13 +277,13 @@ const styles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
   },
-  loading: {
-    marginTop: DesignSystem.spacing.xxl,
+  contentCentered: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
   empty: {
     alignItems: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.xxl,
   },
   emptyIcon: {
     width: 64,
@@ -264,6 +308,11 @@ const styles = StyleSheet.create({
   emptyAction: {
     alignSelf: "stretch",
     marginTop: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.xs,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   badge: {
     paddingHorizontal: DesignSystem.spacing.sm,

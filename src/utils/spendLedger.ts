@@ -165,3 +165,51 @@ export function computeSpendLedger(
 export function spendForYear(ledger: SpendLedger, year: number): SpendYear | null {
   return ledger.years.find((y) => y.year === year) ?? null;
 }
+
+export interface BudgetComparison {
+  /** Expected upkeep for the elapsed part of the year (whole year for past years). */
+  expectedLow: number;
+  expectedHigh: number;
+  /** Fraction of the year the expectation covers (0–1). */
+  yearFraction: number;
+  /** Recurring-upkeep spend; repairs are tracked separately. */
+  upkeepSpent: number;
+  repairSpent: number;
+  status: "under" | "within" | "over";
+}
+
+/**
+ * Compares a year's recorded upkeep spend against the expected annual range,
+ * pro-rated to today for the current year. Future years return null.
+ */
+export function compareBudget(
+  year: SpendYear,
+  expectedAnnual: { diy: number; pro: number },
+  now: Date = new Date()
+): BudgetComparison | null {
+  const currentYear = now.getFullYear();
+  if (year.year > currentYear || year.year <= 0) return null;
+  let yearFraction = 1;
+  if (year.year === currentYear) {
+    const start = new Date(currentYear, 0, 1).getTime();
+    const end = new Date(currentYear + 1, 0, 1).getTime();
+    yearFraction = Math.min(1, Math.max(0, (now.getTime() - start) / (end - start)));
+  }
+  const expectedLow = expectedAnnual.diy * yearFraction;
+  const expectedHigh = expectedAnnual.pro * yearFraction;
+  const upkeepSpent = year.total - year.repairTotal;
+  const status =
+    upkeepSpent < expectedLow
+      ? "under"
+      : upkeepSpent > expectedHigh
+        ? "over"
+        : "within";
+  return {
+    expectedLow,
+    expectedHigh,
+    yearFraction,
+    upkeepSpent,
+    repairSpent: year.repairTotal,
+    status,
+  };
+}

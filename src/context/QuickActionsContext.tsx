@@ -17,6 +17,7 @@ import { RootStackParamList, RecordStackParamList } from "../navigation/types";
 import {
   LogRepairDraft,
   LogRepairSheet,
+  ScheduleRepairDraft,
 } from "../components/modals/log-repair/LogRepairSheet";
 import { CreateTaskModal } from "../components/Dashboard/modals";
 import { ProPicker } from "../components/pros/ProPicker";
@@ -33,6 +34,8 @@ interface CreateTaskOptions {
 interface QuickActionsValue {
   /** Opens the repair sheet from any tab (counts as a free create). */
   openLogRepair: (options?: LogRepairOptions) => Promise<void>;
+  /** Opens the repair sheet to add a one-off fix to the schedule. */
+  openScheduleRepair: (options?: LogRepairOptions) => Promise<void>;
   /** Opens the new-reminder form from any tab, optionally linked to equipment. */
   openCreateTask: (options?: CreateTaskOptions) => Promise<void>;
 }
@@ -55,6 +58,7 @@ export function QuickActionsProvider({
   const { format: formatMoney } = useCurrency();
 
   const [repairVisible, setRepairVisible] = useState(false);
+  const [repairMode, setRepairMode] = useState<"log" | "schedule">("log");
   const [repairEquipmentId, setRepairEquipmentId] = useState<string | null>(
     null
   );
@@ -82,10 +86,45 @@ export function QuickActionsProvider({
   const openLogRepair = useCallback(
     async (options?: LogRepairOptions) => {
       if (!(await requireAccess())) return;
+      setRepairMode("log");
       setRepairEquipmentId(options?.equipmentId ?? null);
       setRepairVisible(true);
     },
     [requireAccess]
+  );
+
+  const openScheduleRepair = useCallback(
+    async (options?: LogRepairOptions) => {
+      if (!(await requireAccess())) return;
+      setRepairMode("schedule");
+      setRepairEquipmentId(options?.equipmentId ?? null);
+      setRepairVisible(true);
+    },
+    [requireAccess]
+  );
+
+  const submitSchedule = useCallback(
+    async (draft: ScheduleRepairDraft) => {
+      const { error } = await MaintenanceInstanceService.scheduleRepair({
+        title: draft.title,
+        category: draft.category,
+        dueDate: draft.dueDate,
+        description: draft.description,
+        equipmentId: draft.equipmentId,
+        priority: draft.priority,
+      });
+      if (error) {
+        await triggerError();
+        Alert.alert("Couldn't schedule the repair", error.message);
+        return false;
+      }
+      await consume();
+      await refreshTasks();
+      await triggerSuccess();
+      setRepairVisible(false);
+      return true;
+    },
+    [consume, refreshTasks, triggerError, triggerSuccess]
   );
 
   const openCreateTask = useCallback(
@@ -150,8 +189,8 @@ export function QuickActionsProvider({
   );
 
   const value = useMemo(
-    () => ({ openLogRepair, openCreateTask }),
-    [openCreateTask, openLogRepair]
+    () => ({ openLogRepair, openScheduleRepair, openCreateTask }),
+    [openCreateTask, openLogRepair, openScheduleRepair]
   );
 
   return (
@@ -159,7 +198,9 @@ export function QuickActionsProvider({
       {children}
       <LogRepairSheet
         visible={repairVisible}
+        mode={repairMode}
         initialEquipmentId={repairEquipmentId}
+        onSchedule={submitSchedule}
         onClose={() => setRepairVisible(false)}
         onDismissed={() => {
           const next = afterDismissRef.current;

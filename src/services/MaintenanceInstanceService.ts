@@ -12,6 +12,7 @@ import {
   DeleteResponse,
   CompletionExtras,
   MaintenanceCategory,
+  Priority,
 } from "../types/maintenance";
 
 export interface LogRepairInput {
@@ -21,6 +22,15 @@ export interface LogRepairInput {
   description?: string | null;
   equipmentId?: string | null;
   extras?: CompletionExtras;
+}
+
+export interface ScheduleRepairInput {
+  title: string;
+  category: MaintenanceCategory;
+  dueDate: Date;
+  description?: string | null;
+  equipmentId?: string | null;
+  priority?: Priority;
 }
 
 function isMissingFunction(error: { code?: string; message?: string } | null) {
@@ -110,6 +120,39 @@ export class MaintenanceInstanceService {
           message: isMissingFunction(error)
             ? "Repair logging isn't available yet. Please update the app's database and try again."
             : error.message || "Couldn't save the repair.",
+        },
+      };
+    }
+    return { data: (data as string | null) ?? null, error: null };
+  }
+
+  /**
+   * Pending one-off repair: an active, zero-interval routine with one open
+   * instance due on `dueDate`, via the `schedule_repair` RPC. Returns the
+   * routine id.
+   */
+  static async scheduleRepair(
+    input: ScheduleRepairInput
+  ): Promise<{ data: string | null; error: { message: string } | null }> {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+    const { data, error } = await supabase.rpc("schedule_repair", {
+      p_title: input.title.trim(),
+      p_category: input.category,
+      p_due_date: input.dueDate.toISOString(),
+      p_description: input.description?.trim() || null,
+      p_equipment_id: input.equipmentId ?? null,
+      p_priority: input.priority ?? "medium",
+    });
+    if (error) {
+      console.error("Error scheduling repair:", error);
+      return {
+        data: null,
+        error: {
+          message: isMissingFunction(error)
+            ? "Scheduling repairs isn't available yet. Please update the app's database and try again."
+            : error.message || "Couldn't schedule the repair.",
         },
       };
     }

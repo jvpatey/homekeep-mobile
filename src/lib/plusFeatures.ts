@@ -4,7 +4,15 @@ import { useSubscription } from "../context/SubscriptionContext";
 
 /** Parts of the home record that need HomeKeep +. The schedule stays free. */
 export type PlusFeatureKey =
-  "history" | "ledger" | "documents" | "pros" | "pdf" | "homeshare";
+  | "history"
+  | "ledger"
+  | "documents"
+  | "pros"
+  | "pdf"
+  | "homeshare"
+  | "scan"
+  | "assistant"
+  | "inspection";
 
 export interface PlusFeature {
   /** Short name for lock overlays, e.g. "Spend". */
@@ -65,6 +73,30 @@ export const PLUS_FEATURES: Record<PlusFeatureKey, PlusFeature> = {
       "One schedule and one record for the whole household, with HomeKeep + included for everyone.",
     icon: "home",
     valueLine: 4,
+  },
+  scan: {
+    title: "Label scan",
+    headline: "Scan every label in the house",
+    blurb:
+      "Point the camera at a rating plate and HomeKeep fills in the brand, model, and serial, then suggests the right reminders.",
+    icon: "scan",
+    valueLine: 5,
+  },
+  assistant: {
+    title: "Ask HomeKeep",
+    headline: "Ask about your home",
+    blurb:
+      "Answers that know your equipment, your schedule, where the shutoffs are, and what was done last.",
+    icon: "chatbubbles",
+    valueLine: 5,
+  },
+  inspection: {
+    title: "Inspection import",
+    headline: "Turn your inspection into a plan",
+    blurb:
+      "Import the inspection report and get the repairs and routines it calls for, ready to add to your schedule.",
+    icon: "clipboard",
+    valueLine: 5,
   },
 };
 

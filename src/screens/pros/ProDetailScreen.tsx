@@ -13,6 +13,7 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useRecordData } from "../../hooks/useRecordData";
 import {
@@ -43,6 +44,7 @@ export function ProDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProp<RecordStackParamList, "ProDetail">>();
   const { colors } = useTheme();
+  const overlay = useOverlayInsets({ translucentHeader: false });
   const { triggerLight, triggerMedium } = useHaptics();
   const { format: formatMoney } = useCurrency();
   const { byId, loaded } = useHomeContacts({ refreshOnFocus: false });
@@ -86,7 +88,12 @@ export function ProDetailScreen() {
 
   if (!contact) {
     return (
-      <View style={[styles.missing, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.missing,
+          { backgroundColor: colors.background, paddingBottom: overlay.bottom },
+        ]}
+      >
         <Text style={[styles.missingText, { color: colors.textSecondary }]}>
           {loaded ? "This pro was removed." : "Loading…"}
         </Text>

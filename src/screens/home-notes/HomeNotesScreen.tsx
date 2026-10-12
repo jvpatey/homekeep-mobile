@@ -21,6 +21,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { Button, HeaderIconButton } from "../../components/ui";
 import { PaintFormSheet } from "../../components/home-notes/PaintFormSheet";
 import { NoteFormSheet } from "../../components/home-notes/NoteFormSheet";
@@ -60,6 +61,7 @@ export function HouseNotesScreen() {
 function HomeNotesScreen({ section }: { section: Section }) {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const overlay = useOverlayInsets();
   const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
   const { homeNotes, updateHomeNotes, canEditHome } = useProfile();
   const [paintSheet, setPaintSheet] = useState<{
@@ -281,7 +283,13 @@ function HomeNotesScreen({ section }: { section: Section }) {
       <ScrollView
         style={{ backgroundColor: colors.background }}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          (section === "paint" ? paints : notes).length === 0 && [
+            styles.contentCentered,
+            { paddingBottom: overlay.top + overlay.bottom },
+          ],
+        ]}
       >
         {section === "paint" ? (
           paints.length === 0 ? (
@@ -628,6 +636,10 @@ const styles = StyleSheet.create({
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
   },
+  contentCentered: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -739,7 +751,6 @@ const styles = StyleSheet.create({
   empty: {
     alignItems: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.xl,
   },
   emptyIcon: {
     width: 64,

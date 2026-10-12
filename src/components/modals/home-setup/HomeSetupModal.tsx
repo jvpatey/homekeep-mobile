@@ -53,7 +53,9 @@ import {
 import { SetupWelcome } from "./SetupWelcome";
 import { YearBuiltPicker } from "./YearBuiltPicker";
 import { SetupNotify } from "./SetupNotify";
+import { SetupHomeShare } from "./SetupHomeShare";
 import {
+  InspectionImportHint,
   ScheduleGroup,
   ScheduleSummary,
   categoryIcon,
@@ -1007,7 +1009,7 @@ export function HomeSetupModal({
     ) : phase === "homeshare" ? (
       <View style={styles.footerInner}>
         <Button
-          label="Invite someone"
+          label="Invite someone to share"
           onPress={finishHomeShareInvite}
           accessibilityLabel="Invite someone with HomeShare"
         />
@@ -1292,31 +1294,10 @@ export function HomeSetupModal({
             </ScrollView>
           ) : phase === "homeshare" ? (
             <ScrollView showsVerticalScrollIndicator={false}>
-              {pendingFinishCopy ? (
-                <View
-                  style={[
-                    styles.readyCard,
-                    { backgroundColor: colors.success + "14" },
-                  ]}
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={22}
-                    color={colors.success}
-                  />
-                  <Text style={[styles.readyBanner, { color: colors.text }]}>
-                    {pendingFinishCopy.message}
-                  </Text>
-                </View>
-              ) : null}
-              <SetupLead>
-                Live with someone? Share this home so you both see the same tasks
-                and can check them off.
-              </SetupLead>
-              <Text style={[styles.footnote, { color: colors.textSecondary }]}>
-                Sending an invite needs HomeKeep+. Joining is free. You can also do
-                this later in Settings.
-              </Text>
+              <SetupHomeShare
+                isPlus={isPlus}
+                readyMessage={pendingFinishCopy?.message}
+              />
             </ScrollView>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -1376,6 +1357,7 @@ export function HomeSetupModal({
                       }))}
                     />
                   ))}
+                  <InspectionImportHint />
                 </>
               )}
             </ScrollView>

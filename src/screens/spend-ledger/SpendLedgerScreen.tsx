@@ -1,4 +1,10 @@
-import React, { useLayoutEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,14 +24,18 @@ import { useRecordData } from "../../hooks/useRecordData";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useSignedPhotoUrls } from "../../hooks/useSignedPhotoUrls";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { Button, HeaderIconButton } from "../../components/ui";
 import { RecordThumb } from "../../components/record/RecordThumb";
 import { LockedPreview } from "../../components/plus/LockedPreview";
 import { RecordEntrySheet } from "../../components/record/RecordEntrySheet";
 import { useRecordEntryActions } from "../../components/record/useRecordEntryActions";
+import { BudgetVsActualCard } from "../../components/record/BudgetVsActualCard";
+import { MaintenanceService } from "../../services/maintenanceService";
 import {
   HOME_MAINTENANCE_CATEGORIES,
   MaintenanceCategory,
+  MaintenanceRoutine,
   MaintenanceTask,
 } from "../../types/maintenance";
 import {
@@ -92,6 +102,7 @@ function groupByMonth(entries: SpendEntry[]) {
 
 export function SpendLedgerScreen() {
   const { colors, isDark } = useTheme();
+  const overlay = useOverlayInsets();
   const navigation =
     useNavigation<
       NativeStackNavigationProp<RecordStackParamList, "SpendLedger">
@@ -111,6 +122,7 @@ export function SpendLedgerScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<MaintenanceTask | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [routines, setRoutines] = useState<MaintenanceRoutine[]>([]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -148,9 +160,20 @@ export function SpendLedgerScreen() {
     return ledger.years.length > 1 ? [...years, "all"] : years;
   }, [ledger.years]);
 
+  const loadRoutines = useCallback(async () => {
+    const { data } = await MaintenanceService.getMaintenanceRoutines({
+      is_active: true,
+    });
+    if (data) setRoutines(data);
+  }, []);
+
+  useEffect(() => {
+    void loadRoutines();
+  }, [loadRoutines]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refresh();
+    await Promise.all([refresh(), loadRoutines()]);
     setRefreshing(false);
   };
 
@@ -195,7 +218,16 @@ export function SpendLedgerScreen() {
 
   if (!loaded) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.center,
+          {
+            backgroundColor: colors.background,
+            paddingTop: overlay.top,
+            paddingBottom: overlay.bottom,
+          },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -346,6 +378,10 @@ export function SpendLedgerScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {yearKey !== "all" ? (
+                  <BudgetVsActualCard year={yearData} routines={routines} />
+                ) : null}
 
                 {yearData.count === 0 ? (
                   <Text

@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import {
   removeHomeContact,
   useHomeContacts,
@@ -91,6 +92,7 @@ function matches(contact: HomeContact, needle: string) {
 export function ProsScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const overlay = useOverlayInsets();
   const { triggerLight, triggerMedium } = useHaptics();
   const { items, loaded, error, refresh } = useHomeContacts();
   const [query, setQuery] = useState("");
@@ -298,7 +300,12 @@ export function ProsScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {!loaded ? (
-        <View style={styles.center}>
+        <View
+          style={[
+            styles.center,
+            { paddingTop: overlay.top, paddingBottom: overlay.bottom },
+          ]}
+        >
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : locked ? (
@@ -330,7 +337,13 @@ export function ProsScreen() {
           contentInsetAdjustmentBehavior="automatic"
           keyboardDismissMode="on-drag"
           stickySectionHeadersEnabled={false}
-          contentContainerStyle={[styles.content, empty && styles.contentEmpty]}
+          contentContainerStyle={[
+            styles.content,
+            empty && [
+              styles.contentEmpty,
+              { paddingBottom: overlay.top + overlay.bottom },
+            ],
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

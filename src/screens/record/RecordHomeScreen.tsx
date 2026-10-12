@@ -41,6 +41,7 @@ import {
   formatProfileLocality,
 } from "../../utils/formatProfileAddress";
 import { usePlusFeature } from "../../lib/plusFeatures";
+import { showActionMenu } from "../../utils/actionMenu";
 import { formatHomeAge } from "../../data/maintenancePlans";
 import { RecordStackParamList } from "../../navigation/types";
 import { DesignSystem } from "../../theme/designSystem";
@@ -70,7 +71,7 @@ export function RecordHomeScreen() {
   const { user } = useAuth();
   const { profile, homeNotes } = useProfile();
   const { triggerLight } = useHaptics();
-  const { openLogRepair } = useQuickActions();
+  const { openLogRepair, openScheduleRepair } = useQuickActions();
   const { format: formatMoney } = useCurrency();
   const { completions, loaded, refresh } = useRecordData();
   const equipment = useEquipmentIndex();
@@ -153,9 +154,26 @@ export function RecordHomeScreen() {
           actions={
             <TabHeaderAction
               icon="add"
-              accessibilityLabel="Log a repair"
-              accessibilityHint="Record a one-off repair or job"
-              onPress={() => void openLogRepair()}
+              accessibilityLabel="Add a repair"
+              accessibilityHint="Log a repair you did, or schedule one to fix later"
+              onPress={() =>
+                showActionMenu({
+                  options: [
+                    {
+                      label: "Log a repair",
+                      icon: "hammer-outline",
+                      subtitle: "Already done",
+                      onPress: () => void openLogRepair(),
+                    },
+                    {
+                      label: "Schedule a repair",
+                      icon: "construct-outline",
+                      subtitle: "Needs fixing",
+                      onPress: () => void openScheduleRepair(),
+                    },
+                  ],
+                })
+              }
             />
           }
         />

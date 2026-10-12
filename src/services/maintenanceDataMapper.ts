@@ -29,6 +29,8 @@ export class MaintenanceDataMapper {
       is_active: instance.routine.is_active,
       source_plan_id: instance.routine.source_plan_id ?? null,
       equipment_id: instance.routine.equipment_id ?? null,
+      estimated_cost_diy: instance.routine.estimated_cost_diy ?? null,
+      estimated_cost_pro: instance.routine.estimated_cost_pro ?? null,
       cost_amount: instance.cost_amount ?? null,
       labor_type: instance.labor_type ?? null,
       photo_storage_path: instance.photo_storage_path ?? null,

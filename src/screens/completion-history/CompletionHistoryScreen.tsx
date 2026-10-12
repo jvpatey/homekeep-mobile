@@ -31,6 +31,7 @@ import { LockedPreview } from "../../components/plus/LockedPreview";
 import { useRecordData } from "../../hooks/useRecordData";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useSignedPhotoUrls } from "../../hooks/useSignedPhotoUrls";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import {
   HeaderIconButton,
   HearthSurfaceCard,
@@ -96,6 +97,7 @@ export function CompletionHistoryScreen() {
   const { completions, loaded, error, refresh } = useRecordData();
   const actionFor = useRecordEntryActions();
   const { locked } = usePlusFeature("history");
+  const overlay = useOverlayInsets();
 
   const [lookback, setLookback] = useState<LookbackKey>("all");
   const [query, setQuery] = useState("");
@@ -541,7 +543,12 @@ export function CompletionHistoryScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           completionHistoryStyles.listContent,
-          { paddingBottom: DesignSystem.spacing.xxl },
+          {
+            paddingBottom:
+              sections.length === 0
+                ? overlay.top + overlay.bottom
+                : DesignSystem.spacing.xxl,
+          },
         ]}
         refreshControl={
           <RefreshControl

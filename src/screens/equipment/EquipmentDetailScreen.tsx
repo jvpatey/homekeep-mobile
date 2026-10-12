@@ -18,6 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useRecordData } from "../../hooks/useRecordData";
 import {
@@ -31,6 +32,7 @@ import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { RecordEntrySheet } from "../../components/record/RecordEntrySheet";
 import { useRecordEntryActions } from "../../components/record/useRecordEntryActions";
 import { EquipmentFormSheet } from "../../components/equipment/EquipmentFormSheet";
+import { AssistantSheet } from "../../components/assistant/AssistantSheet";
 import { DocumentFormSheet } from "../../components/documents/DocumentFormSheet";
 import { useHomeDocuments } from "../../hooks/useHomeDocuments";
 import {
@@ -90,6 +92,7 @@ export function EquipmentDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProp<RecordStackParamList, "EquipmentDetail">>();
   const { colors } = useTheme();
+  const overlay = useOverlayInsets({ translucentHeader: false });
   const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
   const { format: formatMoney } = useCurrency();
   const { tasks } = useTasks();
@@ -98,6 +101,8 @@ export function EquipmentDetailScreen() {
   const { completions } = useRecordData();
   const actionFor = useRecordEntryActions();
   const documents = usePlusFeature("documents");
+  const assistant = usePlusFeature("assistant");
+  const [asking, setAsking] = useState(false);
   const [editing, setEditing] = useState(false);
   const [busyKind, setBusyKind] = useState<AttachmentKind | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -137,10 +142,7 @@ export function EquipmentDetailScreen() {
     const seen = new Set<string>();
     return tasks
       .filter(
-        (task) =>
-          task.equipment_id === equipmentId &&
-          !task.is_completed &&
-          !isRepairRoutine(task)
+        (task) => task.equipment_id === equipmentId && !task.is_completed
       )
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
       .filter((task) => {
@@ -162,7 +164,12 @@ export function EquipmentDetailScreen() {
 
   if (!item) {
     return (
-      <View style={[styles.missing, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.missing,
+          { backgroundColor: colors.background, paddingBottom: overlay.bottom },
+        ]}
+      >
         {loaded ? (
           <Text style={[styles.missingText, { color: colors.textSecondary }]}>
             This equipment was removed.
@@ -568,6 +575,19 @@ export function EquipmentDetailScreen() {
             title="Add a reminder"
             onPress={() => void openCreateTask({ equipmentId: item.id })}
           />
+          <RecordRow
+            icon="chatbubbles-outline"
+            tint={colors.primary}
+            title={`Ask about this ${item.equipment_type && item.equipment_type !== "other" ? EQUIPMENT_TYPE_LABELS[item.equipment_type].toLowerCase() : "equipment"}`}
+            subtitle="Parts, upkeep, and what's been done"
+            locked={assistant.locked}
+            onPress={() => {
+              triggerLight();
+              void assistant.unlock().then((ok) => {
+                if (ok) setAsking(true);
+              });
+            }}
+          />
         </RecordSection>
 
         <RecordSection title="Documents">
@@ -685,6 +705,11 @@ export function EquipmentDetailScreen() {
         visible={editing}
         equipment={item}
         onClose={() => setEditing(false)}
+      />
+      <AssistantSheet
+        visible={asking}
+        onClose={() => setAsking(false)}
+        equipment={{ id: item.id, name: item.name }}
       />
       <DocumentFormSheet
         visible={documentForm !== null}

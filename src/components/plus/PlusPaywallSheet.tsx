@@ -44,6 +44,7 @@ const VALUE_LINES = [
   "Manuals, parts, and your trusted pros",
   "A home history PDF for buyers and insurers",
   "Share the home with everyone who lives there",
+  "Label scanning, inspection import, and Ask HomeKeep",
 ];
 
 const DEFAULT_HEADLINE = "Keep your home's record";

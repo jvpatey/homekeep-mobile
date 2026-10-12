@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,10 +11,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import {
   removeHomeDocument,
   useHomeDocuments,
@@ -109,15 +110,32 @@ const SAMPLE_DOCUMENTS: HomeDocument[] = [
 
 export function DocumentVaultScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RecordStackParamList, "DocumentVault">>();
   const { colors } = useTheme();
+  const overlay = useOverlayInsets();
   const { triggerLight, triggerMedium } = useHaptics();
   const { items, loaded, error, refresh } = useHomeDocuments();
   const equipment = useEquipmentIndex();
   const { locked, unlock } = usePlusFeature("documents");
+  const inspection = usePlusFeature("inspection");
   const [filter, setFilter] = useState<Filter>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState<HomeDocument | null>(null);
   const [formVisible, setFormVisible] = useState(false);
+  const [presetKind, setPresetKind] = useState<DocumentKind | null>(null);
+  const addKind = route.params?.addKind;
+
+  useEffect(() => {
+    if (!addKind || !loaded) return;
+    navigation.setParams({ addKind: undefined });
+    if (locked) {
+      void unlock();
+      return;
+    }
+    setEditing(null);
+    setPresetKind(addKind);
+    setFormVisible(true);
+  }, [addKind, loaded, locked, navigation, unlock]);
 
   const openAdd = () => {
     if (locked) {
@@ -233,6 +251,26 @@ export function DocumentVaultScreen() {
     );
   };
 
+  const openInspectionImport = async (document: HomeDocument) => {
+    if (inspection.locked && !(await inspection.unlock())) return;
+    navigation.navigate("InspectionImport", { documentId: document.id });
+  };
+
+  const handleSaved = (saved: HomeDocument) => {
+    if (editing || saved.kind !== "inspection" || !saved.storage_path) return;
+    Alert.alert(
+      "Turn this report into a plan?",
+      "HomeKeep can read the findings and suggest repairs and upkeep to schedule.",
+      [
+        { text: "Not now", style: "cancel" },
+        {
+          text: "Import findings",
+          onPress: () => void openInspectionImport(saved),
+        },
+      ]
+    );
+  };
+
   const openDocumentMenu = (document: HomeDocument) => {
     triggerLight();
     if (locked) {
@@ -242,6 +280,17 @@ export function DocumentVaultScreen() {
     showActionMenu({
       title: document.title,
       options: [
+        ...(document.kind === "inspection" && document.storage_path
+          ? [
+              {
+                label: document.ai_extraction
+                  ? "Review findings"
+                  : "Turn into a plan",
+                icon: "sparkles-outline" as const,
+                onPress: () => void openInspectionImport(document),
+              },
+            ]
+          : []),
         ...(document.storage_path
           ? [
               {
@@ -421,7 +470,12 @@ export function DocumentVaultScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {!loaded ? (
-        <View style={styles.center}>
+        <View
+          style={[
+            styles.center,
+            { paddingTop: overlay.top, paddingBottom: overlay.bottom },
+          ]}
+        >
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : locked ? (
@@ -452,7 +506,13 @@ export function DocumentVaultScreen() {
           keyExtractor={(item) => item.key}
           contentInsetAdjustmentBehavior="automatic"
           stickySectionHeadersEnabled={false}
-          contentContainerStyle={[styles.content, empty && styles.contentEmpty]}
+          contentContainerStyle={[
+            styles.content,
+            empty && [
+              styles.contentEmpty,
+              { paddingBottom: overlay.top + overlay.bottom },
+            ],
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -565,9 +625,14 @@ export function DocumentVaultScreen() {
         visible={formVisible}
         document={editing}
         defaultKind={
-          filter !== "all" && filter !== "equipment" ? filter : undefined
+          presetKind ??
+          (filter !== "all" && filter !== "equipment" ? filter : undefined)
         }
-        onClose={() => setFormVisible(false)}
+        onClose={() => {
+          setFormVisible(false);
+          setPresetKind(null);
+        }}
+        onSaved={handleSaved}
       />
     </View>
   );

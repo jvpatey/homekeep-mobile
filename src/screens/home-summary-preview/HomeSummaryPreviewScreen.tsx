@@ -15,6 +15,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useAuth } from "../../context/AuthContext";
 import { useHaptics } from "../../hooks";
+import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { usePlusFeature } from "../../lib/plusFeatures";
 import { HeaderIconButton, HomeKeepBrand } from "../../components/ui";
 import { RecordStackParamList } from "../../navigation/types";
@@ -95,6 +96,7 @@ function TaskGroupRow({
 
 export function HomeSummaryPreviewScreen() {
   const { colors, isDark } = useTheme();
+  const overlay = useOverlayInsets({ translucentHeader: false });
   const { profile, homeNotes } = useProfile();
   const { user } = useAuth();
   const navigation =
@@ -207,7 +209,10 @@ export function HomeSummaryPreviewScreen() {
     <ScrollView
       style={[styles.scroll, { backgroundColor: colors.background }]}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        loading && { flexGrow: 1, paddingBottom: overlay.bottom },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       {error ? (

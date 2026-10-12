@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,6 +7,11 @@ import { useTheme } from "../../../context/ThemeContext";
 import { useGradients, useHaptics, useReducedMotion } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import { HOME_MAINTENANCE_CATEGORIES } from "../../../types/maintenance";
+import { useCurrency } from "../../../hooks/useCurrency";
+import {
+  expectedAnnualUpkeep,
+  upkeepInCurrency,
+} from "../../../utils/upkeepEstimate";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -30,12 +35,27 @@ export function formatDuration(minutes: number): string {
   return `${hours} hr`;
 }
 
-type SummaryItem = { interval_days: number; estimated_duration_minutes: number };
+type SummaryItem = {
+  title: string;
+  interval_days: number;
+  estimated_duration_minutes: number;
+  estimated_cost_diy?: number | null;
+  estimated_cost_pro?: number | null;
+};
 
-/** "How much work is this?" — count, cadence, and yearly time for the selected tasks. */
+/** "How much work is this?" — count, cadence, yearly time, and expected yearly cost. */
 export function ScheduleSummary({ items }: { items: SummaryItem[] }) {
   const { colors } = useTheme();
   const { glowGradient } = useGradients();
+  const { currency, format } = useCurrency();
+  const upkeep = useMemo(
+    () => upkeepInCurrency(expectedAnnualUpkeep(items), currency),
+    [items, currency]
+  );
+  const upkeepLabel =
+    upkeep && upkeep.pro > 0
+      ? `${format(upkeep.diy, { whole: true })}–${format(upkeep.pro, { whole: true })} a year`
+      : null;
 
   const perYear = items.reduce(
     (sum, item) => sum + 365 / Math.max(1, item.interval_days),
@@ -61,7 +81,7 @@ export function ScheduleSummary({ items }: { items: SummaryItem[] }) {
         DesignSystem.shadows.softKey,
       ]}
       accessible
-      accessibilityLabel={`${items.length} tasks. About ${perMonth} a month, ${hoursPerYear} hours a year.`}
+      accessibilityLabel={`${items.length} tasks. About ${perMonth} a month, ${hoursPerYear} hours a year.${upkeepLabel ? ` Expected upkeep ${upkeepLabel}, doing it yourself to hiring out.` : ""}`}
     >
       <LinearGradient
         colors={glowGradient}
@@ -88,7 +108,16 @@ export function ScheduleSummary({ items }: { items: SummaryItem[] }) {
       <View style={styles.summaryStats}>
         <SummaryStat icon="calendar-outline" label={`~${perMonth} a month`} />
         <SummaryStat icon="time-outline" label={`~${hoursPerYear} hrs a year`} />
+        {upkeepLabel ? (
+          <SummaryStat icon="wallet-outline" label={upkeepLabel} />
+        ) : null}
       </View>
+      {upkeepLabel ? (
+        <Text style={[styles.summaryFootnote, { color: colors.textSecondary }]}>
+          Your home's expected annual upkeep, from doing it yourself to hiring
+          it all out.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -104,6 +133,32 @@ function SummaryStat({ icon, label }: { icon: IconName; label: string }) {
     >
       <Ionicons name={icon} size={14} color={colors.secondary} />
       <Text style={[styles.statLabel, { color: colors.text }]}>{label}</Text>
+    </View>
+  );
+}
+
+/** New-homeowner nudge: the Dashboard picks this up with an import card after setup. */
+export function InspectionImportHint() {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={[
+        styles.hint,
+        { backgroundColor: colors.primary + "12", borderColor: colors.border },
+      ]}
+      accessible
+      accessibilityLabel="Just bought? After you save, import your inspection report from Home and HomeKeep turns its findings into repairs and upkeep."
+    >
+      <Ionicons name="clipboard-outline" size={20} color={colors.primary} />
+      <View style={styles.hintCopy}>
+        <Text style={[styles.hintTitle, { color: colors.text }]}>
+          Just bought? Import your inspection
+        </Text>
+        <Text style={[styles.hintBody, { color: colors.textSecondary }]}>
+          After you save, add the report from Home and HomeKeep turns its
+          findings into repairs and upkeep.
+        </Text>
+      </View>
     </View>
   );
 }
@@ -266,6 +321,10 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.sm,
     marginTop: DesignSystem.spacing.md,
   },
+  summaryFootnote: {
+    ...DesignSystem.typography.caption,
+    marginTop: DesignSystem.spacing.sm,
+  },
   stat: {
     flexDirection: "row",
     alignItems: "center",
@@ -339,5 +398,24 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  hint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.sm,
+  },
+  hintCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  hintTitle: {
+    ...DesignSystem.typography.smallSemiBold,
+  },
+  hintBody: {
+    ...DesignSystem.typography.footnote,
   },
 });

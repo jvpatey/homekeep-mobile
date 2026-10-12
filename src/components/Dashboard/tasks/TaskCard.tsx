@@ -83,6 +83,7 @@ export function TaskCard({
 
   // formatInterval function to format the interval
   const formatInterval = (intervalDays: number) => {
+    if (!intervalDays || intervalDays <= 0) return "One-time";
     if (intervalDays === 7) return "Weekly";
     if (intervalDays === 30) return "Monthly";
     if (intervalDays === 90) return "Quarterly";

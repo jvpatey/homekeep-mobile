@@ -102,6 +102,8 @@ export class MaintenanceTaskService {
             is_active,
             source_plan_id,
             equipment_id,
+            estimated_cost_diy,
+            estimated_cost_pro,
             created_at,
             updated_at
           )
@@ -175,6 +177,8 @@ export class MaintenanceTaskService {
             is_active,
             source_plan_id,
             equipment_id,
+            estimated_cost_diy,
+            estimated_cost_pro,
             created_at,
             updated_at
           )
@@ -233,6 +237,8 @@ export class MaintenanceTaskService {
             is_active,
             source_plan_id,
             equipment_id,
+            estimated_cost_diy,
+            estimated_cost_pro,
             created_at,
             updated_at
           )
@@ -292,6 +298,8 @@ export class MaintenanceTaskService {
             is_active,
             source_plan_id,
             equipment_id,
+            estimated_cost_diy,
+            estimated_cost_pro,
             created_at,
             updated_at
           )

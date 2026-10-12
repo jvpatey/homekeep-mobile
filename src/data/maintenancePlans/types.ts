@@ -4,6 +4,7 @@ import {
   Priority,
 } from "../../types/maintenance";
 import type { HomeSystems } from "./homeSystems";
+import { costEstimateFor } from "./costEstimates";
 
 /** Display grouping for the plan library (not persisted). */
 export type MaintenancePlanTag =
@@ -28,6 +29,9 @@ export interface MaintenancePlanItemTemplate {
   interval_days: number;
   /** Days after anchor date (usually today) for first occurrence — avoids stacking every task on one day. */
   start_offset_days?: number;
+  /** Cost per occurrence in USD; falls back to the shared catalog in costEstimates.ts. */
+  estimated_cost_diy?: number;
+  estimated_cost_pro?: number;
 }
 
 /** Full definition shown in the task library. */
@@ -77,6 +81,7 @@ export function buildRoutinePayloadsFromItems(
     const start = new Date(anchorDate);
     start.setDate(start.getDate() + (item.start_offset_days ?? 0));
     start.setHours(12, 0, 0, 0);
+    const cost = costEstimateFor(item);
     return {
       title: item.title,
       description: item.description,
@@ -85,6 +90,9 @@ export function buildRoutinePayloadsFromItems(
       estimated_duration_minutes: item.estimated_duration_minutes,
       interval_days: item.interval_days,
       start_date: start.toISOString(),
+      ...(cost
+        ? { estimated_cost_diy: cost.diy, estimated_cost_pro: cost.pro }
+        : {}),
     };
   });
 }

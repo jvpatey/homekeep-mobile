@@ -14,7 +14,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import * as Crypto from "expo-crypto";
-import { format, isSameDay, startOfDay, subDays } from "date-fns";
+import { addDays, format, isSameDay, startOfDay, subDays } from "date-fns";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useHaptics } from "../../../hooks";
@@ -26,6 +26,7 @@ import {
   CompletionExtras,
   HOME_MAINTENANCE_CATEGORIES,
   MaintenanceCategory,
+  Priority,
 } from "../../../types/maintenance";
 import {
   categoryForEquipmentType,
@@ -52,9 +53,22 @@ export interface LogRepairDraft {
   extras: CompletionExtras;
 }
 
+export interface ScheduleRepairDraft {
+  title: string;
+  category: MaintenanceCategory;
+  dueDate: Date;
+  equipmentId: string | null;
+  priority: Priority;
+  description: string | null;
+}
+
 export interface LogRepairSheetProps {
   visible: boolean;
+  /** `log` records a finished repair; `schedule` adds one to fix later. */
+  mode?: "log" | "schedule";
   initialEquipmentId?: string | null;
+  /** Persist a scheduled repair (schedule mode). */
+  onSchedule?: (draft: ScheduleRepairDraft) => Promise<boolean>;
   /** Renders the pro picker when "Hired a pro" is chosen. */
   renderProSlot?: (
     value: RecordDetailsValue,
@@ -66,14 +80,23 @@ export interface LogRepairSheetProps {
   onSubmit: (draft: LogRepairDraft) => Promise<boolean>;
 }
 
+const PRIORITY_CHOICES: { value: Priority; label: string }[] = [
+  { value: "medium", label: "When I can" },
+  { value: "high", label: "Soon" },
+  { value: "urgent", label: "Urgent" },
+];
+
 export function LogRepairSheet({
   visible,
+  mode = "log",
   initialEquipmentId = null,
+  onSchedule,
   renderProSlot,
   onClose,
   onDismissed,
   onSubmit,
 }: LogRepairSheetProps) {
+  const scheduling = mode === "schedule";
   const { colors } = useTheme();
   const { user } = useAuth();
   const { triggerLight } = useHaptics();
@@ -90,18 +113,22 @@ export function LogRepairSheet({
   const [details, setDetails] =
     useState<RecordDetailsValue>(EMPTY_RECORD_DETAILS);
   const [saving, setSaving] = useState(false);
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!visible) return;
+    setNotes("");
     setTitle("");
     setCategory("GENERAL");
     setCategoryTouched(false);
-    setDate(new Date());
+    setDate(scheduling ? addDays(new Date(), 7) : new Date());
+    setPriority("medium");
     setShowIosPicker(false);
     setEquipmentId(initialEquipmentId);
     setDetails(EMPTY_RECORD_DETAILS);
     setSaving(false);
-  }, [visible, initialEquipmentId]);
+  }, [visible, initialEquipmentId, scheduling]);
 
   const selectedEquipment = useMemo(
     () => equipment.items.find((item) => item.id === equipmentId) ?? null,
@@ -120,11 +147,23 @@ export function LogRepairSheet({
 
   const today = startOfDay(new Date());
   const yesterday = subDays(today, 1);
-  const dateMode: "today" | "yesterday" | "custom" = isSameDay(date, today)
-    ? "today"
-    : isSameDay(date, yesterday)
-      ? "yesterday"
-      : "custom";
+  const nextWeek = addDays(today, 7);
+  const nextMonth = addDays(today, 30);
+  const dateMode: "today" | "yesterday" | "week" | "month" | "custom" =
+    scheduling
+      ? isSameDay(date, nextWeek)
+        ? "week"
+        : isSameDay(date, nextMonth)
+          ? "month"
+          : "custom"
+      : isSameDay(date, today)
+        ? "today"
+        : isSameDay(date, yesterday)
+          ? "yesterday"
+          : "custom";
+  const dateLimits = scheduling
+    ? { minimumDate: today }
+    : { maximumDate: new Date() };
 
   const pickCustomDate = () => {
     triggerLight();
@@ -132,7 +171,7 @@ export function LogRepairSheet({
       DateTimePickerAndroid.open({
         value: date,
         mode: "date",
-        maximumDate: new Date(),
+        ...dateLimits,
         onChange: (event, next) => {
           if (event.type === "set" && next) setDate(next);
         },
@@ -147,6 +186,20 @@ export function LogRepairSheet({
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
+    if (scheduling) {
+      const dueDate = new Date(date);
+      dueDate.setHours(12, 0, 0, 0);
+      const ok = await (onSchedule?.({
+        title: title.trim(),
+        category,
+        dueDate,
+        equipmentId,
+        priority,
+        description: notes.trim() || null,
+      }) ?? Promise.resolve(false));
+      if (!ok) setSaving(false);
+      return;
+    }
     try {
       let photoPath: string | null = null;
       if (details.photoUri && user) {
@@ -190,11 +243,13 @@ export function LogRepairSheet({
       visible={visible}
       onClose={onClose}
       onDismissed={onDismissed}
-      title="Log a repair"
+      title={scheduling ? "Schedule a repair" : "Log a repair"}
       maxHeightRatio={0.94}
       footer={
         <Button
-          label={saving ? "Saving…" : "Save repair"}
+          label={
+            saving ? "Saving…" : scheduling ? "Add to schedule" : "Save repair"
+          }
           onPress={() => void handleSave()}
           disabled={!canSave}
           loading={saving}
@@ -207,12 +262,16 @@ export function LogRepairSheet({
         contentContainerStyle={styles.scroll}
       >
         <Text style={[styles.label, { color: colors.textSecondary }]}>
-          What was fixed?
+          {scheduling ? "What needs fixing?" : "What was fixed?"}
         </Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="e.g. Replaced kitchen faucet cartridge"
+          placeholder={
+            scheduling
+              ? "e.g. Regrout the shower"
+              : "e.g. Replaced kitchen faucet cartridge"
+          }
           placeholderTextColor={colors.textSecondary}
           style={[styles.input, fieldStyle]}
           autoCapitalize="sentences"
@@ -220,7 +279,9 @@ export function LogRepairSheet({
           returnKeyType="done"
           maxLength={120}
           editable={!saving}
-          accessibilityLabel="What was fixed"
+          accessibilityLabel={
+            scheduling ? "What needs fixing" : "What was fixed"
+          }
         />
 
         <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -256,30 +317,37 @@ export function LogRepairSheet({
         </ScrollView>
 
         <Text style={[styles.label, { color: colors.textSecondary }]}>
-          When
+          {scheduling ? "Fix by" : "When"}
         </Text>
         <View style={styles.dateRow}>
-          <Chip
-            label="Today"
-            active={dateMode === "today"}
-            onPress={() => {
-              triggerLight();
-              setDate(new Date());
-              setShowIosPicker(false);
-            }}
-          />
-          <Chip
-            label="Yesterday"
-            active={dateMode === "yesterday"}
-            onPress={() => {
-              triggerLight();
-              setDate(yesterday);
-              setShowIosPicker(false);
-            }}
-          />
+          {(scheduling
+            ? ([
+                ["week", "In a week", nextWeek],
+                ["month", "In a month", nextMonth],
+              ] as const)
+            : ([
+                ["today", "Today", new Date()],
+                ["yesterday", "Yesterday", yesterday],
+              ] as const)
+          ).map(([key, label, value]) => (
+            <Chip
+              key={key}
+              label={label}
+              active={dateMode === key}
+              onPress={() => {
+                triggerLight();
+                setDate(value);
+                setShowIosPicker(false);
+              }}
+            />
+          ))}
           <Chip
             label={
-              dateMode === "custom" ? format(date, "MMM d, yyyy") : "Earlier…"
+              dateMode === "custom"
+                ? format(date, "MMM d, yyyy")
+                : scheduling
+                  ? "Pick a date…"
+                  : "Earlier…"
             }
             icon="calendar-outline"
             active={dateMode === "custom"}
@@ -291,7 +359,7 @@ export function LogRepairSheet({
             value={date}
             mode="date"
             display="inline"
-            maximumDate={new Date()}
+            {...dateLimits}
             accentColor={colors.primary}
             onChange={(_event, next) => {
               if (next) setDate(next);
@@ -329,13 +397,48 @@ export function LogRepairSheet({
           </>
         ) : null}
 
-        <RecordDetailsFields
-          value={details}
-          onChange={setDetails}
-          disabled={saving}
-          notePlaceholder="Parts used, what went wrong, warranty on the work…"
-          proSlot={renderProSlot?.(details, setDetails)}
-        />
+        {scheduling ? (
+          <>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              How soon
+            </Text>
+            <View style={styles.dateRow}>
+              {PRIORITY_CHOICES.map((choice) => (
+                <Chip
+                  key={choice.value}
+                  label={choice.label}
+                  active={priority === choice.value}
+                  onPress={() => {
+                    triggerLight();
+                    setPriority(choice.value);
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Notes (optional)
+            </Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Where it is, what you noticed, who to call…"
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.input, styles.notes, fieldStyle]}
+              multiline
+              maxLength={500}
+              editable={!saving}
+              accessibilityLabel="Notes"
+            />
+          </>
+        ) : (
+          <RecordDetailsFields
+            value={details}
+            onChange={setDetails}
+            disabled={saving}
+            notePlaceholder="Parts used, what went wrong, warranty on the work…"
+            proSlot={renderProSlot?.(details, setDetails)}
+          />
+        )}
       </ScrollView>
     </HearthSheet>
   );
@@ -404,6 +507,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.sm + 4,
     ...DesignSystem.typography.body,
+  },
+  notes: {
+    minHeight: 80,
+    textAlignVertical: "top",
   },
   chipScroller: {
     marginHorizontal: -DesignSystem.spacing.lg,

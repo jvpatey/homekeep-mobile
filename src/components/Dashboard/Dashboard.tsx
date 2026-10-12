@@ -74,6 +74,8 @@ import {
   WeekendPlanHistoryEntry,
 } from "../../utils/weekendPlanStorage";
 import { CompleteTaskSheet } from "../modals/complete-task/CompleteTaskSheet";
+import { AssistantSheet } from "../assistant/AssistantSheet";
+import { usePlusFeature } from "../../lib/plusFeatures";
 import { WeekendBudgetSheet } from "./WeekendBudgetSheet";
 import { WeekendPlanStrip } from "./WeekendPlanStrip";
 import {
@@ -81,6 +83,7 @@ import {
   WeekendPlanCelebrationSnapshot,
 } from "./WeekendPlanCelebration";
 import { WeatherAlertCard } from "./WeatherAlertCard";
+import { InspectionImportCard } from "./InspectionImportCard";
 import { CampaignPlanStrip } from "./CampaignPlanStrip";
 import {
   computeCampaignProgress,
@@ -152,11 +155,13 @@ export function NewDashboard({
     consume: consumeFreeAction,
   } = useRequirePlusOrFreeAction();
   const { isPlus, offerPaywallAfterSetup } = useSubscription();
+  const assistant = usePlusFeature("assistant");
+  const [showAssistant, setShowAssistant] = useState(false);
   const { createTasks } = useTasks();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
   const { goToTab, openPlan, openRecord } = useAppNavigation();
-  const { openLogRepair } = useQuickActions();
+  const { openLogRepair, openScheduleRepair } = useQuickActions();
 
   const [celebration, setCelebration] = useState<{
     visible: boolean;
@@ -874,6 +879,11 @@ export function NewDashboard({
           onPress: () => void openCreateModal(),
         },
         {
+          label: "Schedule a repair",
+          icon: "construct-outline",
+          onPress: () => void openScheduleRepair(),
+        },
+        {
           label: "Log a repair",
           icon: "hammer-outline",
           onPress: () => void openLogRepair(),
@@ -901,6 +911,11 @@ export function NewDashboard({
         dueTodayCount={dueTodayCount}
         onOpenAddressEditor={() => setShowHomeSetupModal(true)}
         onAddPress={openAddMenu}
+        onAskPress={() => {
+          void assistant.unlock().then((ok) => {
+            if (ok) setShowAssistant(true);
+          });
+        }}
         onStatusChipPress={handleStatusChipPress}
         animatedStyle={headerAnimatedStyle}
         seasonLabel={seasonLabel}
@@ -915,6 +930,7 @@ export function NewDashboard({
           }}
         />
       ) : null}
+      <InspectionImportCard />
       {campaignProgress ? (
         <CampaignPlanStrip
           progress={campaignProgress}
@@ -1143,6 +1159,11 @@ export function NewDashboard({
           onSubmit={handleCompleteTask}
         />
       ) : null}
+
+      <AssistantSheet
+        visible={showAssistant}
+        onClose={() => setShowAssistant(false)}
+      />
 
       {showWeekendBudget ? (
         <WeekendBudgetSheet

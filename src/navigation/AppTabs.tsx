@@ -19,6 +19,7 @@ import {
 import { ProDetailScreen } from "../screens/pros/ProDetailScreen";
 import { EmergencyInfoScreen } from "../screens/emergency/EmergencyInfoScreen";
 import { DocumentVaultScreen } from "../screens/documents/DocumentVaultScreen";
+import { InspectionImportScreen } from "../screens/documents/InspectionImportScreen";
 import {
   AppTabsParamList,
   HomeStackParamList,
@@ -94,6 +95,11 @@ function RecordStackNavigator() {
         name="DocumentVault"
         component={DocumentVaultScreen}
         options={{ title: "Documents" }}
+      />
+      <RecordStack.Screen
+        name="InspectionImport"
+        component={InspectionImportScreen}
+        options={{ title: "Inspection report", headerLargeTitleEnabled: false }}
       />
       <RecordStack.Screen
         name="HomeSummaryPreview"

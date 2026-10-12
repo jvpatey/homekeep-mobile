@@ -1,4 +1,5 @@
 import { NavigatorScreenParams } from "@react-navigation/native";
+import type { DocumentKind } from "../types/homeDocument";
 
 /**
  * Root Stack Navigator Params
@@ -45,7 +46,9 @@ export type RecordStackParamList = {
   PaintColors: undefined;
   HouseNotes: undefined;
   EmergencyInfo: undefined;
-  DocumentVault: undefined;
+  /** `addKind` opens the add sheet preset to that kind. */
+  DocumentVault: { addKind?: DocumentKind } | undefined;
+  InspectionImport: { documentId: string };
 };
 
 export type PlanStackParamList = {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Platform,
@@ -50,6 +50,11 @@ import {
   PickedFile,
   promptForAttachment,
 } from "./equipmentAttachments";
+import { NameplateScanCard } from "./NameplateScanCard";
+import type {
+  NameplateScanResult,
+  ScanConfidence,
+} from "../../services/AiService";
 
 interface FormState {
   name: string;
@@ -72,6 +77,24 @@ interface HintChoice {
 }
 
 type DateField = "purchaseDate" | "warrantyDate";
+
+type ScannableField = "manufacturer" | "modelNumber" | "serialNumber" | "type";
+
+/** Set `type`, swapping in its label as the name unless the user named it. */
+function withType(prev: FormState, next: EquipmentType | null): FormState {
+  const prevLabel = prev.type ? EQUIPMENT_TYPE_LABELS[prev.type] : "";
+  const nameIsDefault = !prev.name.trim() || prev.name === prevLabel;
+  return {
+    ...prev,
+    type: next,
+    name:
+      nameIsDefault && next && next !== "other"
+        ? EQUIPMENT_TYPE_LABELS[next]
+        : nameIsDefault && !next
+          ? ""
+          : prev.name,
+  };
+}
 
 function parseDate(iso: string | null | undefined): Date | null {
   if (!iso) return null;
@@ -105,12 +128,21 @@ export function EquipmentFormSheet({
   equipment,
   onClose,
   onSaved,
+  startWithScan = false,
+  requireScan = false,
 }: {
   visible: boolean;
   /** Null to add new equipment. */
   equipment: EquipmentManual | null;
   onClose: () => void;
   onSaved?: (item: EquipmentManual, created: boolean) => void;
+  /** Open the label scanner as soon as the add form appears. */
+  startWithScan?: boolean;
+  /**
+   * Free-scan path: saving needs a successful scan, and attachments (a
+   * HomeKeep + feature) are hidden.
+   */
+  requireScan?: boolean;
 }) {
   const { colors, isDark } = useTheme();
   const { triggerLight, triggerSuccess } = useHaptics();
@@ -123,6 +155,16 @@ export function EquipmentFormSheet({
   const [saving, setSaving] = useState(false);
   const [hints, setHints] = useState<HintChoice[] | null>(null);
   const [saved, setSaved] = useState<EquipmentManual | null>(null);
+  const [scanned, setScanned] = useState<
+    Partial<Record<ScannableField, ScanConfidence>>
+  >({});
+  const [madeYear, setMadeYear] = useState<number | null>(null);
+  const [hasScan, setHasScan] = useState(false);
+  const [openCount, setOpenCount] = useState(0);
+  /** Fields the user typed into; a scan never overwrites them. */
+  const touched = useRef(new Set<keyof FormState>());
+  const formRef = useRef(form);
+  formRef.current = form;
 
   useEffect(() => {
     if (!visible) return;
@@ -132,10 +174,62 @@ export function EquipmentFormSheet({
     setSaving(false);
     setHints(null);
     setSaved(null);
+    setScanned({});
+    setMadeYear(null);
+    setHasScan(false);
+    setOpenCount((count) => count + 1);
+    touched.current = new Set();
   }, [visible, equipment]);
 
-  const set = (patch: Partial<FormState>) =>
+  const set = (patch: Partial<FormState>) => {
+    const keys = Object.keys(patch) as (keyof FormState)[];
+    keys.forEach((key) => touched.current.add(key));
+    setScanned((prev) => {
+      if (!keys.some((key) => key in prev)) return prev;
+      const next = { ...prev };
+      keys.forEach((key) => delete next[key as ScannableField]);
+      return next;
+    });
     setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const applyScan = (result: NameplateScanResult) => {
+    const prev = formRef.current;
+    const filled: Partial<Record<ScannableField, ScanConfidence>> = {};
+    let next = { ...prev };
+    const fill = (
+      key: "manufacturer" | "modelNumber" | "serialNumber",
+      value: string | null,
+      confidence: ScanConfidence
+    ) => {
+      if (!value) return;
+      if (touched.current.has(key) && prev[key].trim()) return;
+      next[key] = value;
+      filled[key] = confidence;
+    };
+    fill("manufacturer", result.manufacturer, result.confidence.manufacturer);
+    fill("modelNumber", result.model_number, result.confidence.model_number);
+    fill("serialNumber", result.serial_number, result.confidence.serial_number);
+    if (result.equipment_type && !(touched.current.has("type") && prev.type)) {
+      next = withType(next, result.equipment_type);
+      filled.type = result.confidence.equipment_type;
+    }
+    if (!next.name.trim() && next.manufacturer.trim()) {
+      next.name = next.manufacturer.trim();
+    }
+    setForm(next);
+    setScanned(filled);
+    setMadeYear(result.manufactured_year);
+    setHasScan(true);
+  };
+
+  const badgeFor = (field: ScannableField) => {
+    const confidence = scanned[field];
+    if (!confidence) return undefined;
+    return confidence === "high"
+      ? { text: "Scanned", color: colors.success }
+      : { text: "Check this", color: colors.warning };
+  };
 
   const suggestions = useMemo(() => {
     const taken = new Set(
@@ -148,21 +242,13 @@ export function EquipmentFormSheet({
 
   const selectType = (type: EquipmentType) => {
     triggerLight();
-    setForm((prev) => {
-      const next = prev.type === type ? null : type;
-      const prevLabel = prev.type ? EQUIPMENT_TYPE_LABELS[prev.type] : "";
-      const nameIsDefault = !prev.name.trim() || prev.name === prevLabel;
-      return {
-        ...prev,
-        type: next,
-        name:
-          nameIsDefault && next && next !== "other"
-            ? EQUIPMENT_TYPE_LABELS[next]
-            : nameIsDefault && !next
-              ? ""
-              : prev.name,
-      };
+    touched.current.add("type");
+    setScanned((prev) => {
+      if (!prev.type) return prev;
+      const { type: _type, ...rest } = prev;
+      return rest;
     });
+    setForm((prev) => withType(prev, prev.type === type ? null : type));
   };
 
   const addConsumable = (seed?: Omit<EquipmentConsumable, "id">) => {
@@ -401,10 +487,16 @@ export function EquipmentFormSheet({
       footer={
         <Button
           label={
-            saving ? "Saving…" : equipment ? "Save changes" : "Add equipment"
+            saving
+              ? "Saving…"
+              : equipment
+                ? "Save changes"
+                : requireScan && !hasScan
+                  ? "Scan the label to add it"
+                  : "Add equipment"
           }
           onPress={() => void save()}
-          disabled={!form.name.trim() || saving}
+          disabled={!form.name.trim() || saving || (requireScan && !hasScan)}
           loading={saving}
         />
       }
@@ -416,7 +508,14 @@ export function EquipmentFormSheet({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        <Label text="What is it?" first />
+        {!equipment ? (
+          <NameplateScanCard
+            key={openCount}
+            onResult={applyScan}
+            autoStart={startWithScan}
+          />
+        ) : null}
+        <Label text="What is it?" first badge={badgeFor("type")} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -470,6 +569,7 @@ export function EquipmentFormSheet({
         />
         <Field
           label="Manufacturer"
+          badge={badgeFor("manufacturer")}
           value={form.manufacturer}
           onChangeText={(manufacturer) => set({ manufacturer })}
           placeholder="e.g. Carrier"
@@ -479,6 +579,7 @@ export function EquipmentFormSheet({
           <View style={styles.pairItem}>
             <Field
               label="Model"
+              badge={badgeFor("modelNumber")}
               value={form.modelNumber}
               onChangeText={(modelNumber) => set({ modelNumber })}
               placeholder="Optional"
@@ -489,6 +590,7 @@ export function EquipmentFormSheet({
           <View style={styles.pairItem}>
             <Field
               label="Serial"
+              badge={badgeFor("serialNumber")}
               value={form.serialNumber}
               onChangeText={(serialNumber) => set({ serialNumber })}
               placeholder="Optional"
@@ -498,7 +600,9 @@ export function EquipmentFormSheet({
           </View>
         </View>
         <Text style={[styles.help, { color: colors.textSecondary }]}>
-          Usually on a sticker inside the door or on the back panel.
+          {madeYear
+            ? `Made around ${madeYear}, going by the label.`
+            : "Usually on a sticker inside the door or on the back panel."}
         </Text>
 
         <Label text="Dates" />
@@ -684,7 +788,7 @@ export function EquipmentFormSheet({
           </Pressable>
         </View>
 
-        {!equipment ? (
+        {!equipment && !requireScan ? (
           <>
             <Label text="Documents" />
             <View
@@ -770,26 +874,47 @@ async function reminderChoices(item: EquipmentManual): Promise<HintChoice[]> {
   ];
 }
 
-function Label({ text, first }: { text: string; first?: boolean }) {
+interface LabelBadge {
+  text: string;
+  color: string;
+}
+
+function Label({
+  text,
+  first,
+  badge,
+}: {
+  text: string;
+  first?: boolean;
+  badge?: LabelBadge;
+}) {
   const { colors } = useTheme();
   return (
-    <Text
-      style={[
-        styles.label,
-        { color: colors.textSecondary },
-        first && { marginTop: 0 },
-      ]}
-    >
-      {text}
-    </Text>
+    <View style={[styles.labelRow, first && { marginTop: 0 }]}>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>
+        {text}
+      </Text>
+      {badge ? (
+        <View style={[styles.badge, { backgroundColor: badge.color + "1F" }]}>
+          <Text style={[styles.badgeText, { color: badge.color }]}>
+            {badge.text}
+          </Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
-function Field({ label, style, ...input }: TextInputProps & { label: string }) {
+function Field({
+  label,
+  badge,
+  style,
+  ...input
+}: TextInputProps & { label: string; badge?: LabelBadge }) {
   const { colors } = useTheme();
   return (
     <>
-      <Label text={label} />
+      <Label text={label} badge={badge} />
       <TextInput
         {...input}
         placeholderTextColor={colors.textSecondary}
@@ -812,12 +937,26 @@ const styles = StyleSheet.create({
   scroll: {
     paddingBottom: DesignSystem.spacing.md,
   },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.xs + 2,
+    marginTop: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.sm,
+  },
   label: {
     ...DesignSystem.typography.captionSemiBold,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginTop: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.sm,
+  },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: DesignSystem.borders.radius.small,
+  },
+  badgeText: {
+    ...DesignSystem.typography.captionSemiBold,
+    fontSize: 11,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

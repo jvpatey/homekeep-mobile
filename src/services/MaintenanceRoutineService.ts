@@ -116,7 +116,10 @@ export class MaintenanceRoutineService {
   }
 
   // Get all maintenance routines for the current user
-  /** Repairs (one-off, already done) are hidden unless `includeRepairs`. */
+  /**
+   * Done repairs (inactive) are hidden unless `includeRepairs`; scheduled
+   * repairs that are still open show like any other reminder.
+   */
   static async getMaintenanceRoutines(
     filters?: Partial<MaintenanceFilters>,
     options?: { includeRepairs?: boolean }
@@ -165,7 +168,9 @@ export class MaintenanceRoutineService {
       return {
         data: options?.includeRepairs
           ? rows
-          : rows.filter((routine) => !isRepairRoutine(routine)),
+          : rows.filter(
+              (routine) => !isRepairRoutine(routine) || routine.is_active
+            ),
         error: null,
       };
     } catch (error) {

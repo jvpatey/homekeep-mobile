@@ -17,6 +17,9 @@ export interface MaintenanceRoutine {
   source_plan_id?: string | null;
   /** Optional equipment this routine belongs to. */
   equipment_id?: string | null;
+  /** Expected cost per occurrence (supplies vs. hiring), from the plan template. */
+  estimated_cost_diy?: number | null;
+  estimated_cost_pro?: number | null;
 }
 
 export interface RoutineInstance {
@@ -58,6 +61,8 @@ export interface MaintenanceTask {
   is_active: boolean;
   source_plan_id?: string | null;
   equipment_id?: string | null;
+  estimated_cost_diy?: number | null;
+  estimated_cost_pro?: number | null;
   cost_amount?: number | null;
   labor_type?: "diy" | "hired" | null;
   photo_storage_path?: string | null;
@@ -126,6 +131,8 @@ export interface CreateMaintenanceRoutineData {
   start_date: string;
   source_plan_id?: string | null;
   equipment_id?: string | null;
+  estimated_cost_diy?: number | null;
+  estimated_cost_pro?: number | null;
 }
 
 // Data for updating maintenance routines
