@@ -17,6 +17,9 @@ import { useReducedMotion } from "../../hooks/useReducedMotion";
 
 export type KeeperMood = "idle" | "thinking";
 
+/** Resting outward tilt of each arm, in degrees. */
+const ARM_TILT = 12;
+
 /** Runs a short sparkle twinkle every few seconds. */
 export function useTwinkle(enabled = true, periodMs = 4200) {
   const reduceMotion = useReducedMotion();
@@ -148,9 +151,9 @@ export function KeeperMark({
   const figureHeight = size * 0.6;
   const headWidth = size * 0.27;
   const armWidth = size * 0.17;
-  const gap = size * 0.05;
+  const gap = size * 0.035;
   const eye = Math.max(2, headWidth * 0.2);
-  const lift = size * 0.08;
+  const shoulder = figureHeight * 0.36;
 
   const eyesStyle = useAnimatedStyle(() => ({
     transform: [
@@ -162,11 +165,13 @@ export function KeeperMark({
       { scaleY: 1 - blink.value * 0.85 },
     ],
   }));
+  // Arms hang from the shoulder, tilted slightly outward; motion swings them
+  // further out (a full wave at ~1.4).
   const leftArmStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -leftArm.value * lift }],
+    transform: [{ rotate: `${ARM_TILT + leftArm.value * 22}deg` }],
   }));
   const rightArmStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -rightArm.value * lift }],
+    transform: [{ rotate: `${-(ARM_TILT + rightArm.value * 80)}deg` }],
   }));
 
   const badgeSize = Math.max(12, Math.round(size * 0.42));
@@ -195,9 +200,11 @@ export function KeeperMark({
         <View style={[styles.figure, { gap, height: figureHeight }]}>
           <Animated.View
             style={[
+              styles.arm,
               {
                 width: armWidth,
-                height: figureHeight * 0.55,
+                height: figureHeight * 0.5,
+                marginTop: shoulder,
                 borderRadius: armWidth / 2,
                 backgroundColor: colors.secondary,
               },
@@ -251,9 +258,11 @@ export function KeeperMark({
           </View>
           <Animated.View
             style={[
+              styles.arm,
               {
                 width: armWidth,
-                height: figureHeight * 0.44,
+                height: figureHeight * 0.42,
+                marginTop: shoulder,
                 borderRadius: armWidth / 2,
                 backgroundColor: colors.text,
               },
@@ -294,6 +303,10 @@ const styles = StyleSheet.create({
   figure: {
     flexDirection: "row",
     alignItems: "flex-end",
+  },
+  arm: {
+    alignSelf: "flex-start",
+    transformOrigin: "top",
   },
   eyes: {
     flexDirection: "row",
