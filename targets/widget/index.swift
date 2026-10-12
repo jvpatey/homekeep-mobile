@@ -35,7 +35,7 @@ struct HomeSnapshot: Codable, Hashable {
   static let sample = HomeSnapshot(
     version: 1,
     signedIn: true,
-    health: SnapshotHealth(score: 82, grade: "good"),
+    health: SnapshotHealth(score: 82, grade: "on_track"),
     tasks: [
       SnapshotTask(id: "1", title: "Replace HVAC filter", due: dayString(offset: -2)),
       SnapshotTask(id: "2", title: "Test smoke & CO alarms", due: dayString(offset: 0)),
@@ -140,8 +140,8 @@ struct Provider: TimelineProvider {
 
 private func gradeColor(_ grade: String?) -> Color {
   switch grade {
-  case "good": return Color("hkSage")
-  case "fair": return Color("hkWarning")
+  case "on_track", "good": return Color("hkSage")
+  case "slipping", "fair": return Color("hkWarning")
   case "needs_attention": return Color("hkOverdue")
   default: return Color("hkMuted")
   }
@@ -149,8 +149,8 @@ private func gradeColor(_ grade: String?) -> Color {
 
 private func gradeLabel(_ grade: String) -> String {
   switch grade {
-  case "good": return "Looking good"
-  case "fair": return "A few things slipping"
+  case "on_track", "good": return "On track"
+  case "slipping", "fair": return "Slipping"
   default: return "Needs attention"
   }
 }
@@ -174,7 +174,7 @@ struct HealthRing: View {
     }
     .frame(width: size, height: size)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Home health \(health.score) out of 100")
+    .accessibilityLabel("Upkeep \(health.score) out of 100, \(gradeLabel(health.grade))")
   }
 }
 
@@ -331,7 +331,7 @@ struct CircularView: View {
       }
       .gaugeStyle(.accessoryCircular)
       .widgetAccentable()
-      .accessibilityLabel("Home health \(health.score)")
+      .accessibilityLabel("Upkeep \(health.score)")
     } else {
       ZStack {
         AccessoryWidgetBackground()
@@ -430,7 +430,7 @@ struct HomeKeepWidget: Widget {
       HomeKeepWidgetView(entry: entry)
     }
     .configurationDisplayName("Up next")
-    .description("Your home health and the next jobs on the schedule.")
+    .description("Your upkeep score and the next jobs on the schedule.")
     .supportedFamilies([
       .systemSmall,
       .systemMedium,

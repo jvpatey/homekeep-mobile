@@ -2,7 +2,7 @@
  * Color/contrast helpers used by the dashboard header and the tinted-glass
  * avatar to keep customizable gradient colors readable on both themes.
  *
- * Same math as the original inline implementation in DashboardHeader.tsx so
+ * Same math as the original inline implementation in the old dashboard header so
  * existing visual behavior is preserved.
  */
 

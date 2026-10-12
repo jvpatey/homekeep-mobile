@@ -1,24 +1,20 @@
 import React from "react";
-import { Pressable, Text, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../../context/ThemeContext";
+import { TodayAlertCard } from "../ui";
 import { useProfile } from "../../context/ProfileContext";
 import { useSubscription } from "../../context/SubscriptionContext";
-import { DesignSystem } from "../../theme/designSystem";
 import { FREE_ACTION_LIMIT } from "../../lib/purchases";
-import { useHaptics } from "../../hooks";
 
-export function PlusStatusBanner() {
-  const { colors } = useTheme();
+export interface PlusStatusPrompt {
+  title: string;
+  subtitle: string;
+  open: () => void;
+}
+
+/** Trial-ending, free-actions-left, or lapsed message; null when nothing to say. */
+export function usePlusStatusPrompt(): PlusStatusPrompt | null {
   const { profile } = useProfile();
-  const {
-    isPlus,
-    status,
-    daysRemaining,
-    presentPaywall,
-    loading,
-  } = useSubscription();
-  const { triggerLight } = useHaptics();
+  const { isPlus, status, daysRemaining, presentPaywall, loading } =
+    useSubscription();
 
   const setupDone = Boolean(profile?.home_setup_set_at);
   const trialEnding =
@@ -30,8 +26,7 @@ export function PlusStatusBanner() {
   const freeRemaining = Math.max(0, FREE_ACTION_LIMIT - freeUsed);
   const freeTrialActions =
     setupDone && !isPlus && !loading && freeRemaining > 0;
-  const lapsed =
-    setupDone && !isPlus && !loading && freeRemaining === 0;
+  const lapsed = setupDone && !isPlus && !loading && freeRemaining === 0;
 
   if (!trialEnding && !lapsed && !freeTrialActions) return null;
 
@@ -50,67 +45,31 @@ export function PlusStatusBanner() {
       ? "Your schedule is free. HomeKeep + keeps the record behind it."
       : "Your schedule is still here. Subscribe to keep checking things off and keep the record.";
 
-  return (
-    <Pressable
-      onPress={() => {
-        void triggerLight();
-        void presentPaywall({
-          force: true,
-          reason: freeTrialActions ? undefined : "free_exhausted",
-        });
-      }}
-      style={[
-        styles.banner,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={`${title}. ${subtitle}`}
-    >
-      <View style={[styles.iconWrap, { backgroundColor: `${colors.primary}15` }]}>
-        <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
-      </View>
-      <View style={styles.copy}>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {subtitle}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-    </Pressable>
-  );
+  return {
+    title,
+    subtitle,
+    open: () =>
+      void presentPaywall({
+        force: true,
+        reason: freeTrialActions ? undefined : "free_exhausted",
+      }),
+  };
 }
 
-const styles = StyleSheet.create({
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.md,
-    padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: DesignSystem.spacing.sm,
-    ...DesignSystem.shadows.softKey,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  copy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  title: {
-    ...DesignSystem.typography.smallSemiBold,
-  },
-  subtitle: {
-    ...DesignSystem.typography.caption,
-    marginTop: 2,
-  },
-});
+export function PlusStatusBanner({
+  prompt,
+  onDismiss,
+}: {
+  prompt: PlusStatusPrompt;
+  onDismiss?: () => void;
+}) {
+  return (
+    <TodayAlertCard
+      icon="sparkles-outline"
+      title={prompt.title}
+      body={prompt.subtitle}
+      onPress={prompt.open}
+      onDismiss={onDismiss}
+    />
+  );
+}

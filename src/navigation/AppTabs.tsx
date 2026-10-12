@@ -7,7 +7,8 @@ import { DashboardScreen } from "../screens/DashboardScreen";
 import { RecordHomeScreen } from "../screens/record/RecordHomeScreen";
 import { CompletionHistoryScreen } from "../screens/completion-history";
 import { HomeSummaryPreviewScreen } from "../screens/home-summary-preview";
-import { PlanHomeScreen } from "../screens/plan/PlanHomeScreen";
+import { TasksHomeScreen } from "../screens/tasks/TasksHomeScreen";
+import { TaskActionsProvider } from "../context/TaskActionsContext";
 import { SpendLedgerScreen } from "../screens/spend-ledger/SpendLedgerScreen";
 import { YearInReviewScreen } from "../screens/year-in-review/YearInReviewScreen";
 import { ProsScreen } from "../screens/pros/ProsScreen";
@@ -24,8 +25,8 @@ import { InspectionImportScreen } from "../screens/documents/InspectionImportScr
 import {
   AppTabsParamList,
   HomeStackParamList,
-  PlanStackParamList,
   RecordStackParamList,
+  TasksStackParamList,
 } from "./types";
 import { useTabStackScreenOptions } from "./stackScreenOptions";
 import { useTabIcons } from "./useTabIcons";
@@ -33,7 +34,7 @@ import { useTabIcons } from "./useTabIcons";
 const Tabs = createNativeBottomTabNavigator<AppTabsParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const RecordStack = createNativeStackNavigator<RecordStackParamList>();
-const PlanStack = createNativeStackNavigator<PlanStackParamList>();
+const TasksStack = createNativeStackNavigator<TasksStackParamList>();
 
 function HomeStackNavigator() {
   return (
@@ -50,7 +51,7 @@ function RecordStackNavigator() {
       <RecordStack.Screen
         name="RecordHome"
         component={RecordHomeScreen}
-        options={{ title: "Record", headerShown: false }}
+        options={{ title: "My Home", headerShown: false }}
       />
       <RecordStack.Screen
         name="CompletionHistory"
@@ -116,16 +117,16 @@ function RecordStackNavigator() {
   );
 }
 
-function PlanStackNavigator() {
+function TasksStackNavigator() {
   const screenOptions = useTabStackScreenOptions();
   return (
-    <PlanStack.Navigator screenOptions={screenOptions}>
-      <PlanStack.Screen
-        name="PlanHome"
-        component={PlanHomeScreen}
-        options={{ title: "Plan", headerShown: false }}
+    <TasksStack.Navigator screenOptions={screenOptions}>
+      <TasksStack.Screen
+        name="TasksHome"
+        component={TasksHomeScreen}
+        options={{ title: "Tasks", headerShown: false }}
       />
-    </PlanStack.Navigator>
+    </TasksStack.Navigator>
   );
 }
 
@@ -134,35 +135,37 @@ export function AppTabs() {
   const icon = useTabIcons();
 
   return (
-    <Tabs.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarActiveIndicatorColor: colors.primary + "22",
-        tabBarStyle:
-          Platform.OS === "android"
-            ? { backgroundColor: colors.surface }
-            : undefined,
-        popToTopOnBlur: false,
-        tabBarMinimizeBehavior: "onScrollDown",
-      }}
-    >
-      <Tabs.Screen
-        name="HomeTab"
-        component={HomeStackNavigator}
-        options={{ title: "Home", tabBarIcon: icon("home") }}
-      />
-      <Tabs.Screen
-        name="RecordTab"
-        component={RecordStackNavigator}
-        options={{ title: "Record", tabBarIcon: icon("record") }}
-      />
-      <Tabs.Screen
-        name="PlanTab"
-        component={PlanStackNavigator}
-        options={{ title: "Plan", tabBarIcon: icon("plan") }}
-      />
-    </Tabs.Navigator>
+    <TaskActionsProvider>
+      <Tabs.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarActiveIndicatorColor: colors.primary + "22",
+          tabBarStyle:
+            Platform.OS === "android"
+              ? { backgroundColor: colors.surface }
+              : undefined,
+          popToTopOnBlur: false,
+          tabBarMinimizeBehavior: "onScrollDown",
+        }}
+      >
+        <Tabs.Screen
+          name="HomeTab"
+          component={HomeStackNavigator}
+          options={{ title: "Today", tabBarIcon: icon("today") }}
+        />
+        <Tabs.Screen
+          name="TasksTab"
+          component={TasksStackNavigator}
+          options={{ title: "Tasks", tabBarIcon: icon("tasks") }}
+        />
+        <Tabs.Screen
+          name="RecordTab"
+          component={RecordStackNavigator}
+          options={{ title: "My Home", tabBarIcon: icon("myHome") }}
+        />
+      </Tabs.Navigator>
+    </TaskActionsProvider>
   );
 }

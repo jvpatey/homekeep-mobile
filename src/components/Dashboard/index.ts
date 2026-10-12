@@ -1,5 +1,5 @@
 // Dashboard Components
-export { NewDashboard as Dashboard } from "./Dashboard";
+export { TodayDashboard as Dashboard } from "./Dashboard";
 export { HeroCarousel } from "./HeroCarousel";
 export { TimelineView } from "./timeline-view";
 export { TaskCard } from "./tasks";
@@ -7,8 +7,6 @@ export { CompletionCelebration } from "./popups";
 export { ProfileButton } from "./profile";
 export { SimpleTaskDetailModal } from "./modals";
 export { ProfileMenu } from "./profile";
-export { DashboardHeader } from "./DashboardHeader";
-
 // Components needed by other screens
 export { PriorityBadge } from "./tasks";
 

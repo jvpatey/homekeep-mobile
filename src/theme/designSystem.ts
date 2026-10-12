@@ -38,11 +38,25 @@ export const DesignSystem = {
       lineHeight: 30,
       letterSpacing: -0.5,
     },
+    headline: {
+      fontFamily: FontFamily.ui,
+      fontSize: 17,
+      fontWeight: "600" as const,
+      lineHeight: 22,
+      letterSpacing: -0.2,
+    },
     callout: {
       fontFamily: FontFamily.ui,
       fontSize: 16,
       fontWeight: "500" as const,
       lineHeight: 22,
+      letterSpacing: -0.1,
+    },
+    subhead: {
+      fontFamily: FontFamily.ui,
+      fontSize: 15,
+      fontWeight: "400" as const,
+      lineHeight: 20,
       letterSpacing: -0.1,
     },
     footnote: {
@@ -78,6 +92,7 @@ export const DesignSystem = {
     },
 
     body: {
+      fontFamily: FontFamily.ui,
       fontSize: 16,
       fontWeight: "400" as const,
       lineHeight: 22,
@@ -116,6 +131,7 @@ export const DesignSystem = {
     },
 
     caption: {
+      fontFamily: FontFamily.ui,
       fontSize: 12,
       fontWeight: "400" as const,
       lineHeight: 16,

@@ -139,7 +139,7 @@ function hintedSpecificZone(title: string): HomeMapZoneId | null {
 }
 
 export function taskMatchesZone(
-  task: MaintenanceTask,
+  task: Pick<MaintenanceTask, "title" | "category" | "source_plan_id">,
   zone: HomeMapZone
 ): boolean {
   if (zone.sourcePlanId && task.source_plan_id === zone.sourcePlanId) {

@@ -1,5 +1,6 @@
 import { NavigatorScreenParams } from "@react-navigation/native";
 import type { DocumentKind } from "../types/homeDocument";
+import type { HomeMapZoneId } from "../data/homeMapZones";
 
 /**
  * Root Stack Navigator Params
@@ -24,10 +25,11 @@ export type AppStackParamList = {
   MaintenancePlans: { planId?: string } | undefined;
 };
 
+/** HomeTab is titled "Today" and RecordTab "My Home"; route keys predate the rename. */
 export type AppTabsParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList> | undefined;
+  TasksTab: NavigatorScreenParams<TasksStackParamList> | undefined;
   RecordTab: NavigatorScreenParams<RecordStackParamList> | undefined;
-  PlanTab: NavigatorScreenParams<PlanStackParamList> | undefined;
 };
 
 export type HomeStackParamList = {
@@ -52,8 +54,16 @@ export type RecordStackParamList = {
   InspectionImport: { documentId: string };
 };
 
-export type PlanStackParamList = {
-  PlanHome: { segment?: "library" | "reminders" } | undefined;
+export type TasksSegment = "schedule" | "routines" | "library";
+
+export type TasksStackParamList = {
+  TasksHome:
+    | {
+        segment?: TasksSegment;
+        zone?: HomeMapZoneId;
+        focus?: "overdue" | "today";
+      }
+    | undefined;
 };
 
 /**

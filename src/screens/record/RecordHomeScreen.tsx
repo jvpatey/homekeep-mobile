@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -35,7 +35,14 @@ import {
   HouseholdService,
   formatHouseholdPeople,
 } from "../../services/HouseholdService";
-import { emergencyProgressSubtitle } from "../../types/homeEmergency";
+import {
+  countFilledEmergencySpots,
+  emergencyProgressSubtitle,
+} from "../../types/homeEmergency";
+import {
+  HomeRecordItemKey,
+  homeRecordProgress,
+} from "../../utils/homeRecordProgress";
 import { computeSpendLedger, spendForYear } from "../../utils/spendLedger";
 import {
   formatProfileAddressLines,
@@ -61,6 +68,17 @@ const TINTS = {
   share: "#3E8E7E",
   pdf: "#6B645C",
   review: "#A0522D",
+};
+
+type RecordSectionKey = "things" | "people";
+
+const SECTION_FOR: Record<HomeRecordItemKey, RecordSectionKey> = {
+  emergency: "things",
+  equipment: "things",
+  documents: "things",
+  notes: "things",
+  pros: "people",
+  homeShare: "people",
 };
 
 function countSubtitle(count: number, noun: string, empty: string) {
@@ -134,9 +152,36 @@ export function RecordHomeScreen() {
 
   const householdShared = members.length > 1;
 
+  const emergencyCount = countFilledEmergencySpots(
+    profile?.home_emergency,
+    profile?.home_systems
+  );
+  const recordProgress = homeRecordProgress({
+    emergencyComplete:
+      emergencyCount.total > 0 && emergencyCount.filled === emergencyCount.total,
+    equipmentCount: equipment.items.length,
+    documentCount: documents.items.length,
+    proCount: contacts.items.length,
+    noteCount: homeNotes.notes.length,
+    paintCount: homeNotes.paints.length,
+    householdShared,
+  });
+  const firstMissing = recordProgress.items.find((item) => !item.done);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Partial<Record<RecordSectionKey, number>>>({});
+  const scrollToFirstMissing = () => {
+    if (!firstMissing) return;
+    const y = sectionY.current[SECTION_FOR[firstMissing.key]];
+    if (y == null) return;
+    triggerLight();
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+  };
+
   return (
     <>
       <ScrollView
+        ref={scrollRef}
         style={{ backgroundColor: colors.background }}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
@@ -150,7 +195,7 @@ export function RecordHomeScreen() {
         }
       >
         <TabScreenHeader
-          title="Record"
+          title="My Home"
           subtitle="Your home's history, things, and people"
           style={styles.header}
           actions={
@@ -236,6 +281,43 @@ export function RecordHomeScreen() {
           <Text style={[styles.since, { color: colors.textSecondary }]}>
             {sinceLabel}
           </Text>
+          <Pressable
+            onPress={scrollToFirstMissing}
+            disabled={!firstMissing}
+            style={({ pressed }) => [
+              styles.progress,
+              pressed && { opacity: 0.6 },
+            ]}
+            accessibilityRole={firstMissing ? "button" : "text"}
+            accessibilityLabel={`Home record ${recordProgress.done} of ${recordProgress.total} complete${
+              firstMissing ? `. Next: ${firstMissing.label}` : ""
+            }`}
+          >
+            <View style={styles.progressTop}>
+              <Text style={[styles.progressLabel, { color: colors.text }]}>
+                Home record
+              </Text>
+              <Text
+                style={[styles.progressCount, { color: colors.textSecondary }]}
+              >
+                {recordProgress.done} of {recordProgress.total}
+                {firstMissing ? ` · Next: ${firstMissing.label}` : " · Complete"}
+              </Text>
+            </View>
+            <View
+              style={[styles.progressTrack, { backgroundColor: colors.fieldFill }]}
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${(recordProgress.done / recordProgress.total) * 100}%`,
+                    backgroundColor: colors.secondary,
+                  },
+                ]}
+              />
+            </View>
+          </Pressable>
           <View style={[styles.stats, { borderTopColor: colors.border }]}>
             <Stat
               value={loaded ? String(ledger.jobCount) : "—"}
@@ -296,6 +378,11 @@ export function RecordHomeScreen() {
           />
         </RecordSection>
 
+        <View
+          onLayout={(e) => {
+            sectionY.current.things = e.nativeEvent.layout.y;
+          }}
+        />
         <RecordSection title="Things">
           <RecordRow
             icon="cube"
@@ -354,6 +441,11 @@ export function RecordHomeScreen() {
           />
         </RecordSection>
 
+        <View
+          onLayout={(e) => {
+            sectionY.current.people = e.nativeEvent.layout.y;
+          }}
+        />
         <RecordSection title="People">
           <RecordRow
             icon="call"
@@ -499,6 +591,34 @@ const styles = StyleSheet.create({
   since: {
     ...DesignSystem.typography.footnote,
     marginTop: DesignSystem.spacing.md,
+  },
+  progress: {
+    marginTop: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.xs + 2,
+  },
+  progressTop: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: DesignSystem.spacing.sm,
+  },
+  progressLabel: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
+  },
+  progressCount: {
+    ...DesignSystem.typography.caption,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
   },
   stats: {
     flexDirection: "row",

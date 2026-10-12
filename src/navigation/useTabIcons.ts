@@ -5,18 +5,18 @@ import type { NativeBottomTabIcon } from "@react-navigation/bottom-tabs/unstable
 
 type SFSymbol = Extract<NativeBottomTabIcon, { type: "sfSymbol" }>["name"];
 
-type TabKey = "home" | "record" | "plan";
+type TabKey = "today" | "tasks" | "myHome";
 
 const SF_SYMBOLS: Record<TabKey, { normal: SFSymbol; focused: SFSymbol }> = {
-  home: { normal: "house", focused: "house.fill" },
-  record: { normal: "tray.full", focused: "tray.full.fill" },
-  plan: { normal: "list.bullet.clipboard", focused: "list.bullet.clipboard.fill" },
+  today: { normal: "sun.max", focused: "sun.max.fill" },
+  tasks: { normal: "checklist", focused: "checklist.checked" },
+  myHome: { normal: "house", focused: "house.fill" },
 };
 
 const IONICONS: Record<TabKey, keyof typeof Ionicons.glyphMap> = {
-  home: "home",
-  record: "file-tray-full",
-  plan: "clipboard",
+  today: "sunny",
+  tasks: "checkbox",
+  myHome: "home",
 };
 
 let androidCache: Partial<Record<TabKey, ImageSourcePropType>> | null = null;
