@@ -196,6 +196,9 @@ export function SpendLedgerScreen() {
   };
 
   const periodLabel = yearKey === "all" ? "all time" : String(yearKey);
+  const heroTotalLabel = formatMoney(yearData.total, {
+    whole: yearData.total >= 1000,
+  });
   const delta =
     previous && previous.total > 0 && yearKey !== "all"
       ? yearData.total - previous.total
@@ -333,15 +336,17 @@ export function SpendLedgerScreen() {
                       : `Spent in ${yearKey}`}
                   </Text>
                   <Text
-                    style={[styles.heroTotal, { color: colors.text }]}
+                    style={[
+                      styles.heroTotal,
+                      { color: colors.text },
+                      heroTotalLabel.length >= 12
+                        ? styles.heroTotalSmall
+                        : heroTotalLabel.length >= 9 && styles.heroTotalMedium,
+                    ]}
                     numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.6}
                     accessibilityLabel={`${formatMoney(yearData.total)} spent in ${periodLabel}`}
                   >
-                    {formatMoney(yearData.total, {
-                      whole: yearData.total >= 1000,
-                    })}
+                    {heroTotalLabel}
                   </Text>
                   <View style={styles.heroMetaRow}>
                     {delta !== null && deltaPct !== null && previous ? (
@@ -668,9 +673,14 @@ function SplitTile({
         </Text>
       </View>
       <Text
-        style={[styles.splitAmount, { color: colors.text }]}
+        style={[
+          styles.splitAmount,
+          { color: colors.text },
+          amount.length >= 10
+            ? styles.splitAmountSmall
+            : amount.length >= 8 && styles.splitAmountMedium,
+        ]}
         numberOfLines={1}
-        adjustsFontSizeToFit
       >
         {amount}
       </Text>
@@ -815,6 +825,16 @@ const styles = StyleSheet.create({
     marginTop: DesignSystem.spacing.xs,
     fontVariant: ["tabular-nums"],
   },
+  // Amounts are sized by length rather than adjustsFontSizeToFit, which iOS
+  // can collapse to a sliver when the value changes after first layout.
+  heroTotalMedium: {
+    fontSize: 36,
+    lineHeight: 44,
+  },
+  heroTotalSmall: {
+    fontSize: 30,
+    lineHeight: 38,
+  },
   heroMetaRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -913,6 +933,12 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     marginTop: 2,
     fontVariant: ["tabular-nums"],
+  },
+  splitAmountMedium: {
+    fontSize: 18,
+  },
+  splitAmountSmall: {
+    fontSize: 15,
   },
   splitFootnote: {
     ...DesignSystem.typography.caption,

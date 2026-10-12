@@ -413,10 +413,14 @@ function Stat({
         </View>
       ) : (
         <Text
-          style={[styles.statValue, { color: colors.text }]}
+          style={[
+            styles.statValue,
+            { color: colors.text },
+            value.length >= 10
+              ? styles.statValueSmall
+              : value.length >= 8 && styles.statValueMedium,
+          ]}
           numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
         >
           {value}
         </Text>
@@ -496,6 +500,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontVariant: ["tabular-nums"],
+  },
+  // Sized by length rather than adjustsFontSizeToFit, which iOS can collapse
+  // to a sliver when the flex column is measured before it has a width.
+  statValueMedium: {
+    fontSize: 18,
+  },
+  statValueSmall: {
+    fontSize: 15,
   },
   statLabel: {
     ...DesignSystem.typography.caption,
