@@ -12,6 +12,7 @@
     "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook && supabase functions deploy recall-scan && supabase functions deploy homekeep-ai && supabase functions deploy calendar-feed"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",

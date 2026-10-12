@@ -11,6 +11,7 @@ import { resetHomeContacts } from "../hooks/useHomeContacts";
 import { resetHomeDocuments } from "../hooks/useHomeDocuments";
 import { resetEquipmentRecalls } from "../hooks/useEquipmentRecalls";
 import { resetRoutineCache } from "../components/all-reminders/useReminderRoutines";
+import { clearWidgetSnapshot } from "../lib/homeWidget";
 import { AppStackParamList } from "./types";
 import { AppTabs } from "./AppTabs";
 import { useTabStackScreenOptions } from "./stackScreenOptions";
@@ -33,6 +34,7 @@ export function AppNavigator() {
       resetHomeDocuments();
       resetEquipmentRecalls();
       resetRoutineCache();
+      clearWidgetSnapshot();
     },
     []
   );

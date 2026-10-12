@@ -9,8 +9,10 @@ import React, {
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import * as Linking from "expo-linking";
 import { AppState, Platform } from "react-native";
 import { useAuth } from "./AuthContext";
+import { isWidgetUrl, widgetTaskInstanceId } from "../lib/homeWidget";
 import {
   NotificationPreferences,
   NotificationSettings,
@@ -505,6 +507,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       responseListener.remove();
     };
   }, [consumeResponse]);
+
+  useEffect(() => {
+    const openFromWidget = (url: string | null) => {
+      if (!isWidgetUrl(url)) return;
+      const instanceId = widgetTaskInstanceId(url);
+      setPendingOpen(
+        instanceId ? { action: "view", instanceId } : { action: "view" }
+      );
+    };
+    void Linking.getInitialURL().then(openFromWidget);
+    const subscription = Linking.addEventListener("url", ({ url }) =>
+      openFromWidget(url)
+    );
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!user) return;

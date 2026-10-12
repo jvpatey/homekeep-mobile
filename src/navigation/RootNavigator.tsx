@@ -14,6 +14,7 @@ import { AuthNavigator } from "./AuthNavigator";
 import { EmailVerificationScreen } from "../screens/auth/EmailVerificationScreen";
 import { RootStackParamList } from "./types";
 import { useTheme } from "../context/ThemeContext";
+import { isWidgetUrl } from "../lib/homeWidget";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -34,14 +35,15 @@ const linking = {
       Auth: "*", // Handle OAuth callbacks and other auth routes
     },
   },
-  // Handle the incoming URL and extract the full URL with query parameters
+  // Handle the incoming URL and extract the full URL with query parameters.
+  // Widget taps are routed by NotificationContext, not the navigator.
   getInitialURL: async () => {
     const url = await Linking.getInitialURL();
-    return url;
+    return isWidgetUrl(url) ? null : url;
   },
   subscribe: (listener: (url: string) => void) => {
     const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
-      listener(url);
+      if (!isWidgetUrl(url)) listener(url);
     });
 
     return () => {

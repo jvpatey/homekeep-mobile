@@ -93,6 +93,7 @@ import {
 import { MaintenanceService } from "../../services/maintenanceService";
 import { MaintenanceStatsService } from "../../services/MaintenanceStatsService";
 import type { LastCompletionMap } from "../../utils/zoneHealth";
+import { useWidgetSync } from "../../hooks/useWidgetSync";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { getAppliedPlanIds } from "../../data/maintenancePlans";
 import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
@@ -161,7 +162,9 @@ export function NewDashboard({
   const [showAssistant, setShowAssistant] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState<string | undefined>();
   const pendingAskKeeperRef = useRef<MaintenanceTask | null>(null);
-  const { createTasks } = useTasks();
+  const { createTasks, loading: tasksLoading } = useTasks();
+  const sawTasksLoad = useRef(false);
+  if (tasksLoading) sawTasksLoad.current = true;
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
   const { goToTab, openPlan, openRecord } = useAppNavigation();
@@ -382,6 +385,17 @@ export function NewDashboard({
     () => [...seasonalOverdue, ...seasonalTasks],
     [seasonalOverdue, seasonalTasks]
   );
+
+  useWidgetSync({
+    overdue: seasonalOverdue,
+    upcoming: seasonalTasks,
+    lastCompletion,
+    home: profile?.home_systems,
+    ready:
+      !tasksLoading &&
+      !tasksError &&
+      (sawTasksLoad.current || tasks.length > 0 || overdueTasks.length > 0),
+  });
 
   const activeWeekendPlan = useMemo(
     () => (storedWeekendPlan ? resolveWeekendPlan(storedWeekendPlan) : null),
