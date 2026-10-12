@@ -75,6 +75,8 @@ export interface RecordRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   /** Tile colour; defaults to the primary accent. */
   tint?: string;
+  /** `soft` draws a tinted chip with a coloured glyph instead of a solid tile. */
+  tone?: "solid" | "soft";
   title: string;
   subtitle?: string | null;
   value?: string | null;
@@ -89,6 +91,7 @@ export interface RecordRowProps {
 export function RecordRow({
   icon,
   tint,
+  tone = "solid",
   title,
   subtitle,
   value,
@@ -101,6 +104,7 @@ export function RecordRow({
 }: RecordRowProps) {
   const { colors } = useTheme();
   const tileColor = destructive ? colors.error : tint ?? colors.primary;
+  const soft = tone === "soft";
   return (
     <Pressable
       onPress={onPress}
@@ -117,8 +121,14 @@ export function RecordRow({
           .join(". ")
       }
     >
-      <View style={[styles.tile, { backgroundColor: tileColor }]}>
-        <Ionicons name={icon} size={17} color="#FFFFFF" />
+      <View
+        style={[
+          styles.tile,
+          soft && styles.tileSoft,
+          { backgroundColor: soft ? tileColor + "1F" : tileColor },
+        ]}
+      >
+        <Ionicons name={icon} size={17} color={soft ? tileColor : "#FFFFFF"} />
       </View>
       <View style={styles.rowText}>
         <Text
@@ -207,6 +217,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+  },
+  tileSoft: {
+    borderRadius: 15,
   },
   rowText: {
     flex: 1,
