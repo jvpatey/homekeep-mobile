@@ -97,11 +97,14 @@ export function AssistantSheet({
   visible,
   onClose,
   equipment = null,
+  initialPrompt,
 }: {
   visible: boolean;
   onClose: () => void;
   /** Scope the conversation to one piece of equipment. */
   equipment?: { id: string; name: string } | null;
+  /** Sent automatically as a fresh conversation each time the sheet opens with it. */
+  initialPrompt?: string;
 }) {
   const { colors } = useTheme();
   const { profile } = useProfile();
@@ -118,12 +121,25 @@ export function AssistantSheet({
   const [saved, setSaved] = useState<Record<string, { view?: () => void }>>({});
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const scrollRef = useRef<ScrollView>(null);
+  const sentInitialPrompt = useRef<string | null>(null);
 
   useEffect(() => {
     setTurns([]);
     setSaved({});
     setDraft("");
   }, [equipment?.id]);
+
+  useEffect(() => {
+    if (!visible) {
+      sentInitialPrompt.current = null;
+      return;
+    }
+    if (!initialPrompt || sentInitialPrompt.current === initialPrompt) return;
+    sentInitialPrompt.current = initialPrompt;
+    setSaved({});
+    void send(initialPrompt, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialPrompt]);
 
   useEffect(() => {
     const timer = setTimeout(

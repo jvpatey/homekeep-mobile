@@ -53,7 +53,7 @@ interface VisibleTask {
   routine: VisibleRoutine | null;
 }
 
-async function getViewerHouseholdId(
+export async function getViewerHouseholdId(
   supabase: any,
   userId: string
 ): Promise<string | null> {
@@ -69,7 +69,7 @@ async function getViewerHouseholdId(
   return typeof data?.household_id === "string" ? data.household_id : null;
 }
 
-async function getViewerLatitude(
+export async function getViewerLatitude(
   supabase: any,
   userId: string,
   householdId: string | null

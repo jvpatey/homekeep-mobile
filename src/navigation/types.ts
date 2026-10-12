@@ -38,6 +38,7 @@ export type RecordStackParamList = {
   RecordHome: undefined;
   CompletionHistory: undefined;
   SpendLedger: { year?: number } | undefined;
+  YearInReview: undefined;
   HomeSummaryPreview: undefined;
   Pros: undefined;
   ProDetail: { contactId: string };

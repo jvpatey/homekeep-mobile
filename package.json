@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "build:ios": "expo build:ios",
     "submit:ios": "expo submit --platform ios",
-    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook && supabase functions deploy recall-scan && supabase functions deploy homekeep-ai"
+    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook && supabase functions deploy recall-scan && supabase functions deploy homekeep-ai && supabase functions deploy calendar-feed"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
@@ -62,6 +62,7 @@
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-view-shot": "5.1.0",
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {

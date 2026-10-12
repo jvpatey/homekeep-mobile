@@ -107,6 +107,11 @@ export function getPlanSummary(plan: MaintenancePlanDefinition): MaintenancePlan
   };
 }
 
+/** Case- and whitespace-insensitive title; routines join back to library templates by this. */
+export function normalizeRoutineTitle(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 /**
  * Stable identity for deduping plan routines against each other and existing DB rows.
  * Same title (normalized), category, and interval ⇒ same recurring task for our purposes.
@@ -116,8 +121,7 @@ export function routineIdentityKey(
   category: MaintenanceCategory,
   interval_days: number
 ): string {
-  const normalized = title.trim().replace(/\s+/g, " ").toLowerCase();
-  return `${category}|${interval_days}|${normalized}`;
+  return `${category}|${interval_days}|${normalizeRoutineTitle(title)}`;
 }
 
 /** Drops payloads that match an existing routine or duplicate an earlier payload in the same batch. */

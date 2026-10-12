@@ -7,6 +7,7 @@ export {
   buildRoutinePayloads,
   buildRoutinePayloadsFromItems,
   getPlanSummary,
+  normalizeRoutineTitle,
   routineIdentityKey,
   filterNewRoutinePayloads,
 } from "./types";

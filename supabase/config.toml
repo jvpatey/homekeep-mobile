@@ -7,6 +7,7 @@
 #   supabase functions deploy process-scheduled-notifications
 #   supabase functions deploy recall-scan
 #   supabase functions deploy homekeep-ai
+#   supabase functions deploy calendar-feed
 #
 # homekeep-ai secrets: supabase secrets set GEMINI_API_KEY=... [GEMINI_MODEL=gemini-3.5-flash-lite]
 #
@@ -37,5 +38,10 @@ import_map = "./functions/deno.json"
 
 # Gemini-backed AI tasks; authenticates the user JWT itself.
 [functions.homekeep-ai]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+# ICS subscription; calendar apps can't send a JWT, so the feed token is the credential.
+[functions.calendar-feed]
 verify_jwt = false
 import_map = "./functions/deno.json"

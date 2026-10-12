@@ -9,6 +9,7 @@ import { HearthSurfaceCard, SheetActionRow } from "../../components/ui";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
+import { CalendarFeedSheet } from "../../components/modals/calendar-feed/CalendarFeedSheet";
 import { useAppNavigation } from "../../navigation/useAppNavigation";
 import { EditNameModal } from "../../components/modals/edit-name-modal";
 import { EditPasswordModal } from "../../components/modals/edit-password-modal";
@@ -42,6 +43,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     useState(false);
   const [homeSetupVisible, setHomeSetupVisible] = useState(false);
   const [householdVisible, setHouseholdVisible] = useState(false);
+  const [calendarFeedVisible, setCalendarFeedVisible] = useState(false);
   const { openRecord } = useAppNavigation();
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
   const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
@@ -302,6 +304,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               void triggerLight();
               setNotificationModalVisible(true);
             }}
+            showDivider
+          />
+          <SheetActionRow
+            icon="calendar-outline"
+            title="Calendar subscription"
+            subtitle="See upcoming tasks in your calendar app"
+            onPress={() => {
+              void triggerLight();
+              setCalendarFeedVisible(true);
+            }}
           />
         </HearthSurfaceCard>
 
@@ -344,6 +356,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       <HouseholdSharingModal
         visible={householdVisible}
         onClose={() => setHouseholdVisible(false)}
+      />
+
+      <CalendarFeedSheet
+        visible={calendarFeedVisible}
+        onClose={() => setCalendarFeedVisible(false)}
       />
 
       {nameEditorVisible ? (

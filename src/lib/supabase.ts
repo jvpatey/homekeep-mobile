@@ -7,6 +7,8 @@ const supabaseUrl =
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key";
 
+export const supabaseProjectUrl = supabaseUrl.replace(/\/+$/, "");
+
 export const hasValidCredentials =
   supabaseUrl !== "https://placeholder.supabase.co" &&
   supabaseAnonKey !== "placeholder-key";

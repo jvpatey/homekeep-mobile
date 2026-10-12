@@ -91,6 +91,8 @@ import {
   markCampaignCelebrated,
 } from "../../utils/campaignProgress";
 import { MaintenanceService } from "../../services/maintenanceService";
+import { MaintenanceStatsService } from "../../services/MaintenanceStatsService";
+import type { LastCompletionMap } from "../../utils/zoneHealth";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { getAppliedPlanIds } from "../../data/maintenancePlans";
 import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
@@ -157,6 +159,8 @@ export function NewDashboard({
   const { isPlus, offerPaywallAfterSetup } = useSubscription();
   const assistant = usePlusFeature("assistant");
   const [showAssistant, setShowAssistant] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState<string | undefined>();
+  const pendingAskKeeperRef = useRef<MaintenanceTask | null>(null);
   const { createTasks } = useTasks();
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
@@ -211,6 +215,7 @@ export function NewDashboard({
   const [activeRoutines, setActiveRoutines] = useState<MaintenanceRoutine[]>(
     []
   );
+  const [lastCompletion, setLastCompletion] = useState<LastCompletionMap>({});
   const [campaignCelebrated, setCampaignCelebrated] = useState(true);
   const pendingEditRef = useRef<MaintenanceTask | null>(null);
   const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
@@ -482,10 +487,13 @@ export function NewDashboard({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data } = await MaintenanceService.getMaintenanceRoutines({
-        is_active: true,
-      });
-      if (!cancelled) setActiveRoutines(data ?? []);
+      const [{ data }, completions] = await Promise.all([
+        MaintenanceService.getMaintenanceRoutines({ is_active: true }),
+        MaintenanceStatsService.getLastCompletionByRoutine(),
+      ]);
+      if (cancelled) return;
+      setActiveRoutines(data ?? []);
+      if (completions.data) setLastCompletion(completions.data);
     })();
     return () => {
       cancelled = true;
@@ -940,6 +948,7 @@ export function NewDashboard({
       <HomeSystemMap
         overdueTasks={seasonalOverdue}
         upcomingTasks={seasonalTasks}
+        lastCompletion={lastCompletion}
         selectedZoneId={selectedZoneId}
         onSelectZone={setSelectedZoneId}
         onSetupHome={() => setShowHomeSetupModal(true)}
@@ -1044,6 +1053,20 @@ export function NewDashboard({
               setTimeout(() => setCompleteTarget(toComplete), 50);
               return;
             }
+            const toAsk = pendingAskKeeperRef.current;
+            pendingAskKeeperRef.current = null;
+            if (toAsk) {
+              setTimeout(() => {
+                void assistant.unlock().then((ok) => {
+                  if (!ok) return;
+                  setAssistantPrompt(
+                    `How do I do "${toAsk.title}"? Walk me through it step by step for my home.`
+                  );
+                  setShowAssistant(true);
+                });
+              }, 50);
+              return;
+            }
             // Resume weekend planner after browsing a task (avoid nested Modals).
             if (resumeWeekendAfterDetailRef.current) {
               resumeWeekendAfterDetailRef.current = false;
@@ -1057,6 +1080,10 @@ export function NewDashboard({
           }}
           onEdit={(task) => {
             pendingEditRef.current = task;
+            setShowTaskDetail(false);
+          }}
+          onAskKeeper={(task) => {
+            pendingAskKeeperRef.current = task;
             setShowTaskDetail(false);
           }}
           onSkipOccurrence={
@@ -1162,7 +1189,11 @@ export function NewDashboard({
 
       <AssistantSheet
         visible={showAssistant}
-        onClose={() => setShowAssistant(false)}
+        onClose={() => {
+          setShowAssistant(false);
+          setAssistantPrompt(undefined);
+        }}
+        initialPrompt={assistantPrompt}
       />
 
       {showWeekendBudget ? (

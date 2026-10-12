@@ -9,6 +9,7 @@ import { CompletionHistoryScreen } from "../screens/completion-history";
 import { HomeSummaryPreviewScreen } from "../screens/home-summary-preview";
 import { PlanHomeScreen } from "../screens/plan/PlanHomeScreen";
 import { SpendLedgerScreen } from "../screens/spend-ledger/SpendLedgerScreen";
+import { YearInReviewScreen } from "../screens/year-in-review/YearInReviewScreen";
 import { ProsScreen } from "../screens/pros/ProsScreen";
 import { EquipmentListScreen } from "../screens/equipment/EquipmentListScreen";
 import { EquipmentDetailScreen } from "../screens/equipment/EquipmentDetailScreen";
@@ -60,6 +61,11 @@ function RecordStackNavigator() {
         name="SpendLedger"
         component={SpendLedgerScreen}
         options={{ title: "Spend" }}
+      />
+      <RecordStack.Screen
+        name="YearInReview"
+        component={YearInReviewScreen}
+        options={{ title: "Year in review", headerLargeTitleEnabled: false }}
       />
       <RecordStack.Screen
         name="Pros"

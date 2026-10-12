@@ -60,6 +60,7 @@ const TINTS = {
   pros: "#C49A3C",
   share: "#3E8E7E",
   pdf: "#6B645C",
+  review: "#A0522D",
 };
 
 function countSubtitle(count: number, noun: string, empty: string) {
@@ -285,6 +286,13 @@ export function RecordHomeScreen() {
             }
             locked={recordLocked}
             onPress={() => go(() => navigation.navigate("SpendLedger"))}
+          />
+          <RecordRow
+            icon="sparkles"
+            tint={TINTS.review}
+            title="Year in review"
+            subtitle="Your year of upkeep, ready to share"
+            onPress={() => go(() => navigation.navigate("YearInReview"))}
           />
         </RecordSection>
 
