@@ -22,6 +22,7 @@ export function isTaskInSeason(input: {
   month: number;
   latitude?: number | null;
 }): boolean {
+  if (input.interval_days <= 0) return true;
   const growing = isGrowingSeason(input.month, input.latitude);
   if (
     input.category === "LANDSCAPING" &&

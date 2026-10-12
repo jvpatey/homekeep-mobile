@@ -4,19 +4,17 @@ import { isGrowingSeason } from "./homeSeason";
 
 /**
  * Hide frequent outdoor jobs when they are out of season instead of leaving them overdue.
+ * One-off tasks (interval 0) were scheduled on purpose and always show.
  * Keep in sync with supabase/functions/_shared/seasonalTasks.ts
  */
 export function isTaskInSeason(
   task: MaintenanceTask,
   month: number,
-  latitude?: number | null
+  latitude?: number | null,
 ): boolean {
+  if (task.interval_days <= 0) return true;
   const growing = isGrowingSeason(month, latitude);
-  if (
-    task.category === "LANDSCAPING" &&
-    task.interval_days <= 90 &&
-    !growing
-  ) {
+  if (task.category === "LANDSCAPING" && task.interval_days <= 90 && !growing) {
     return false;
   }
   if (
@@ -59,7 +57,7 @@ export type WeekendPlan = {
 export function buildWeekendPlan(
   tasks: MaintenanceTask[],
   budgetMinutes: number,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): WeekendPlan {
   const windowEnd = weekendWindowEnd(now);
   const windowStart = startOfDay(now);
@@ -103,7 +101,7 @@ export function buildWeekendPlan(
 /** @deprecated Prefer buildWeekendPlan — kept for call sites that only need the list. */
 export function pickWeekendTasks(
   tasks: MaintenanceTask[],
-  budgetMinutes: number
+  budgetMinutes: number,
 ): MaintenanceTask[] {
   return buildWeekendPlan(tasks, budgetMinutes).tasks;
 }

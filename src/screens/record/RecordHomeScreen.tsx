@@ -28,6 +28,7 @@ import {
   TabScreenHeader,
 } from "../../components/ui";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
+import { KeeperHeaderButton } from "../../components/assistant/KeeperHeaderButton";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
 import {
   HouseholdMemberView,
@@ -152,29 +153,32 @@ export function RecordHomeScreen() {
           subtitle="Your home's history, things, and people"
           style={styles.header}
           actions={
-            <TabHeaderAction
-              icon="add"
-              accessibilityLabel="Add a repair"
-              accessibilityHint="Log a repair you did, or schedule one to fix later"
-              onPress={() =>
-                showActionMenu({
-                  options: [
-                    {
-                      label: "Log a repair",
-                      icon: "hammer-outline",
-                      subtitle: "Already done",
-                      onPress: () => void openLogRepair(),
-                    },
-                    {
-                      label: "Schedule a repair",
-                      icon: "construct-outline",
-                      subtitle: "Needs fixing",
-                      onPress: () => void openScheduleRepair(),
-                    },
-                  ],
-                })
-              }
-            />
+            <>
+              <KeeperHeaderButton />
+              <TabHeaderAction
+                icon="add"
+                accessibilityLabel="Add a repair"
+                accessibilityHint="Log a repair you did, or schedule one to fix later"
+                onPress={() =>
+                  showActionMenu({
+                    options: [
+                      {
+                        label: "Log a repair",
+                        icon: "hammer-outline",
+                        subtitle: "Already done",
+                        onPress: () => void openLogRepair(),
+                      },
+                      {
+                        label: "Schedule a repair",
+                        icon: "construct-outline",
+                        subtitle: "Needs fixing",
+                        onPress: () => void openScheduleRepair(),
+                      },
+                    ],
+                  })
+                }
+              />
+            </>
           }
         />
         <View
@@ -185,10 +189,7 @@ export function RecordHomeScreen() {
           ]}
         >
           <LinearGradient
-            colors={[
-              colors.primary + (isDark ? "26" : "14"),
-              "transparent",
-            ]}
+            colors={[colors.primary + (isDark ? "26" : "14"), "transparent"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -198,7 +199,10 @@ export function RecordHomeScreen() {
             <View
               style={[
                 styles.heroMark,
-                { backgroundColor: colors.background, borderColor: colors.border },
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
               ]}
             >
               <HouseMark size={26} inline />
@@ -237,14 +241,18 @@ export function RecordHomeScreen() {
               label={ledger.jobCount === 1 ? "job" : "jobs"}
               onPress={() => go(() => navigation.navigate("CompletionHistory"))}
             />
-            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.statDivider, { backgroundColor: colors.border }]}
+            />
             <Stat
               value={loaded ? formatMoney(yearSpend, { whole: true }) : "—"}
               label={`spent ${year}`}
               locked={recordLocked}
               onPress={() => go(() => navigation.navigate("SpendLedger"))}
             />
-            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.statDivider, { backgroundColor: colors.border }]}
+            />
             <Stat
               value={equipment.loaded ? String(equipment.items.length) : "—"}
               label={equipment.items.length === 1 ? "appliance" : "appliances"}
@@ -311,7 +319,7 @@ export function RecordHomeScreen() {
             subtitle={countSubtitle(
               homeNotes.paints.length,
               "colour",
-              "Brands, codes, and finishes by room"
+              "Brands, codes, and finishes by room",
             )}
             onPress={() => go(() => navigation.navigate("PaintColors"))}
           />
@@ -322,7 +330,7 @@ export function RecordHomeScreen() {
             subtitle={countSubtitle(
               homeNotes.notes.length,
               "note",
-              "Wi‑Fi, codes, trash day, and quirks"
+              "Wi‑Fi, codes, trash day, and quirks",
             )}
             onPress={() => go(() => navigation.navigate("HouseNotes"))}
           />
@@ -332,7 +340,7 @@ export function RecordHomeScreen() {
             title="Emergency info"
             subtitle={emergencyProgressSubtitle(
               profile?.home_emergency,
-              profile?.home_systems
+              profile?.home_systems,
             )}
             onPress={() => go(() => navigation.navigate("EmergencyInfo"))}
           />
@@ -405,7 +413,9 @@ function Stat({
       onPress={onPress}
       style={({ pressed }) => [styles.stat, pressed && { opacity: 0.6 }]}
       accessibilityRole="button"
-      accessibilityLabel={locked ? `${label}, HomeKeep Plus` : `${value} ${label}`}
+      accessibilityLabel={
+        locked ? `${label}, HomeKeep Plus` : `${value} ${label}`
+      }
     >
       {locked ? (
         <View style={styles.statLocked}>
@@ -425,7 +435,10 @@ function Stat({
           {value}
         </Text>
       )}
-      <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+      <Text
+        style={[styles.statLabel, { color: colors.textSecondary }]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>

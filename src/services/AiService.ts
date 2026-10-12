@@ -1,7 +1,10 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { format } from "date-fns";
 import { supabase } from "../lib/supabase";
 import type { EquipmentType } from "../types/equipmentManual";
 import type { MaintenanceCategory, Priority } from "../types/maintenance";
+import type { NoteKind, PaintFinish } from "../types/homeNotes";
+import type { ContactTrade } from "../types/homeContact";
 
 /** Free lifetime scans; mirrors AI_POLICY in supabase/functions/_shared/ai/quota.ts. */
 export const AI_FREE_SCAN_LIMIT = 3;
@@ -19,7 +22,7 @@ export class AiError extends Error {
   constructor(
     readonly code: AiErrorCode,
     message: string,
-    readonly reason?: string
+    readonly reason?: string,
   ) {
     super(message);
   }
@@ -52,11 +55,80 @@ export type AssistantAction =
       interval_days: number;
       description: string | null;
     }
+  | {
+      type: "create_task";
+      title: string;
+      category: MaintenanceCategory;
+      due_in_days: number;
+      description: string | null;
+    }
+  | {
+      type: "log_repair";
+      title: string;
+      category: MaintenanceCategory;
+      days_ago: number;
+      cost: number | null;
+      labor: "diy" | "hired" | null;
+      notes: string | null;
+    }
+  | ({
+      type: "add_equipment";
+      name: string;
+      equipment_type: EquipmentType;
+    } & EquipmentDetails)
+  | ({
+      type: "update_equipment";
+      equipment_id: string;
+      equipment_name: string | null;
+    } & EquipmentDetails)
+  | {
+      type: "add_paint";
+      room: string;
+      brand: string | null;
+      color_name: string | null;
+      color_code: string | null;
+      finish: PaintFinish | null;
+      hex: string | null;
+    }
+  | { type: "add_note"; title: string; body: string; kind: NoteKind }
+  | {
+      type: "add_pro";
+      name: string;
+      company: string | null;
+      trade: ContactTrade | null;
+      phone: string | null;
+      email: string | null;
+      website: string | null;
+      notes: string | null;
+    }
+  | {
+      type: "set_emergency_spot";
+      spot:
+        | "waterShutoff"
+        | "waterHeater"
+        | "breakerPanel"
+        | "gasShutoff"
+        | "custom";
+      label: string | null;
+      where: string | null;
+      howto: string | null;
+    }
   | { type: "open_emergency"; label: string };
+
+export interface EquipmentDetails {
+  manufacturer: string | null;
+  model_number: string | null;
+  serial_number: string | null;
+  purchase_date: string | null;
+  warranty_expires_on: string | null;
+  parts: { label: string; size: string | null; part_number: string | null }[];
+}
 
 export interface AssistantReply {
   reply: string;
   actions: AssistantAction[];
+  /** Raw model actions the server couldn't save; for debugging only. */
+  rejected?: unknown[];
 }
 
 export type FindingSeverity = "safety" | "major" | "minor" | "maintenance";
@@ -90,7 +162,7 @@ interface Envelope<T> {
 
 async function invoke<T>(
   task: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<Envelope<T>> {
   if (!supabase) throw new AiError("network", "Not configured");
   const { data, error } = await supabase.functions.invoke("homekeep-ai", {
@@ -101,10 +173,17 @@ async function invoke<T>(
       const body = await error.context.json().catch(() => null);
       const info = body?.error;
       if (info?.code) {
-        throw new AiError(info.code, info.message ?? "Please try again.", info.reason);
+        throw new AiError(
+          info.code,
+          info.message ?? "Please try again.",
+          info.reason,
+        );
       }
     }
-    throw new AiError("network", "Couldn't connect. Check your connection and try again.");
+    throw new AiError(
+      "network",
+      "Couldn't connect. Check your connection and try again.",
+    );
   }
   return data as Envelope<T>;
 }
@@ -121,6 +200,7 @@ export class AiService {
     return invoke<AssistantReply>("assistant_chat", {
       messages,
       equipment_id: equipmentId ?? null,
+      today: format(new Date(), "yyyy-MM-dd"),
     });
   }
 

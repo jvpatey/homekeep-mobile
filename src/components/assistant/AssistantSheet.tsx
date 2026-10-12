@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,21 +10,26 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useTasks } from "../../context/TasksContext";
 import { useSubscription } from "../../context/SubscriptionContext";
 import { useHaptics } from "../../hooks";
-import {
-  AiError,
-  AiService,
-  AssistantAction,
-} from "../../services/AiService";
-import { buildRoutinePayloadsFromItems } from "../../data/maintenancePlans";
-import { formatRoutineInterval } from "../all-reminders/groupRoutines";
-import { AppTabsParamList } from "../../navigation/types";
+import { AiError, AiService, AssistantAction } from "../../services/AiService";
 import { DesignSystem } from "../../theme/designSystem";
 import { HearthSheet } from "../ui/HearthSheet";
+import { useProfile } from "../../context/ProfileContext";
+import { formatProfileAddressLines } from "../../utils/formatProfileAddress";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { KeeperMark } from "./KeeperMark";
+import { useKeeperActions } from "./useKeeperActions";
 
 interface ChatTurn {
   id: string;
@@ -46,13 +52,45 @@ function starterPrompts(equipmentName: string | null): string[] {
   }
   return [
     "What should I take care of this month?",
+    "Log that I changed the furnace filter today",
     "Where's the main water shutoff?",
-    "When did we last change the furnace filter?",
   ];
 }
 
+function TypingDot({ index }: { index: number }) {
+  const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
+  const lift = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    lift.value = withDelay(
+      index * 140,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
+          withTiming(0, { duration: 260 }),
+        ),
+        -1,
+      ),
+    );
+  }, [index, reduceMotion, lift]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.35 + lift.value * 0.65,
+    transform: [{ translateY: -lift.value * 4 }],
+  }));
+
+  return (
+    <Animated.View
+      style={[styles.dot, { backgroundColor: colors.primary }, style]}
+    />
+  );
+}
+
 /**
- * Ask HomeKeep: chat grounded in this home's systems, equipment, schedule,
+ * Keeper, HomeKeep's AI assistant: chat grounded in this home's systems, equipment, schedule,
  * emergency spots, and recent work. HomeKeep + only (checked server-side).
  */
 export function AssistantSheet({
@@ -66,26 +104,31 @@ export function AssistantSheet({
   equipment?: { id: string; name: string } | null;
 }) {
   const { colors } = useTheme();
-  const { triggerLight, triggerSuccess } = useHaptics();
-  const { createTask } = useTasks();
+  const { profile } = useProfile();
+  const { triggerLight, triggerSuccess, triggerError } = useHaptics();
   const { presentPaywall } = useSubscription();
-  const navigation = useNavigation<NavigationProp<AppTabsParamList>>();
+  const keeper = useKeeperActions({
+    equipmentId: equipment?.id ?? null,
+    onLeave: onClose,
+  });
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [added, setAdded] = useState<Set<string>>(new Set());
+  /** Saved action keys, with a way to open what was saved. */
+  const [saved, setSaved] = useState<Record<string, { view?: () => void }>>({});
+  const [saving, setSaving] = useState<Set<string>>(new Set());
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     setTurns([]);
-    setAdded(new Set());
+    setSaved({});
     setDraft("");
   }, [equipment?.id]);
 
   useEffect(() => {
     const timer = setTimeout(
       () => scrollRef.current?.scrollToEnd({ animated: true }),
-      60
+      60,
     );
     return () => clearTimeout(timer);
   }, [turns.length, sending]);
@@ -103,8 +146,14 @@ export function AssistantSheet({
     try {
       const { result } = await AiService.chat(
         next.map(({ role, text: body }) => ({ role, text: body })),
-        equipment?.id ?? null
+        equipment?.id ?? null,
       );
+      if (__DEV__ && result.rejected?.length) {
+        console.warn(
+          "Keeper rejected actions",
+          JSON.stringify(result.rejected),
+        );
+      }
       setTurns((prev) => [
         ...prev,
         {
@@ -147,39 +196,43 @@ export function AssistantSheet({
 
   const runAction = async (action: AssistantAction, key: string) => {
     triggerLight();
-    if (action.type === "open_emergency") {
-      onClose();
-      navigation.navigate("RecordTab", { screen: "EmergencyInfo" });
+    const done = saved[key];
+    if (done) {
+      done.view?.();
       return;
     }
-    if (added.has(key)) return;
-    const [payload] = buildRoutinePayloadsFromItems([
-      {
-        title: action.title,
-        description: action.description ?? undefined,
-        category: action.category,
-        priority: "medium",
-        estimated_duration_minutes: 30,
-        interval_days: action.interval_days,
-      },
-    ]);
-    const result = await createTask({
-      ...payload,
-      equipment_id: equipment?.id ?? null,
-    });
-    if (result.success) {
+    if (saving.has(key)) return;
+    setSaving((prev) => new Set(prev).add(key));
+    try {
+      const result = await keeper.run(action);
+      if (action.type === "open_emergency") return;
+      if (result.error) {
+        await triggerError();
+        Alert.alert("Couldn't save that", result.error);
+        return;
+      }
       await triggerSuccess();
-      setAdded((prev) => new Set(prev).add(key));
+      setSaved((prev) => ({ ...prev, [key]: { view: result.view } }));
+    } finally {
+      setSaving((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   };
 
   const prompts = starterPrompts(equipment?.name ?? null);
+  const street = formatProfileAddressLines(profile)[0];
+  const heroBody = equipment
+    ? `Ask me anything about the ${equipment.name}. I know its parts, upkeep, and what's been done, and I can save details, repairs, and reminders for you.`
+    : `Ask me anything about ${street ?? "your home"}. I know your equipment, schedule, shutoffs, and recent work, and I can save reminders, repairs, equipment, pros, paint colours, and notes for you.`;
 
   return (
     <HearthSheet
       visible={visible}
       onClose={onClose}
-      title={equipment ? `Ask about ${equipment.name}` : "Ask HomeKeep"}
+      title={equipment ? `Keeper · ${equipment.name}` : "Keeper"}
       fillMaxHeight
       maxHeightRatio={0.9}
       headerRight={
@@ -188,7 +241,7 @@ export function AssistantSheet({
             onPress={() => {
               triggerLight();
               setTurns([]);
-              setAdded(new Set());
+              setSaved({});
             }}
             hitSlop={8}
             accessibilityRole="button"
@@ -208,7 +261,7 @@ export function AssistantSheet({
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Ask about your home"
+            placeholder="Ask Keeper anything…"
             placeholderTextColor={colors.textSecondary}
             style={[styles.input, { color: colors.text }]}
             multiline
@@ -241,123 +294,235 @@ export function AssistantSheet({
       >
         {turns.length === 0 ? (
           <View style={styles.intro}>
-            <Text style={[styles.introText, { color: colors.textSecondary }]}>
-              Answers use your equipment, schedule, shutoffs, and recent work.
-              For anything urgent with gas, water, or electricity, call a pro.
+            <View style={styles.hero}>
+              <KeeperMark size={88} greet />
+              <Text style={[styles.heroEyebrow, { color: colors.primary }]}>
+                Your HomeKeep AI
+              </Text>
+              <Text style={[styles.heroTitle, { color: colors.text }]}>
+                Hi, I'm Keeper
+              </Text>
+              <Text style={[styles.heroBody, { color: colors.textSecondary }]}>
+                {heroBody}
+              </Text>
+            </View>
+            <Text style={[styles.tryLabel, { color: colors.textSecondary }]}>
+              Try asking
             </Text>
             {prompts.map((prompt) => (
               <Pressable
                 key={prompt}
                 onPress={() => void send(prompt)}
-                style={[styles.prompt, { borderColor: colors.border }]}
+                style={({ pressed }) => [
+                  styles.prompt,
+                  {
+                    borderColor: colors.primary + "33",
+                    backgroundColor: colors.primary + "0D",
+                  },
+                  pressed && { opacity: 0.6 },
+                ]}
                 accessibilityRole="button"
               >
-                <Ionicons
-                  name="sparkles-outline"
-                  size={16}
-                  color={colors.primary}
-                />
+                <Ionicons name="sparkles" size={15} color={colors.primary} />
                 <Text style={[styles.promptText, { color: colors.text }]}>
                   {prompt}
                 </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={15}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             ))}
+            <Text style={[styles.safety, { color: colors.textSecondary }]}>
+              For anything urgent with gas, water, or electricity, call a pro.
+            </Text>
           </View>
         ) : null}
 
-        {turns.map((turn) => (
-          <View
-            key={turn.id}
-            style={[
-              styles.bubble,
-              turn.role === "user"
-                ? [styles.userBubble, { backgroundColor: colors.primary }]
-                : [
-                    styles.botBubble,
-                    {
-                      backgroundColor: turn.failed
-                        ? colors.error + "14"
-                        : colors.fieldFill,
-                    },
-                  ],
-            ]}
-          >
-            <Text
+        {turns.map((turn) => {
+          const bubble = (
+            <View
+              key={turn.id}
               style={[
-                styles.bubbleText,
-                {
-                  color:
-                    turn.role === "user"
-                      ? "#FFFFFF"
-                      : turn.failed
-                        ? colors.error
-                        : colors.text,
-                },
+                styles.bubble,
+                turn.role === "user"
+                  ? [styles.userBubble, { backgroundColor: colors.primary }]
+                  : [
+                      styles.botBubble,
+                      {
+                        backgroundColor: turn.failed
+                          ? colors.error + "14"
+                          : colors.fieldFill,
+                      },
+                    ],
               ]}
-              selectable
             >
-              {turn.text}
-            </Text>
-            {turn.failed ? (
-              <Pressable onPress={retry} hitSlop={8} accessibilityRole="button">
-                <Text style={[styles.retry, { color: colors.primary }]}>
-                  Try again
-                </Text>
-              </Pressable>
-            ) : null}
-            {turn.actions?.map((action, index) => {
-              const key = `${turn.id}-${index}`;
-              const done = added.has(key);
-              return (
+              <Text
+                style={[
+                  styles.bubbleText,
+                  {
+                    color:
+                      turn.role === "user"
+                        ? "#FFFFFF"
+                        : turn.failed
+                          ? colors.error
+                          : colors.text,
+                  },
+                ]}
+                selectable
+              >
+                {turn.text}
+              </Text>
+              {turn.failed ? (
                 <Pressable
-                  key={key}
-                  onPress={() => void runAction(action, key)}
-                  disabled={done}
-                  style={[
-                    styles.action,
-                    {
-                      borderColor: colors.primary + "55",
-                      backgroundColor: colors.surface,
-                    },
-                  ]}
+                  onPress={retry}
+                  hitSlop={8}
                   accessibilityRole="button"
                 >
-                  <Ionicons
-                    name={
-                      action.type === "open_emergency"
-                        ? "alert-circle-outline"
-                        : done
-                          ? "checkmark-circle"
-                          : "add-circle-outline"
-                    }
-                    size={16}
-                    color={colors.primary}
-                  />
-                  <Text
-                    style={[styles.actionText, { color: colors.primary }]}
-                    numberOfLines={2}
-                  >
-                    {action.type === "open_emergency"
-                      ? `Open ${action.label}`
-                      : done
-                        ? `Added: ${action.title}`
-                        : `Add reminder: ${action.title} · ${formatRoutineInterval(action.interval_days)}`}
+                  <Text style={[styles.retry, { color: colors.primary }]}>
+                    Try again
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-        ))}
+              ) : null}
+              {turn.actions?.map((action, index) => {
+                const key = `${turn.id}-${index}`;
+                const done = saved[key];
+                const busy = saving.has(key);
+                const view = keeper.describe(action);
+                const navigates = action.type === "open_emergency";
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => void runAction(action, key)}
+                    disabled={busy || (done && !done.view)}
+                    style={({ pressed }) => [
+                      styles.action,
+                      {
+                        borderColor: done
+                          ? colors.success + "55"
+                          : colors.primary + "44",
+                        backgroundColor: colors.surface,
+                      },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${done ? "Saved" : view.kind}: ${view.title}${view.detail ? `, ${view.detail}` : ""}`}
+                    accessibilityHint={
+                      done?.view ? "Opens where it was saved" : undefined
+                    }
+                  >
+                    <View
+                      style={[
+                        styles.actionIcon,
+                        {
+                          backgroundColor: done
+                            ? colors.success + "1F"
+                            : colors.primary + "14",
+                        },
+                      ]}
+                    >
+                      {view.swatch && !done ? (
+                        <View
+                          style={[
+                            styles.swatch,
+                            {
+                              backgroundColor: view.swatch,
+                              borderColor: colors.border,
+                            },
+                          ]}
+                        />
+                      ) : (
+                        <Ionicons
+                          name={done ? "checkmark" : view.icon}
+                          size={16}
+                          color={done ? colors.success : colors.primary}
+                        />
+                      )}
+                    </View>
+                    <View style={styles.actionBody}>
+                      <Text
+                        style={[
+                          styles.actionKind,
+                          { color: done ? colors.success : colors.primary },
+                        ]}
+                      >
+                        {done ? "Saved" : view.kind}
+                      </Text>
+                      <Text
+                        style={[styles.actionTitle, { color: colors.text }]}
+                        numberOfLines={2}
+                      >
+                        {view.title}
+                      </Text>
+                      {view.detail ? (
+                        <Text
+                          style={[
+                            styles.actionDetail,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {view.detail}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {busy ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : done ? (
+                      done.view ? (
+                        <Text
+                          style={[styles.actionCta, { color: colors.primary }]}
+                        >
+                          View
+                        </Text>
+                      ) : null
+                    ) : (
+                      <View
+                        style={[
+                          styles.actionButton,
+                          { backgroundColor: colors.primary },
+                        ]}
+                      >
+                        <Text style={styles.actionButtonText}>
+                          {navigates ? "Open" : "Save"}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          );
+          return turn.role === "user" ? (
+            bubble
+          ) : (
+            <View key={turn.id} style={styles.botRow}>
+              <KeeperMark size={28} badge={false} />
+              {bubble}
+            </View>
+          );
+        })}
 
         {sending ? (
           <View
-            style={[
-              styles.bubble,
-              styles.botBubble,
-              { backgroundColor: colors.fieldFill },
-            ]}
+            style={styles.botRow}
+            accessibilityLabel="Keeper is thinking"
+            accessibilityLiveRegion="polite"
           >
-            <ActivityIndicator color={colors.primary} />
+            <KeeperMark size={28} mood="thinking" badge={false} />
+            <View
+              style={[
+                styles.bubble,
+                styles.botBubble,
+                styles.typing,
+                { backgroundColor: colors.fieldFill },
+              ]}
+            >
+              {[0, 1, 2].map((index) => (
+                <TypingDot key={index} index={index} />
+              ))}
+            </View>
           </View>
         ) : null}
       </ScrollView>
@@ -373,25 +538,54 @@ const styles = StyleSheet.create({
   intro: {
     gap: DesignSystem.spacing.sm,
   },
-  introText: {
+  hero: {
+    alignItems: "center",
+    paddingTop: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.md,
+  },
+  heroEyebrow: {
+    ...DesignSystem.typography.captionSemiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginTop: DesignSystem.spacing.md,
+  },
+  heroTitle: {
+    ...DesignSystem.typography.title2,
+    textAlign: "center",
+    marginTop: DesignSystem.spacing.xs,
+  },
+  heroBody: {
     ...DesignSystem.typography.footnote,
     lineHeight: 20,
-    marginBottom: DesignSystem.spacing.xs,
+    textAlign: "center",
+    marginTop: DesignSystem.spacing.sm,
+  },
+  tryLabel: {
+    ...DesignSystem.typography.captionSemiBold,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: DesignSystem.spacing.xs,
   },
   prompt: {
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm,
-    padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.sm + 4,
+    borderRadius: DesignSystem.borders.radius.large,
     borderWidth: 1,
   },
   promptText: {
-    ...DesignSystem.typography.body,
+    ...DesignSystem.typography.callout,
     flex: 1,
   },
+  safety: {
+    ...DesignSystem.typography.caption,
+    textAlign: "center",
+    marginTop: DesignSystem.spacing.sm,
+  },
   bubble: {
-    maxWidth: "88%",
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.sm + 2,
     borderRadius: DesignSystem.borders.radius.large,
@@ -399,9 +593,31 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: "flex-end",
+    maxWidth: "88%",
+    borderBottomRightRadius: 6,
+  },
+  botRow: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: DesignSystem.spacing.sm,
+    maxWidth: "94%",
+    paddingTop: 4,
   },
   botBubble: {
-    alignSelf: "flex-start",
+    flexShrink: 1,
+    borderBottomLeftRadius: 6,
+  },
+  typing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: DesignSystem.spacing.md,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   bubbleText: {
     ...DesignSystem.typography.body,
@@ -412,15 +628,54 @@ const styles = StyleSheet.create({
   action: {
     flexDirection: "row",
     alignItems: "center",
-    gap: DesignSystem.spacing.xs + 2,
+    gap: DesignSystem.spacing.sm,
     paddingHorizontal: DesignSystem.spacing.sm + 2,
-    paddingVertical: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.medium,
+    paddingVertical: DesignSystem.spacing.sm + 2,
+    borderRadius: DesignSystem.borders.radius.large,
     borderWidth: 1,
   },
-  actionText: {
+  actionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  swatch: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  actionBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  actionKind: {
+    ...DesignSystem.typography.captionSemiBold,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    fontSize: 10,
+  },
+  actionTitle: {
     ...DesignSystem.typography.smallSemiBold,
-    flexShrink: 1,
+    marginTop: 1,
+  },
+  actionDetail: {
+    ...DesignSystem.typography.caption,
+    marginTop: 1,
+  },
+  actionButton: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: 6,
+    borderRadius: DesignSystem.borders.radius.round,
+  },
+  actionButtonText: {
+    ...DesignSystem.typography.smallSemiBold,
+    color: "#FFFFFF",
+  },
+  actionCta: {
+    ...DesignSystem.typography.smallSemiBold,
   },
   composer: {
     flexDirection: "row",

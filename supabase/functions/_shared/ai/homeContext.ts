@@ -62,7 +62,7 @@ function describeSystems(systems: any): string[] {
 }
 
 async function homeProfile(client: any, userId: string, householdId: string | null) {
-  const select = "id, city, region, country, home_systems, home_emergency";
+  const select = "id, city, region, country, home_systems, home_emergency, home_notes";
   let ownerId = userId;
   if (householdId) {
     const { data: household } = await client
@@ -82,10 +82,10 @@ export async function buildHomeContext(
   client: any,
   userId: string,
   householdId: string | null,
-  options: { focusEquipmentId?: string | null } = {}
+  options: { focusEquipmentId?: string | null; today?: string | null } = {}
 ): Promise<HomeContext> {
-  const today = new Date().toISOString().slice(0, 10);
-  const [profile, equipment, routines, open, done] = await Promise.all([
+  const today = options.today ?? new Date().toISOString().slice(0, 10);
+  const [profile, equipment, routines, open, done, contacts] = await Promise.all([
     homeProfile(client, userId, householdId),
     client
       .from("equipment_manuals")
@@ -113,6 +113,11 @@ export async function buildHomeContext(
       .eq("is_completed", true)
       .order("completed_at", { ascending: false, nullsFirst: false })
       .limit(30),
+    client
+      .from("home_contacts")
+      .select("name, company, trade, phone, email, notes")
+      .order("name")
+      .limit(60),
   ]);
 
   const equipmentRows: any[] = equipment.data ?? [];
@@ -188,6 +193,37 @@ export async function buildHomeContext(
       ])}`;
     });
     sections.push(["## Recent completions (newest first)", ...rows].join("\n"));
+  }
+
+  const contactRows: any[] = contacts?.data ?? [];
+  if (contactRows.length) {
+    const rows = contactRows.map((c) =>
+      `- ${c.name}: ${line([
+        c.company,
+        c.trade,
+        c.phone,
+        c.email,
+        typeof c.notes === "string" && c.notes.trim() && `notes: ${c.notes.trim().slice(0, 160)}`,
+      ])}`
+    );
+    sections.push(["## Pros", ...rows].join("\n"));
+  }
+
+  const homeNotes = profile?.home_notes ?? {};
+  const paints: any[] = Array.isArray(homeNotes.paints) ? homeNotes.paints.slice(0, 40) : [];
+  if (paints.length) {
+    const rows = paints.map((p) =>
+      `- ${p?.room ?? "Room"}: ${line([p?.brand, p?.colorName, p?.colorCode, p?.finish])}`
+    );
+    sections.push(["## Paint colours", ...rows].join("\n"));
+  }
+  const notes: any[] = Array.isArray(homeNotes.notes) ? homeNotes.notes.slice(0, 30) : [];
+  if (notes.length) {
+    const rows = notes.map((n) => {
+      const body = typeof n?.body === "string" ? n.body.trim().replace(/\s+/g, " ").slice(0, 300) : "";
+      return `- ${n?.title ?? "Note"}${body ? `: ${body}` : ""}`;
+    });
+    sections.push(["## House notes", ...rows].join("\n"));
   }
 
   return {

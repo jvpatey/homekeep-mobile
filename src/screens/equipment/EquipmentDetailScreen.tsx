@@ -576,10 +576,10 @@ export function EquipmentDetailScreen() {
             onPress={() => void openCreateTask({ equipmentId: item.id })}
           />
           <RecordRow
-            icon="chatbubbles-outline"
+            icon="sparkles"
             tint={colors.primary}
-            title={`Ask about this ${item.equipment_type && item.equipment_type !== "other" ? EQUIPMENT_TYPE_LABELS[item.equipment_type].toLowerCase() : "equipment"}`}
-            subtitle="Parts, upkeep, and what's been done"
+            title={`Ask Keeper about this ${item.equipment_type && item.equipment_type !== "other" ? EQUIPMENT_TYPE_LABELS[item.equipment_type].toLowerCase() : "equipment"}`}
+            subtitle="HomeKeep AI · parts, upkeep, and what's been done"
             locked={assistant.locked}
             onPress={() => {
               triggerLight();

@@ -22,6 +22,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { DesignSystem } from "../../theme/designSystem";
 import { HouseMark } from "../ui";
 import { formatProfileLocality } from "../../utils/formatProfileAddress";
+import { AskKeeperButton } from "../assistant/AskKeeperButton";
 
 interface DashboardHeaderProps {
   userName: string;
@@ -31,7 +32,7 @@ interface DashboardHeaderProps {
   onOpenAddressEditor: () => void;
   /** Opens the add menu (reminder, repair, library). */
   onAddPress?: () => void;
-  /** Opens Ask HomeKeep. */
+  /** Opens Keeper, the HomeKeep AI assistant. */
   onAskPress?: () => void;
   /** Header status chip — overdue preferred over due today when both exist. */
   onStatusChipPress?: (kind: "overdue" | "today") => void;
@@ -61,11 +62,10 @@ export function DashboardHeader({
 
   const temperatureUnit = useMemo(
     () => pickTemperatureUnit(profile?.country),
-    [profile?.country]
+    [profile?.country],
   );
 
-  const hasCoords =
-    profile?.latitude != null && profile?.longitude != null;
+  const hasCoords = profile?.latitude != null && profile?.longitude != null;
 
   const { weather } = useWeather({
     latitude: profile?.latitude ?? null,
@@ -155,42 +155,27 @@ export function DashboardHeader({
       ]}
     >
       <View style={styles.topBar}>
-        <View style={styles.wordmarkRow}>
-          <View style={styles.wordmarkMark}>
-            <HouseMark size={20} inline />
-          </View>
-          <Text style={[styles.wordmark, { color: colors.text }]}>
-            HomeKeep
-          </Text>
-        </View>
-
-        <View style={styles.topActions}>
-          {onAskPress ? (
-            <TouchableOpacity
+        {onAskPress ? (
+          <View style={styles.askSlot}>
+            <AskKeeperButton
               onPress={() => {
                 triggerLight();
                 onAskPress();
               }}
-              hitSlop={6}
-              style={styles.iconHit}
-              accessibilityRole="button"
-              accessibilityLabel="Ask HomeKeep"
-              accessibilityHint="Ask a question about your home"
-            >
-              <View
-                style={[
-                  styles.addButton,
-                  { backgroundColor: colors.primary + "18" },
-                ]}
-              >
-                <Ionicons
-                  name="chatbubbles-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-            </TouchableOpacity>
-          ) : null}
+            />
+          </View>
+        ) : (
+          <View style={styles.wordmarkRow}>
+            <View style={styles.wordmarkMark}>
+              <HouseMark size={20} inline />
+            </View>
+            <Text style={[styles.wordmark, { color: colors.text }]}>
+              HomeKeep
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.topActions}>
           {onAddPress ? (
             <TouchableOpacity
               onPress={() => {
@@ -307,6 +292,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: DesignSystem.spacing.md,
+  },
+  askSlot: {
+    minHeight: DesignSystem.components.minTouchTarget,
+    justifyContent: "center",
+    alignItems: "flex-start",
   },
   wordmarkRow: {
     flexDirection: "row",

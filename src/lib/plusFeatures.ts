@@ -83,11 +83,11 @@ export const PLUS_FEATURES: Record<PlusFeatureKey, PlusFeature> = {
     valueLine: 5,
   },
   assistant: {
-    title: "Ask HomeKeep",
-    headline: "Ask about your home",
+    title: "Keeper",
+    headline: "Meet Keeper, your home AI",
     blurb:
-      "Answers that know your equipment, your schedule, where the shutoffs are, and what was done last.",
-    icon: "chatbubbles",
+      "Ask Keeper anything. Answers know your equipment, your schedule, where the shutoffs are, and what was done last.",
+    icon: "sparkles",
     valueLine: 5,
   },
   inspection: {

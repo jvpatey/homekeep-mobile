@@ -24,6 +24,7 @@ import { maintenancePlansStyles } from "../maintenance-plans/styles";
 import { PlanStackParamList } from "../../navigation/types";
 import { useAppNavigation } from "../../navigation/useAppNavigation";
 import { PlanHeroCard } from "./PlanHeroCard";
+import { KeeperHeaderButton } from "../../components/assistant/KeeperHeaderButton";
 
 type PlanSegment = "library" | "reminders";
 
@@ -40,7 +41,7 @@ export function PlanHomeScreen() {
   const { stats, loading: tasksLoading } = useTasks();
   const { profile } = useProfile();
   const [segment, setSegment] = useState<PlanSegment>(
-    route.params?.segment ?? "library"
+    route.params?.segment ?? "library",
   );
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export function PlanHomeScreen() {
 
   const openPlan = useCallback(
     (plan: { id: string }) => openPlanFlow(plan.id),
-    [openPlanFlow]
+    [openPlanFlow],
   );
 
   const activeReminders = reminders.loaded
@@ -67,12 +68,15 @@ export function PlanHomeScreen() {
         title="Plan"
         subtitle="Recurring care that keeps your home on schedule"
         actions={
-          <TabHeaderAction
-            icon="add"
-            accessibilityLabel="New reminder"
-            accessibilityHint="Create a custom recurring reminder"
-            onPress={() => void openCreateTask()}
-          />
+          <>
+            <KeeperHeaderButton />
+            <TabHeaderAction
+              icon="add"
+              accessibilityLabel="New reminder"
+              accessibilityHint="Create a custom recurring reminder"
+              onPress={() => void openCreateTask()}
+            />
+          </>
         }
       />
       <View style={styles.heroWrap}>
