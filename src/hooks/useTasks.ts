@@ -12,6 +12,7 @@ import {
   CreateMaintenanceRoutineData,
   UpdateMaintenanceRoutineData,
   MaintenanceFilters,
+  CompletionExtras,
 } from "../types/maintenance";
 import {
   buildRoutinePayloads,
@@ -83,12 +84,7 @@ interface UseTasksReturn {
   ) => Promise<{ success: boolean; error?: string }>;
   completeTask: (
     instanceId: string,
-    extras?: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
+    extras?: CompletionExtras
   ) => Promise<{ success: boolean; error?: string }>;
   uncompleteTask: (
     instanceId: string
@@ -554,12 +550,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
   const completeTask = useCallback(
     async (
       instanceId: string,
-      extras?: {
-        notes?: string;
-        cost_amount?: number | null;
-        labor_type?: "diy" | "hired" | null;
-        photo_storage_path?: string | null;
-      }
+      extras?: CompletionExtras
     ) => {
       if (!user) {
         return { success: false, error: "User not authenticated" };

@@ -9,6 +9,7 @@ import {
   MaintenanceRoutinesResponse,
   DeleteResponse,
   ServiceResponse,
+  isRepairRoutine,
 } from "../types/maintenance";
 
 export class MaintenanceRoutineService {
@@ -115,8 +116,13 @@ export class MaintenanceRoutineService {
   }
 
   // Get all maintenance routines for the current user
+  /**
+   * Done repairs (inactive) are hidden unless `includeRepairs`; scheduled
+   * repairs that are still open show like any other reminder.
+   */
   static async getMaintenanceRoutines(
-    filters?: Partial<MaintenanceFilters>
+    filters?: Partial<MaintenanceFilters>,
+    options?: { includeRepairs?: boolean }
   ): Promise<MaintenanceRoutinesResponse> {
     if (!supabase) {
       return { data: null, error: { message: "Supabase not configured" } };
@@ -158,7 +164,15 @@ export class MaintenanceRoutineService {
 
       if (error) throw error;
 
-      return { data, error: null };
+      const rows = (data ?? []) as MaintenanceRoutine[];
+      return {
+        data: options?.includeRepairs
+          ? rows
+          : rows.filter(
+              (routine) => !isRepairRoutine(routine) || routine.is_active
+            ),
+        error: null,
+      };
     } catch (error) {
       console.error("Error fetching maintenance routines:", error);
       return {

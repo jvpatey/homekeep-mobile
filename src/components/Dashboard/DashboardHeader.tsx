@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Pressable,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
@@ -21,15 +22,18 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { DesignSystem } from "../../theme/designSystem";
 import { HouseMark } from "../ui";
 import { formatProfileLocality } from "../../utils/formatProfileAddress";
+import { AskKeeperButton } from "../assistant/AskKeeperButton";
 
 interface DashboardHeaderProps {
   userName: string;
   greeting: string;
   overdueCount: number;
   dueTodayCount: number;
-  onOpenEquipmentManuals?: () => void;
   onOpenAddressEditor: () => void;
-  onOpenHomeSummary?: () => void;
+  /** Opens the add menu (reminder, repair, library). */
+  onAddPress?: () => void;
+  /** Opens Keeper, the HomeKeep AI assistant. */
+  onAskPress?: () => void;
   /** Header status chip — overdue preferred over due today when both exist. */
   onStatusChipPress?: (kind: "overdue" | "today") => void;
   animatedStyle?: object;
@@ -42,9 +46,9 @@ export function DashboardHeader({
   greeting,
   overdueCount,
   dueTodayCount,
-  onOpenEquipmentManuals,
   onOpenAddressEditor,
-  onOpenHomeSummary,
+  onAddPress,
+  onAskPress,
   onStatusChipPress,
   animatedStyle,
   seasonLabel,
@@ -58,11 +62,10 @@ export function DashboardHeader({
 
   const temperatureUnit = useMemo(
     () => pickTemperatureUnit(profile?.country),
-    [profile?.country]
+    [profile?.country],
   );
 
-  const hasCoords =
-    profile?.latitude != null && profile?.longitude != null;
+  const hasCoords = profile?.latitude != null && profile?.longitude != null;
 
   const { weather } = useWeather({
     latitude: profile?.latitude ?? null,
@@ -143,56 +146,56 @@ export function DashboardHeader({
     <Wrapper
       style={[
         styles.container,
-        { paddingTop: insets.top + DesignSystem.spacing.md },
+        {
+          // iOS: the list's automatic content inset already clears the status bar.
+          paddingTop:
+            (Platform.OS === "ios" ? 0 : insets.top) + DesignSystem.spacing.sm,
+        },
         animatedStyle,
       ]}
     >
       <View style={styles.topBar}>
-        <View style={styles.wordmarkRow}>
-          <View style={styles.wordmarkMark}>
-            <HouseMark size={20} inline />
+        {onAskPress ? (
+          <View style={styles.askSlot}>
+            <AskKeeperButton
+              onPress={() => {
+                triggerLight();
+                onAskPress();
+              }}
+            />
           </View>
-          <Text style={[styles.wordmark, { color: colors.text }]}>
-            HomeKeep
-          </Text>
-        </View>
+        ) : (
+          <View style={styles.wordmarkRow}>
+            <View style={styles.wordmarkMark}>
+              <HouseMark size={20} inline />
+            </View>
+            <Text style={[styles.wordmark, { color: colors.text }]}>
+              HomeKeep
+            </Text>
+          </View>
+        )}
 
         <View style={styles.topActions}>
-          {onOpenEquipmentManuals ? (
+          {onAddPress ? (
             <TouchableOpacity
               onPress={() => {
                 triggerLight();
-                onOpenEquipmentManuals();
+                onAddPress();
               }}
-              hitSlop={8}
+              hitSlop={6}
               style={styles.iconHit}
               accessibilityRole="button"
-              accessibilityLabel="Equipment manuals"
+              accessibilityLabel="Add"
+              accessibilityHint="Add a reminder, log a repair, or browse the task library"
             >
-              <Ionicons
-                name="book-outline"
-                size={22}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ) : null}
-
-          {onOpenHomeSummary ? (
-            <TouchableOpacity
-              onPress={() => {
-                triggerLight();
-                onOpenHomeSummary();
-              }}
-              hitSlop={8}
-              style={styles.iconHit}
-              accessibilityRole="button"
-              accessibilityLabel="Home maintenance summary"
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={22}
-                color={colors.textSecondary}
-              />
+              <View
+                style={[
+                  styles.addButton,
+                  { backgroundColor: colors.primary + "18" },
+                ]}
+              >
+                <Ionicons name="add" size={24} color={colors.primary} />
+              </View>
             </TouchableOpacity>
           ) : null}
 
@@ -290,6 +293,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: DesignSystem.spacing.md,
   },
+  askSlot: {
+    minHeight: DesignSystem.components.minTouchTarget,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
   wordmarkRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -313,6 +321,13 @@ const styles = StyleSheet.create({
   iconHit: {
     minWidth: DesignSystem.components.minTouchTarget,
     minHeight: DesignSystem.components.minTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },

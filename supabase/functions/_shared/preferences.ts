@@ -3,7 +3,9 @@
 export type PreferenceFlag =
   | "due_soon_reminder"
   | "overdue_reminder"
-  | "weekly_summary";
+  | "weekly_summary"
+  | "monthly_summary"
+  | "recall_alerts";
 
 export async function isTypeEnabled(
   supabase: any,

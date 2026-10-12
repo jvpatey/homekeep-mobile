@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer,
+  Theme,
+} from "@react-navigation/native";
 import { ActivityIndicator, View } from "react-native";
 import * as Linking from "expo-linking";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +14,7 @@ import { AuthNavigator } from "./AuthNavigator";
 import { EmailVerificationScreen } from "../screens/auth/EmailVerificationScreen";
 import { RootStackParamList } from "./types";
 import { useTheme } from "../context/ThemeContext";
+import { isWidgetUrl } from "../lib/homeWidget";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -29,14 +35,15 @@ const linking = {
       Auth: "*", // Handle OAuth callbacks and other auth routes
     },
   },
-  // Handle the incoming URL and extract the full URL with query parameters
+  // Handle the incoming URL and extract the full URL with query parameters.
+  // Widget taps are routed by NotificationContext, not the navigator.
   getInitialURL: async () => {
     const url = await Linking.getInitialURL();
-    return url;
+    return isWidgetUrl(url) ? null : url;
   },
   subscribe: (listener: (url: string) => void) => {
     const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
-      listener(url);
+      if (!isWidgetUrl(url)) listener(url);
     });
 
     return () => {
@@ -52,7 +59,23 @@ const linking = {
  */
 export function RootNavigator() {
   const { loading, user, sessionReady } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const navigationTheme = useMemo<Theme>(() => {
+    const base = isDark ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      dark: isDark,
+      colors: {
+        ...base.colors,
+        primary: colors.primary,
+        background: colors.background,
+        card: colors.surface,
+        text: colors.text,
+        border: colors.border,
+        notification: colors.primary,
+      },
+    };
+  }, [colors, isDark]);
 
   if (loading || (user && !sessionReady)) {
     return (
@@ -70,7 +93,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer linking={linking} theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           // User is authenticated - show main app navigation

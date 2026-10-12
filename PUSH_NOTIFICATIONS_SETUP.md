@@ -7,14 +7,19 @@
 - **`notification-worker`** — hourly job; sends at **per-user local times** with deduplication via `notification_deliveries`.
 - **`notify-household-event`** — one-shot join/leave alerts to remaining household members.
 - **`process-scheduled-notifications`** — deprecated wrapper (bypasses hour check); use `notification-worker` instead.
+- **`recall-scan`** — daily job; matches equipment manufacturer + model against the recall agency for the home's country (CPSC for the US, Health Canada for Canada) and writes `equipment_recalls`. The 08:00 worker run pushes new matches.
 
 ### Local delivery schedule (user timezone)
 
 | Local time | Notification type |
 |------------|-------------------|
 | 8:00 | Morning — overdue and/or due today (one batched push) |
+| 8:00 | Recall alerts — new CPSC (US) or Health Canada recalls matched to your equipment (up to 3 per day) |
 | 8:00 Saturday | Weekly summary (optional; replaces Saturday morning) |
+| 10:00 on the 1st | Monthly recap — last month's completions and spend, this month's due and overdue counts |
 | 18:00 | Upcoming — due tomorrow (one batched push) |
+
+Upcoming, morning, and weekly pushes require HomeKeep+. Recall alerts go to everyone with `recall_alerts` on. The monthly recap is sent to everyone with `monthly_summary` on (the default); it is skipped when there is nothing to report.
 
 Timezone comes from `user_settings.timezone` (synced on sign-in and when the app returns to the foreground).
 
@@ -38,6 +43,7 @@ npx supabase functions deploy send-push-notification
 npx supabase functions deploy notification-worker
 npx supabase functions deploy notify-household-event
 npx supabase functions deploy process-scheduled-notifications
+npx supabase functions deploy recall-scan
 ```
 
 Or deploy all:
@@ -60,6 +66,29 @@ npm run functions:deploy
 The worker checks each user's **local hour** and only runs matching notification types.
 
 Invoke with the **service role** key or `x-cron-secret` (if `CRON_SECRET` is set). A user JWT may force types for that user only.
+
+## Schedule the daily recall scan (Supabase)
+
+1. **Edge Functions** → `recall-scan`
+2. **Schedules** → Add cron: `0 6 * * *` (06:00 UTC, before most users' 08:00 local slot)
+3. Header `x-cron-secret: <CRON_SECRET>` (or `Authorization: Bearer <service_role>`). User JWTs are rejected.
+
+Each item's country comes from the household owner's profile `country` (the member's own profile if there's no household). US and blank addresses use CPSC; Canadian addresses use Health Canada; other countries are skipped.
+
+**CPSC (US).** The first run fetches every recall for each manufacturer. Later runs only ask for recalls published since the last completed pass (`recall_scan_state.last_run_at`, with a day of overlap), except for equipment added or edited since then, which gets the maker's full history. Requests go one at a time and stop at 60 per run; a capped pass resumes from `recall_scan_state.cursor` the next day.
+
+**Health Canada.** Each run downloads the [open data feed](https://recalls-rappels.canada.ca/sites/default/files/opendata-donneesouvertes/HCRSAMOpenData.json), keeps consumer products that mention a maker you own, and parses those recall pages for brands and model numbers. Parsed pages are cached in `health_canada_recall_details` and re-fetched only when the feed's "Last updated" changes. Up to 40 pages are fetched per run; the rest wait for the next day, and `recall_scan_state.ca_last_run_at` only advances once a run gets through everything.
+
+Manual run:
+
+```bash
+curl -X POST "https://YOUR_PROJECT.supabase.co/functions/v1/recall-scan?full=1" \
+  -H "x-cron-secret: YOUR_CRON_SECRET"
+```
+
+Optional params: `full=1` ignores the incremental window; `source=cpsc` or `source=health_canada` runs one source; `max_requests=N` overrides the CPSC cap; `max_details=N` overrides the Health Canada page cap. The response has a `cpsc` and a `health_canada` summary (CPSC fields are also repeated at the top level), plus `skipped_other_countries`.
+
+Recall pushes go out at 08:00 local to every household member with `recall_alerts` on (the default), whether or not they have HomeKeep+. Test one user with `notification-worker?user_id=...&force_type=recall`.
 
 ## Environment variables
 
@@ -99,7 +128,7 @@ curl -X POST \
   -d '{}'
 ```
 
-`force_type` values: `upcoming`, `morning`, `weekly` (legacy aliases: `due_soon`, `daily`, `overdue`).
+`force_type` values: `upcoming`, `morning`, `weekly`, `monthly`, `recall` (legacy aliases: `due_soon`, `daily`, `overdue`).
 
 Run twice the same day — second run should send **0** additional pushes (dedupe).
 
@@ -161,5 +190,7 @@ WHERE user_id = 'YOUR_USER_UUID';
 |------|-------------|
 | upcoming | `upcoming:{user_id}:{local_date}` |
 | morning / Saturday weekly | `morning:{user_id}:{local_date}` |
+| monthly recap | `monthly:{user_id}:{local_month}` (YYYY-MM) |
+| recall | `recall:{user_id}:{equipment_id}:{recall_number}` |
 | household join | `household_join:{household_id}:{actor_id}` |
 | household leave | `household_leave:{household_id}:{actor_id}` |

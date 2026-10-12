@@ -4,6 +4,22 @@ import { getColdWeatherPrepBaseItems } from "./fallWinter";
 import { getYearRoundSafetyBaseItems } from "./yearRoundSafety";
 import { getNewHomeownerStarterBaseItems } from "./newHomeownerStarter";
 import { getPoolSpaBaseItems } from "./poolSpa";
+import { CONDO_LIVING_PLAN_ID, getCondoLivingBaseItems } from "./condoLiving";
+import {
+  BASEMENT_WATER_PLAN_ID,
+  filterBasementWaterItems,
+  getBasementWaterBaseItems,
+} from "./basementWater";
+import {
+  GARAGE_VEHICLES_PLAN_ID,
+  filterGarageVehiclesItems,
+  getGarageVehiclesBaseItems,
+} from "./garageVehicles";
+import {
+  IRRIGATION_OPEN_CLOSE_PLAN_ID,
+  filterIrrigationOpenCloseItems,
+  getIrrigationOpenCloseBaseItems,
+} from "./irrigationOpenClose";
 
 export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
   {
@@ -56,6 +72,45 @@ export const MAINTENANCE_PLANS: MaintenancePlanDefinition[] = [
     requiresQuestionnaire: true,
     /** Full catalog; UI runs questionnaire filtering before the task picker. */
     items: getNewHomeownerStarterBaseItems(),
+  },
+  {
+    id: CONDO_LIVING_PLAN_ID,
+    title: "Condo & townhome",
+    shortDescription:
+      "Inside-the-unit care when the HOA handles the roof and grounds: leaks, vents, seals, and HOA paperwork.",
+    body: "Focuses on what you’re usually responsible for in a shared building. Water leaks travel to neighbours, so several of these are about catching drips early.",
+    tag: "condo",
+    items: getCondoLivingBaseItems(),
+  },
+  {
+    id: BASEMENT_WATER_PLAN_ID,
+    title: "Basement & water",
+    shortDescription:
+      "Keep water out: sump pump, leak sensors, dehumidifier, grading, window wells, and the water heater.",
+    body: "Most basement damage starts small. These checks catch rising humidity, blocked drainage, and a sump pump that won’t start before the next big storm.",
+    tag: "water",
+    items: getBasementWaterBaseItems(),
+    filterForHome: filterBasementWaterItems,
+  },
+  {
+    id: GARAGE_VEHICLES_PLAN_ID,
+    title: "Garage & vehicles",
+    shortDescription:
+      "Garage door safety, opener and seals, floor and drain, safe storage, and your EV charger.",
+    body: "The garage door is the largest moving object in most homes. Keep its auto-reverse working and its seals tight; EV charger checks show up when you’ve told us you have one.",
+    tag: "garage",
+    items: getGarageVehiclesBaseItems(),
+    filterForHome: filterGarageVehiclesItems,
+  },
+  {
+    id: IRRIGATION_OPEN_CLOSE_PLAN_ID,
+    title: "Irrigation open & close",
+    shortDescription:
+      "Spring startup, seasonal controller changes, backflow test, and the fall blowout before the first freeze.",
+    body: "Startup and blowout are scheduled for the next spring and fall where you live, so you can add the whole plan at any time of year.",
+    tag: "irrigation",
+    items: getIrrigationOpenCloseBaseItems(),
+    filterForHome: filterIrrigationOpenCloseItems,
   },
 ];
 

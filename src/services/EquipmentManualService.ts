@@ -1,6 +1,13 @@
-import { File as ExpoFile } from "expo-file-system";
 import { supabase } from "../lib/supabase";
 import { getViewerHouseholdId } from "./householdScope";
+import {
+  HOME_FILES_BUCKET,
+  createSignedFileUrl,
+  createSignedFileUrls,
+  deleteStoredFile,
+  sanitizeFileName,
+  uploadFileFromUri,
+} from "./storageFiles";
 import {
   EquipmentManual,
   CreateEquipmentManualData,
@@ -8,52 +15,47 @@ import {
   EquipmentManualResponse,
   EquipmentManualsResponse,
   EquipmentManualSignedUrlResponse,
+  parseConsumables,
+  LEGACY_EQUIPMENT_TYPES,
 } from "../types/equipmentManual";
-import { logServiceFailure } from "../utils/serviceError";
 
-export const EQUIPMENT_MANUALS_BUCKET = "equipment-manuals";
+type PgError = { code?: string; message?: string } | null;
 
-function sanitizeFileName(name: string): string {
-  const base = name.split(/[/\\]/).pop() || "manual";
-  return base.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "manual";
+/** Columns added by the equipment-details migration. */
+const DETAIL_COLUMNS = ["manufacturer", "serial_number", "consumables"] as const;
+
+function isMissingDetailColumn(error: PgError) {
+  const message = error?.message ?? "";
+  return (
+    DETAIL_COLUMNS.some((column) => message.includes(column)) &&
+    /column|schema|could not find/i.test(message)
+  );
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`${label} timed out`)),
-      ms
-    );
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
+function isTypeCheckViolation(error: PgError) {
+  return error?.code === "23514" && /equipment_type/i.test(error?.message ?? "");
 }
 
-async function readUriAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
-  const isRemote = /^https?:\/\//i.test(uri);
-  if (!isRemote) {
-    try {
-      const file = new ExpoFile(uri);
-      return await withTimeout(file.arrayBuffer(), 20_000, "Read photo");
-    } catch {
-      // Some library URIs need fetch; bound it so it cannot hang the UI.
-    }
+/**
+ * Before the migration, drop the new columns and fold the new types into
+ * "other" so saves still succeed.
+ */
+function legacyRow(row: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...row };
+  for (const column of DETAIL_COLUMNS) delete next[column];
+  const type = next.equipment_type as string | null | undefined;
+  if (type && !(LEGACY_EQUIPMENT_TYPES as readonly string[]).includes(type)) {
+    next.equipment_type = "other";
   }
-
-  const response = await withTimeout(fetch(uri), 20_000, "Read photo");
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  return await response.arrayBuffer();
+  return next;
 }
+
+function normalizeEquipment<T extends Record<string, unknown> | null>(row: T): T {
+  if (!row) return row;
+  return { ...row, consumables: parseConsumables(row.consumables) };
+}
+
+export const EQUIPMENT_MANUALS_BUCKET = HOME_FILES_BUCKET;
 
 export class EquipmentManualService {
   static buildManualObjectPath(
@@ -61,7 +63,7 @@ export class EquipmentManualService {
     equipmentId: string,
     fileName: string
   ): string {
-    const safe = sanitizeFileName(fileName);
+    const safe = sanitizeFileName(fileName, "manual");
     return `${userId}/${equipmentId}/${safe}`;
   }
 
@@ -70,48 +72,16 @@ export class EquipmentManualService {
     equipmentId: string,
     fileName: string
   ): string {
-    const safe = sanitizeFileName(fileName);
+    const safe = sanitizeFileName(fileName, "manual");
     return `${userId}/${equipmentId}/receipts/${safe}`;
   }
 
-  private static async uploadFromUri(
+  private static uploadFromUri(
     objectPath: string,
     localUri: string,
     mimeType: string
   ): Promise<{ path: string | null; error: { message: string } | null }> {
-    if (!supabase) {
-      return { path: null, error: { message: "Supabase not configured" } };
-    }
-
-    try {
-      const buffer = await readUriAsArrayBuffer(localUri);
-
-      const { error: uploadError } = await withTimeout(
-        supabase.storage.from(EQUIPMENT_MANUALS_BUCKET).upload(
-          objectPath,
-          new Uint8Array(buffer),
-          {
-            contentType: mimeType || "application/octet-stream",
-            upsert: true,
-          }
-        ),
-        45_000,
-        "Upload photo"
-      );
-
-      if (uploadError) throw uploadError;
-
-      return { path: objectPath, error: null };
-    } catch (error) {
-      const serviceError = logServiceFailure(
-        "Error uploading equipment file:",
-        error
-      );
-      return {
-        path: null,
-        error: { message: serviceError.message },
-      };
-    }
+    return uploadFileFromUri(objectPath, localUri, mimeType);
   }
 
   static uploadFromUriPublic(
@@ -151,7 +121,10 @@ export class EquipmentManualService {
 
       if (error) throw error;
 
-      return { data: data ?? [], error: null };
+      return {
+        data: (data ?? []).map((row) => normalizeEquipment(row)),
+        error: null,
+      };
     } catch (error) {
       console.error("Error listing equipment manuals:", error);
       return {
@@ -184,7 +157,7 @@ export class EquipmentManualService {
 
       const now = new Date().toISOString();
       const householdId = await getViewerHouseholdId();
-      const row = {
+      const row: Record<string, unknown> = {
         user_id: user.id,
         household_id: householdId,
         name: payload.name.trim(),
@@ -195,16 +168,28 @@ export class EquipmentManualService {
         created_at: now,
         updated_at: now,
       };
+      if (payload.manufacturer !== undefined) {
+        row.manufacturer = payload.manufacturer?.trim() || null;
+      }
+      if (payload.serial_number !== undefined) {
+        row.serial_number = payload.serial_number?.trim() || null;
+      }
+      if (payload.consumables !== undefined) {
+        row.consumables = payload.consumables;
+      }
 
-      const { data, error } = await supabase
-        .from("equipment_manuals")
-        .insert([row])
-        .select()
-        .single();
+      const client = supabase;
+      const insert = (values: Record<string, unknown>) =>
+        client.from("equipment_manuals").insert([values]).select().single();
+
+      let { data, error } = await insert(row);
+      if (error && (isMissingDetailColumn(error) || isTypeCheckViolation(error))) {
+        ({ data, error } = await insert(legacyRow(row)));
+      }
 
       if (error) throw error;
 
-      return { data, error: null };
+      return { data: normalizeEquipment(data), error: null };
     } catch (error) {
       console.error("Error creating equipment manual:", error);
       return {
@@ -249,6 +234,12 @@ export class EquipmentManualService {
       if (payload.purchase_date !== undefined) {
         updates.purchase_date = payload.purchase_date;
       }
+      if (payload.warranty_expires_on !== undefined) {
+        updates.warranty_expires_on = payload.warranty_expires_on;
+      }
+      if (payload.equipment_type !== undefined) {
+        updates.equipment_type = payload.equipment_type;
+      }
       if (payload.manual_storage_path !== undefined) {
         updates.manual_storage_path = payload.manual_storage_path;
       }
@@ -261,18 +252,33 @@ export class EquipmentManualService {
       if (payload.receipt_mime_type !== undefined) {
         updates.receipt_mime_type = payload.receipt_mime_type;
       }
+      if (payload.manufacturer !== undefined) {
+        updates.manufacturer = payload.manufacturer?.trim() || null;
+      }
+      if (payload.serial_number !== undefined) {
+        updates.serial_number = payload.serial_number?.trim() || null;
+      }
+      if (payload.consumables !== undefined) {
+        updates.consumables = payload.consumables;
+      }
 
-      const { data, error } = await supabase
-        .from("equipment_manuals")
-        .update(updates)
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .select()
-        .single();
+      const client = supabase;
+      const update = (values: Record<string, unknown>) =>
+        client
+          .from("equipment_manuals")
+          .update(values)
+          .eq("id", id)
+          .select()
+          .single();
+
+      let { data, error } = await update(updates);
+      if (error && (isMissingDetailColumn(error) || isTypeCheckViolation(error))) {
+        ({ data, error } = await update(legacyRow(updates)));
+      }
 
       if (error) throw error;
 
-      return { data, error: null };
+      return { data: normalizeEquipment(data), error: null };
     } catch (error) {
       console.error("Error updating equipment manual:", error);
       return {
@@ -286,16 +292,8 @@ export class EquipmentManualService {
     }
   }
 
-  static async deleteStorageObject(path: string): Promise<{ error: Error | null }> {
-    if (!supabase) {
-      return { error: new Error("Supabase not configured") };
-    }
-
-    const { error } = await supabase.storage
-      .from(EQUIPMENT_MANUALS_BUCKET)
-      .remove([path]);
-
-    return { error: error ? new Error(error.message) : null };
+  static deleteStorageObject(path: string): Promise<{ error: Error | null }> {
+    return deleteStoredFile(path);
   }
 
   static async uploadManualFromUri(
@@ -376,34 +374,19 @@ export class EquipmentManualService {
     }
   }
 
-  static async getManualSignedUrl(
+  static getManualSignedUrl(
     storagePath: string,
     expiresInSeconds = 3600
   ): Promise<EquipmentManualSignedUrlResponse> {
-    if (!supabase) {
-      return { data: null, error: { message: "Supabase not configured" } };
-    }
+    return createSignedFileUrl(storagePath, expiresInSeconds);
+  }
 
-    try {
-      const { data, error } = await supabase.storage
-        .from(EQUIPMENT_MANUALS_BUCKET)
-        .createSignedUrl(storagePath, expiresInSeconds);
-
-      if (error) throw error;
-      if (!data?.signedUrl) throw new Error("No signed URL returned");
-
-      return { data: data.signedUrl, error: null };
-    } catch (error) {
-      console.error("Error creating signed URL:", error);
-      return {
-        data: null,
-        error: {
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
-          details: String(error),
-        },
-      };
-    }
+  /** Batch-sign storage paths. Missing or failed paths are omitted from the map. */
+  static createSignedUrls(
+    storagePaths: string[],
+    expiresInSeconds = 3600
+  ): Promise<Map<string, string>> {
+    return createSignedFileUrls(storagePaths, expiresInSeconds);
   }
 
   static async getEquipmentManualById(
@@ -427,12 +410,11 @@ export class EquipmentManualService {
         .from("equipment_manuals")
         .select("*")
         .eq("id", id)
-        .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) throw error;
 
-      return { data: data ?? null, error: null };
+      return { data: normalizeEquipment(data ?? null), error: null };
     } catch (error) {
       console.error("Error fetching equipment manual:", error);
       return {
@@ -490,8 +472,7 @@ export class EquipmentManualService {
       const { error } = await supabase
         .from("equipment_manuals")
         .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("id", id);
 
       if (error) throw error;
 

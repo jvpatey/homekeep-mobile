@@ -7,6 +7,8 @@ import {
 import { addDays, startOfDay } from "date-fns";
 import { logServiceFailure } from "../utils/serviceError";
 
+const LAST_COMPLETION_SCAN_LIMIT = 2000;
+
 export class MaintenanceStatsService {
   // Get maintenance statistics for dashboard
   static async getMaintenanceStats(): Promise<
@@ -81,6 +83,35 @@ export class MaintenanceStatsService {
         error: serviceError,
       };
     }
+  }
+
+  /** routine_id → most recent completed_at, for zone health recency. */
+  static async getLastCompletionByRoutine(): Promise<
+    ServiceResponse<Record<string, string>>
+  > {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    const { data, error } = await supabase
+      .from("routine_instances")
+      .select("routine_id, completed_at")
+      .eq("is_completed", true)
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(LAST_COMPLETION_SCAN_LIMIT);
+
+    if (error) {
+      return { data: null, error: logServiceFailure("Last completions failed:", error) };
+    }
+
+    const latest: Record<string, string> = {};
+    for (const row of data ?? []) {
+      if (row.routine_id && row.completed_at && !latest[row.routine_id]) {
+        latest[row.routine_id] = row.completed_at;
+      }
+    }
+    return { data: latest, error: null };
   }
 
   // Get count of active routines

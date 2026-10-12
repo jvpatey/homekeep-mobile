@@ -5,6 +5,8 @@ import {
   HomeSummaryTaskGroup,
 } from "../types/homeSummary";
 import { formatDateTime } from "../screens/completion-history/utils";
+import { DEFAULT_CURRENCY, formatMoney } from "./formatMoney";
+import { computeSpendLedger, spendForYear } from "./spendLedger";
 
 function completionSortKey(task: MaintenanceTask): number {
   const raw = task.completed_at || task.due_date;
@@ -90,11 +92,11 @@ export function formatHomeSummaryHistoryMeta(
   } (all time)`;
 }
 
-/** Format spend as $X or $X.YZ (no locale picker). */
-export function formatHomeSummaryCost(amount: number): string {
-  const rounded = Math.round(amount * 100) / 100;
-  if (Number.isInteger(rounded)) return `$${rounded}`;
-  return `$${rounded.toFixed(2)}`;
+export function formatHomeSummaryCost(
+  amount: number,
+  currency: string = DEFAULT_CURRENCY
+): string {
+  return formatMoney(amount, currency);
 }
 
 export function laborTypeLabel(
@@ -105,34 +107,17 @@ export function laborTypeLabel(
   return null;
 }
 
+/** Year and all-time spend for the PDF, from the same ledger as the Spend screen. */
 export function computeHomeSummarySpendTotals(
-  groups: HomeSummaryTaskGroup[],
+  tasks: MaintenanceTask[],
   now: Date = new Date()
 ): HomeSummarySpendTotals {
+  const ledger = computeSpendLedger(tasks, now);
   const year = now.getFullYear();
-  let yearTotal = 0;
-  let allTimeTotal = 0;
-  let hasAnyCost = false;
-
-  for (const group of groups) {
-    for (const completion of group.completions) {
-      const amount = completion.costAmount;
-      if (typeof amount !== "number" || !Number.isFinite(amount)) continue;
-      hasAnyCost = true;
-      allTimeTotal += amount;
-      if (completion.completedAtIso) {
-        const d = new Date(completion.completedAtIso);
-        if (!Number.isNaN(d.getTime()) && d.getFullYear() === year) {
-          yearTotal += amount;
-        }
-      }
-    }
-  }
-
   return {
     yearLabel: String(year),
-    yearTotal,
-    allTimeTotal,
-    hasAnyCost,
+    yearTotal: spendForYear(ledger, year)?.total ?? 0,
+    allTimeTotal: ledger.allTime.total,
+    hasAnyCost: ledger.hasAnyCost,
   };
 }

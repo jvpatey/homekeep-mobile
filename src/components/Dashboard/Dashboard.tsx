@@ -8,10 +8,10 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AppStackParamList } from "../../navigation/types";
-import { MaintenanceTask } from "../../types/maintenance";
+import { useAppNavigation } from "../../navigation/useAppNavigation";
+import { showActionMenu } from "../../utils/actionMenu";
+import { useQuickActions } from "../../context/QuickActionsContext";
+import { CompletionExtras, MaintenanceTask } from "../../types/maintenance";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -20,12 +20,10 @@ import {
   CompletionCelebration,
   CompletionCelebrationSnapshot,
 } from "./popups";
-import { NotificationPermissionRequest, HearthCanvas } from "../ui";
+import { NotificationPermissionRequest, ScrollAtmosphere } from "../ui";
 import { DashboardHeader } from "./DashboardHeader";
 import { NextRightThingCard } from "./NextRightThingCard";
 import { HomeSystemMap } from "./HomeSystemMap";
-import { FloatingActionButton } from "./FloatingActionButton";
-import { EquipmentManualsModal } from "../modals/equipment-manuals-modal";
 import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
 import { HomeSetupModal } from "../modals/home-setup";
 import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdSharingModal";
@@ -76,7 +74,8 @@ import {
   WeekendPlanHistoryEntry,
 } from "../../utils/weekendPlanStorage";
 import { CompleteTaskSheet } from "../modals/complete-task/CompleteTaskSheet";
-import { EmergencyFactsModal } from "../modals/emergency-facts/EmergencyFactsModal";
+import { AssistantSheet } from "../assistant/AssistantSheet";
+import { usePlusFeature } from "../../lib/plusFeatures";
 import { WeekendBudgetSheet } from "./WeekendBudgetSheet";
 import { WeekendPlanStrip } from "./WeekendPlanStrip";
 import {
@@ -84,6 +83,7 @@ import {
   WeekendPlanCelebrationSnapshot,
 } from "./WeekendPlanCelebration";
 import { WeatherAlertCard } from "./WeatherAlertCard";
+import { InspectionImportCard } from "./InspectionImportCard";
 import { CampaignPlanStrip } from "./CampaignPlanStrip";
 import {
   computeCampaignProgress,
@@ -91,6 +91,9 @@ import {
   markCampaignCelebrated,
 } from "../../utils/campaignProgress";
 import { MaintenanceService } from "../../services/maintenanceService";
+import { MaintenanceStatsService } from "../../services/MaintenanceStatsService";
+import type { LastCompletionMap } from "../../utils/zoneHealth";
+import { useWidgetSync } from "../../hooks/useWidgetSync";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { getAppliedPlanIds } from "../../data/maintenancePlans";
 import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
@@ -110,12 +113,7 @@ interface NewDashboardProps {
   completedTasks?: MaintenanceTask[];
   onCompleteTask: (
     instanceId: string,
-    extras?: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
+    extras?: CompletionExtras
   ) => Promise<{ success: boolean; error?: string }>;
   onTaskPress?: (instanceId: string) => void;
   onRefresh?: () => void;
@@ -160,11 +158,17 @@ export function NewDashboard({
     consume: consumeFreeAction,
   } = useRequirePlusOrFreeAction();
   const { isPlus, offerPaywallAfterSetup } = useSubscription();
-  const { createTasks } = useTasks();
+  const assistant = usePlusFeature("assistant");
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState<string | undefined>();
+  const pendingAskKeeperRef = useRef<MaintenanceTask | null>(null);
+  const { createTasks, loading: tasksLoading } = useTasks();
+  const sawTasksLoad = useRef(false);
+  if (tasksLoading) sawTasksLoad.current = true;
   const insets = useSafeAreaInsets();
   const listRef = useRef<DashboardScheduleListRef>(null);
-  const navigation =
-    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const { goToTab, openPlan, openRecord } = useAppNavigation();
+  const { openLogRepair, openScheduleRepair } = useQuickActions();
 
   const [celebration, setCelebration] = useState<{
     visible: boolean;
@@ -179,6 +183,9 @@ export function NewDashboard({
   >(new Set());
   const completingRef = useRef<Set<string>>(new Set());
   const [showHomeSetupModal, setShowHomeSetupModal] = useState(false);
+  // Setup asks for notifications itself; don't re-prompt in the same session.
+  const [setupFinishedThisSession, setSetupFinishedThisSession] =
+    useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
   const offerPlusAfterHomeShareRef = useRef(false);
   const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
@@ -188,8 +195,6 @@ export function NewDashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTaskInitial, setEditTaskInitial] =
     useState<MaintenanceTask | null>(null);
-  const [showEquipmentManualsModal, setShowEquipmentManualsModal] =
-    useState(false);
   const [createEquipmentId, setCreateEquipmentId] = useState<string | null>(
     null
   );
@@ -203,7 +208,6 @@ export function NewDashboard({
   >([]);
   const [showWeekendBudget, setShowWeekendBudget] = useState(false);
   const [sheetBudget, setSheetBudget] = useState(90);
-  const [showEmergencyFacts, setShowEmergencyFacts] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<MaintenanceTask | null>(
     null
   );
@@ -214,6 +218,7 @@ export function NewDashboard({
   const [activeRoutines, setActiveRoutines] = useState<MaintenanceRoutine[]>(
     []
   );
+  const [lastCompletion, setLastCompletion] = useState<LastCompletionMap>({});
   const [campaignCelebrated, setCampaignCelebrated] = useState(true);
   const pendingEditRef = useRef<MaintenanceTask | null>(null);
   const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
@@ -381,6 +386,17 @@ export function NewDashboard({
     [seasonalOverdue, seasonalTasks]
   );
 
+  useWidgetSync({
+    overdue: seasonalOverdue,
+    upcoming: seasonalTasks,
+    lastCompletion,
+    home: profile?.home_systems,
+    ready:
+      !tasksLoading &&
+      !tasksError &&
+      (sawTasksLoad.current || tasks.length > 0 || overdueTasks.length > 0),
+  });
+
   const activeWeekendPlan = useMemo(
     () => (storedWeekendPlan ? resolveWeekendPlan(storedWeekendPlan) : null),
     [storedWeekendPlan]
@@ -485,10 +501,13 @@ export function NewDashboard({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data } = await MaintenanceService.getMaintenanceRoutines({
-        is_active: true,
-      });
-      if (!cancelled) setActiveRoutines(data ?? []);
+      const [{ data }, completions] = await Promise.all([
+        MaintenanceService.getMaintenanceRoutines({ is_active: true }),
+        MaintenanceStatsService.getLastCompletionByRoutine(),
+      ]);
+      if (cancelled) return;
+      setActiveRoutines(data ?? []);
+      if (completions.data) setLastCompletion(completions.data);
     })();
     return () => {
       cancelled = true;
@@ -556,12 +575,7 @@ export function NewDashboard({
   const handleCompleteTask = useCallback(
     async (
       instanceId: string,
-      extras?: {
-        notes?: string;
-        cost_amount?: number | null;
-        labor_type?: "diy" | "hired" | null;
-        photo_storage_path?: string | null;
-      }
+      extras?: CompletionExtras
     ): Promise<boolean> => {
       if (completingRef.current.has(instanceId)) return false;
       if (!(await requirePlusOrFree())) return false;
@@ -796,6 +810,14 @@ export function NewDashboard({
   useEffect(() => {
     if (!pendingOpen) return;
 
+    if (pendingOpen.action === "recall" && pendingOpen.equipmentId) {
+      openRecord("EquipmentDetail", { equipmentId: pendingOpen.equipmentId });
+      clearPendingOpen();
+      return;
+    }
+
+    goToTab("HomeTab");
+
     if (pendingOpen.action === "household") {
       setShowHouseholdModal(true);
       clearPendingOpen();
@@ -819,7 +841,7 @@ export function NewDashboard({
     }
 
     clearPendingOpen();
-  }, [clearPendingOpen, overdueTasks, pendingOpen, tasks]);
+  }, [clearPendingOpen, goToTab, openRecord, overdueTasks, pendingOpen, tasks]);
 
   const handleTaskCreated = () => {
     setShowCreateModal(false);
@@ -868,16 +890,38 @@ export function NewDashboard({
     [overdueTasks, seasonalOverdue, tasks]
   );
 
-  const contentPaddingBottom = hasScheduleTasks
-    ? insets.bottom +
-      DesignSystem.spacing.md +
-      DesignSystem.components.buttonLarge +
-      DesignSystem.spacing.md +
-      DesignSystem.spacing.lg
-    : insets.bottom + DesignSystem.spacing.xxxl;
+  const contentPaddingBottom = DesignSystem.spacing.xxl;
+
+  const openAddMenu = () => {
+    showActionMenu({
+      options: [
+        {
+          label: "Add a reminder",
+          icon: "add-circle-outline",
+          onPress: () => void openCreateModal(),
+        },
+        {
+          label: "Schedule a repair",
+          icon: "construct-outline",
+          onPress: () => void openScheduleRepair(),
+        },
+        {
+          label: "Log a repair",
+          icon: "hammer-outline",
+          onPress: () => void openLogRepair(),
+        },
+        {
+          label: "Browse task library",
+          icon: "library-outline",
+          onPress: () => openPlan({ segment: "library" }),
+        },
+      ],
+    });
+  };
 
   const listHeader = (
     <>
+      <ScrollAtmosphere />
       <DashboardHeader
         userName={accountFirstName({
           authFullName: user?.user_metadata?.full_name as string | undefined,
@@ -887,9 +931,13 @@ export function NewDashboard({
         greeting={getGreeting()}
         overdueCount={seasonalOverdue.length}
         dueTodayCount={dueTodayCount}
-        onOpenEquipmentManuals={() => setShowEquipmentManualsModal(true)}
         onOpenAddressEditor={() => setShowHomeSetupModal(true)}
-        onOpenHomeSummary={() => navigation.navigate("HomeSummaryPreview")}
+        onAddPress={openAddMenu}
+        onAskPress={() => {
+          void assistant.unlock().then((ok) => {
+            if (ok) setShowAssistant(true);
+          });
+        }}
         onStatusChipPress={handleStatusChipPress}
         animatedStyle={headerAnimatedStyle}
         seasonLabel={seasonLabel}
@@ -904,6 +952,7 @@ export function NewDashboard({
           }}
         />
       ) : null}
+      <InspectionImportCard />
       {campaignProgress ? (
         <CampaignPlanStrip
           progress={campaignProgress}
@@ -913,12 +962,13 @@ export function NewDashboard({
       <HomeSystemMap
         overdueTasks={seasonalOverdue}
         upcomingTasks={seasonalTasks}
+        lastCompletion={lastCompletion}
         selectedZoneId={selectedZoneId}
         onSelectZone={setSelectedZoneId}
         onSetupHome={() => setShowHomeSetupModal(true)}
         weatherOverlay={climateAlert?.kind ?? null}
         showPins={isHomeSystemsComplete(profile?.home_systems)}
-        onPinPress={() => setShowEmergencyFacts(true)}
+        onPinPress={() => openRecord("EmergencyInfo")}
       />
       {nextTask ? (
         <NextRightThingCard
@@ -966,7 +1016,7 @@ export function NewDashboard({
   );
 
   return (
-    <HearthCanvas>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <DashboardScheduleList
         ref={listRef}
         sections={sections}
@@ -992,14 +1042,9 @@ export function NewDashboard({
         }
         onAddTask={openCreateModal}
         onBrowseMaintenancePlans={onBrowseMaintenancePlans}
-        onSetupHome={() => setShowHomeSetupModal(true)}
         homeSetupIncomplete={!isHomeSystemsComplete(profile?.home_systems)}
         contentPaddingBottom={contentPaddingBottom}
       />
-
-      {hasScheduleTasks ? (
-        <FloatingActionButton onPress={openCreateModal} />
-      ) : null}
 
       {selectedTask ? (
         <SimpleTaskDetailModal
@@ -1022,6 +1067,20 @@ export function NewDashboard({
               setTimeout(() => setCompleteTarget(toComplete), 50);
               return;
             }
+            const toAsk = pendingAskKeeperRef.current;
+            pendingAskKeeperRef.current = null;
+            if (toAsk) {
+              setTimeout(() => {
+                void assistant.unlock().then((ok) => {
+                  if (!ok) return;
+                  setAssistantPrompt(
+                    `How do I do "${toAsk.title}"? Walk me through it step by step for my home.`
+                  );
+                  setShowAssistant(true);
+                });
+              }, 50);
+              return;
+            }
             // Resume weekend planner after browsing a task (avoid nested Modals).
             if (resumeWeekendAfterDetailRef.current) {
               resumeWeekendAfterDetailRef.current = false;
@@ -1035,6 +1094,10 @@ export function NewDashboard({
           }}
           onEdit={(task) => {
             pendingEditRef.current = task;
+            setShowTaskDetail(false);
+          }}
+          onAskKeeper={(task) => {
+            pendingAskKeeperRef.current = task;
             setShowTaskDetail(false);
           }}
           onSkipOccurrence={
@@ -1092,25 +1155,12 @@ export function NewDashboard({
         onClose={handleCloseWeekendCelebration}
       />
 
-      {showEquipmentManualsModal ? (
-        <EquipmentManualsModal
-          visible
-          onClose={() => setShowEquipmentManualsModal(false)}
-          onAddRecurringTask={(equipmentId) => {
-            void (async () => {
-              if (!(await requirePlus())) return;
-              setShowEquipmentManualsModal(false);
-              setCreateEquipmentId(equipmentId);
-              setEditTaskInitial(null);
-              setShowCreateModal(true);
-            })();
-          }}
-        />
-      ) : null}
-
       <HomeSetupModal
         visible={showHomeSetupModal}
-        onClose={() => setShowHomeSetupModal(false)}
+        onClose={() => {
+          setShowHomeSetupModal(false);
+          setSetupFinishedThisSession(true);
+        }}
         onFirstRunFinished={(action) => {
           if (action === "invite" || action === "join") {
             offerPlusAfterHomeShareRef.current = !isPlus;
@@ -1151,12 +1201,14 @@ export function NewDashboard({
         />
       ) : null}
 
-      {showEmergencyFacts ? (
-        <EmergencyFactsModal
-          visible
-          onClose={() => setShowEmergencyFacts(false)}
-        />
-      ) : null}
+      <AssistantSheet
+        visible={showAssistant}
+        onClose={() => {
+          setShowAssistant(false);
+          setAssistantPrompt(undefined);
+        }}
+        initialPrompt={assistantPrompt}
+      />
 
       {showWeekendBudget ? (
         <WeekendBudgetSheet
@@ -1189,7 +1241,15 @@ export function NewDashboard({
         />
       ) : null}
 
-      <NotificationPermissionRequest />
-    </HearthCanvas>
+      <NotificationPermissionRequest
+        suppressed={
+          addressNeeded ||
+          homeSetupNeeded ||
+          showHomeSetupModal ||
+          showHouseholdModal ||
+          setupFinishedThisSession
+        }
+      />
+    </View>
   );
 }

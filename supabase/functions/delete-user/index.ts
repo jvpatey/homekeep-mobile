@@ -108,10 +108,25 @@ serve(async (req) => {
       );
     }
 
-    // 7. Delete user profile
+    // 7. Delete vault documents this user uploaded, and their files
+    const { data: documentRows } = await supabaseAdmin
+      .from("documents")
+      .select("storage_path")
+      .eq("user_id", userId);
+    const documentPaths = (documentRows ?? [])
+      .map((row) => row.storage_path)
+      .filter((path): path is string => Boolean(path));
+    if (documentPaths.length > 0) {
+      await supabaseAdmin.storage
+        .from("equipment-manuals")
+        .remove(documentPaths);
+    }
+    await supabaseAdmin.from("documents").delete().eq("user_id", userId);
+
+    // 8. Delete user profile
     await supabaseAdmin.from("profiles").delete().eq("id", userId);
 
-    // 8. Delete the auth user completely
+    // 9. Delete the auth user completely
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
       userId
     );

@@ -3,6 +3,7 @@ export const OVERDUE_LOOKBACK_DAYS = 14;
 export interface LocalParts {
   hour: number;
   weekday: number;
+  dayOfMonth: number;
   localDate: string;
   weekStart: string;
 }
@@ -71,7 +72,9 @@ export function getLocalParts(now: Date, timeZone: string): LocalParts {
     timeZone
   );
 
-  return { hour, weekday, localDate, weekStart };
+  const dayOfMonth = Number(localDate.slice(8, 10));
+
+  return { hour, weekday, dayOfMonth, localDate, weekStart };
 }
 
 export function isBetweenDaysInTz(

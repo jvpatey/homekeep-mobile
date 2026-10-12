@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Share,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -34,6 +35,7 @@ import {
   homeShareInvitePayload,
   parseHomeShareInvitePayload,
 } from "../../../utils/homeShareInvite";
+import { HomeSharePitch } from "../home-setup/SetupHomeShare";
 
 interface HouseholdSharingModalProps {
   visible: boolean;
@@ -472,12 +474,12 @@ export function HouseholdSharingModal({
         onClose();
         if (needPaywall) {
           setTimeout(() => {
-            void presentPaywall();
+            void presentPaywall({ reason: "homeshare" });
           }, 320);
         }
       }}
       title={mode === "scan" ? "Scan HomeShare" : "HomeShare"}
-      fillMaxHeight={mode === "scan"}
+      fillMaxHeight
       footer={
         mode === "scan" ? (
           <Button
@@ -535,13 +537,18 @@ export function HouseholdSharingModal({
           ) : null}
         </View>
       ) : (
-        <>
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        HomeShare is one home for everyone who lives there. Members see the
-        owner's address, systems, and schedule.
-      </Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          contentContainerStyle={styles.pitchScroll}
+        >
       {profile?.household_id ? (
         <>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            HomeShare is one home for everyone who lives there. Members see the
+            owner's address, systems, and schedule.
+          </Text>
           <Text style={[styles.label, { color: colors.text }]}>Invite code</Text>
           <HearthSurfaceCard containerStyle={styles.codeCard}>
             <View style={styles.codeRow}>
@@ -682,17 +689,20 @@ export function HouseholdSharingModal({
         </>
       ) : (
         <>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            Creating a HomeShare and sharing an invite code needs HomeKeep +.
-            Joining with a code is free.
-          </Text>
+          <HomeSharePitch isPlus={isPlus} />
           <Button
             label={busy ? "Working…" : "Create HomeShare"}
             onPress={() => void create()}
             disabled={busy}
           />
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Or join with a code (free)
+          <Text style={[styles.plusNote, { color: colors.textSecondary }]}>
+            {isPlus
+              ? "You'll get a code and QR to send them."
+              : "Creating a HomeShare needs HomeKeep +. Joining is free."}
+          </Text>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.label, { color: colors.text }]}>
+            Have an invite code?
           </Text>
           <TextInput
             value={code}
@@ -729,7 +739,7 @@ export function HouseholdSharingModal({
           </View>
         </>
       )}
-        </>
+        </ScrollView>
       )}
     </HearthSheet>
   );
@@ -740,6 +750,19 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.footnote,
     marginBottom: DesignSystem.spacing.lg,
     lineHeight: 20,
+  },
+  pitchScroll: {
+    paddingBottom: DesignSystem.spacing.lg,
+  },
+  plusNote: {
+    ...DesignSystem.typography.caption,
+    textAlign: "center",
+    marginTop: DesignSystem.spacing.sm,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.xs,
   },
   memberNote: {
     marginTop: DesignSystem.spacing.md,

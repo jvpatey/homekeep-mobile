@@ -1,6 +1,7 @@
 import { MaintenancePlanItemTemplate } from "./types";
 import { type HomeHeatSource, uniqueHeatSources } from "./heatSources";
 import { heatItemsForSeason } from "./heatMaintenance";
+import { IRRIGATION_FALL_BLOWOUT_ITEM } from "./irrigationItems";
 
 /** Same dimensions as spring questionnaire — lawn, exterior responsibility, heating type. */
 export interface ColdWeatherPrepAnswers {
@@ -9,6 +10,8 @@ export interface ColdWeatherPrepAnswers {
   heatSource: HomeHeatSource;
   /** When set, tasks are included for every selected source. */
   heatSources?: HomeHeatSource[];
+  /** From home systems; not asked in the plan questionnaire. */
+  hasIrrigation?: boolean;
 }
 
 type FallItemDefinition = MaintenancePlanItemTemplate & {
@@ -140,6 +143,8 @@ export function filterColdWeatherPrepItems(
     }
     out.push(toTemplate(row));
   }
+
+  if (answers.hasIrrigation) out.push({ ...IRRIGATION_FALL_BLOWOUT_ITEM });
 
   const heatSources = uniqueHeatSources(
     answers.heatSources?.length ? answers.heatSources : [answers.heatSource]

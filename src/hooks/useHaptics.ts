@@ -29,7 +29,13 @@ export function useHaptics() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
+  /** Picker-wheel tick; lighter than an impact. */
+  const triggerSelection = () => {
+    Haptics.selectionAsync();
+  };
+
   return {
+    triggerSelection,
     triggerSuccess,
     triggerError,
     triggerWarning,

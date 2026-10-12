@@ -4,10 +4,18 @@ import {
 } from "./generateHomeSchedule";
 import type { HomeSystems } from "./homeSystems";
 import { MAINTENANCE_PLANS } from "./plans";
+import { HOME_AGE_PLAN_ID } from "./homeAgeItems";
+import { HOME_FEATURES_PLAN_ID } from "./homeFeatureItems";
 import { routineIdentityKey } from "./types";
 import type { MaintenanceCategory } from "../../types/maintenance";
 
-const CATALOG_PLAN_IDS = new Set(MAINTENANCE_PLANS.map((plan) => plan.id));
+/** Generated-schedule sources that are not library plans. */
+const GENERATED_SOURCE_IDS = [HOME_AGE_PLAN_ID, HOME_FEATURES_PLAN_ID];
+
+const CATALOG_PLAN_IDS = new Set([
+  ...MAINTENANCE_PLANS.map((plan) => plan.id),
+  ...GENERATED_SOURCE_IDS,
+]);
 
 export type ExistingRoutineForDiff = {
   id: string;

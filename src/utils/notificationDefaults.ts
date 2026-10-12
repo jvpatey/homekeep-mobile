@@ -19,6 +19,8 @@ export function buildDefaultNotificationPreferences(
     overdue_reminder: true,
     daily_digest: false,
     weekly_summary: false,
+    monthly_summary: true,
+    recall_alerts: true,
     reminder_hours_before: 24,
     updated_at: new Date().toISOString(),
   }));

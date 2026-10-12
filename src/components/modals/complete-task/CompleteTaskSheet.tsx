@@ -1,35 +1,26 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Alert,
-  Pressable,
-} from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import { View, Text, StyleSheet, Alert, ScrollView } from "react-native";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { HearthSheet } from "../../ui/HearthSheet";
 import { Button } from "../../ui/Button";
 import { DesignSystem } from "../../../theme/designSystem";
-import { MaintenanceTask } from "../../../types/maintenance";
-import { EquipmentManualService } from "../../../services/EquipmentManualService";
-import { ChoiceRow } from "../../../screens/maintenance-plans/questionnaireChrome";
+import { CompletionExtras, MaintenanceTask } from "../../../types/maintenance";
+import { RecordDetailsFields } from "../../record/RecordDetailsFields";
+import { ProPicker } from "../../pros/ProPicker";
+import {
+  EMPTY_RECORD_DETAILS,
+  RecordDetailsValue,
+  hasRecordDetails,
+  recordDetailsToExtras,
+  uploadRecordPhoto,
+} from "../../record/recordDetails";
 
 interface CompleteTaskSheetProps {
   visible: boolean;
   task: MaintenanceTask | null;
   onClose: () => void;
-  onSubmit: (
-    instanceId: string,
-    extras: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
-  ) => Promise<boolean>;
+  onSubmit: (instanceId: string, extras: CompletionExtras) => Promise<boolean>;
 }
 
 export function CompleteTaskSheet({
@@ -40,166 +31,102 @@ export function CompleteTaskSheet({
 }: CompleteTaskSheetProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const [notes, setNotes] = useState("");
-  const [cost, setCost] = useState("");
-  const [labor, setLabor] = useState<"diy" | "hired" | null>(null);
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [details, setDetails] = useState<RecordDetailsValue>(EMPTY_RECORD_DETAILS);
   const [saving, setSaving] = useState(false);
 
-  const reset = () => {
-    setNotes("");
-    setCost("");
-    setLabor(null);
-    setPhotoUri(null);
-  };
-
   const handleClose = () => {
-    reset();
+    setDetails(EMPTY_RECORD_DETAILS);
     onClose();
-  };
-
-  const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      setPhotoUri(result.assets[0].uri);
-    }
   };
 
   const handleSave = async (skipExtras: boolean) => {
     if (!task || saving) return;
     setSaving(true);
     try {
-      let photo_storage_path: string | null = null;
-      if (!skipExtras && photoUri && user) {
-        const path = `${user.id}/completions/${task.instance_id}.jpg`;
-        const uploaded = await EquipmentManualService.uploadFromUriPublic(
-          path,
-          photoUri,
-          "image/jpeg"
-        );
-        photo_storage_path = uploaded.path;
+      let photoPath: string | null = null;
+      if (!skipExtras && details.photoUri && user) {
+        photoPath = await uploadRecordPhoto(user.id, task.instance_id, details.photoUri);
+        if (!photoPath) {
+          Alert.alert(
+            "Photo didn't upload",
+            "Your other details will still be saved. You can try the photo again later."
+          );
+        }
       }
-      const cost_amount =
-        !skipExtras && cost.trim() ? Number(cost) : null;
-      const ok = await onSubmit(task.instance_id, skipExtras
-        ? {}
-        : {
-            notes: notes.trim() || undefined,
-            cost_amount: Number.isFinite(cost_amount as number)
-              ? cost_amount
-              : null,
-            labor_type: labor,
-            photo_storage_path,
-          });
+      const ok = await onSubmit(
+        task.instance_id,
+        skipExtras ? {} : recordDetailsToExtras(details, photoPath)
+      );
       if (ok) {
-        reset();
+        setDetails(EMPTY_RECORD_DETAILS);
         onClose();
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Couldn't complete", "Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
+  const hasDetails = hasRecordDetails(details);
+
   return (
     <HearthSheet
       visible={visible}
       onClose={handleClose}
-      title={task ? `Complete · ${task.title}` : "Complete"}
+      title={task ? task.title : "Complete"}
       footer={
         <View style={styles.footer}>
           <Button
-            label={saving ? "Saving…" : "Save to home record"}
+            label={saving ? "Saving…" : hasDetails ? "Save to home record" : "Mark complete"}
             onPress={() => void handleSave(false)}
             disabled={saving}
           />
-          <Button
-            label="Just complete"
-            variant="ghost"
-            onPress={() => void handleSave(true)}
-            disabled={saving}
-          />
+          {hasDetails ? (
+            <Button
+              label="Skip details"
+              variant="ghost"
+              onPress={() => void handleSave(true)}
+              disabled={saving}
+            />
+          ) : null}
         </View>
       }
     >
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        Optional details stay with this house — useful for buyers, insurance,
-        and the next time you do this job.
-      </Text>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Who did it?</Text>
-      <ChoiceRow
-        label="I did it"
-        selected={labor === "diy"}
-        onPress={() => setLabor("diy")}
-        accessibilityLabel="I did it"
-      />
-      <ChoiceRow
-        label="I hired someone"
-        selected={labor === "hired"}
-        onPress={() => setLabor("hired")}
-        accessibilityLabel="I hired someone"
-      />
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Note</Text>
-      <TextInput
-        value={notes}
-        onChangeText={setNotes}
-        placeholder="What did you do?"
-        placeholderTextColor={colors.textSecondary}
-        style={[
-          styles.input,
-          { color: colors.text, borderColor: colors.border, backgroundColor: colors.fieldFill },
-        ]}
-        multiline
-      />
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Cost</Text>
-      <TextInput
-        value={cost}
-        onChangeText={setCost}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        placeholderTextColor={colors.textSecondary}
-        style={[
-          styles.input,
-          { color: colors.text, borderColor: colors.border, backgroundColor: colors.fieldFill },
-        ]}
-      />
-      <Pressable onPress={() => void pickPhoto()} style={styles.photoBtn}>
-        <Text style={{ color: colors.primary, fontWeight: "600" }}>
-          {photoUri ? "Photo attached" : "Add a photo"}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          Add details if you like. They stay with the house for buyers,
+          insurers, and the next time you do this job.
         </Text>
-      </Pressable>
+        <RecordDetailsFields
+          value={details}
+          onChange={setDetails}
+          disabled={saving}
+          proSlot={
+            <ProPicker
+              value={details.contactId}
+              onChange={(contactId) =>
+                setDetails((prev) => ({ ...prev, contactId }))
+              }
+            />
+          }
+        />
+      </ScrollView>
     </HearthSheet>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    paddingBottom: DesignSystem.spacing.md,
+  },
   hint: {
     ...DesignSystem.typography.footnote,
-    marginBottom: DesignSystem.spacing.md,
     lineHeight: 20,
-  },
-  label: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: DesignSystem.spacing.xs,
-    marginTop: DesignSystem.spacing.sm,
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.md,
-    minHeight: 44,
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  photoBtn: {
-    minHeight: DesignSystem.components.minTouchTarget,
-    justifyContent: "center",
   },
   footer: {
     gap: DesignSystem.spacing.xs,

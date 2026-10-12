@@ -1,6 +1,7 @@
 import { MaintenancePlanItemTemplate } from "./types";
 import { type HomeHeatSource, uniqueHeatSources } from "./heatSources";
 import { heatItemsForSeason } from "./heatMaintenance";
+import { IRRIGATION_SPRING_STARTUP_ITEM } from "./irrigationItems";
 
 /** Answers collected before showing the tailored Spring refresh checklist. */
 export interface SpringRefreshAnswers {
@@ -10,6 +11,8 @@ export interface SpringRefreshAnswers {
   heatSource: HomeHeatSource;
   /** When set, tasks are included for every selected source. */
   heatSources?: HomeHeatSource[];
+  /** From home systems; not asked in the plan questionnaire. */
+  hasIrrigation?: boolean;
 }
 
 type SpringItemDefinition = MaintenancePlanItemTemplate & {
@@ -150,6 +153,8 @@ export function filterSpringRefreshItems(
     }
     out.push(toTemplate(row));
   }
+
+  if (answers.hasIrrigation) out.push({ ...IRRIGATION_SPRING_STARTUP_ITEM });
 
   const heatSources = uniqueHeatSources(
     answers.heatSources?.length ? answers.heatSources : [answers.heatSource]

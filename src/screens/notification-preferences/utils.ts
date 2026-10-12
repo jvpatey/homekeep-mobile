@@ -32,6 +32,18 @@ export const getNotificationTypeConfig = (
       icon: "stats-chart-outline",
       color: colors.accent,
     },
+    monthly_summary: {
+      title: "Monthly recap",
+      description: "On the 1st: what got done and what's coming up",
+      icon: "calendar-outline",
+      color: colors.primary,
+    },
+    recall_alerts: {
+      title: "Recall alerts",
+      description: "When a safety recall matches your equipment",
+      icon: "warning-outline",
+      color: colors.error,
+    },
   };
 
   return typeConfig[type as keyof typeof typeConfig];
@@ -51,4 +63,6 @@ export const getNotificationTypes = () => [
   "due_soon_reminder",
   "overdue_reminder",
   "weekly_summary",
+  "monthly_summary",
+  "recall_alerts",
 ];

@@ -9,17 +9,19 @@
     "web": "expo start --web",
     "build:ios": "expo build:ios",
     "submit:ios": "expo submit --platform ios",
-    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook"
+    "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook && supabase functions deploy recall-scan && supabase functions deploy homekeep-ai && supabase functions deploy calendar-feed"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-masked-view/masked-view": "^0.3.2",
-    "@react-navigation/bottom-tabs": "^7.4.2",
-    "@react-navigation/native": "^7.1.14",
-    "@react-navigation/native-stack": "^7.3.21",
+    "@react-navigation/bottom-tabs": "^7.20.0",
+    "@react-navigation/elements": "^2.9.44",
+    "@react-navigation/native": "^7.5.0",
+    "@react-navigation/native-stack": "^7.20.0",
     "@supabase/supabase-js": "^2.52.0",
     "country-region-data": "^4.1.0",
     "date-fns": "^4.1.0",
@@ -61,6 +63,7 @@
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-view-shot": "5.1.0",
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {

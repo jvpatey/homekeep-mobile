@@ -25,10 +25,20 @@ import {
   HomeMapZone,
 } from "../../data/homeMapZones";
 import { emergencyProgressSubtitle } from "../../types/homeEmergency";
+import {
+  LastCompletionMap,
+  ZoneHealth,
+  ZoneHealthGrade,
+  computeAllZoneHealth,
+  overallHomeHealth,
+  zoneHealthReason,
+} from "../../utils/zoneHealth";
 
 interface HomeSystemMapProps {
   overdueTasks: MaintenanceTask[];
   upcomingTasks: MaintenanceTask[];
+  /** routine_id → latest completion, for the recency half of the zone score. */
+  lastCompletion?: LastCompletionMap;
   selectedZoneId: HomeMapZoneId | null;
   onSelectZone: (zoneId: HomeMapZoneId | null) => void;
   onSetupHome?: () => void;
@@ -82,6 +92,22 @@ function stateColors(
   };
 }
 
+function gradeColor(
+  grade: ZoneHealthGrade | null,
+  colors: { success: string; warning: string; error: string; textSecondary: string }
+): string {
+  if (grade === "good") return colors.success;
+  if (grade === "fair") return colors.warning;
+  if (grade === "needs_attention") return colors.error;
+  return colors.textSecondary;
+}
+
+const GRADE_LABEL: Record<ZoneHealthGrade, string> = {
+  good: "Looking good",
+  fair: "A few things slipping",
+  needs_attention: "Needs attention",
+};
+
 function attentionCopy(
   overdueCount: number,
   dueCount: number
@@ -98,15 +124,19 @@ function attentionCopy(
 function tileAccessibilityLabel(
   zone: HomeMapZone,
   statusText: string | null,
-  selected: boolean
+  selected: boolean,
+  score: number | null
 ): string {
   const parts = [zone.label];
+  if (score !== null) parts.push(`health ${score} out of 100`);
   if (statusText) parts.push(statusText);
   else parts.push("all clear");
   if (selected) parts.push("filtering schedule");
   else parts.push("tap to filter");
   return parts.join(", ");
 }
+
+const EMPTY_COMPLETIONS: LastCompletionMap = {};
 
 function chunkPairs<T>(items: T[]): T[][] {
   const rows: T[][] = [];
@@ -121,6 +151,7 @@ function ZoneTile({
   state,
   overdueCount,
   dueCount,
+  health,
   selected,
   onPress,
 }: {
@@ -128,10 +159,13 @@ function ZoneTile({
   state: HomeMapZoneState;
   overdueCount: number;
   dueCount: number;
+  health: ZoneHealth | undefined;
   selected: boolean;
   onPress: () => void;
 }) {
   const { colors, isDark } = useTheme();
+  const score = health?.score ?? null;
+  const scoreColor = gradeColor(health?.grade ?? null, colors);
   const { triggerLight } = useHaptics();
   const { animatedStyle, onPressIn, onPressOut } = useScalePress(0.97);
   const reducedMotion = useReducedMotion();
@@ -182,7 +216,12 @@ function ZoneTile({
       onPressOut={onPressOut}
       style={styles.tilePress}
       accessibilityRole="button"
-      accessibilityLabel={tileAccessibilityLabel(zone, statusText, selected)}
+      accessibilityLabel={tileAccessibilityLabel(
+        zone,
+        statusText,
+        selected,
+        score
+      )}
       accessibilityState={{ selected }}
     >
       <Animated.View style={[{ flex: 1 }, animatedStyle]}>
@@ -203,11 +242,18 @@ function ZoneTile({
               size={20}
               color={palette.ink}
             />
-            {selected ? (
-              <Text style={[styles.filteringTag, { color: colors.text }]}>
-                Filtering
-              </Text>
-            ) : null}
+            <View style={styles.tileTopRight}>
+              {selected ? (
+                <Text style={[styles.filteringTag, { color: colors.text }]}>
+                  Filtering
+                </Text>
+              ) : null}
+              {score !== null ? (
+                <Text style={[styles.scoreText, { color: scoreColor }]}>
+                  {score}
+                </Text>
+              ) : null}
+            </View>
           </View>
           <View style={styles.tileBottom}>
             <Text
@@ -221,6 +267,25 @@ function ZoneTile({
                 {statusText}
               </Text>
             ) : null}
+            {score !== null ? (
+              <View
+                style={[
+                  styles.scoreTrack,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.10)"
+                      : "rgba(80,55,35,0.10)",
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.scoreFill,
+                    { width: `${score}%`, backgroundColor: scoreColor },
+                  ]}
+                />
+              </View>
+            ) : null}
           </View>
         </Animated.View>
       </Animated.View>
@@ -231,6 +296,7 @@ function ZoneTile({
 export function HomeSystemMap({
   overdueTasks,
   upcomingTasks,
+  lastCompletion = EMPTY_COMPLETIONS,
   selectedZoneId,
   onSelectZone,
   onSetupHome,
@@ -256,10 +322,23 @@ export function HomeSystemMap({
     return next;
   }, [zones, overdueTasks, upcomingTasks]);
 
+  const zoneHealth = useMemo(
+    () =>
+      computeAllZoneHealth(
+        zones,
+        [...overdueTasks, ...upcomingTasks],
+        lastCompletion
+      ),
+    [zones, overdueTasks, upcomingTasks, lastCompletion]
+  );
+  const overall = useMemo(() => overallHomeHealth(zoneHealth), [zoneHealth]);
+
   const countsFor = (zone: HomeMapZone) =>
     zoneTaskCounts(zone, overdueTasks, upcomingTasks);
 
   const selectedZone = zones.find((z) => z.id === selectedZoneId);
+  const selectedHealth = selectedZone ? zoneHealth[selectedZone.id] : undefined;
+  const selectedReason = selectedHealth ? zoneHealthReason(selectedHealth) : null;
   const emergencySubtitle = emergencyProgressSubtitle(
     profile?.home_emergency,
     home,
@@ -277,6 +356,31 @@ export function HomeSystemMap({
   return (
     <View style={styles.wrap}>
       <HearthSurfaceCard containerStyle={styles.cardOuter}>
+        {setupComplete && overall ? (
+          <View
+            style={styles.overallRow}
+            accessible
+            accessibilityLabel={`Home health ${overall.score} out of 100. ${GRADE_LABEL[overall.grade]}`}
+          >
+            <Text style={[styles.overallLabel, { color: colors.textSecondary }]}>
+              Home health
+            </Text>
+            <Text
+              style={[
+                styles.overallScore,
+                { color: gradeColor(overall.grade, colors) },
+              ]}
+            >
+              {overall.score}
+            </Text>
+            <Text
+              style={[styles.overallGrade, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {GRADE_LABEL[overall.grade]}
+            </Text>
+          </View>
+        ) : null}
         {setupComplete ? (
           <View style={styles.grid}>
             {chunkPairs(zones).map((row) => (
@@ -290,6 +394,7 @@ export function HomeSystemMap({
                       state={zoneStates[zone.id] ?? "quiet"}
                       overdueCount={counts.overdueCount}
                       dueCount={counts.dueCount}
+                      health={zoneHealth[zone.id]}
                       selected={selectedZoneId === zone.id}
                       onPress={() => toggle(zone.id)}
                     />
@@ -336,6 +441,17 @@ export function HomeSystemMap({
                 upcomingTasks
               )}
             </Text>
+            {selectedHealth?.score != null ? (
+              <Text style={[styles.caption, { color: colors.textSecondary }]}>
+                {selectedReason
+                  ? `Health ${selectedHealth.score} · ${selectedReason}`
+                  : `Health ${selectedHealth.score}`}
+              </Text>
+            ) : selectedHealth ? (
+              <Text style={[styles.caption, { color: colors.textSecondary }]}>
+                No tasks yet
+              </Text>
+            ) : null}
             <Pressable onPress={() => onSelectZone(null)} hitSlop={8}>
               <Text style={[styles.link, { color: colors.primary }]}>
                 Show all
@@ -393,13 +509,6 @@ export function HomeSystemMap({
           </Pressable>
         ) : null}
 
-        {!setupComplete ? (
-          <View style={styles.footer}>
-            <Text style={[styles.caption, { color: colors.textSecondary }]}>
-              Tell us about this house to light up the map
-            </Text>
-          </View>
-        ) : null}
       </HearthSurfaceCard>
 
       {!setupComplete && onSetupHome ? (
@@ -446,6 +555,49 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 6,
   },
+  tileTopRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  scoreText: {
+    ...DesignSystem.typography.caption,
+    fontSize: 13,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  scoreTrack: {
+    height: 3,
+    borderRadius: 2,
+    overflow: "hidden",
+    marginTop: 6,
+  },
+  scoreFill: {
+    height: 3,
+    borderRadius: 2,
+  },
+  overallRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.md,
+  },
+  overallLabel: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
+  },
+  overallScore: {
+    ...DesignSystem.typography.callout,
+    fontSize: 22,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  overallGrade: {
+    ...DesignSystem.typography.caption,
+    fontSize: 12,
+    flexShrink: 1,
+  },
   filteringTag: {
     ...DesignSystem.typography.caption,
     fontSize: 10,
@@ -469,8 +621,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: DesignSystem.spacing.lg,
-    paddingTop: DesignSystem.spacing.xl,
-    paddingBottom: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.lg,
   },
   setupIconRing: {
     width: 52,

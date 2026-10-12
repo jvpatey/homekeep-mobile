@@ -11,11 +11,14 @@ import { Button } from "../../../ui/Button";
 import { PriorityMark } from "../../../ui/PriorityMark";
 import { categories } from "../create-task-modal/data";
 import { formatTaskSectionHeading } from "../../../../utils/formatTaskDates";
+import { EquipmentTaskCard } from "../../../equipment/EquipmentTaskCard";
+import { useAppNavigation } from "../../../../navigation/useAppNavigation";
 import {
   getMaintenancePlanById,
   getPlanTheme,
   getPlanTagPillStyle,
 } from "../../../../data/maintenancePlans";
+import { howToForTask, TaskHowTo } from "../../../../data/taskHowTos";
 
 interface SimpleTaskDetailModalProps {
   task: MaintenanceTask | null;
@@ -27,6 +30,8 @@ interface SimpleTaskDetailModalProps {
   onSkipOccurrence?: (task: MaintenanceTask) => Promise<boolean>;
   onModified?: () => void;
   onStartComplete?: (task: MaintenanceTask) => void;
+  /** Shown when the task has no bundled how-to. */
+  onAskKeeper?: (task: MaintenanceTask) => void;
 }
 
 function getCategoryInfo(category: string) {
@@ -50,12 +55,14 @@ export function SimpleTaskDetailModal({
   onEdit,
   onSkipOccurrence,
   onStartComplete,
+  onAskKeeper,
 }: SimpleTaskDetailModalProps) {
   const { colors, isDark } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const { isTablet } = useDevice();
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const { openRecord } = useAppNavigation();
 
   const sheetMaxHeight = windowHeight * 0.9;
   const scrollViewportMaxHeight = sheetMaxHeight * 0.55;
@@ -70,6 +77,7 @@ export function SimpleTaskDetailModal({
   };
 
   const formatInterval = (intervalDays: number) => {
+    if (!intervalDays || intervalDays <= 0) return "One-time";
     if (intervalDays === 7) return "Weekly";
     if (intervalDays === 30) return "Monthly";
     if (intervalDays === 90) return "Quarterly";
@@ -120,6 +128,7 @@ export function SimpleTaskDetailModal({
     ? getMaintenancePlanById(task.source_plan_id)
     : undefined;
   const planTheme = getPlanTheme(task.source_plan_id);
+  const howTo = howToForTask(task);
   const showSkipOccurrence =
     !!onSkipOccurrence &&
     !task.is_completed &&
@@ -269,6 +278,17 @@ export function SimpleTaskDetailModal({
           ) : null}
         </View>
 
+        {task.equipment_id ? (
+          <EquipmentTaskCard
+            equipmentId={task.equipment_id}
+            taskTitle={task.title}
+            onOpen={(equipmentId) => {
+              onClose();
+              openRecord("EquipmentDetail", { equipmentId });
+            }}
+          />
+        ) : null}
+
         {task.description ? (
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
@@ -278,6 +298,30 @@ export function SimpleTaskDetailModal({
               {task.description}
             </Text>
           </View>
+        ) : null}
+
+        {howTo ? (
+          <HowToSection howTo={howTo} />
+        ) : onAskKeeper && (task.interval_days ?? 0) > 0 ? (
+          <Pressable
+            onPress={() => onAskKeeper(task)}
+            style={[
+              styles.askKeeper,
+              { backgroundColor: colors.fieldFill, borderColor: colors.border },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Ask Keeper how to do this"
+          >
+            <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
+            <Text style={[styles.askKeeperLabel, { color: colors.text }]}>
+              Ask Keeper how to do this
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.textSecondary}
+            />
+          </Pressable>
         ) : null}
 
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
@@ -301,6 +345,71 @@ export function SimpleTaskDetailModal({
         />
       </ScrollView>
     </HearthSheet>
+  );
+}
+
+function HowToSection({ howTo }: { howTo: TaskHowTo }) {
+  const { colors } = useTheme();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <View style={styles.section}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={styles.howToHeader}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`How to do it, ${howTo.steps.length} steps`}
+      >
+        <Text style={[styles.sectionLabel, styles.howToLabel, { color: colors.textSecondary }]}>
+          How to do it · {howTo.steps.length} steps
+        </Text>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={colors.textSecondary}
+        />
+      </Pressable>
+      {open ? (
+        <View style={styles.howToBody}>
+          {howTo.tools?.length ? (
+            <Text style={[styles.howToTools, { color: colors.textSecondary }]}>
+              You'll need: {howTo.tools.join(", ")}
+            </Text>
+          ) : null}
+          {howTo.steps.map((step, i) => (
+            <View key={i} style={styles.howToStep}>
+              <View
+                style={[
+                  styles.howToNumber,
+                  { backgroundColor: colors.primary + "22" },
+                ]}
+              >
+                <Text style={[styles.howToNumberText, { color: colors.primary }]}>
+                  {i + 1}
+                </Text>
+              </View>
+              <Text style={[styles.howToStepText, { color: colors.text }]}>
+                {step}
+              </Text>
+            </View>
+          ))}
+          {howTo.safety ? (
+            <View
+              style={[
+                styles.howToSafety,
+                { backgroundColor: colors.error + "14", borderColor: colors.error + "40" },
+              ]}
+            >
+              <Ionicons name="warning-outline" size={16} color={colors.error} />
+              <Text style={[styles.howToSafetyText, { color: colors.text }]}>
+                {howTo.safety}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -397,6 +506,71 @@ const styles = StyleSheet.create({
   bodyText: {
     ...DesignSystem.typography.body,
     lineHeight: 24,
+  },
+  howToHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 32,
+  },
+  howToLabel: {
+    marginBottom: 0,
+  },
+  howToBody: {
+    gap: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.sm,
+  },
+  howToTools: {
+    ...DesignSystem.typography.footnote,
+    lineHeight: 20,
+  },
+  howToStep: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: DesignSystem.spacing.sm,
+  },
+  howToNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  howToNumberText: {
+    ...DesignSystem.typography.caption,
+    fontWeight: "700",
+  },
+  howToStepText: {
+    ...DesignSystem.typography.body,
+    flex: 1,
+    lineHeight: 22,
+  },
+  howToSafety: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: DesignSystem.spacing.sm,
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  howToSafetyText: {
+    ...DesignSystem.typography.footnote,
+    flex: 1,
+    lineHeight: 20,
+  },
+  askKeeper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: DesignSystem.spacing.sm,
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  askKeeperLabel: {
+    ...DesignSystem.typography.bodySemiBold,
+    flex: 1,
   },
   detailRow: {
     flexDirection: "row",

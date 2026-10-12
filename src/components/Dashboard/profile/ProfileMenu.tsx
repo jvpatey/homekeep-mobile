@@ -4,7 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useProfile } from "../../../context/ProfileContext";
-import { useTasks } from "../../../context/TasksContext";
 import { useHaptics, useDevice } from "../../../hooks";
 import {
   resolveGradientPreset,
@@ -19,7 +18,6 @@ import {
 } from "../../ui";
 import { styles } from "./styles";
 import { ProfileMenuNavigationProps } from "../../../types/navigation";
-import { AllTasksModal } from "../../modals/all-tasks-modal";
 import { HouseholdSharingModal } from "../../modals/household-sharing/HouseholdSharingModal";
 import { AvatarCustomizationModal } from "../../modals/avatar-customization-modal";
 import {
@@ -41,13 +39,11 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { profile, householdRole, avatarUrl } = useProfile();
-  const { stats } = useTasks();
   const { selectedGradient } = useUserPreferences();
   const { triggerLight, triggerMedium } = useHaptics();
   const { isTablet, getResponsiveValue } = useDevice();
 
   const [menuVisible, setMenuVisible] = useState(false);
-  const [allTasksModalVisible, setAllTasksModalVisible] = useState(false);
   const [householdVisible, setHouseholdVisible] = useState(false);
   const [avatarEditorVisible, setAvatarEditorVisible] = useState(false);
   const [members, setMembers] = useState<HouseholdMemberView[]>([]);
@@ -291,49 +287,6 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
           style={styles.actionsSurface}
         >
           <SheetActionRow
-            icon="document-text-outline"
-            title="Home summary"
-            onPress={() => {
-              void triggerLight();
-              presentAfterClose(() =>
-                navigation.navigate("HomeSummaryPreview")
-              );
-            }}
-            showDivider
-          />
-          <SheetActionRow
-            icon="stats-chart-outline"
-            title="All reminders"
-            onPress={() => {
-              void triggerLight();
-              presentAfterClose(() => setAllTasksModalVisible(true));
-            }}
-            trailing={
-              <View
-                style={[
-                  styles.counterBadge,
-                  { backgroundColor: colors.primary + "20" },
-                ]}
-              >
-                <Text style={[styles.counterText, { color: colors.primary }]}>
-                  {stats.total}
-                </Text>
-              </View>
-            }
-            showDivider
-          />
-          <SheetActionRow
-            icon="time-outline"
-            title="Completion history"
-            onPress={() => {
-              void triggerLight();
-              presentAfterClose(() =>
-                navigation.navigate("CompletionHistory")
-              );
-            }}
-            showDivider
-          />
-          <SheetActionRow
             icon="settings-outline"
             title="Settings"
             onPress={() => {
@@ -351,11 +304,6 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
           />
         </HearthSurfaceCard>
       </HearthSheet>
-
-      <AllTasksModal
-        visible={allTasksModalVisible}
-        onClose={() => setAllTasksModalVisible(false)}
-      />
 
       <HouseholdSharingModal
         visible={householdVisible}

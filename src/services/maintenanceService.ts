@@ -21,6 +21,7 @@ import {
   DeleteResponse,
   ServiceResponse,
   ServiceError,
+  CompletionExtras,
 } from "../types/maintenance";
 import { MaintenanceRoutineService } from "./MaintenanceRoutineService";
 import { MaintenanceInstanceService } from "./MaintenanceInstanceService";
@@ -44,9 +45,10 @@ export class MaintenanceService {
 
   // Get all maintenance routines for the current user
   static async getMaintenanceRoutines(
-    filters?: Partial<MaintenanceFilters>
+    filters?: Partial<MaintenanceFilters>,
+    options?: { includeRepairs?: boolean }
   ): Promise<MaintenanceRoutinesResponse> {
-    return MaintenanceRoutineService.getMaintenanceRoutines(filters);
+    return MaintenanceRoutineService.getMaintenanceRoutines(filters, options);
   }
 
   // Update a maintenance routine
@@ -72,12 +74,7 @@ export class MaintenanceService {
   // Complete a routine instance
   static async completeInstance(
     instanceId: string,
-    extras?: {
-      notes?: string;
-      cost_amount?: number | null;
-      labor_type?: "diy" | "hired" | null;
-      photo_storage_path?: string | null;
-    }
+    extras?: CompletionExtras
   ): Promise<RoutineInstanceResponse> {
     return MaintenanceInstanceService.completeInstance(instanceId, extras);
   }

@@ -3,6 +3,8 @@ import {
   MaintenanceCategory,
   Priority,
 } from "../../types/maintenance";
+import type { HomeSystems } from "./homeSystems";
+import { costEstimateFor } from "./costEstimates";
 
 /** Display grouping for the plan library (not persisted). */
 export type MaintenancePlanTag =
@@ -11,7 +13,11 @@ export type MaintenancePlanTag =
   | "safety"
   | "starter"
   | "general"
-  | "pool";
+  | "pool"
+  | "condo"
+  | "water"
+  | "garage"
+  | "irrigation";
 
 /** One row in a bundled plan — maps to CreateMaintenanceRoutineData after resolving dates. */
 export interface MaintenancePlanItemTemplate {
@@ -23,6 +29,9 @@ export interface MaintenancePlanItemTemplate {
   interval_days: number;
   /** Days after anchor date (usually today) for first occurrence — avoids stacking every task on one day. */
   start_offset_days?: number;
+  /** Cost per occurrence in USD; falls back to the shared catalog in costEstimates.ts. */
+  estimated_cost_diy?: number;
+  estimated_cost_pro?: number;
 }
 
 /** Full definition shown in the task library. */
@@ -36,6 +45,16 @@ export interface MaintenancePlanDefinition {
   /** When true, the UI collects answers before filtering tasks; apply must pass selected items. */
   requiresQuestionnaire?: boolean;
   items: MaintenancePlanItemTemplate[];
+  /** Narrows `items` using saved home systems (no questionnaire). */
+  filterForHome?: (
+    home: HomeSystems | null | undefined,
+    context: PlanFilterContext
+  ) => MaintenancePlanItemTemplate[];
+}
+
+export interface PlanFilterContext {
+  latitude?: number | null;
+  now?: Date;
 }
 
 export type MaintenancePlanSummary = Pick<
@@ -62,6 +81,7 @@ export function buildRoutinePayloadsFromItems(
     const start = new Date(anchorDate);
     start.setDate(start.getDate() + (item.start_offset_days ?? 0));
     start.setHours(12, 0, 0, 0);
+    const cost = costEstimateFor(item);
     return {
       title: item.title,
       description: item.description,
@@ -70,6 +90,9 @@ export function buildRoutinePayloadsFromItems(
       estimated_duration_minutes: item.estimated_duration_minutes,
       interval_days: item.interval_days,
       start_date: start.toISOString(),
+      ...(cost
+        ? { estimated_cost_diy: cost.diy, estimated_cost_pro: cost.pro }
+        : {}),
     };
   });
 }
@@ -84,6 +107,11 @@ export function getPlanSummary(plan: MaintenancePlanDefinition): MaintenancePlan
   };
 }
 
+/** Case- and whitespace-insensitive title; routines join back to library templates by this. */
+export function normalizeRoutineTitle(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 /**
  * Stable identity for deduping plan routines against each other and existing DB rows.
  * Same title (normalized), category, and interval ⇒ same recurring task for our purposes.
@@ -93,8 +121,7 @@ export function routineIdentityKey(
   category: MaintenanceCategory,
   interval_days: number
 ): string {
-  const normalized = title.trim().replace(/\s+/g, " ").toLowerCase();
-  return `${category}|${interval_days}|${normalized}`;
+  return `${category}|${interval_days}|${normalizeRoutineTitle(title)}`;
 }
 
 /** Drops payloads that match an existing routine or duplicate an earlier payload in the same batch. */

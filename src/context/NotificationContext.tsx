@@ -9,8 +9,10 @@ import React, {
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import * as Linking from "expo-linking";
 import { AppState, Platform } from "react-native";
 import { useAuth } from "./AuthContext";
+import { isWidgetUrl, widgetTaskInstanceId } from "../lib/homeWidget";
 import {
   NotificationPreferences,
   NotificationSettings,
@@ -42,8 +44,9 @@ Notifications.setNotificationHandler({
 });
 
 export type NotificationOpenTarget = {
-  action: "view" | "household";
+  action: "view" | "household" | "recall";
   instanceId?: string;
+  equipmentId?: string;
 };
 
 interface NotificationContextType {
@@ -110,6 +113,13 @@ function parseOpenTarget(
   if (!data) return null;
   if (data.action === "household") {
     return { action: "household" };
+  }
+  if (
+    data.action === "recall" &&
+    typeof data.equipment_id === "string" &&
+    data.equipment_id
+  ) {
+    return { action: "recall", equipmentId: data.equipment_id };
   }
   const instanceId =
     typeof data.instance_id === "string" && data.instance_id
@@ -497,6 +507,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       responseListener.remove();
     };
   }, [consumeResponse]);
+
+  useEffect(() => {
+    const openFromWidget = (url: string | null) => {
+      if (!isWidgetUrl(url)) return;
+      const instanceId = widgetTaskInstanceId(url);
+      setPendingOpen(
+        instanceId ? { action: "view", instanceId } : { action: "view" }
+      );
+    };
+    void Linking.getInitialURL().then(openFromWidget);
+    const subscription = Linking.addEventListener("url", ({ url }) =>
+      openFromWidget(url)
+    );
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!user) return;

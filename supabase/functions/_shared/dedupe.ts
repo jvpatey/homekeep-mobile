@@ -45,6 +45,19 @@ export function dedupeKeyMorning(userId: string, localDate: string): string {
   return `morning:${userId}:${localDate}`;
 }
 
+/** `month` is the local send month as YYYY-MM. */
+export function dedupeKeyMonthly(userId: string, month: string): string {
+  return `monthly:${userId}:${month}`;
+}
+
+export function dedupeKeyRecall(
+  userId: string,
+  equipmentId: string,
+  recallNumber: string
+): string {
+  return `recall:${userId}:${equipmentId}:${recallNumber}`;
+}
+
 export function dedupeKeyHouseholdJoin(
   householdId: string,
   actorId: string

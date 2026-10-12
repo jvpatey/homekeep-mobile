@@ -2,7 +2,9 @@ import { ServiceResponse } from "./maintenance";
 
 export interface HomeSummaryEquipmentItem {
   name: string;
+  manufacturer: string | null;
   modelNumber: string | null;
+  serialNumber: string | null;
   purchaseDateLabel: string | null;
   hasManual: boolean;
   hasReceipt: boolean;
@@ -36,14 +38,28 @@ export interface HomeSummarySpendTotals {
   hasAnyCost: boolean;
 }
 
+export interface HomeSummaryPaint {
+  room: string;
+  name: string;
+  brand: string | null;
+  code: string | null;
+  finish: string | null;
+  hex: string | null;
+}
+
 export interface HomeSummaryReportData {
   generatedAt: Date;
   ownerName: string | null;
   addressLines: string[];
   hasAddress: boolean;
+  /** "Built 1962 · 64 years" when the year built is known. */
+  homeAgeLabel: string | null;
   equipment: HomeSummaryEquipmentItem[];
   taskGroups: HomeSummaryTaskGroup[];
   spendTotals: HomeSummarySpendTotals;
+  paints: HomeSummaryPaint[];
+  /** ISO 4217 code used for every amount in the report. */
+  currency: string;
 }
 
 export interface HomeSummaryReportResponse

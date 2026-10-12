@@ -7,7 +7,12 @@ import { HearthSheet } from "./HearthSheet";
 import { Button } from "./Button";
 import { DesignSystem } from "../../theme/designSystem";
 
-export function NotificationPermissionRequest() {
+export function NotificationPermissionRequest({
+  suppressed = false,
+}: {
+  /** Hold the prompt, e.g. while onboarding (which asks itself) is in progress. */
+  suppressed?: boolean;
+}) {
   const { colors } = useTheme();
   const { permissionStatus, syncPushToken } = useNotifications();
   const { triggerMedium, triggerLight } = useHaptics();
@@ -15,6 +20,10 @@ export function NotificationPermissionRequest() {
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
+    if (suppressed) {
+      setShowModal(false);
+      return;
+    }
     if (permissionStatus.status === "undetermined") {
       const timer = setTimeout(() => {
         setShowModal(true);
@@ -22,7 +31,7 @@ export function NotificationPermissionRequest() {
 
       return () => clearTimeout(timer);
     }
-  }, [permissionStatus.status]);
+  }, [permissionStatus.status, suppressed]);
 
   const handleRequestPermissions = async () => {
     if (requesting) return;
