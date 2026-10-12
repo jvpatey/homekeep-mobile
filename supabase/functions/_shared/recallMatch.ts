@@ -1,8 +1,12 @@
 /**
- * Pure matching between equipment rows and CPSC recalls
- * (saferproducts.gov RestWebServices/Recall). No I/O so it can be tested
- * in isolation.
+ * Pure matching between equipment rows and product recalls. Each source
+ * (CPSC in the US, Health Canada) is adapted into a RecallCandidate so one
+ * set of manufacturer / model / name rules applies to both. No I/O so it can
+ * be tested in isolation.
  */
+
+export type RecallSource = "cpsc" | "health_canada";
+export type RecallCountry = "US" | "CA";
 
 export interface CpscNamed {
   Name?: string | null;
@@ -15,6 +19,7 @@ export interface CpscProduct {
   Type?: string | null;
 }
 
+/** saferproducts.gov RestWebServices/Recall record. */
 export interface CpscRecall {
   RecallID?: number;
   RecallNumber?: string | null;
@@ -29,6 +34,28 @@ export interface CpscRecall {
   Distributors?: CpscNamed[] | null;
   Hazards?: CpscNamed[] | null;
   Remedies?: CpscNamed[] | null;
+}
+
+export interface RecallCandidate {
+  source: RecallSource;
+  recallNumber: string;
+  title: string;
+  url: string | null;
+  hazard: string | null;
+  remedy: string | null;
+  recallDate: string | null;
+  /** Companies named on the recall (manufacturer, importer, distributor). */
+  companies: string[];
+  /** Text where a brand mention also identifies the maker ("Kenmore" sold by Electrolux). */
+  brandTexts: string[];
+  /** With no companies or brand text, trust the upstream maker filter (CPSC queries by maker). */
+  trustMakerWhenUnlisted: boolean;
+  /** Fields that list model numbers. */
+  modelFields: string[];
+  /** Prose that may mention a model number. */
+  freeTexts: string[];
+  /** Product names used for name-only matches. */
+  productNames: string[];
 }
 
 export interface RecallEquipment {
@@ -59,6 +86,7 @@ const CORPORATE_SUFFIXES = new Set([
   "na",
   "america",
   "americas",
+  "canada",
   "group",
   "holdings",
   "international",
@@ -93,11 +121,15 @@ const NAME_STOP_WORDS = new Set([
 const MIN_MODEL_LENGTH = 4;
 /** Prefix (series) matches need a little more to go on. */
 const MIN_PREFIX_LENGTH = 5;
+/** "DeLonghi" vs "De'Longhi": only compare run-together words for longer names. */
+const MIN_COMPACT_MAKER_LENGTH = 5;
 
 function words(value: string | null | undefined): string[] {
   if (!value) return [];
   return value
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .split(" ")
     .filter(Boolean);
@@ -117,7 +149,31 @@ export function normalizeModel(value: string | null | undefined): string {
 }
 
 /**
- * Split a CPSC model field ("WTW5000DW1, WTW5005* and MVW6200") into
+ * Map a stored profile country (ISO code or name) to the recall source's
+ * country. Blank means the address was never set; those homes keep the
+ * original US (CPSC) behaviour. Any other country gets no recall scan.
+ */
+export function recallCountry(
+  value: string | null | undefined
+): RecallCountry | null {
+  const key = words(value).join(" ");
+  if (!key) return "US";
+  if (key === "ca" || key === "can" || key === "canada") return "CA";
+  if (
+    key === "us" ||
+    key === "usa" ||
+    key === "u s" ||
+    key === "u s a" ||
+    key === "united states" ||
+    key === "united states of america"
+  ) {
+    return "US";
+  }
+  return null;
+}
+
+/**
+ * Split a model field ("WTW5000DW1, WTW5005* and MVW6200") into
  * normalized tokens. Only tokens with a digit count as model numbers.
  */
 export function modelTokens(value: string | null | undefined): string[] {
@@ -140,50 +196,68 @@ export function modelTokens(value: string | null | undefined): string[] {
     );
 }
 
-function makerNames(recall: CpscRecall): string[] {
-  return [
-    ...(recall.Manufacturers ?? []),
-    ...(recall.Importers ?? []),
-    ...(recall.Distributors ?? []),
-  ]
-    .map((entry) => normalizeManufacturer(entry?.Name))
-    .filter(Boolean);
+/** Pre-split text for repeated maker checks (see mentionsMakerInWords). */
+export function searchWords(text: string | null | undefined): string[] {
+  return words(text);
+}
+
+/** Does the pre-split text mention the normalized maker as whole words? */
+export function mentionsMakerInWords(textWords: string[], maker: string): boolean {
+  if (!maker) return false;
+  if (` ${textWords.join(" ")} `.includes(` ${maker} `)) return true;
+  const compact = maker.replace(/ /g, "");
+  if (compact.length < MIN_COMPACT_MAKER_LENGTH) return false;
+  return textWords.some(
+    (word, index) =>
+      word === compact || word + (textWords[index + 1] ?? "") === compact
+  );
+}
+
+export function mentionsMaker(
+  text: string | null | undefined,
+  maker: string
+): boolean {
+  return mentionsMakerInWords(words(text), maker);
 }
 
 function manufacturerMatches(
   equipmentMaker: string,
-  recall: CpscRecall
+  candidate: RecallCandidate
 ): boolean {
-  const makers = makerNames(recall);
-  // The API query already filtered by manufacturer; trust it when the
-  // recall lists no companies.
-  if (makers.length === 0) return true;
-  return makers.some(
+  const makers = candidate.companies
+    .map((name) => normalizeManufacturer(name))
+    .filter(Boolean);
+  const listed = makers.some(
     (maker) =>
       maker === equipmentMaker ||
       ` ${maker} `.includes(` ${equipmentMaker} `) ||
       ` ${equipmentMaker} `.includes(` ${maker} `)
   );
+  if (listed) return true;
+  if (candidate.brandTexts.some((text) => mentionsMaker(text, equipmentMaker))) {
+    return true;
+  }
+  return (
+    makers.length === 0 &&
+    candidate.brandTexts.length === 0 &&
+    candidate.trustMakerWhenUnlisted
+  );
 }
 
-function modelMatches(model: string, recall: CpscRecall): boolean {
+function modelMatches(model: string, candidate: RecallCandidate): boolean {
   if (model.length < MIN_MODEL_LENGTH) return false;
-  const products = recall.Products ?? [];
-  for (const product of products) {
-    for (const token of modelTokens(product.Model)) {
+  for (const field of candidate.modelFields) {
+    for (const token of modelTokens(field)) {
       if (token === model) return true;
-      // CPSC often lists a series ("WTW5000") that covers full model
+      // Recalls often list a series ("WTW5000") that covers full model
       // numbers with color/revision suffixes ("WTW5000DW1").
       if (token.length >= MIN_PREFIX_LENGTH && model.startsWith(token)) {
         return true;
       }
     }
   }
-  // Some recalls only list models in the product description or title.
-  const freeText = [
-    ...products.map((product) => product.Description),
-    recall.Title,
-  ]
+  // Some recalls only mention models in a description or the title.
+  const freeText = candidate.freeTexts
     .map((text) => ` ${words(text).join(" ")} `)
     .join(" ");
   return freeText.includes(` ${model} `);
@@ -197,12 +271,11 @@ function nameTokens(equipment: RecallEquipment, maker: string): string[] {
   );
 }
 
-function nameMatches(tokens: string[], recall: CpscRecall): boolean {
+function nameMatches(tokens: string[], candidate: RecallCandidate): boolean {
   if (tokens.length < 2) return false;
-  const haystacks = [
-    ...(recall.Products ?? []).map((product) => product.Name),
-    recall.Title,
-  ].map((text) => new Set(words(text)));
+  const haystacks = [...candidate.productNames, candidate.title].map(
+    (text) => new Set(words(text))
+  );
   return haystacks.some((haystack) =>
     tokens.every(
       (token) =>
@@ -220,19 +293,19 @@ function nameMatches(tokens: string[], recall: CpscRecall): boolean {
  */
 export function matchRecall(
   equipment: RecallEquipment,
-  recall: CpscRecall
+  candidate: RecallCandidate
 ): RecallMatch | null {
-  if (!recall.RecallNumber) return null;
+  if (!candidate.recallNumber) return null;
   const maker = normalizeManufacturer(equipment.manufacturer);
   if (!maker) return null;
-  if (!manufacturerMatches(maker, recall)) return null;
+  if (!manufacturerMatches(maker, candidate)) return null;
 
   const model = normalizeModel(equipment.model_number);
   if (model) {
-    return modelMatches(model, recall) ? { matchedOn: "model" } : null;
+    return modelMatches(model, candidate) ? { matchedOn: "model" } : null;
   }
 
-  return nameMatches(nameTokens(equipment, maker), recall)
+  return nameMatches(nameTokens(equipment, maker), candidate)
     ? { matchedOn: "name" }
     : null;
 }
@@ -244,7 +317,43 @@ function joinNames(entries: CpscNamed[] | null | undefined): string | null {
   return names.length ? names.join(" ") : null;
 }
 
+function isoDay(value: string | null | undefined): string | null {
+  const day = value?.slice(0, 10) ?? null;
+  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
+}
+
+export function fromCpsc(recall: CpscRecall): RecallCandidate | null {
+  const recallNumber = recall.RecallNumber?.trim();
+  if (!recallNumber) return null;
+  const products = recall.Products ?? [];
+  return {
+    source: "cpsc",
+    recallNumber,
+    title: recall.Title?.trim() || `CPSC recall ${recallNumber}`,
+    url: recall.URL?.trim() || null,
+    hazard: joinNames(recall.Hazards),
+    remedy: joinNames(recall.Remedies),
+    recallDate: isoDay(recall.RecallDate),
+    companies: [
+      ...(recall.Manufacturers ?? []),
+      ...(recall.Importers ?? []),
+      ...(recall.Distributors ?? []),
+    ]
+      .map((entry) => entry?.Name ?? "")
+      .filter(Boolean),
+    brandTexts: [],
+    trustMakerWhenUnlisted: true,
+    modelFields: products.map((product) => product.Model ?? ""),
+    freeTexts: [
+      ...products.map((product) => product.Description ?? ""),
+      recall.Title ?? "",
+    ],
+    productNames: products.map((product) => product.Name ?? ""),
+  };
+}
+
 export interface RecallFields {
+  source: RecallSource;
   recall_number: string;
   title: string;
   url: string | null;
@@ -253,16 +362,14 @@ export interface RecallFields {
   recall_date: string | null;
 }
 
-export function recallFields(recall: CpscRecall): RecallFields | null {
-  const recallNumber = recall.RecallNumber?.trim();
-  if (!recallNumber) return null;
-  const date = recall.RecallDate?.slice(0, 10) ?? null;
+export function recallFields(candidate: RecallCandidate): RecallFields {
   return {
-    recall_number: recallNumber,
-    title: recall.Title?.trim() || `CPSC recall ${recallNumber}`,
-    url: recall.URL?.trim() || null,
-    hazard: joinNames(recall.Hazards),
-    remedy: joinNames(recall.Remedies),
-    recall_date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    source: candidate.source,
+    recall_number: candidate.recallNumber,
+    title: candidate.title,
+    url: candidate.url,
+    hazard: candidate.hazard,
+    remedy: candidate.remedy,
+    recall_date: candidate.recallDate,
   };
 }

@@ -53,7 +53,7 @@ export function resetEquipmentRecalls() {
   listeners.forEach((listener) => listener());
 }
 
-/** Open CPSC recalls for the household's equipment. */
+/** Open recalls (CPSC or Health Canada) for the household's equipment. */
 export function useEquipmentRecalls(options?: { refreshOnFocus?: boolean }) {
   const state = useSyncExternalStore(subscribe, () => snapshot);
   const refreshOnFocus = options?.refreshOnFocus ?? true;

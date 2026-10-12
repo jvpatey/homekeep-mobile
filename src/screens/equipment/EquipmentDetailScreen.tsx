@@ -37,7 +37,11 @@ import {
   dismissEquipmentRecall,
   useEquipmentRecalls,
 } from "../../hooks/useEquipmentRecalls";
-import { EquipmentRecall } from "../../types/equipmentRecall";
+import {
+  EquipmentRecall,
+  RECALL_SOURCE_AGENCY,
+  RECALL_SOURCE_SITE,
+} from "../../types/equipmentRecall";
 import {
   DOCUMENT_KIND_ICONS,
   DOCUMENT_KIND_LABELS,
@@ -711,8 +715,11 @@ function RecallBanner({
 }) {
   const { colors } = useTheme();
   const date = parseDay(recall.recall_date);
+  const source = recall.source === "health_canada" ? "health_canada" : "cpsc";
+  const agency = RECALL_SOURCE_AGENCY[source];
   const meta = [
-    date ? `Recalled ${format(date, "MMM d, yyyy")}` : "Product recall",
+    `${agency} recall`,
+    date ? format(date, "MMM d, yyyy") : null,
     recall.matched_on === "name" ? "Possible match" : null,
   ]
     .filter(Boolean)
@@ -759,7 +766,7 @@ function RecallBanner({
             ]}
             accessibilityRole="link"
           >
-            <Text style={styles.recallButtonText}>View recall</Text>
+            <Text style={styles.recallButtonText}>View on {RECALL_SOURCE_SITE[source]}</Text>
           </Pressable>
         ) : null}
         <Pressable
