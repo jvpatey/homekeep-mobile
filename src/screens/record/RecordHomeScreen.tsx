@@ -16,7 +16,6 @@ import { useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import {
   ScrollAtmosphere,
-  SectionHeader,
   TabHeaderAction,
   TabScreenHeader,
 } from "../../components/ui";
@@ -353,11 +352,9 @@ export function RecordHomeScreen() {
           </Animated.View>
 
           <Animated.View entering={entering(section++)}>
-            <SectionHeader title="People" />
-            <RecordSection style={styles.group}>
+            <RecordSection title="People" style={styles.group}>
               <RecordRow
                 icon="call"
-                tone="soft"
                 tint={colors.primary}
                 title="Pros"
                 subtitle={
@@ -370,7 +367,6 @@ export function RecordHomeScreen() {
               />
               <RecordRow
                 icon="people"
-                tone="soft"
                 tint={colors.secondary}
                 title="HomeShare"
                 subtitle={
@@ -390,14 +386,13 @@ export function RecordHomeScreen() {
           </Animated.View>
 
           <Animated.View entering={entering(section++)}>
-            <SectionHeader title="Share" />
             <RecordSection
+              title="Share"
               style={styles.group}
               footer="A tidy history of the home for buyers, insurers, and your own files."
             >
               <RecordRow
                 icon="sparkles"
-                tone="soft"
                 tint={colors.warning}
                 title="Year in review"
                 subtitle="Your year of upkeep, ready to share"
@@ -405,7 +400,6 @@ export function RecordHomeScreen() {
               />
               <RecordRow
                 icon="document-text"
-                tone="soft"
                 tint={colors.textSecondary}
                 title="Home history PDF"
                 subtitle="Preview and export"

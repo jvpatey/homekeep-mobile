@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
+import { IconChip } from "./IconChip";
 
 interface StatTileProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -11,11 +12,11 @@ interface StatTileProps {
   value: string;
   label: string;
   locked?: boolean;
-  onPress: () => void;
+  onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-/** Small tappable stat: icon chip, value, and label. Locks for Plus-only data. */
+/** Small stat: icon chip, value, and label. Tappable with `onPress`; locks for Plus-only data. */
 export function StatTile({
   icon,
   tint,
@@ -30,10 +31,15 @@ export function StatTile({
 
   return (
     <Pressable
-      onPress={() => {
-        void triggerLight();
-        onPress();
-      }}
+      onPress={
+        onPress
+          ? () => {
+              void triggerLight();
+              onPress();
+            }
+          : undefined
+      }
+      disabled={!onPress}
       style={({ pressed }) => [
         styles.tile,
         { backgroundColor: colors.surface, borderColor: colors.border },
@@ -41,12 +47,10 @@ export function StatTile({
         pressed && { opacity: 0.7 },
         style,
       ]}
-      accessibilityRole="button"
+      accessibilityRole={onPress ? "button" : "text"}
       accessibilityLabel={locked ? `${label}, HomeKeep Plus` : `${label}: ${value}`}
     >
-      <View style={[styles.iconChip, { backgroundColor: tint + "1F" }]}>
-        <Ionicons name={icon} size={16} color={tint} />
-      </View>
+      <IconChip icon={icon} tint={tint} size={28} style={styles.iconChip} />
       {locked ? (
         <View style={styles.lockRow}>
           <Ionicons name="lock-closed" size={16} color={colors.textSecondary} />
@@ -81,11 +85,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   iconChip: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
     marginBottom: 2,
   },
   lockRow: {

@@ -21,7 +21,13 @@ import {
   useHomeContacts,
 } from "../../hooks/useHomeContacts";
 import { HomeContactService } from "../../services/HomeContactService";
-import { HeaderIconButton } from "../../components/ui";
+import {
+  HeaderIconButton,
+  HearthSurfaceCard,
+  QuickAction,
+  SectionHeader,
+  StatTile,
+} from "../../components/ui";
 import { ProAvatar } from "../../components/pros/ProAvatar";
 import { ProFormSheet } from "../../components/pros/ProFormSheet";
 import {
@@ -131,11 +137,6 @@ export function ProDetailScreen() {
     );
   };
 
-  const surface = {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-  };
-
   return (
     <>
       <ScrollView
@@ -156,25 +157,25 @@ export function ProDetailScreen() {
         </View>
 
         <View style={styles.actions}>
-          <ActionButton
+          <QuickAction
             icon="call"
             label="Call"
             disabled={!callable}
             onPress={() => callContact(contact)}
           />
-          <ActionButton
+          <QuickAction
             icon="chatbubble"
             label="Text"
             disabled={!callable}
             onPress={() => textContact(contact)}
           />
-          <ActionButton
+          <QuickAction
             icon="mail"
             label="Email"
             disabled={!contact.email}
             onPress={() => emailContact(contact)}
           />
-          <ActionButton
+          <QuickAction
             icon="globe"
             label="Website"
             disabled={!contact.website}
@@ -183,7 +184,7 @@ export function ProDetailScreen() {
         </View>
 
         {contact.phone || contact.email || contact.website ? (
-          <View style={[styles.card, surface]}>
+          <HearthSurfaceCard>
             {contact.phone ? (
               <InfoRow
                 label="Phone"
@@ -207,109 +208,104 @@ export function ProDetailScreen() {
                 divider={Boolean(contact.phone || contact.email)}
               />
             ) : null}
-          </View>
+          </HearthSurfaceCard>
         ) : null}
 
         {contact.notes ? (
-          <View style={[styles.card, surface, styles.notesCard]}>
+          <HearthSurfaceCard style={styles.notesCard}>
             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
               Notes
             </Text>
             <Text style={[styles.notes, { color: colors.text }]}>
               {contact.notes}
             </Text>
-          </View>
+          </HearthSurfaceCard>
         ) : null}
 
-        <View style={[styles.statsCard, surface]}>
-          <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {jobs.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              job{jobs.length === 1 ? "" : "s"}
-            </Text>
-          </View>
-          <View
-            style={[styles.statDivider, { backgroundColor: colors.border }]}
+        <View style={styles.stats}>
+          <StatTile
+            icon="construct-outline"
+            tint={colors.secondary}
+            value={String(jobs.length)}
+            label={jobs.length === 1 ? "job" : "jobs"}
+            style={styles.statTile}
           />
-          <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {formatMoney(totalSpent, { whole: totalSpent >= 1000 })}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              spent with them
-            </Text>
-          </View>
+          <StatTile
+            icon="wallet-outline"
+            tint={colors.primary}
+            value={formatMoney(totalSpent, { whole: totalSpent >= 1000 })}
+            label="spent with them"
+            style={styles.statTile}
+          />
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          Job history
-        </Text>
-        {jobs.length === 0 ? (
-          <Text style={[styles.emptyJobs, { color: colors.textSecondary }]}>
-            When you mark a job "Hired a pro" and pick {contact.name}, it shows
-            up here.
-          </Text>
-        ) : (
-          <View style={[styles.card, surface]}>
-            {jobs.map((task, index) => {
-              const date = new Date(task.completed_at || task.due_date);
-              return (
-                <Pressable
-                  key={task.instance_id}
-                  onPress={() => {
-                    triggerLight();
-                    setSelected(task);
-                    setSheetVisible(true);
-                  }}
-                  style={({ pressed }) => [
-                    styles.jobRow,
-                    index > 0 && {
-                      borderTopWidth: StyleSheet.hairlineWidth,
-                      borderTopColor: colors.border,
-                    },
-                    pressed && { backgroundColor: colors.fieldFill },
-                  ]}
-                  accessibilityRole="button"
-                >
-                  <View style={styles.jobText}>
-                    <Text
-                      style={[styles.jobTitle, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {task.title}
-                    </Text>
-                    <Text
-                      style={[styles.jobDate, { color: colors.textSecondary }]}
-                    >
-                      {Number.isNaN(date.getTime())
-                        ? "—"
-                        : format(date, "MMM d, yyyy")}
-                    </Text>
-                  </View>
-                  {typeof task.cost_amount === "number" &&
-                  task.cost_amount > 0 ? (
-                    <Text style={[styles.jobAmount, { color: colors.text }]}>
-                      {formatMoney(task.cost_amount)}
-                    </Text>
-                  ) : null}
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
+        <View>
+          <SectionHeader title="Job history" count={jobs.length} />
+          {jobs.length === 0 ? (
+            <Text style={[styles.emptyJobs, { color: colors.textSecondary }]}>
+              When you mark a job "Hired a pro" and pick {contact.name}, it shows
+              up here.
+            </Text>
+          ) : (
+            <HearthSurfaceCard>
+              {jobs.map((task, index) => {
+                const date = new Date(task.completed_at || task.due_date);
+                return (
+                  <Pressable
+                    key={task.instance_id}
+                    onPress={() => {
+                      triggerLight();
+                      setSelected(task);
+                      setSheetVisible(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.jobRow,
+                      index > 0 && {
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: colors.border,
+                      },
+                      pressed && { backgroundColor: colors.fieldFill },
+                    ]}
+                    accessibilityRole="button"
+                  >
+                    <View style={styles.jobText}>
+                      <Text
+                        style={[styles.jobTitle, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {task.title}
+                      </Text>
+                      <Text
+                        style={[styles.jobDate, { color: colors.textSecondary }]}
+                      >
+                        {Number.isNaN(date.getTime())
+                          ? "—"
+                          : format(date, "MMM d, yyyy")}
+                      </Text>
+                    </View>
+                    {typeof task.cost_amount === "number" &&
+                    task.cost_amount > 0 ? (
+                      <Text style={[styles.jobAmount, { color: colors.text }]}>
+                        {formatMoney(task.cost_amount)}
+                      </Text>
+                    ) : null}
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                );
+              })}
+            </HearthSurfaceCard>
+          )}
+        </View>
 
         <Pressable
           onPress={confirmDelete}
           style={({ pressed }) => [
             styles.deleteButton,
-            surface,
+            { backgroundColor: colors.surface, borderColor: colors.border },
             pressed && { backgroundColor: colors.fieldFill },
           ]}
           accessibilityRole="button"
@@ -333,46 +329,6 @@ export function ProDetailScreen() {
         action={selected ? actionFor(selected) : null}
       />
     </>
-  );
-}
-
-function ActionButton({
-  icon,
-  label,
-  disabled,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  const { triggerLight } = useHaptics();
-  return (
-    <Pressable
-      onPress={() => {
-        triggerLight();
-        onPress();
-      }}
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.actionButton,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      accessibilityLabel={label}
-    >
-      <Ionicons name={icon} size={20} color={colors.primary} />
-      <Text style={[styles.actionLabel, { color: colors.primary }]}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -421,8 +377,9 @@ function InfoRow({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingBottom: DesignSystem.spacing.xxl,
+    gap: DesignSystem.spacing.lg,
   },
   missing: {
     flex: 1,
@@ -435,7 +392,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     paddingTop: DesignSystem.spacing.lg,
-    paddingBottom: DesignSystem.spacing.md,
   },
   name: {
     ...DesignSystem.typography.title2,
@@ -450,24 +406,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  actionButton: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-    paddingVertical: DesignSystem.spacing.sm + 2,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  actionLabel: {
-    ...DesignSystem.typography.captionSemiBold,
-  },
-  card: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-    marginBottom: DesignSystem.spacing.md,
   },
   notesCard: {
     padding: DesignSystem.spacing.md,
@@ -487,43 +425,17 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.body,
     marginTop: 4,
   },
-  statsCard: {
+  stats: {
     flexDirection: "row",
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm + 4,
   },
-  stat: {
+  statTile: {
     flex: 1,
-    alignItems: "center",
-  },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-  },
-  statValue: {
-    fontFamily: DesignSystem.fonts.displaySemiBold,
-    fontSize: 22,
-    lineHeight: 28,
-    fontVariant: ["tabular-nums"],
-  },
-  statLabel: {
-    ...DesignSystem.typography.caption,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    paddingHorizontal: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.sm,
-    marginBottom: DesignSystem.spacing.sm,
+    width: undefined,
   },
   emptyJobs: {
     ...DesignSystem.typography.footnote,
     lineHeight: 20,
-    paddingHorizontal: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.lg,
   },
   jobRow: {
     flexDirection: "row",
@@ -549,9 +461,8 @@ const styles = StyleSheet.create({
   deleteButton: {
     alignItems: "center",
     paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     borderWidth: StyleSheet.hairlineWidth,
-    marginTop: DesignSystem.spacing.md,
   },
   deleteText: {
     ...DesignSystem.typography.bodySemiBold,

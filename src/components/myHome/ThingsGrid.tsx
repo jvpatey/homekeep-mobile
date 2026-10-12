@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
-import { SectionHeader } from "../ui";
+import { IconChip, SectionHeader } from "../ui";
 
 export interface HomeTileProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -64,9 +64,7 @@ export function HomeTile({
       ].join(". ")}
     >
       <View style={styles.top}>
-        <View style={[styles.iconChip, { backgroundColor: tint + "1F" }]}>
-          <Ionicons name={icon} size={18} color={tint} />
-        </View>
+        <IconChip icon={icon} tint={tint} size={34} />
         {locked ? (
           <Ionicons name="lock-closed" size={14} color={colors.textSecondary} />
         ) : (
@@ -119,13 +117,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-  },
-  iconChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
   },
   count: {
     fontFamily: DesignSystem.fonts.displaySemiBold,

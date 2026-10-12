@@ -27,7 +27,13 @@ import {
   useEquipmentIndex,
 } from "../../hooks/useEquipmentIndex";
 import { EquipmentManualService } from "../../services/EquipmentManualService";
-import { HeaderIconButton } from "../../components/ui";
+import {
+  HeaderIconButton,
+  HearthSurfaceCard,
+  IconChip,
+  Pill,
+  QuickAction,
+} from "../../components/ui";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { RecordEntrySheet } from "../../components/record/RecordEntrySheet";
 import { useRecordEntryActions } from "../../components/record/useRecordEntryActions";
@@ -378,14 +384,18 @@ export function EquipmentDetailScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
-        <View style={styles.header}>
-          <View style={[styles.heroIcon, { backgroundColor: tint }]}>
-            <Ionicons
-              name={equipmentTypeIcon(item.equipment_type)}
-              size={34}
-              color="#FFFFFF"
-            />
-          </View>
+        <HearthSurfaceCard
+          emphasis="hero"
+          tint={tint}
+          style={styles.hero}
+          containerStyle={styles.heroContainer}
+        >
+          <IconChip
+            icon={equipmentTypeIcon(item.equipment_type)}
+            tint={tint}
+            size={64}
+            shape="rounded"
+          />
           <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
           {subtitle ? (
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -393,54 +403,28 @@ export function EquipmentDetailScreen() {
             </Text>
           ) : null}
           {warranty.warrantyStatus !== "none" ? (
-            <View
-              style={[
-                styles.warrantyPill,
-                {
-                  backgroundColor:
-                    warranty.warrantyStatus === "ok"
-                      ? colors.success + "1F"
-                      : warranty.warrantyStatus === "expiring_soon"
-                        ? colors.warning + "22"
-                        : colors.fieldFill,
-                },
-              ]}
-            >
-              <Ionicons
-                name={
-                  warranty.warrantyStatus === "expired"
-                    ? "shield-outline"
-                    : "shield-checkmark"
-                }
-                size={13}
-                color={
-                  warranty.warrantyStatus === "ok"
-                    ? colors.success
-                    : warranty.warrantyStatus === "expiring_soon"
-                      ? colors.warning
-                      : colors.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.warrantyText,
-                  {
-                    color:
-                      warranty.warrantyStatus === "ok"
-                        ? colors.success
-                        : warranty.warrantyStatus === "expiring_soon"
-                          ? colors.warning
-                          : colors.textSecondary,
-                  },
-                ]}
-              >
-                {warranty.warrantyStatus === "expired"
+            <Pill
+              icon={
+                warranty.warrantyStatus === "expired"
+                  ? "shield-outline"
+                  : "shield-checkmark"
+              }
+              label={
+                warranty.warrantyStatus === "expired"
                   ? `Warranty ended ${warranty.warrantyExpiresLabel}`
-                  : `Under warranty until ${warranty.warrantyExpiresLabel}`}
-              </Text>
-            </View>
+                  : `Under warranty until ${warranty.warrantyExpiresLabel}`
+              }
+              tone={
+                warranty.warrantyStatus === "ok"
+                  ? "success"
+                  : warranty.warrantyStatus === "expiring_soon"
+                    ? "warning"
+                    : "neutral"
+              }
+              style={styles.warrantyPill}
+            />
           ) : null}
-        </View>
+        </HearthSurfaceCard>
 
         {recalls.map((recall) => (
           <RecallBanner
@@ -452,17 +436,17 @@ export function EquipmentDetailScreen() {
         ))}
 
         <View style={styles.actions}>
-          <ActionButton
+          <QuickAction
             icon="hammer"
             label="Log repair"
             onPress={() => void openLogRepair({ equipmentId: item.id })}
           />
-          <ActionButton
+          <QuickAction
             icon="alarm"
             label="Reminder"
             onPress={() => void openCreateTask({ equipmentId: item.id })}
           />
-          <ActionButton
+          <QuickAction
             icon="document-text"
             label="Manual"
             busy={busyKind === "manual"}
@@ -477,14 +461,14 @@ export function EquipmentDetailScreen() {
         <RecordSection title="Details">
           <RecordRow
             icon="business-outline"
-            tint={tint}
+            tint={colors.textSecondary}
             title="Manufacturer"
             value={item.manufacturer || "Add"}
             onPress={item.manufacturer ? undefined : () => setEditing(true)}
           />
           <RecordRow
             icon="barcode-outline"
-            tint={tint}
+            tint={colors.textSecondary}
             title="Model"
             value={item.model_number || "Add"}
             showChevron={false}
@@ -497,7 +481,7 @@ export function EquipmentDetailScreen() {
           />
           <RecordRow
             icon="finger-print-outline"
-            tint={tint}
+            tint={colors.textSecondary}
             title="Serial"
             value={item.serial_number || "Add"}
             showChevron={false}
@@ -510,7 +494,7 @@ export function EquipmentDetailScreen() {
           />
           <RecordRow
             icon="bag-check-outline"
-            tint={tint}
+            tint={colors.textSecondary}
             title="Purchased"
             subtitle={purchased ? ageLabel(purchased) : null}
             value={purchased ? format(purchased, "MMM d, yyyy") : "Add"}
@@ -539,7 +523,7 @@ export function EquipmentDetailScreen() {
               <RecordRow
                 key={part.id}
                 icon="cube-outline"
-                tint={tint}
+                tint={colors.textSecondary}
                 title={part.label}
                 subtitle={
                   [
@@ -593,7 +577,7 @@ export function EquipmentDetailScreen() {
         <RecordSection title="Documents">
           <RecordRow
             icon="document-text-outline"
-            tint={tint}
+            tint={colors.textSecondary}
             title="Manual"
             value={item.manual_storage_path ? "On file" : "Attach"}
             locked={documents.locked}
@@ -606,7 +590,7 @@ export function EquipmentDetailScreen() {
           />
           <RecordRow
             icon="receipt-outline"
-            tint={tint}
+            tint={colors.textSecondary}
             title="Receipt"
             value={item.receipt_storage_path ? "On file" : "Attach"}
             locked={documents.locked}
@@ -621,7 +605,7 @@ export function EquipmentDetailScreen() {
             <RecordRow
               key={document.id}
               icon={DOCUMENT_KIND_ICONS[document.kind]}
-              tint={tint}
+              tint={colors.textSecondary}
               title={document.title}
               subtitle={DOCUMENT_KIND_LABELS[document.kind]}
               value={document.storage_path ? "On file" : null}
@@ -663,7 +647,9 @@ export function EquipmentDetailScreen() {
                 <RecordRow
                   key={task.instance_id}
                   icon={isRepairRoutine(task) ? "hammer-outline" : "checkmark"}
-                  tint={isRepairRoutine(task) ? tint : colors.success}
+                  tint={
+                    isRepairRoutine(task) ? colors.textSecondary : colors.success
+                  }
                   title={task.title}
                   subtitle={
                     Number.isNaN(date.getTime())
@@ -751,112 +737,70 @@ function RecallBanner({
     .join(" · ");
 
   return (
-    <View
-      style={[
-        styles.recall,
-        { backgroundColor: colors.error + "14", borderColor: colors.error + "40" },
-      ]}
-      accessibilityRole="alert"
-    >
-      <View style={styles.recallHeader}>
-        <Ionicons name="warning" size={18} color={colors.error} />
-        <Text style={[styles.recallMeta, { color: colors.error }]}>{meta}</Text>
-      </View>
-      <Text style={[styles.recallTitle, { color: colors.text }]}>
-        {recall.title}
-      </Text>
-      {recall.hazard ? (
-        <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
-          {recall.hazard}
+    <View accessibilityRole="alert" style={styles.recallContainer}>
+      <HearthSurfaceCard
+        emphasis="tinted"
+        tint={colors.error}
+        style={styles.recall}
+      >
+        <View style={styles.recallHeader}>
+          <Ionicons name="warning" size={18} color={colors.error} />
+          <Text style={[styles.recallMeta, { color: colors.error }]}>{meta}</Text>
+        </View>
+        <Text style={[styles.recallTitle, { color: colors.text }]}>
+          {recall.title}
         </Text>
-      ) : null}
-      {recall.remedy ? (
-        <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
-          Remedy: {recall.remedy}
-        </Text>
-      ) : null}
-      {recall.matched_on === "name" ? (
-        <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
-          Matched on the name, not the model number. Check the recall's model
-          list against your unit.
-        </Text>
-      ) : null}
-      <View style={styles.recallActions}>
-        {recall.url ? (
+        {recall.hazard ? (
+          <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
+            {recall.hazard}
+          </Text>
+        ) : null}
+        {recall.remedy ? (
+          <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
+            Remedy: {recall.remedy}
+          </Text>
+        ) : null}
+        {recall.matched_on === "name" ? (
+          <Text style={[styles.recallBody, { color: colors.textSecondary }]}>
+            Matched on the name, not the model number. Check the recall's model
+            list against your unit.
+          </Text>
+        ) : null}
+        <View style={styles.recallActions}>
+          {recall.url ? (
+            <Pressable
+              onPress={onOpen}
+              style={({ pressed }) => [
+                styles.recallButton,
+                { backgroundColor: colors.error, opacity: pressed ? 0.8 : 1 },
+              ]}
+              accessibilityRole="link"
+            >
+              <Text style={styles.recallButtonText}>View on {RECALL_SOURCE_SITE[source]}</Text>
+            </Pressable>
+          ) : null}
           <Pressable
-            onPress={onOpen}
+            onPress={onDismiss}
             style={({ pressed }) => [
               styles.recallButton,
-              { backgroundColor: colors.error, opacity: pressed ? 0.8 : 1 },
+              { opacity: pressed ? 0.6 : 1 },
             ]}
-            accessibilityRole="link"
+            accessibilityRole="button"
           >
-            <Text style={styles.recallButtonText}>View on {RECALL_SOURCE_SITE[source]}</Text>
+            <Text style={[styles.recallDismissText, { color: colors.error }]}>
+              Dismiss
+            </Text>
           </Pressable>
-        ) : null}
-        <Pressable
-          onPress={onDismiss}
-          style={({ pressed }) => [
-            styles.recallButton,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.recallDismissText, { color: colors.error }]}>
-            Dismiss
-          </Text>
-        </Pressable>
-      </View>
+        </View>
+      </HearthSurfaceCard>
     </View>
-  );
-}
-
-function ActionButton({
-  icon,
-  label,
-  busy,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  busy?: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  const { triggerLight } = useHaptics();
-  return (
-    <Pressable
-      onPress={() => {
-        triggerLight();
-        onPress();
-      }}
-      disabled={busy}
-      style={({ pressed }) => [
-        styles.actionButton,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          opacity: pressed ? 0.7 : 1,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      {busy ? (
-        <ActivityIndicator size="small" color={colors.primary} />
-      ) : (
-        <Ionicons name={icon} size={20} color={colors.primary} />
-      )}
-      <Text style={[styles.actionLabel, { color: colors.primary }]}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
   },
   missing: {
@@ -867,17 +811,13 @@ const styles = StyleSheet.create({
   missingText: {
     ...DesignSystem.typography.body,
   },
-  header: {
-    alignItems: "center",
-    paddingTop: DesignSystem.spacing.lg,
-    paddingBottom: DesignSystem.spacing.md,
+  heroContainer: {
+    marginBottom: DesignSystem.spacing.lg,
   },
-  heroIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
+  hero: {
     alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.md,
   },
   name: {
     ...DesignSystem.typography.title2,
@@ -890,22 +830,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   warrantyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+    alignSelf: "center",
+    maxWidth: "100%",
     marginTop: DesignSystem.spacing.sm + 2,
-    paddingHorizontal: DesignSystem.spacing.sm + 2,
-    paddingVertical: 4,
-    borderRadius: DesignSystem.borders.radius.round,
   },
-  warrantyText: {
-    ...DesignSystem.typography.captionSemiBold,
+  recallContainer: {
+    marginBottom: DesignSystem.spacing.md,
   },
   recall: {
     padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: DesignSystem.spacing.md,
     gap: DesignSystem.spacing.xs,
   },
   recallHeader: {
@@ -945,19 +878,6 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.sm,
     marginBottom: DesignSystem.spacing.lg,
   },
-  actionButton: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-    minHeight: 58,
-    justifyContent: "center",
-    paddingVertical: DesignSystem.spacing.sm + 2,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  actionLabel: {
-    ...DesignSystem.typography.captionSemiBold,
-  },
   spent: {
     ...DesignSystem.typography.caption,
     fontVariant: ["tabular-nums"],
@@ -965,7 +885,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     alignItems: "center",
     paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     borderWidth: StyleSheet.hairlineWidth,
   },
   deleteText: {

@@ -42,13 +42,13 @@ export const homeSummaryPreviewStyles = StyleSheet.create({
     alignSelf: "stretch",
   },
   section: {
-    borderRadius: DesignSystem.borders.radius.large,
-    padding: DesignSystem.spacing.lg,
-    borderWidth: 1,
+    padding: DesignSystem.spacing.lg - 4,
+  },
+  sectionContainer: {
     marginBottom: DesignSystem.spacing.lg,
   },
   sectionTitle: {
-    ...DesignSystem.typography.h4,
+    ...DesignSystem.typography.headline,
     marginBottom: DesignSystem.spacing.xs,
   },
   sectionMeta: {
@@ -122,17 +122,7 @@ export const homeSummaryPreviewStyles = StyleSheet.create({
     lineHeight: 18,
   },
   exportButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: DesignSystem.spacing.sm,
-    paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
     marginTop: DesignSystem.spacing.xl,
-  },
-  exportButtonText: {
-    ...DesignSystem.typography.bodySemiBold,
-    color: "#FFFFFF",
   },
   loadingState: {
     flex: 1,
@@ -145,11 +135,10 @@ export const homeSummaryPreviewStyles = StyleSheet.create({
     marginTop: DesignSystem.spacing.md,
   },
   errorBanner: {
-    marginHorizontal: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.sm,
+    marginBottom: DesignSystem.spacing.lg,
     padding: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: 1,
+    borderRadius: DesignSystem.borders.radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   errorText: {
     ...DesignSystem.typography.small,

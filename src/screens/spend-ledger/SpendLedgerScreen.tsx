@@ -25,7 +25,16 @@ import { useCurrency } from "../../hooks/useCurrency";
 import { useSignedPhotoUrls } from "../../hooks/useSignedPhotoUrls";
 import { useHaptics } from "../../hooks";
 import { useOverlayInsets } from "../../hooks/useOverlayInsets";
-import { Button, HeaderIconButton } from "../../components/ui";
+import {
+  EmptyState,
+  HeaderIconButton,
+  HearthSurfaceCard,
+  IconChip,
+  Pill,
+  SectionHeader,
+  StatTile,
+} from "../../components/ui";
+import { getLuminance } from "../../theme/contrast";
 import { RecordThumb } from "../../components/record/RecordThumb";
 import { LockedPreview } from "../../components/plus/LockedPreview";
 import { RecordEntrySheet } from "../../components/record/RecordEntrySheet";
@@ -101,7 +110,7 @@ function groupByMonth(entries: SpendEntry[]) {
 }
 
 export function SpendLedgerScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const overlay = useOverlayInsets();
   const navigation =
     useNavigation<
@@ -214,11 +223,6 @@ export function SpendLedgerScreen() {
   ).length;
   const repairCount = yearData.entries.filter((e) => e.isRepair).length;
 
-  const surface = {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-  };
-
   if (!loaded) {
     return (
       <View
@@ -252,36 +256,17 @@ export function SpendLedgerScreen() {
         }
       >
         {!ledger.hasAnyCost ? (
-          <View
-            style={[
-              styles.emptyCard,
-              surface,
-              DesignSystem.shadows.softAmbient,
-            ]}
-          >
-            <View
-              style={[
-                styles.emptyIcon,
-                { backgroundColor: colors.primary + "14" },
-              ]}
-            >
-              <Ionicons
-                name="wallet-outline"
-                size={30}
-                color={colors.primary}
-              />
-            </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              Start your spend ledger
-            </Text>
-            <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-              Log a repair you paid for, or add a cost when you mark a task
-              complete. HomeKeep totals it by year and category.
-            </Text>
-            <View style={styles.emptyButton}>
-              <Button label="Log a repair" onPress={() => openLogRepair()} />
-            </View>
-          </View>
+          <EmptyState
+            inCard
+            icon="wallet-outline"
+            title="Start your spend ledger"
+            body="Log a repair you paid for, or add a cost when you mark a task complete. HomeKeep totals it by year and category."
+            primaryAction={{
+              label: "Log a repair",
+              onPress: () => openLogRepair(),
+            }}
+            style={styles.emptyCard}
+          />
         ) : (
           <>
             {yearOptions.length > 1 ? (
@@ -291,42 +276,24 @@ export function SpendLedgerScreen() {
                 contentContainerStyle={styles.yearRow}
                 style={styles.yearScroller}
               >
-                {yearOptions.map((key) => {
-                  const active = key === yearKey;
-                  return (
-                    <Pressable
-                      key={String(key)}
-                      onPress={() => chooseYear(key)}
-                      style={[
-                        styles.yearChip,
-                        {
-                          backgroundColor: active
-                            ? colors.text
-                            : colors.surface,
-                          borderColor: active ? colors.text : colors.border,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                    >
-                      <Text
-                        style={[
-                          styles.yearChipText,
-                          { color: active ? colors.background : colors.text },
-                        ]}
-                      >
-                        {key === "all" ? "All time" : key}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                {yearOptions.map((key) => (
+                  <Pill
+                    key={String(key)}
+                    label={key === "all" ? "All time" : String(key)}
+                    size="medium"
+                    selected={key === yearKey}
+                    onPress={() => chooseYear(key)}
+                  />
+                ))}
               </ScrollView>
             ) : null}
 
             <LockedPreview feature="ledger">
               <>
-                <View
-                  style={[styles.hero, surface, DesignSystem.shadows.softKey]}
+                <HearthSurfaceCard
+                  emphasis="hero"
+                  style={styles.hero}
+                  containerStyle={styles.section}
                 >
                   <Text
                     style={[styles.heroLabel, { color: colors.textSecondary }]}
@@ -348,41 +315,33 @@ export function SpendLedgerScreen() {
                   >
                     {heroTotalLabel}
                   </Text>
-                  <View style={styles.heroMetaRow}>
-                    {delta !== null && deltaPct !== null && previous ? (
-                      <View
-                        style={[
-                          styles.deltaPill,
-                          { backgroundColor: colors.fieldFill },
-                        ]}
-                        accessibilityLabel={`${delta >= 0 ? "Up" : "Down"} ${Math.abs(deltaPct)} percent from ${previous.year}`}
-                      >
-                        <Ionicons
-                          name={delta >= 0 ? "arrow-up" : "arrow-down"}
-                          size={12}
-                          color={colors.textSecondary}
-                        />
-                        <Text
-                          style={[
-                            styles.deltaText,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {Math.abs(deltaPct)}% vs {previous.year}
-                        </Text>
-                      </View>
-                    ) : null}
-                    <Text
-                      style={[styles.heroMeta, { color: colors.textSecondary }]}
-                    >
-                      {yearData.count} job{yearData.count === 1 ? "" : "s"} with
-                      costs
-                      {repairCount > 0
-                        ? ` · ${repairCount} repair${repairCount === 1 ? "" : "s"}`
-                        : ""}
-                    </Text>
+                  {delta !== null && deltaPct !== null && previous ? (
+                    <Pill
+                      icon={delta >= 0 ? "arrow-up" : "arrow-down"}
+                      label={`${Math.abs(deltaPct)}% vs ${previous.year}`}
+                      accessibilityLabel={`${delta >= 0 ? "Up" : "Down"} ${Math.abs(deltaPct)} percent from ${previous.year}`}
+                      style={styles.deltaPill}
+                    />
+                  ) : null}
+                  <View style={styles.heroStats}>
+                    <StatTile
+                      icon="receipt-outline"
+                      tint={colors.primary}
+                      value={String(yearData.count)}
+                      label={
+                        yearData.count === 1 ? "job with costs" : "jobs with costs"
+                      }
+                      style={styles.heroStat}
+                    />
+                    <StatTile
+                      icon="hammer-outline"
+                      tint={colors.secondary}
+                      value={String(repairCount)}
+                      label={repairCount === 1 ? "repair" : "repairs"}
+                      style={styles.heroStat}
+                    />
                   </View>
-                </View>
+                </HearthSurfaceCard>
 
                 {yearKey !== "all" ? (
                   <BudgetVsActualCard year={yearData} routines={routines} />
@@ -396,203 +355,174 @@ export function SpendLedgerScreen() {
                   </Text>
                 ) : (
                   <>
-                    <View
-                      style={[
-                        styles.card,
-                        surface,
-                        DesignSystem.shadows.softAmbient,
-                      ]}
-                    >
-                      <Text style={[styles.cardTitle, { color: colors.text }]}>
-                        By category
-                      </Text>
-                      <View
-                        style={[
-                          styles.bar,
-                          { backgroundColor: colors.fieldFill },
-                        ]}
-                        accessibilityElementsHidden
-                        importantForAccessibility="no-hide-descendants"
-                      >
-                        {yearData.byCategory.map((row) => (
-                          <View
-                            key={row.category}
-                            style={{
-                              flex: Math.max(row.share, 0.015),
-                              backgroundColor: categoryInfo(row.category).color,
-                              opacity:
-                                category && category !== row.category
-                                  ? 0.25
-                                  : 1,
-                            }}
-                          />
-                        ))}
-                      </View>
-                      {yearData.byCategory.map((row, index) => {
-                        const info = categoryInfo(row.category);
-                        const active = category === row.category;
-                        return (
-                          <Pressable
-                            key={row.category}
-                            onPress={() => toggleCategory(row.category)}
-                            style={({ pressed }) => [
-                              styles.catRow,
-                              index > 0 && {
-                                borderTopWidth: StyleSheet.hairlineWidth,
-                                borderTopColor: colors.border,
-                              },
-                              (pressed || active) && {
-                                backgroundColor: isDark
-                                  ? "rgba(255,255,255,0.05)"
-                                  : colors.fieldFill,
-                              },
-                            ]}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: active }}
-                            accessibilityLabel={`${info.label}, ${formatMoney(row.total)}, ${Math.round(row.share * 100)} percent, ${row.count} jobs`}
-                            accessibilityHint={
-                              active
-                                ? "Shows all categories"
-                                : "Filters the list below"
-                            }
-                          >
-                            <View
-                              style={[
-                                styles.catDot,
-                                { backgroundColor: info.color },
-                              ]}
-                            />
-                            <View style={styles.catText}>
-                              <Text
-                                style={[
-                                  styles.catLabel,
-                                  { color: colors.text },
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {info.label}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.catMeta,
-                                  { color: colors.textSecondary },
-                                ]}
-                              >
-                                {row.count} job{row.count === 1 ? "" : "s"} ·{" "}
-                                {Math.round(row.share * 100)}%
-                              </Text>
-                            </View>
-                            <Text
-                              style={[styles.catAmount, { color: colors.text }]}
-                            >
-                              {formatMoney(row.total)}
-                            </Text>
-                            {active ? (
-                              <Ionicons
-                                name="close-circle"
-                                size={18}
-                                color={colors.textSecondary}
-                              />
-                            ) : null}
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-
-                    {laborKnown > 0 ? (
-                      <View
-                        style={[
-                          styles.card,
-                          surface,
-                          DesignSystem.shadows.softAmbient,
-                        ]}
-                      >
-                        <Text
-                          style={[styles.cardTitle, { color: colors.text }]}
-                        >
-                          Who did the work
-                        </Text>
+                    <View style={styles.section}>
+                      <SectionHeader title="By category" />
+                      <HearthSurfaceCard>
                         <View
                           style={[
                             styles.bar,
                             { backgroundColor: colors.fieldFill },
                           ]}
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
                         >
-                          <View
-                            style={{
-                              flex: Math.max(yearData.diyTotal, 0.0001),
-                              backgroundColor: colors.success,
-                            }}
-                          />
-                          <View
-                            style={{
-                              flex: Math.max(yearData.hiredTotal, 0.0001),
-                              backgroundColor: colors.primary,
-                            }}
-                          />
+                          {yearData.byCategory.map((row) => (
+                            <View
+                              key={row.category}
+                              style={{
+                                flex: Math.max(row.share, 0.015),
+                                backgroundColor: categoryInfo(row.category).color,
+                                opacity:
+                                  category && category !== row.category
+                                    ? 0.25
+                                    : 1,
+                              }}
+                            />
+                          ))}
                         </View>
-                        <View style={styles.splitRow}>
-                          <SplitTile
-                            color={colors.success}
-                            label="Did it myself"
-                            amount={formatMoney(yearData.diyTotal)}
-                            count={diyCount}
-                          />
-                          <SplitTile
-                            color={colors.primary}
-                            label="Hired a pro"
-                            amount={formatMoney(yearData.hiredTotal)}
-                            count={hiredCount}
-                          />
-                        </View>
-                        {yearData.otherTotal > 0 ? (
-                          <Text
+                        {yearData.byCategory.map((row, index) => {
+                          const info = categoryInfo(row.category);
+                          const active = category === row.category;
+                          return (
+                            <Pressable
+                              key={row.category}
+                              onPress={() => toggleCategory(row.category)}
+                              style={({ pressed }) => [
+                                styles.catRow,
+                                index > 0 && {
+                                  borderTopWidth: StyleSheet.hairlineWidth,
+                                  borderTopColor: colors.border,
+                                },
+                                (pressed || active) && {
+                                  backgroundColor: colors.fieldFill,
+                                },
+                              ]}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: active }}
+                              accessibilityLabel={`${info.label}, ${formatMoney(row.total)}, ${Math.round(row.share * 100)} percent, ${row.count} jobs`}
+                              accessibilityHint={
+                                active
+                                  ? "Shows all categories"
+                                  : "Filters the list below"
+                              }
+                            >
+                              <View
+                                style={[
+                                  styles.catDot,
+                                  { backgroundColor: info.color },
+                                ]}
+                              />
+                              <View style={styles.catText}>
+                                <Text
+                                  style={[
+                                    styles.catLabel,
+                                    { color: colors.text },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {info.label}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.catMeta,
+                                    { color: colors.textSecondary },
+                                  ]}
+                                >
+                                  {row.count} job{row.count === 1 ? "" : "s"} ·{" "}
+                                  {Math.round(row.share * 100)}%
+                                </Text>
+                              </View>
+                              <Text
+                                style={[
+                                  styles.catAmount,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                {formatMoney(row.total)}
+                              </Text>
+                              {active ? (
+                                <Ionicons
+                                  name="close-circle"
+                                  size={18}
+                                  color={colors.textSecondary}
+                                />
+                              ) : null}
+                            </Pressable>
+                          );
+                        })}
+                      </HearthSurfaceCard>
+                    </View>
+
+                    {laborKnown > 0 ? (
+                      <View style={styles.section}>
+                        <SectionHeader title="Who did the work" />
+                        <HearthSurfaceCard>
+                          <View
                             style={[
-                              styles.splitFootnote,
-                              { color: colors.textSecondary },
+                              styles.bar,
+                              { backgroundColor: colors.fieldFill },
                             ]}
                           >
-                            {formatMoney(yearData.otherTotal)} without a
-                            who-did-it choice.
-                          </Text>
-                        ) : null}
+                            <View
+                              style={{
+                                flex: Math.max(yearData.diyTotal, 0.0001),
+                                backgroundColor: colors.success,
+                              }}
+                            />
+                            <View
+                              style={{
+                                flex: Math.max(yearData.hiredTotal, 0.0001),
+                                backgroundColor: colors.primary,
+                              }}
+                            />
+                          </View>
+                          <View style={styles.splitRow}>
+                            <SplitTile
+                              color={colors.success}
+                              label="Did it myself"
+                              amount={formatMoney(yearData.diyTotal)}
+                              count={diyCount}
+                            />
+                            <SplitTile
+                              color={colors.primary}
+                              label="Hired a pro"
+                              amount={formatMoney(yearData.hiredTotal)}
+                              count={hiredCount}
+                            />
+                          </View>
+                          {yearData.otherTotal > 0 ? (
+                            <Text
+                              style={[
+                                styles.splitFootnote,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              {formatMoney(yearData.otherTotal)} without a
+                              who-did-it choice.
+                            </Text>
+                          ) : null}
+                        </HearthSurfaceCard>
                       </View>
                     ) : null}
 
-                    <View style={styles.entriesHeader}>
-                      <Text
-                        style={[
-                          styles.sectionTitle,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {category
+                    <SectionHeader
+                      title={
+                        category
                           ? `${categoryInfo(category).label} jobs`
-                          : "Jobs"}
-                      </Text>
-                      {category ? (
-                        <Pressable
-                          onPress={() => setCategory(null)}
-                          hitSlop={8}
-                          accessibilityRole="button"
-                        >
-                          <Text
-                            style={[
-                              styles.clearFilter,
-                              { color: colors.primary },
-                            ]}
-                          >
-                            Show all
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
+                          : "Jobs"
+                      }
+                      actionLabel={category ? "Show all" : undefined}
+                      onAction={() => setCategory(null)}
+                    />
 
                     {months.map((month) => (
                       <View key={month.key} style={styles.month}>
                         <View style={styles.monthHeader}>
                           <Text
-                            style={[styles.monthTitle, { color: colors.text }]}
+                            style={[
+                              styles.monthTitle,
+                              { color: colors.textSecondary },
+                            ]}
                           >
                             {month.title}
                           </Text>
@@ -605,13 +535,7 @@ export function SpendLedgerScreen() {
                             {formatMoney(month.total)}
                           </Text>
                         </View>
-                        <View
-                          style={[
-                            styles.entryCard,
-                            surface,
-                            DesignSystem.shadows.softAmbient,
-                          ]}
-                        >
+                        <HearthSurfaceCard>
                           {month.entries.map((entry, index) => (
                             <EntryRow
                               key={entry.instanceId}
@@ -626,7 +550,7 @@ export function SpendLedgerScreen() {
                               onPress={() => openEntry(entry)}
                             />
                           ))}
-                        </View>
+                        </HearthSurfaceCard>
                       </View>
                     ))}
                   </>
@@ -704,7 +628,7 @@ function EntryRow({
   showDivider: boolean;
   onPress: () => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const info = categoryInfo(entry.category);
   const who =
     entry.contactName ??
@@ -734,15 +658,15 @@ function EntryRow({
       {entry.photoPath ? (
         <RecordThumb uri={photoUri} size={40} />
       ) : (
-        <View
-          style={[styles.entryIcon, { backgroundColor: info.color + "33" }]}
-        >
-          <Ionicons
-            name={entry.isRepair ? "hammer-outline" : info.icon}
-            size={18}
-            color={colors.text}
-          />
-        </View>
+        <IconChip
+          icon={entry.isRepair ? "hammer-outline" : info.icon}
+          tint={info.color}
+          size={40}
+          shape="rounded"
+          glyphColor={
+            !isDark && getLuminance(info.color) > 0.6 ? colors.text : undefined
+          }
+        />
       )}
       <View style={styles.entryText}>
         <Text
@@ -753,16 +677,7 @@ function EntryRow({
         </Text>
         <View style={styles.entrySubRow}>
           {entry.isRepair ? (
-            <View
-              style={[
-                styles.repairPill,
-                { backgroundColor: colors.primary + "18" },
-              ]}
-            >
-              <Text style={[styles.repairPillText, { color: colors.primary }]}>
-                Repair
-              </Text>
-            </View>
+            <Pill label="Repair" tone="primary" />
           ) : null}
           <Text
             style={[styles.entrySubtitle, { color: colors.textSecondary }]}
@@ -784,38 +699,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
   },
   yearScroller: {
-    marginHorizontal: -DesignSystem.spacing.md,
+    marginHorizontal: -DesignSystem.spacing.lg,
     marginBottom: DesignSystem.spacing.md,
   },
   yearRow: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     gap: DesignSystem.spacing.sm,
   },
-  yearChip: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.xs + 2,
-    borderRadius: DesignSystem.borders.radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  yearChipText: {
-    ...DesignSystem.typography.smallSemiBold,
-    fontVariant: ["tabular-nums"],
-  },
-  hero: {
-    borderRadius: DesignSystem.borders.radius.xlarge,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: DesignSystem.spacing.lg,
+  section: {
     marginBottom: DesignSystem.spacing.lg,
   },
+  hero: {
+    padding: DesignSystem.spacing.lg - 4,
+  },
   heroLabel: {
-    ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
   },
   heroTotal: {
     fontFamily: DesignSystem.fonts.display,
@@ -835,43 +739,23 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 38,
   },
-  heroMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.sm,
-    marginTop: DesignSystem.spacing.sm,
-  },
-  heroMeta: {
-    ...DesignSystem.typography.footnote,
-  },
   deltaPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: DesignSystem.borders.radius.round,
+    marginTop: DesignSystem.spacing.xs,
   },
-  deltaText: {
-    ...DesignSystem.typography.captionSemiBold,
-    fontVariant: ["tabular-nums"],
+  heroStats: {
+    flexDirection: "row",
+    gap: DesignSystem.spacing.sm + 4,
+    marginTop: DesignSystem.spacing.md,
+  },
+  heroStat: {
+    flex: 1,
+    width: undefined,
+    minHeight: 0,
   },
   noYear: {
     ...DesignSystem.typography.footnote,
     textAlign: "center",
     marginTop: DesignSystem.spacing.md,
-  },
-  card: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingTop: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.lg,
-    overflow: "hidden",
-  },
-  cardTitle: {
-    ...DesignSystem.typography.bodySemiBold,
-    paddingHorizontal: DesignSystem.spacing.md,
   },
   bar: {
     flexDirection: "row",
@@ -880,7 +764,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     gap: 2,
     marginHorizontal: DesignSystem.spacing.md,
-    marginTop: DesignSystem.spacing.sm,
+    marginTop: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.sm,
   },
   catRow: {
@@ -946,21 +830,6 @@ const styles = StyleSheet.create({
     paddingBottom: DesignSystem.spacing.md,
     marginTop: -DesignSystem.spacing.xs,
   },
-  entriesHeader: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.xs,
-  },
-  sectionTitle: {
-    ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  clearFilter: {
-    ...DesignSystem.typography.smallSemiBold,
-  },
   month: {
     marginBottom: DesignSystem.spacing.md,
   },
@@ -968,20 +837,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.xs,
+    paddingBottom: DesignSystem.spacing.sm,
   },
   monthTitle: {
-    ...DesignSystem.typography.bodySemiBold,
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
   },
   monthTotal: {
     ...DesignSystem.typography.footnote,
     fontVariant: ["tabular-nums"],
-  },
-  entryCard: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
   },
   entryRow: {
     flexDirection: "row",
@@ -989,13 +854,6 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.sm + 2,
-  },
-  entryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
   },
   entryText: {
     flex: 1,
@@ -1014,47 +872,11 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.footnote,
     flexShrink: 1,
   },
-  repairPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  repairPillText: {
-    ...DesignSystem.typography.captionSemiBold,
-    fontSize: 11,
-  },
   entryAmount: {
     ...DesignSystem.typography.bodySemiBold,
     fontVariant: ["tabular-nums"],
   },
   emptyCard: {
-    alignItems: "center",
-    borderRadius: DesignSystem.borders.radius.xlarge,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: DesignSystem.spacing.xl,
-    marginTop: DesignSystem.spacing.lg,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: DesignSystem.spacing.md,
-  },
-  emptyTitle: {
-    ...DesignSystem.typography.title2,
-    textAlign: "center",
-  },
-  emptyBody: {
-    ...DesignSystem.typography.footnote,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
-    maxWidth: 300,
-  },
-  emptyButton: {
-    alignSelf: "stretch",
     marginTop: DesignSystem.spacing.lg,
   },
 });

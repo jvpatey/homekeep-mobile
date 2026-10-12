@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useHaptics } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
-import { HearthSurfaceCard, SectionHeader } from "../ui";
+import { HearthSurfaceCard, IconChip, SectionHeader } from "../ui";
 import type { HeadsUpItem } from "../../utils/homeHeadsUp";
 
 interface HeadsUpCardProps {
@@ -43,13 +43,10 @@ export function HeadsUpCard({ items, total, onPressItem }: HeadsUpCardProps) {
               accessibilityRole="button"
               accessibilityLabel={`${item.title}. ${item.detail}`}
             >
-              <View style={[styles.icon, { backgroundColor: tone + "1F" }]}>
-                <Ionicons
-                  name={item.kind === "warranty" ? "ribbon" : "document-text"}
-                  size={16}
-                  color={tone}
-                />
-              </View>
+              <IconChip
+                icon={item.kind === "warranty" ? "ribbon" : "document-text"}
+                tint={tone}
+              />
               <View style={styles.text}>
                 <Text
                   style={[styles.title, { color: colors.text }]}
@@ -87,13 +84,6 @@ const styles = StyleSheet.create({
     minHeight: 60,
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.sm + 2,
-  },
-  icon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
   },
   text: {
     flex: 1,

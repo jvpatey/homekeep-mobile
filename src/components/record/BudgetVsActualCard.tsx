@@ -9,6 +9,8 @@ import {
   upkeepInCurrency,
 } from "../../utils/upkeepEstimate";
 import { DesignSystem } from "../../theme/designSystem";
+import { HearthSurfaceCard } from "../ui/HearthSurfaceCard";
+import { SectionHeader } from "../ui/SectionHeader";
 
 /**
  * Recorded upkeep spend for a year against what the current recurring
@@ -60,66 +62,59 @@ export function BudgetVsActualCard({
 
   return (
     <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-        DesignSystem.shadows.softAmbient,
-      ]}
+      style={styles.section}
       accessible
       accessibilityLabel={`Budget versus actual. ${statusText}`}
     >
-      <Text style={[styles.title, { color: colors.text }]}>
-        Budget vs. actual
-      </Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Your schedule typically costs {money(expected.diy)}–{money(expected.pro)}{" "}
-        a year, DIY to hired.
-      </Text>
+      <SectionHeader title="Budget vs. actual" />
+      <HearthSurfaceCard style={styles.card}>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Your schedule typically costs {money(expected.diy)}–{money(expected.pro)}{" "}
+          a year, DIY to hired.
+        </Text>
 
-      <View style={[styles.track, { backgroundColor: colors.fieldFill }]}>
-        <View
-          style={[
-            styles.band,
-            {
-              left: `${bandLeft * 100}%`,
-              width: `${bandWidth * 100}%`,
-              backgroundColor: colors.primary + "40",
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.marker,
-            {
-              left: `${marker * 100}%`,
-              backgroundColor: statusColor,
-              borderColor: colors.surface,
-            },
-          ]}
-        />
-      </View>
+        <View style={[styles.track, { backgroundColor: colors.fieldFill }]}>
+          <View
+            style={[
+              styles.band,
+              {
+                left: `${bandLeft * 100}%`,
+                width: `${bandWidth * 100}%`,
+                backgroundColor: colors.primary + "40",
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.marker,
+              {
+                left: `${marker * 100}%`,
+                backgroundColor: statusColor,
+                borderColor: colors.surface,
+              },
+            ]}
+          />
+        </View>
 
-      <Text style={[styles.status, { color: colors.text }]}>{statusText}</Text>
-      <Text style={[styles.caption, { color: colors.textSecondary }]}>
-        {comparison.repairSpent > 0
-          ? `Repairs (${money(comparison.repairSpent)}) aren't counted. `
-          : ""}
-        Estimate from {expected.covered} of {expected.total} recurring tasks.
-      </Text>
+        <Text style={[styles.status, { color: colors.text }]}>{statusText}</Text>
+        <Text style={[styles.caption, { color: colors.textSecondary }]}>
+          {comparison.repairSpent > 0
+            ? `Repairs (${money(comparison.repairSpent)}) aren't counted. `
+            : ""}
+          Estimate from {expected.covered} of {expected.total} recurring tasks.
+        </Text>
+      </HearthSurfaceCard>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: DesignSystem.spacing.md,
+  section: {
     marginBottom: DesignSystem.spacing.lg,
-    gap: DesignSystem.spacing.xs,
   },
-  title: {
-    ...DesignSystem.typography.bodySemiBold,
+  card: {
+    padding: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.xs,
   },
   subtitle: {
     ...DesignSystem.typography.footnote,

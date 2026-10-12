@@ -22,7 +22,13 @@ import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics } from "../../hooks";
 import { useOverlayInsets } from "../../hooks/useOverlayInsets";
-import { Button, HeaderIconButton } from "../../components/ui";
+import {
+  EmptyState,
+  HeaderIconButton,
+  HearthSurfaceCard,
+  IconChip,
+  Pill,
+} from "../../components/ui";
 import { PaintFormSheet } from "../../components/home-notes/PaintFormSheet";
 import { NoteFormSheet } from "../../components/home-notes/NoteFormSheet";
 import { WifiQrSheet } from "../../components/home-notes/WifiQrSheet";
@@ -36,7 +42,6 @@ import {
 } from "../../components/home-notes/noteTemplates";
 import {
   HomeNote,
-  isLightHex,
   PAINT_FINISH_LABELS,
   PaintColor,
   paintSubtitle,
@@ -297,13 +302,15 @@ function HomeNotesScreen({ section }: { section: Section }) {
               icon="color-palette-outline"
               title="Never guess the paint again"
               body="Save each room's brand, colour, and finish so touch-ups match and the next owner knows what's on the walls."
-              action={canEditHome ? "Add a paint colour" : null}
-              onAction={openAdd}
+              primaryAction={
+                canEditHome
+                  ? { label: "Add a paint colour", onPress: openAdd }
+                  : null
+              }
             />
           ) : (
             <View style={styles.grid}>
               {paints.map((paint) => {
-                const light = paint.hex ? isLightHex(paint.hex) : true;
                 const subtitle = paintSubtitle(paint);
                 const copied = copiedId === paint.id;
                 return (
@@ -320,11 +327,6 @@ function HomeNotesScreen({ section }: { section: Section }) {
                     onLongPress={() => openPaintMenu(paint)}
                     style={({ pressed }) => [
                       styles.paintCard,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                      },
-                      DesignSystem.shadows.softAmbient,
                       pressed && { opacity: 0.85 },
                     ]}
                     accessibilityRole="button"
@@ -342,86 +344,73 @@ function HomeNotesScreen({ section }: { section: Section }) {
                         : "Copies the colour. Long press for more options"
                     }
                   >
-                    <View
-                      style={[
-                        styles.swatch,
-                        {
-                          backgroundColor: paint.hex ?? colors.fieldFill,
-                          borderBottomColor: colors.border,
-                        },
-                      ]}
-                    >
-                      {!paint.hex ? (
-                        <Ionicons
-                          name="color-palette-outline"
-                          size={22}
-                          color={colors.textSecondary}
-                        />
-                      ) : null}
-                      {paint.finish ? (
-                        <View
-                          style={[
-                            styles.finishPill,
-                            {
-                              backgroundColor: light
-                                ? "rgba(0,0,0,0.08)"
-                                : "rgba(255,255,255,0.2)",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.finishText,
-                              { color: light ? "#1A1612" : "#FFFFFF" },
-                            ]}
-                          >
-                            {PAINT_FINISH_LABELS[paint.finish]}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <View style={styles.paintBody}>
-                      <Text
-                        style={[styles.room, { color: colors.textSecondary }]}
-                        numberOfLines={1}
+                    <HearthSurfaceCard containerStyle={styles.paintCardFill}>
+                      <View
+                        style={[
+                          styles.swatch,
+                          {
+                            backgroundColor: paint.hex ?? colors.fieldFill,
+                            borderBottomColor: colors.border,
+                          },
+                        ]}
                       >
-                        {paint.room}
-                      </Text>
-                      <Text
-                        style={[styles.paintName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {paintTitle(paint)}
-                      </Text>
-                      {subtitle ? (
-                        <Pressable
-                          onPress={() =>
-                            void copy(paint.id, paintCopyValue(paint))
-                          }
-                          hitSlop={6}
-                          style={styles.codeRow}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Copy ${subtitle}`}
-                        >
-                          <Text
-                            style={[
-                              styles.paintMeta,
-                              { color: colors.textSecondary },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {copied ? "Copied" : subtitle}
-                          </Text>
+                        {!paint.hex ? (
                           <Ionicons
-                            name={copied ? "checkmark" : "copy-outline"}
-                            size={12}
-                            color={
-                              copied ? colors.success : colors.textSecondary
-                            }
+                            name="color-palette-outline"
+                            size={22}
+                            color={colors.textSecondary}
                           />
-                        </Pressable>
-                      ) : null}
-                    </View>
+                        ) : null}
+                        {paint.finish ? (
+                          <Pill
+                            label={PAINT_FINISH_LABELS[paint.finish]}
+                            style={styles.finishPill}
+                          />
+                        ) : null}
+                      </View>
+                      <View style={styles.paintBody}>
+                        <Text
+                          style={[styles.room, { color: colors.textSecondary }]}
+                          numberOfLines={1}
+                        >
+                          {paint.room}
+                        </Text>
+                        <Text
+                          style={[styles.paintName, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
+                          {paintTitle(paint)}
+                        </Text>
+                        {subtitle ? (
+                          <Pressable
+                            onPress={() =>
+                              void copy(paint.id, paintCopyValue(paint))
+                            }
+                            hitSlop={6}
+                            style={styles.codeRow}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Copy ${subtitle}`}
+                          >
+                            <Text
+                              style={[
+                                styles.paintMeta,
+                                { color: colors.textSecondary },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {copied ? "Copied" : subtitle}
+                            </Text>
+                            <Ionicons
+                              name={copied ? "checkmark" : "copy-outline"}
+                              size={12}
+                              color={
+                                copied ? colors.success : colors.textSecondary
+                              }
+                            />
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </HearthSurfaceCard>
                   </Pressable>
                 );
               })}
@@ -432,8 +421,9 @@ function HomeNotesScreen({ section }: { section: Section }) {
             icon="document-text-outline"
             title="The things only you know"
             body="Guest Wi‑Fi, the spare key, trash day, the sprinkler schedule. Start from a template, write it once, and share it with anyone who needs it."
-            action={canEditHome ? "Start a note" : null}
-            onAction={openAdd}
+            primaryAction={
+              canEditHome ? { label: "Start a note", onPress: openAdd } : null
+            }
           />
         ) : (
           notes.map((note) => {
@@ -457,11 +447,6 @@ function HomeNotesScreen({ section }: { section: Section }) {
                 onLongPress={() => openNoteMenu(note)}
                 style={({ pressed }) => [
                   styles.noteCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  DesignSystem.shadows.softAmbient,
                   pressed && { opacity: 0.85 },
                 ]}
                 accessibilityRole="button"
@@ -470,99 +455,73 @@ function HomeNotesScreen({ section }: { section: Section }) {
                   .join(". ")}
                 accessibilityHint="Long press for copy, share, and more"
               >
-                <View style={styles.noteHeader}>
-                  <View
-                    style={[
-                      styles.noteIcon,
-                      { backgroundColor: template.tint + "1F" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={template.icon}
-                      size={16}
-                      color={template.tint}
-                    />
-                  </View>
-                  <View style={styles.noteHeaderText}>
-                    <Text
-                      style={[styles.noteTitle, { color: colors.text }]}
-                      numberOfLines={1}
+                <HearthSurfaceCard style={styles.noteSurface}>
+                  <View style={styles.noteHeader}>
+                    <IconChip icon={template.icon} tint={template.tint} />
+                    <View style={styles.noteHeaderText}>
+                      <Text
+                        style={[styles.noteTitle, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {note.title || template.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.noteMeta,
+                          {
+                            color:
+                              copiedId === note.id
+                                ? colors.success
+                                : colors.textSecondary,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {copiedId === note.id
+                          ? "Copied"
+                          : [
+                              note.kind && note.kind !== "general"
+                                ? template.label
+                                : null,
+                              updatedLabel,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => openNoteMenu(note)}
+                      hitSlop={10}
+                      style={styles.moreHit}
+                      accessibilityRole="button"
+                      accessibilityLabel="More options"
                     >
-                      {note.title || template.label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.noteMeta,
-                        {
-                          color:
-                            copiedId === note.id
-                              ? colors.success
-                              : colors.textSecondary,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {copiedId === note.id
-                        ? "Copied"
-                        : [
-                            note.kind && note.kind !== "general"
-                              ? template.label
-                              : null,
-                            updatedLabel,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                    </Text>
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={18}
+                        color={colors.textSecondary}
+                      />
+                    </Pressable>
                   </View>
-                  <Pressable
-                    onPress={() => openNoteMenu(note)}
-                    hitSlop={10}
-                    style={styles.moreHit}
-                    accessibilityRole="button"
-                    accessibilityLabel="More options"
-                  >
-                    <Ionicons
-                      name="ellipsis-horizontal"
-                      size={18}
-                      color={colors.textSecondary}
-                    />
-                  </Pressable>
-                </View>
-                {body ? (
-                  <Text
-                    style={[styles.noteBody, { color: colors.text }]}
-                    numberOfLines={expanded ? undefined : 4}
-                  >
-                    {body}
-                  </Text>
-                ) : null}
-                {wifi ? (
-                  <Pressable
-                    onPress={() => {
-                      triggerLight();
-                      setWifiQr(wifi);
-                    }}
-                    style={({ pressed }) => [
-                      styles.wifiChip,
-                      {
-                        backgroundColor: template.tint + "14",
-                        borderColor: template.tint + "40",
-                      },
-                      pressed && { opacity: 0.7 },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel="Show Wi‑Fi QR code"
-                  >
-                    <Ionicons
-                      name="qr-code-outline"
-                      size={14}
-                      color={template.tint}
-                    />
-                    <Text style={[styles.wifiChipText, { color: template.tint }]}>
-                      Show QR code to join
+                  {body ? (
+                    <Text
+                      style={[styles.noteBody, { color: colors.text }]}
+                      numberOfLines={expanded ? undefined : 4}
+                    >
+                      {body}
                     </Text>
-                  </Pressable>
-                ) : null}
+                  ) : null}
+                  {wifi ? (
+                    <Pill
+                      label="Show QR code to join"
+                      icon="qr-code-outline"
+                      tone="primary"
+                      size="medium"
+                      onPress={() => setWifiQr(wifi)}
+                      accessibilityLabel="Show Wi‑Fi QR code"
+                    />
+                  ) : null}
+                </HearthSurfaceCard>
               </Pressable>
             );
           })
@@ -596,43 +555,9 @@ function HomeNotesScreen({ section }: { section: Section }) {
   );
 }
 
-function EmptyState({
-  icon,
-  title,
-  body,
-  action,
-  onAction,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  body: string;
-  action: string | null;
-  onAction: () => void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.empty}>
-      <View
-        style={[styles.emptyIcon, { backgroundColor: colors.primary + "14" }]}
-      >
-        <Ionicons name={icon} size={30} color={colors.primary} />
-      </View>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        {body}
-      </Text>
-      {action ? (
-        <View style={styles.emptyAction}>
-          <Button label={action} onPress={onAction} />
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
   },
@@ -648,9 +573,9 @@ const styles = StyleSheet.create({
   paintCard: {
     flexBasis: "47%",
     flexGrow: 1,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
+  },
+  paintCardFill: {
+    flex: 1,
   },
   swatch: {
     height: 96,
@@ -662,12 +587,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: DesignSystem.spacing.sm,
     right: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: DesignSystem.borders.radius.round,
-  },
-  finishText: {
-    ...DesignSystem.typography.captionSemiBold,
   },
   paintBody: {
     padding: DesignSystem.spacing.sm + 4,
@@ -675,8 +594,6 @@ const styles = StyleSheet.create({
   },
   room: {
     ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
   },
   paintName: {
     ...DesignSystem.typography.bodySemiBold,
@@ -691,23 +608,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   noteCard: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: DesignSystem.spacing.md,
     marginBottom: DesignSystem.spacing.sm + 4,
-    gap: DesignSystem.spacing.xs + 2,
+  },
+  noteSurface: {
+    padding: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
   },
   noteHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 2,
-  },
-  noteIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
   },
   noteHeaderText: {
     flex: 1,
@@ -719,19 +629,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: -DesignSystem.spacing.xs,
-  },
-  wifiChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: 6,
-    paddingHorizontal: DesignSystem.spacing.sm + 2,
-    paddingVertical: 6,
-    borderRadius: DesignSystem.borders.radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  wifiChipText: {
-    ...DesignSystem.typography.smallSemiBold,
   },
   noteTitle: {
     ...DesignSystem.typography.bodySemiBold,
@@ -746,34 +643,6 @@ const styles = StyleSheet.create({
   memberNote: {
     ...DesignSystem.typography.footnote,
     textAlign: "center",
-    marginTop: DesignSystem.spacing.lg,
-  },
-  empty: {
-    alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.lg,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: DesignSystem.spacing.md,
-  },
-  emptyTitle: {
-    ...DesignSystem.typography.title2,
-    fontSize: 20,
-    lineHeight: 26,
-    textAlign: "center",
-  },
-  emptyBody: {
-    ...DesignSystem.typography.footnote,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
-  },
-  emptyAction: {
-    alignSelf: "stretch",
     marginTop: DesignSystem.spacing.lg,
   },
 });

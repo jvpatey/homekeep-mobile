@@ -23,18 +23,7 @@ export const completionHistoryStyles = StyleSheet.create({
     marginTop: DesignSystem.spacing.xs + 2,
   },
   chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: DesignSystem.borders.radius.round,
     maxWidth: 180,
-  },
-  chipText: {
-    ...DesignSystem.typography.captionSemiBold,
-    fontVariant: ["tabular-nums"],
-    flexShrink: 1,
   },
   subtitle: {
     ...DesignSystem.typography.footnote,
@@ -56,12 +45,7 @@ export const completionHistoryStyles = StyleSheet.create({
     fontSize: 11,
   },
   sectionHeader: {
-    ...DesignSystem.typography.footnote,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: DesignSystem.spacing.sm,
-    marginTop: DesignSystem.spacing.md,
+    marginTop: DesignSystem.spacing.lg - DesignSystem.spacing.sm,
   },
   cardContainer: {
     marginBottom: DesignSystem.spacing.sm,
@@ -77,11 +61,6 @@ export const completionHistoryStyles = StyleSheet.create({
     gap: DesignSystem.spacing.sm,
   },
   rowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: 1,
     flexShrink: 0,
   },
@@ -123,40 +102,7 @@ export const completionHistoryStyles = StyleSheet.create({
   },
   emptyState: {
     flexGrow: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing.xxxl,
-  },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  emptyTitle: {
-    ...DesignSystem.typography.h3,
-    textAlign: "center",
-    marginBottom: DesignSystem.spacing.sm,
-  },
-  emptySubtext: {
-    ...DesignSystem.typography.footnote,
-    textAlign: "center",
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  emptyAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.xs,
-    marginTop: DesignSystem.spacing.lg,
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.sm + 2,
-    borderRadius: DesignSystem.borders.radius.round,
-  },
-  emptyActionText: {
-    ...DesignSystem.typography.bodySemiBold,
   },
 });
