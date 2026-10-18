@@ -22,7 +22,10 @@ import { useAppNavigation } from "../navigation/useAppNavigation";
 import { useWidgetSync } from "../hooks/useWidgetSync";
 import { refreshEquipmentIndex } from "../hooks/useEquipmentIndex";
 import { showActionMenu } from "../utils/actionMenu";
-import { confirmSkipTaskOccurrence } from "../utils/skipTaskOccurrence";
+import {
+  confirmClearOverdue,
+  confirmSkipTaskOccurrence,
+} from "../utils/skipTaskOccurrence";
 import { confirmPauseTask } from "../utils/pauseTask";
 import { maybeRequestReviewAfterTaskComplete } from "../utils/requestAppReview";
 import { pickNextRightThing } from "../utils/nextRightThing";
@@ -100,6 +103,9 @@ interface TaskActionsValue {
   /** One-tap done; opens the complete sheet when a cost is worth recording. */
   markDone: (task: MaintenanceTask) => void;
   skipOccurrence: (task: MaintenanceTask, closeSwipe?: () => void) => void;
+  /** Skip/dismiss every task in the overdue pile without marking them done. */
+  clearOverdue: (tasks: MaintenanceTask[]) => Promise<boolean>;
+  clearingOverdue: boolean;
   pauseTask: (task: MaintenanceTask, closeSwipe?: () => void) => void;
   openCreate: () => Promise<void>;
   openEdit: (task: MaintenanceTask) => Promise<void>;
@@ -123,6 +129,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     completedTasks,
     completeTask: completeTaskInstance,
     skipTaskOccurrence,
+    clearOverdueTasks,
     pauseTask: pauseRoutine,
     refreshTasks,
     loading: tasksLoading,
@@ -519,6 +526,39 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     ]
   );
 
+  const [clearingOverdue, setClearingOverdue] = useState(false);
+
+  const clearOverdue = useCallback(
+    async (tasks: MaintenanceTask[]) => {
+      if (tasks.length === 0 || clearingOverdue) return false;
+      if (!(await requirePlus())) return false;
+      if (!(await confirmClearOverdue(tasks))) return false;
+      setClearingOverdue(true);
+      try {
+        await triggerMedium();
+        const result = await clearOverdueTasks(tasks);
+        if (result.cleared > 0) await triggerLight();
+        if (!result.success) {
+          Alert.alert(
+            "Couldn't clear everything",
+            result.error || "Please try again."
+          );
+          return false;
+        }
+        return true;
+      } finally {
+        setClearingOverdue(false);
+      }
+    },
+    [
+      clearOverdueTasks,
+      clearingOverdue,
+      requirePlus,
+      triggerLight,
+      triggerMedium,
+    ]
+  );
+
   const pauseTask = useCallback(
     (task: MaintenanceTask, closeSwipe?: () => void) => {
       void (async () => {
@@ -665,6 +705,8 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
       completeTask,
       markDone,
       skipOccurrence: (task, closeSwipe) => void runSkip(task, closeSwipe),
+      clearOverdue,
+      clearingOverdue,
       pauseTask,
       openCreate,
       openEdit,
@@ -690,6 +732,8 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
       completeTask,
       markDone,
       runSkip,
+      clearOverdue,
+      clearingOverdue,
       pauseTask,
       openCreate,
       openEdit,

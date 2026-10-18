@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   RouteProp,
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useTaskActions } from "../../context/TaskActionsContext";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   SegmentedControl,
@@ -52,6 +55,8 @@ type Nav = NativeStackNavigationProp<TasksStackParamList, "TasksHome">;
 
 export function TasksHomeScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   const { profile } = useProfile();
   const route = useRoute<RouteProp<TasksStackParamList, "TasksHome">>();
   const navigation = useNavigation<Nav>();
@@ -120,11 +125,21 @@ export function TasksHomeScreen() {
     return { statuses, counts, total: all.length };
   }, [zones, upkeep.routines, seasonalTasks, seasonalOverdue]);
 
-  const header = (
-    <>
+  const chrome = (
+    <View
+      style={[
+        styles.chrome,
+        {
+          backgroundColor: colors.background,
+          paddingTop:
+            (Platform.OS === "ios" ? insets.top : 0) + DesignSystem.spacing.sm,
+        },
+      ]}
+    >
       <TabScreenHeader
         title="Tasks"
         subtitle="Your schedule, routines, and the task library"
+        style={styles.pinnedHeader}
         actions={
           <>
             <KeeperHeaderButton />
@@ -145,53 +160,11 @@ export function TasksHomeScreen() {
           accessibilityLabel="Tasks view"
         />
       </View>
-    </>
+    </View>
   );
-
-  if (segment === "routines") {
-    return (
-      <View style={[styles.flex, { backgroundColor: colors.background }]}>
-        <AllRemindersList
-          routines={reminders.routines}
-          deletingIds={reminders.deletingIds}
-          resumingIds={reminders.resumingIds}
-          onResume={(id) => void reminders.resume(id)}
-          onDelete={(id, title) => void reminders.remove(id, title)}
-          refreshing={reminders.refreshing}
-          onRefresh={() => void reminders.refresh()}
-          loading={!reminders.loaded}
-          header={<View style={styles.remindersHeader}>{header}</View>}
-          automaticInsets
-          contentPaddingBottom={DesignSystem.spacing.xxl}
-        />
-      </View>
-    );
-  }
-
-  if (segment === "library") {
-    return (
-      <ScrollView
-        style={[styles.flex, { backgroundColor: colors.background }]}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          maintenancePlansStyles.listScroll,
-          styles.libraryContent,
-        ]}
-      >
-        <View style={styles.libraryHeader}>{header}</View>
-        <PlanLibraryCards
-          catalog={catalog}
-          onOpenPlan={(plan) => openPlanFlow(plan.id)}
-          showIntro={!catalog.homeSetupComplete}
-        />
-      </ScrollView>
-    );
-  }
 
   const scheduleHeader = (
     <View style={styles.scheduleHeader}>
-      {header}
       {zones.length > 0 ? (
         <ZoneFilterChips
           zones={zones}
@@ -216,8 +189,37 @@ export function TasksHomeScreen() {
     </View>
   );
 
-  return (
-    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+  const body =
+    segment === "routines" ? (
+      <AllRemindersList
+        routines={reminders.routines}
+        deletingIds={reminders.deletingIds}
+        resumingIds={reminders.resumingIds}
+        onResume={(id) => void reminders.resume(id)}
+        onDelete={(id, title) => void reminders.remove(id, title)}
+        refreshing={reminders.refreshing}
+        onRefresh={() => void reminders.refresh()}
+        loading={!reminders.loaded}
+        automaticInsets={false}
+        contentPaddingBottom={DesignSystem.spacing.xxl}
+      />
+    ) : segment === "library" ? (
+      <ScrollView
+        style={styles.flex}
+        contentInsetAdjustmentBehavior="never"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          maintenancePlansStyles.listScroll,
+          styles.libraryContent,
+        ]}
+      >
+        <PlanLibraryCards
+          catalog={catalog}
+          onOpenPlan={(plan) => openPlanFlow(plan.id)}
+          showIntro={!catalog.homeSetupComplete}
+        />
+      </ScrollView>
+    ) : (
       <DashboardScheduleList
         ref={listRef}
         sections={sections}
@@ -229,11 +231,35 @@ export function TasksHomeScreen() {
         onTaskPress={actions.openTaskById}
         onSkipOccurrence={actions.skipOccurrence}
         onPauseTask={actions.pauseTask}
+        onClearOverdue={(tasks) => void actions.clearOverdue(tasks)}
+        clearingOverdue={actions.clearingOverdue}
         onAddTask={() => void actions.openCreate()}
         onBrowseMaintenancePlans={() => setSegment("library")}
         homeSetupIncomplete={!isHomeSystemsComplete(profile?.home_systems)}
         contentPaddingBottom={DesignSystem.spacing.xxl}
+        automaticInsets={false}
       />
+    );
+
+  return (
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      {chrome}
+      <Animated.View
+        key={segment}
+        style={styles.flex}
+        entering={
+          reduceMotion
+            ? undefined
+            : FadeIn.duration(DesignSystem.motion.duration.fast)
+        }
+        exiting={
+          reduceMotion
+            ? undefined
+            : FadeOut.duration(DesignSystem.motion.duration.instant)
+        }
+      >
+        {body}
+      </Animated.View>
     </View>
   );
 }
@@ -242,24 +268,27 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  chrome: {
+    zIndex: 1,
+  },
+  pinnedHeader: {
+    // Safe-area padding lives on the chrome; don't double it.
+    paddingTop: 0,
+  },
   segmentWrap: {
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingBottom: DesignSystem.spacing.md,
   },
   scheduleHeader: {
     paddingBottom: DesignSystem.spacing.xs,
+    paddingTop: DesignSystem.spacing.sm,
   },
   weekendWrap: {
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.md,
   },
-  remindersHeader: {
-    marginTop: -DesignSystem.spacing.sm,
-  },
-  libraryHeader: {
-    marginHorizontal: -DesignSystem.spacing.lg,
-  },
   libraryContent: {
     paddingBottom: DesignSystem.spacing.xxl,
+    paddingTop: DesignSystem.spacing.sm,
   },
 });

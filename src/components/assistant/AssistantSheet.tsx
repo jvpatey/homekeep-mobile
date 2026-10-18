@@ -52,7 +52,7 @@ function starterPrompts(equipmentName: string | null): string[] {
   }
   return [
     "What should I take care of this month?",
-    "Log that I changed the furnace filter today",
+    "How much have I spent on the house this year?",
     "Where's the main water shutoff?",
   ];
 }
@@ -90,8 +90,8 @@ function TypingDot({ index }: { index: number }) {
 }
 
 /**
- * Keeper, HomeKeep's AI assistant: chat grounded in this home's systems, equipment, schedule,
- * emergency spots, and recent work. HomeKeep + only (checked server-side).
+ * Keeper, HomeKeep's AI assistant: chat grounded in this home's record (equipment,
+ * schedule, spend, documents, recalls, emergency spots, pros, notes). HomeKeep + only.
  */
 export function AssistantSheet({
   visible,
@@ -242,7 +242,7 @@ export function AssistantSheet({
   const street = formatProfileAddressLines(profile)[0];
   const heroBody = equipment
     ? `Ask me anything about the ${equipment.name}. I know its parts, upkeep, and what's been done, and I can save details, repairs, and reminders for you.`
-    : `Ask me anything about ${street ?? "your home"}. I know your equipment, schedule, shutoffs, and recent work, and I can save reminders, repairs, equipment, pros, paint colours, and notes for you.`;
+    : `Ask me anything about ${street ?? "your home"}. I know your equipment, schedule, spend, documents, shutoffs, and recalls — and I can save things or open Documents, Spend, and Equipment for you.`;
 
   return (
     <HearthSheet

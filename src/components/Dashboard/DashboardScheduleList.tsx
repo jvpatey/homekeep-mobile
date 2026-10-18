@@ -4,6 +4,8 @@ import React, {
   useRef,
 } from "react";
 import {
+  ActivityIndicator,
+  Pressable,
   SectionList,
   RefreshControl,
   View,
@@ -44,10 +46,15 @@ interface DashboardScheduleListProps {
     task: MaintenanceTask,
     closeSwipe: () => void
   ) => void | Promise<void>;
+  /** Clear the overdue pile (skip recurring / dismiss one-time). */
+  onClearOverdue?: (tasks: MaintenanceTask[]) => void;
+  clearingOverdue?: boolean;
   onAddTask?: () => void;
   onBrowseMaintenancePlans?: (planId?: string) => void;
   homeSetupIncomplete?: boolean;
   contentPaddingBottom: number;
+  /** When false, the list ignores the status-bar inset (header lives outside). */
+  automaticInsets?: boolean;
 }
 
 export const DashboardScheduleList = forwardRef<
@@ -64,10 +71,13 @@ export const DashboardScheduleList = forwardRef<
     onTaskPress,
     onSkipOccurrence,
     onPauseTask,
+    onClearOverdue,
+    clearingOverdue = false,
     onAddTask,
     onBrowseMaintenancePlans,
     homeSetupIncomplete,
     contentPaddingBottom,
+    automaticInsets = true,
   },
   ref
 ) {
@@ -109,30 +119,75 @@ export const DashboardScheduleList = forwardRef<
     },
   }));
 
-  const renderOverdueHeader = (section: DashboardScheduleSection) => (
-    <View
-      style={[
-        scheduleStyles.stickyHeaderBase,
-        {
-          backgroundColor: colors.background,
-          paddingHorizontal: DesignSystem.spacing.lg,
-          paddingTop: DesignSystem.spacing.md,
-          paddingBottom: DesignSystem.spacing.sm,
-        },
-      ]}
-    >
-      <Text style={[scheduleStyles.sectionTitle, { color: colors.error }]}>
-        {section.title}
-      </Text>
-      {section.subtitle ? (
-        <Text
-          style={[scheduleStyles.sectionSubtitle, { color: colors.textSecondary }]}
-        >
-          {section.subtitle}
-        </Text>
-      ) : null}
-    </View>
-  );
+  const renderOverdueHeader = (section: DashboardScheduleSection) => {
+    const canClear =
+      !!onClearOverdue && section.data.length >= 2 && !clearingOverdue;
+    return (
+      <View
+        style={[
+          scheduleStyles.stickyHeaderBase,
+          {
+            backgroundColor: colors.background,
+            paddingHorizontal: DesignSystem.spacing.lg,
+            paddingTop: DesignSystem.spacing.md,
+            paddingBottom: DesignSystem.spacing.sm,
+          },
+        ]}
+      >
+        <View style={scheduleStyles.overdueTitleRow}>
+          <Text
+            style={[
+              scheduleStyles.sectionTitle,
+              scheduleStyles.overdueTitle,
+              { color: colors.error },
+            ]}
+          >
+            {section.title}
+          </Text>
+          {onClearOverdue && section.data.length >= 2 ? (
+            <Pressable
+              onPress={() => onClearOverdue(section.data)}
+              disabled={!canClear}
+              hitSlop={8}
+              style={({ pressed }) => [
+                scheduleStyles.clearOverdue,
+                {
+                  backgroundColor: colors.error + "14",
+                  opacity: !canClear ? 0.55 : pressed ? 0.7 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Clear ${section.data.length} overdue tasks`}
+              accessibilityHint="Skips recurring reminders and removes one-time tasks without marking them done"
+            >
+              {clearingOverdue ? (
+                <ActivityIndicator size="small" color={colors.error} />
+              ) : (
+                <Text
+                  style={[
+                    scheduleStyles.clearOverdueText,
+                    { color: colors.error },
+                  ]}
+                >
+                  Clear all
+                </Text>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+        {section.subtitle ? (
+          <Text
+            style={[
+              scheduleStyles.sectionSubtitle,
+              { color: colors.textSecondary },
+            ]}
+          >
+            {section.subtitle}
+          </Text>
+        ) : null}
+      </View>
+    );
+  };
 
   const renderSectionHeader = ({
     section,
@@ -277,7 +332,9 @@ export const DashboardScheduleList = forwardRef<
       keyExtractor={(item) => item.instance_id}
       stickySectionHeadersEnabled
       showsVerticalScrollIndicator={false}
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior={
+        automaticInsets ? "automatic" : "never"
+      }
       onScrollToIndexFailed={({ index }) => {
         setTimeout(() => {
           listRef.current?.scrollToLocation({
@@ -330,12 +387,33 @@ const scheduleStyles = StyleSheet.create({
     flex: 1,
   },
   stickyHeaderBase: {},
+  overdueTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: DesignSystem.spacing.md,
+  },
+  overdueTitle: {
+    flexShrink: 1,
+  },
   sectionTitle: {
     ...DesignSystem.typography.title2,
   },
   sectionSubtitle: {
     ...DesignSystem.typography.footnote,
     marginTop: DesignSystem.spacing.xs,
+  },
+  clearOverdue: {
+    minHeight: 32,
+    minWidth: 72,
+    paddingHorizontal: DesignSystem.spacing.md - 2,
+    paddingVertical: DesignSystem.spacing.xs + 2,
+    borderRadius: DesignSystem.borders.radius.round,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearOverdueText: {
+    ...DesignSystem.typography.smallSemiBold,
   },
   emptyOuter: {
     marginTop: DesignSystem.spacing.xl,
