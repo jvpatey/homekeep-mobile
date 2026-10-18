@@ -5,7 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import {
   HearthSurfaceCard,
   SheetActionRow,
@@ -31,12 +31,14 @@ import {
 } from "../../lib/purchases";
 import {
   getBiometricLabel,
-  hasBiometricLoginEnabled,
   isBiometricAvailable,
+  isBiometricLoginReady,
 } from "../../services/biometricAuth";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors } = useTheme();
+  const { getTabContentStyle } = useDevice();
+  const tabColumn = getTabContentStyle();
   const {
     user,
     deleteAccount,
@@ -70,13 +72,14 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
   const refreshBiometricSettings = useCallback(async () => {
     try {
-      const [available, enabled, label] = await Promise.all([
+      const [available, ready, label] = await Promise.all([
         isBiometricAvailable(),
-        hasBiometricLoginEnabled(),
+        isBiometricLoginReady(),
         getBiometricLabel(),
       ]);
       setBiometricAvailable(available);
-      setBiometricEnabled(enabled);
+      // Prefer "ready" so a broken vault doesn't show as On.
+      setBiometricEnabled(ready);
       setBiometricLabel(label);
     } catch {
       setBiometricAvailable(false);
@@ -280,7 +283,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         style={{ flex: 1, backgroundColor: colors.background }}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollInner}
+        contentContainerStyle={[styles.scrollInner, tabColumn]}
       >
         <View style={styles.identity}>
           <Text style={[styles.identityName, { color: colors.text }]}>

@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfile } from "../../context/ProfileContext";
 import { useTaskActions } from "../../context/TaskActionsContext";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { useDevice } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import {
   HearthCanvas,
@@ -57,6 +58,8 @@ type Nav = NativeStackNavigationProp<TasksStackParamList, "TasksHome">;
 export function TasksHomeScreen() {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
+  const { getTabContentStyle } = useDevice();
+  const tabColumn = getTabContentStyle();
   const { profile } = useProfile();
   const route = useRoute<RouteProp<TasksStackParamList, "TasksHome">>();
   const navigation = useNavigation<Nav>();
@@ -151,7 +154,7 @@ export function TasksHomeScreen() {
           </>
         }
       />
-      <View style={styles.segmentWrap}>
+      <View style={[styles.segmentWrap, tabColumn]}>
         <SegmentedControl
           options={SEGMENTS}
           value={segment}
@@ -246,7 +249,7 @@ export function TasksHomeScreen() {
         {chrome}
         <Animated.View
           key={segment}
-          style={styles.flex}
+          style={[styles.flex, tabColumn]}
           entering={
             reduceMotion
               ? undefined

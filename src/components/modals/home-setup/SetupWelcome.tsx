@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../../context/ThemeContext";
-import { useHaptics, useReducedMotion } from "../../../hooks";
+import { useDevice, useHaptics, useReducedMotion } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
 import {
   BuildingMark,
@@ -240,6 +240,7 @@ function WelcomeHero() {
 
 export function SetupWelcome() {
   const { colors } = useTheme();
+  const { isRegularWidth } = useDevice();
   const enter = useEnter();
 
   return (
@@ -262,7 +263,11 @@ export function SetupWelcome() {
       </Animated.Text>
       <Animated.Text
         entering={enter(680)}
-        style={[styles.support, { color: colors.textSecondary }]}
+        style={[
+          styles.support,
+          isRegularWidth && styles.supportWide,
+          { color: colors.textSecondary },
+        ]}
         maxFontSizeMultiplier={1.4}
       >
         A few quick taps and we'll build a maintenance plan made for your
@@ -380,6 +385,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     maxWidth: 320,
     marginBottom: DesignSystem.spacing.lg,
+  },
+  supportWide: {
+    maxWidth: 480,
   },
   steps: {
     alignSelf: "stretch",

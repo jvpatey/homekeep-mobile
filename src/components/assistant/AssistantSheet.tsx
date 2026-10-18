@@ -21,7 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useSubscription } from "../../context/SubscriptionContext";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import { AiError, AiService, AssistantAction } from "../../services/AiService";
 import { DesignSystem } from "../../theme/designSystem";
 import { HearthSheet } from "../ui/HearthSheet";
@@ -108,6 +108,7 @@ export function AssistantSheet({
   initialPrompt?: string;
 }) {
   const { colors } = useTheme();
+  const { isRegularWidth } = useDevice();
   const { profile } = useProfile();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
   const { isPlus, presentPaywall } = useSubscription();
@@ -123,6 +124,22 @@ export function AssistantSheet({
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const scrollRef = useRef<ScrollView>(null);
   const sentInitialPrompt = useRef<string | null>(null);
+  /** Close Keeper first, then present Plus — nested RN Modals break purchases / taps. */
+  const pendingPaywallRef = useRef(false);
+
+  const requestPlusPaywall = () => {
+    pendingPaywallRef.current = true;
+    onClose();
+  };
+
+  const handleSheetDismissed = () => {
+    if (!pendingPaywallRef.current) return;
+    pendingPaywallRef.current = false;
+    // Wait for Keeper's Modal to unmount — presenting Plus on top freezes taps.
+    setTimeout(() => {
+      void presentPaywall({ force: true, reason: "assistant" });
+    }, 80);
+  };
 
   useEffect(() => {
     setTurns([]);
@@ -185,7 +202,7 @@ export function AssistantSheet({
       if (error instanceof AiError && error.code === "plus_required") {
         setTurns(base);
         setDraft(question);
-        void presentPaywall({ force: true, reason: "assistant" });
+        requestPlusPaywall();
         return;
       }
       setTurns((prev) => [
@@ -248,7 +265,7 @@ export function AssistantSheet({
 
   const openPlus = () => {
     triggerLight();
-    void presentPaywall({ force: true, reason: "assistant" });
+    requestPlusPaywall();
   };
 
   if (!isPlus) {
@@ -256,6 +273,7 @@ export function AssistantSheet({
       <HearthSheet
         visible={visible}
         onClose={onClose}
+        onDismissed={handleSheetDismissed}
         title="Keeper"
         footer={
           <Button
@@ -270,7 +288,13 @@ export function AssistantSheet({
           <Text style={[styles.heroTitle, { color: colors.text }]}>
             Hi, I'm Keeper
           </Text>
-          <Text style={[styles.lockedBody, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.lockedBody,
+              isRegularWidth && styles.lockedBodyWide,
+              { color: colors.textSecondary },
+            ]}
+          >
             Your home AI. Ask about equipment, what's due, shutoffs, or what was
             done last — answers stay grounded in this house.
           </Text>
@@ -283,6 +307,7 @@ export function AssistantSheet({
     <HearthSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={handleSheetDismissed}
       title={equipment ? `Keeper · ${equipment.name}` : "Keeper"}
       fillMaxHeight
       maxHeightRatio={0.9}
@@ -398,7 +423,11 @@ export function AssistantSheet({
               style={[
                 styles.bubble,
                 turn.role === "user"
-                  ? [styles.userBubble, { backgroundColor: colors.primary }]
+                  ? [
+                      styles.userBubble,
+                      isRegularWidth && styles.userBubbleWide,
+                      { backgroundColor: colors.primary },
+                    ]
                   : [
                       styles.botBubble,
                       {
@@ -548,7 +577,10 @@ export function AssistantSheet({
           return turn.role === "user" ? (
             bubble
           ) : (
-            <View key={turn.id} style={styles.botRow}>
+            <View
+              key={turn.id}
+              style={[styles.botRow, isRegularWidth && styles.botRowWide]}
+            >
               <KeeperMark size={28} badge={false} />
               {bubble}
             </View>
@@ -557,7 +589,7 @@ export function AssistantSheet({
 
         {sending ? (
           <View
-            style={styles.botRow}
+            style={[styles.botRow, isRegularWidth && styles.botRowWide]}
             accessibilityLabel="Keeper is thinking"
             accessibilityLiveRegion="polite"
           >
@@ -601,6 +633,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     maxWidth: 320,
     lineHeight: 22,
+  },
+  lockedBodyWide: {
+    maxWidth: 480,
   },
   hero: {
     alignItems: "center",
@@ -660,6 +695,9 @@ const styles = StyleSheet.create({
     maxWidth: "88%",
     borderBottomRightRadius: 6,
   },
+  userBubbleWide: {
+    maxWidth: 560,
+  },
   botRow: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -667,6 +705,9 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.sm,
     maxWidth: "94%",
     paddingTop: 4,
+  },
+  botRowWide: {
+    maxWidth: 640,
   },
   botBubble: {
     flexShrink: 1,

@@ -12,6 +12,7 @@ import { useSubscription } from "../../context/SubscriptionContext";
 import { useTasks } from "../../context/TasksContext";
 import { useTaskActions } from "../../context/TaskActionsContext";
 import { useAppNavigation } from "../../navigation/useAppNavigation";
+import { useDevice } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import { accountFirstName } from "../../utils/displayName";
 import { homeSeasonLabel, recommendInSeasonPlanId } from "../../utils/homeSeason";
@@ -45,6 +46,8 @@ let enteredThisSession = false;
 
 export function TodayDashboard() {
   const { colors } = useTheme();
+  const { getTabContentStyle } = useDevice();
+  const tabColumn = getTabContentStyle();
   const { user } = useAuth();
   const { addressNeeded, homeSetupNeeded, profile } = useProfile();
   const { pendingOpen, clearPendingOpen } = useNotifications();
@@ -184,7 +187,7 @@ export function TodayDashboard() {
           }
         />
 
-        <View style={styles.content}>
+        <View style={[styles.content, tabColumn]}>
           <Animated.View entering={entering(0)}>
             {isNewHome ? (
               <TodaySetupHero

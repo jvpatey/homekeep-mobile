@@ -813,7 +813,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
                 setShowAssistant(true);
               }, 50);
               return;
-            }}
+            }
             resumeWeekendIfPending();
           }}
           onComplete={completeTask}

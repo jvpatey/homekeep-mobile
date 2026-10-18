@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import { IconChip, SectionHeader } from "../ui";
 
@@ -19,12 +19,17 @@ export interface HomeTileProps {
 
 /** Things kept about the home, as a two-column grid of tiles. */
 export function ThingsGrid({ tiles }: { tiles: HomeTileProps[] }) {
+  const { isRegularWidth } = useDevice();
   return (
     <View>
       <SectionHeader title="Things" />
       <View style={styles.grid}>
         {tiles.map((tile) => (
-          <HomeTile key={tile.title} {...tile} />
+          <HomeTile
+            key={tile.title}
+            {...tile}
+            wide={isRegularWidth}
+          />
         ))}
       </View>
     </View>
@@ -39,7 +44,8 @@ export function HomeTile({
   descriptor,
   locked,
   onPress,
-}: HomeTileProps) {
+  wide = false,
+}: HomeTileProps & { wide?: boolean }) {
   const { colors } = useTheme();
   const { triggerLight } = useHaptics();
   const countLabel = count == null ? "—" : String(count);
@@ -52,6 +58,7 @@ export function HomeTile({
       }}
       style={({ pressed }) => [
         styles.tile,
+        wide && styles.tileWide,
         { backgroundColor: colors.surface, borderColor: colors.border },
         DesignSystem.shadows.softAmbient,
         pressed && { opacity: 0.7 },
@@ -112,6 +119,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     justifyContent: "space-between",
     gap: DesignSystem.spacing.sm,
+  },
+  /** Regular-width iPad: three columns inside the centered tab column. */
+  tileWide: {
+    flexBasis: "31%",
   },
   top: {
     flexDirection: "row",

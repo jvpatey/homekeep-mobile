@@ -12,7 +12,7 @@ import { useEquipmentIndex } from "../../hooks/useEquipmentIndex";
 import { useHomeContacts } from "../../hooks/useHomeContacts";
 import { useHomeDocuments } from "../../hooks/useHomeDocuments";
 import { useCurrency } from "../../hooks/useCurrency";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import {
   ScrollAtmosphere,
@@ -68,6 +68,8 @@ let enteredThisSession = false;
 export function RecordHomeScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { getTabContentStyle } = useDevice();
+  const tabColumn = getTabContentStyle();
   const { user } = useAuth();
   const { profile, homeNotes } = useProfile();
   const { triggerLight } = useHaptics();
@@ -245,7 +247,7 @@ export function RecordHomeScreen() {
           }
         />
 
-        <View style={styles.content}>
+        <View style={[styles.content, tabColumn]}>
           <Animated.View entering={entering(section++)}>
             <HomeIdentityHero
               street={street}

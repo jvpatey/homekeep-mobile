@@ -1,4 +1,4 @@
-import { Platform, useWindowDimensions } from "react-native";
+import { Platform, StyleProp, useWindowDimensions, ViewStyle } from "react-native";
 import * as Device from "expo-device";
 
 const REGULAR_WIDTH = 768;
@@ -206,6 +206,22 @@ export function useDevice() {
     };
   };
 
+  /**
+   * Centered readable column for logged-in tabs. Phone and Split View
+   * (width < 768) stay full-bleed so iPhone layout is unchanged.
+   */
+  const getTabContentStyle = (): StyleProp<ViewStyle> => {
+    if (!isRegularWidth) return undefined;
+    const gutter = width >= 1024 ? 56 : 40;
+    const cap = isLargeTablet ? 840 : 720;
+    const maxWidth = Math.round(Math.min(width - gutter * 2, cap));
+    return {
+      width: "100%",
+      maxWidth,
+      alignSelf: "center",
+    };
+  };
+
   return {
     isTablet,
     isIPad,
@@ -222,5 +238,6 @@ export function useDevice() {
     getHeroSectionHeight,
     getAuthHeroMinHeight,
     getTabletSheetContainerStyle,
+    getTabContentStyle,
   };
 }
