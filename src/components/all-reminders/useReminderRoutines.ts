@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
-import { useRequirePlus } from "../../hooks/useRequirePlus";
+import { useRequirePlusOrFreeAction } from "../../hooks/useRequirePlus";
 import { MaintenanceRoutine } from "../../types/maintenance";
 import { MaintenanceService } from "../../services/maintenanceService";
 
@@ -75,7 +75,7 @@ export function resetRoutineCache() {
 export function useReminderRoutines() {
   const { deleteTask, resumeTask, refreshTasks } = useTasks();
   const { triggerLight, triggerMedium } = useHaptics();
-  const requirePlus = useRequirePlus();
+  const { requireAccess, consume } = useRequirePlusOrFreeAction();
   const { routines, loaded } = useRoutineSnapshot();
   const [refreshing, setRefreshing] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -140,13 +140,14 @@ export function useReminderRoutines() {
   const resume = useCallback(
     async (routineId: string) => {
       if (resumingIds.has(routineId)) return;
-      if (!(await requirePlus())) return;
+      if (!(await requireAccess())) return;
 
       setResumingIds((prev) => withId(prev, routineId));
       await triggerMedium();
       try {
         const result = await resumeTask(routineId);
         if (result.success) {
+          await consume();
           await triggerLight();
           setRoutines((prev) =>
             prev.map((r) => (r.id === routineId ? { ...r, is_active: true } : r))
@@ -168,7 +169,15 @@ export function useReminderRoutines() {
         setResumingIds((prev) => withoutId(prev, routineId));
       }
     },
-    [refreshTasks, requirePlus, resumeTask, resumingIds, triggerLight, triggerMedium]
+    [
+      consume,
+      refreshTasks,
+      requireAccess,
+      resumeTask,
+      resumingIds,
+      triggerLight,
+      triggerMedium,
+    ]
   );
 
   return {

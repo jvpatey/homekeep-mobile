@@ -12,9 +12,10 @@ import { useTasks } from "./TasksContext";
 import { useProfile } from "./ProfileContext";
 import { useNotifications } from "./NotificationContext";
 import { useQuickActions } from "./QuickActionsContext";
+import { useSubscription } from "./SubscriptionContext";
 import { useHaptics } from "../hooks";
 import {
-  useRequirePlus,
+  isPlusRequiredError,
   useRequirePlusOrFreeAction,
 } from "../hooks/useRequirePlus";
 import { usePlusFeature } from "../lib/plusFeatures";
@@ -139,9 +140,12 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
   const { pendingOpen, clearPendingOpen } = useNotifications();
   const { openLogRepair, openScheduleRepair } = useQuickActions();
   const { triggerMedium, triggerLight } = useHaptics();
-  const requirePlus = useRequirePlus();
-  const { requireAccess: requirePlusOrFree, consume: consumeFreeAction } =
-    useRequirePlusOrFreeAction();
+  const {
+    requireAccess: requirePlusOrFree,
+    consume: consumeFreeAction,
+    sync: syncFreeActions,
+  } = useRequirePlusOrFreeAction();
+  const { presentPaywall } = useSubscription();
   const assistant = usePlusFeature("assistant");
   const { goToTab, openTasks, openRecord } = useAppNavigation();
 
@@ -407,7 +411,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
       try {
         const result = await completeTaskInstance(instanceId, extras);
         if (result.success) {
-          await consumeFreeAction();
+          await syncFreeActions();
           setShowTaskDetail(false);
           setSelectedTask(null);
 
@@ -443,6 +447,10 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
           setCelebration({ visible: true, snapshot });
           return true;
         }
+        if (isPlusRequiredError(result.error)) {
+          await presentPaywall({ force: true, reason: "free_exhausted" });
+          return false;
+        }
         Alert.alert(
           "Could not complete",
           result.error || "Failed to complete the task. Please try again."
@@ -450,6 +458,10 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
         return false;
       } catch (error) {
         console.error("Error completing task:", error);
+        if (isPlusRequiredError(error)) {
+          await presentPaywall({ force: true, reason: "free_exhausted" });
+          return false;
+        }
         Alert.alert(
           "Could not complete",
           "An unexpected error occurred. Please try again."
@@ -462,11 +474,12 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     },
     [
       completeTaskInstance,
-      consumeFreeAction,
       overdueTasks,
+      presentPaywall,
       requirePlusOrFree,
       seasonalOverdue,
       seasonalTasks,
+      syncFreeActions,
       tasks,
       triggerMedium,
     ]
@@ -495,7 +508,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
 
   const runSkip = useCallback(
     async (task: MaintenanceTask, closeSwipe?: () => void) => {
-      if (!(await requirePlus())) {
+      if (!(await requirePlusOrFree())) {
         closeSwipe?.();
         return false;
       }
@@ -507,6 +520,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
       const result = await skipTaskOccurrence(task);
       closeSwipe?.();
       if (result.success) {
+        await consumeFreeAction();
         await triggerLight();
         closeDetailIfShowing(task);
         return true;
@@ -519,7 +533,8 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     },
     [
       closeDetailIfShowing,
-      requirePlus,
+      consumeFreeAction,
+      requirePlusOrFree,
       skipTaskOccurrence,
       triggerLight,
       triggerMedium,
@@ -531,13 +546,16 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
   const clearOverdue = useCallback(
     async (tasks: MaintenanceTask[]) => {
       if (tasks.length === 0 || clearingOverdue) return false;
-      if (!(await requirePlus())) return false;
+      if (!(await requirePlusOrFree())) return false;
       if (!(await confirmClearOverdue(tasks))) return false;
       setClearingOverdue(true);
       try {
         await triggerMedium();
         const result = await clearOverdueTasks(tasks);
-        if (result.cleared > 0) await triggerLight();
+        if (result.cleared > 0) {
+          await consumeFreeAction();
+          await triggerLight();
+        }
         if (!result.success) {
           Alert.alert(
             "Couldn't clear everything",
@@ -553,7 +571,8 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     [
       clearOverdueTasks,
       clearingOverdue,
-      requirePlus,
+      consumeFreeAction,
+      requirePlusOrFree,
       triggerLight,
       triggerMedium,
     ]
@@ -562,7 +581,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
   const pauseTask = useCallback(
     (task: MaintenanceTask, closeSwipe?: () => void) => {
       void (async () => {
-        if (!(await requirePlus())) {
+        if (!(await requirePlusOrFree())) {
           closeSwipe?.();
           return;
         }
@@ -574,6 +593,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
         const result = await pauseRoutine(task.id);
         closeSwipe?.();
         if (result.success) {
+          await consumeFreeAction();
           await triggerLight();
           closeDetailIfShowing(task);
           return;
@@ -584,7 +604,14 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
         );
       })();
     },
-    [closeDetailIfShowing, pauseRoutine, requirePlus, triggerLight, triggerMedium]
+    [
+      closeDetailIfShowing,
+      consumeFreeAction,
+      pauseRoutine,
+      requirePlusOrFree,
+      triggerLight,
+      triggerMedium,
+    ]
   );
 
   const openTask = useCallback((task: MaintenanceTask) => {
@@ -610,11 +637,11 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
 
   const openEdit = useCallback(
     async (task: MaintenanceTask) => {
-      if (!(await requirePlus())) return;
+      if (!(await requirePlusOrFree())) return;
       setEditTaskInitial(task);
       setShowCreateModal(true);
     },
-    [requirePlus]
+    [requirePlusOrFree]
   );
 
   const openAddMenu = useCallback(() => {

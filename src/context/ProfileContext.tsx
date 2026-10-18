@@ -129,6 +129,8 @@ interface ProfileContextValue {
    * No-op success when already Plus should be handled by the caller.
    */
   consumeFreeAction: () => Promise<boolean>;
+  /** Re-read free_actions_used after a server-side consume (complete/create). */
+  refreshFreeActions: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
@@ -979,6 +981,28 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const refreshFreeActions = useCallback(async (): Promise<void> => {
+    if (!supabase || !user) return;
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("free_actions_used")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error || !data) return;
+      const used =
+        typeof data.free_actions_used === "number" &&
+        Number.isFinite(data.free_actions_used)
+          ? Math.max(0, Math.floor(data.free_actions_used))
+          : 0;
+      setProfile((prev) =>
+        prev ? { ...prev, free_actions_used: used } : prev
+      );
+    } catch {
+      // Best-effort sync; banner may lag until next full refresh.
+    }
+  }, [user]);
+
   const addressNeeded = useMemo(() => {
     if (!user) return false;
     if (loading) return false;
@@ -1019,6 +1043,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       removeAvatarPhoto,
       updateDisplayName,
       consumeFreeAction,
+      refreshFreeActions,
     }),
     [
       profile,
@@ -1042,6 +1067,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       removeAvatarPhoto,
       updateDisplayName,
       consumeFreeAction,
+      refreshFreeActions,
     ]
   );
 

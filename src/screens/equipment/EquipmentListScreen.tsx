@@ -25,7 +25,6 @@ import {
   resolveWarrantyFields,
   warrantyStatusLabel,
 } from "../../utils/equipmentWarranty";
-import { usePlusFeature } from "../../lib/plusFeatures";
 import { useAiScanAccess } from "../../hooks/useAiScanAccess";
 import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { RecordStackParamList } from "../../navigation/types";
@@ -47,7 +46,6 @@ export function EquipmentListScreen() {
   const { colors } = useTheme();
   const overlay = useOverlayInsets();
   const { triggerLight } = useHaptics();
-  const documents = usePlusFeature("documents");
   const { items, loaded, error, refresh } = useEquipmentIndex();
   const { byEquipmentId: recallsByEquipment, refresh: refreshRecalls } =
     useEquipmentRecalls();
@@ -58,9 +56,8 @@ export function EquipmentListScreen() {
     "manual"
   );
 
-  const openAdd = async () => {
+  const openAdd = () => {
     triggerLight();
-    if (!(await documents.unlock())) return;
     setFormMode("manual");
     setFormVisible(true);
   };
@@ -90,7 +87,7 @@ export function EquipmentListScreen() {
           />
           <HeaderIconButton
             icon="add"
-            onPress={() => void openAdd()}
+            onPress={openAdd}
             accessibilityLabel="Add equipment"
           />
         </View>

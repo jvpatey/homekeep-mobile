@@ -72,30 +72,41 @@ export function useRecordEntryActions() {
     [deleteTask, triggerSuccess]
   );
 
+  const presentHistoryPaywall = useCallback(async () => {
+    // The paywall can't present over the entry sheet, so let it close first.
+    setTimeout(() => void unlock(), 350);
+    return true;
+  }, [unlock]);
+
   return useCallback(
-    (task: MaintenanceTask): RecordEntryAction =>
-      isRepairRoutine(task)
+    (task: MaintenanceTask): RecordEntryAction => {
+      if (locked) {
+        return isRepairRoutine(task)
+          ? {
+              label: "Delete repair",
+              icon: "lock-closed-outline",
+              destructive: true,
+              run: presentHistoryPaywall,
+            }
+          : {
+              label: "Undo completion",
+              icon: "lock-closed-outline",
+              run: presentHistoryPaywall,
+            };
+      }
+      return isRepairRoutine(task)
         ? {
             label: "Delete repair",
             icon: "trash-outline",
             destructive: true,
             run: () => removeRepair(task),
           }
-        : locked
-          ? {
-              label: "Undo completion",
-              icon: "lock-closed-outline",
-              run: async () => {
-                // The paywall can't present over the entry sheet, so let it close first.
-                setTimeout(() => void unlock(), 350);
-                return true;
-              },
-            }
-          : {
-              label: "Undo completion",
-              icon: "arrow-undo-outline",
-              run: () => undo(task),
-            },
-    [locked, removeRepair, undo, unlock]
+        : {
+            label: "Undo completion",
+            icon: "arrow-undo-outline",
+            run: () => undo(task),
+          };
+    },
+    [locked, presentHistoryPaywall, removeRepair, undo]
   );
 }

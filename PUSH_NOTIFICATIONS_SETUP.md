@@ -151,7 +151,7 @@ ORDER BY sent_at DESC LIMIT 10;
 | Fresh user login | ~9 `notification_preferences` rows, `push_token` set after enabling notifications |
 | Plus / trial user opens app | `entitlements` row with `trialing` or `active`; `user_has_plus` true |
 | `send-push-notification` curl | 200 + `push_notifications` row; device shows alert if backgrounded |
-| `notification-worker?force_type=upcoming` | One due-tomorrow batch if tasks exist; dedupe on repeat; `users_processed: 1` for Plus/trial |
+| `notification-worker?force_type=upcoming` | One due-tomorrow batch if tasks exist; dedupe on repeat; free for all entitled prefs (upcoming is not Plus-only) |
 | Local hour 18 (or `force_type=upcoming`) | One upcoming push for the home |
 | Local hour 8 (or `force_type=morning`) | One morning push if overdue or due today |
 | Member joins household | Other members (master on) get “Name joined your home.” |

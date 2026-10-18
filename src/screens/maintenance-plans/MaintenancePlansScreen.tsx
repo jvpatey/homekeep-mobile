@@ -16,7 +16,11 @@ import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics, useScreenInsets } from "../../hooks";
-import { useRequirePlus } from "../../hooks/useRequirePlus";
+import {
+  isPlusRequiredError,
+  useRequirePlusOrFreeAction,
+} from "../../hooks/useRequirePlus";
+import { useSubscription } from "../../context/SubscriptionContext";
 import { Button, HearthScreen, HearthSurfaceCard } from "../../components/ui";
 import { DesignSystem } from "../../theme/designSystem";
 import { MaintenanceService } from "../../services/maintenanceService";
@@ -84,7 +88,8 @@ export function MaintenancePlansScreen() {
   const { colors } = useTheme();
   const { scrollPaddingBottom, footerPaddingBottom } = useScreenInsets();
   const { triggerMedium, triggerLight } = useHaptics();
-  const requirePlus = useRequirePlus();
+  const { requireAccess, sync } = useRequirePlusOrFreeAction();
+  const { presentPaywall } = useSubscription();
   const { applyMaintenancePlan } = useTasks();
   const { profile, updateHomeSystems } = useProfile();
   const navigation =
@@ -350,7 +355,7 @@ export function MaintenancePlansScreen() {
       plan: MaintenancePlanDefinition,
       items: MaintenancePlanItemTemplate[]
     ) => {
-      if (!(await requirePlus())) return;
+      if (!(await requireAccess())) return;
       const n = items.filter(
         (item) => !existingRoutineKeys.has(itemIdentityKey(item))
       ).length;
@@ -377,8 +382,11 @@ export function MaintenancePlansScreen() {
               try {
                 const result = await applyMaintenancePlan(plan.id, items);
                 if (result.success) {
-                  catalog.markApplied(plan.id);
                   const added = result.addedCount ?? n;
+                  if (added > 0) {
+                    await sync();
+                  }
+                  catalog.markApplied(plan.id);
                   const skipped = result.skippedCount ?? 0;
                   let message: string;
                   if (added === 0 && skipped > 0) {
@@ -408,6 +416,11 @@ export function MaintenancePlansScreen() {
                       },
                     ]
                   );
+                } else if (isPlusRequiredError(result.error)) {
+                  await presentPaywall({
+                    force: true,
+                    reason: "free_exhausted",
+                  });
                 } else {
                   Alert.alert(
                     "Could not apply plan",
@@ -430,7 +443,9 @@ export function MaintenancePlansScreen() {
       catalog,
       existingRoutineKeys,
       navigation,
-      requirePlus,
+      presentPaywall,
+      requireAccess,
+      sync,
     ]
   );
 

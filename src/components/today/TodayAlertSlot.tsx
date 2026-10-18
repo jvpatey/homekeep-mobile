@@ -5,7 +5,11 @@ import { useProfile } from "../../context/ProfileContext";
 import { useTasks } from "../../context/TasksContext";
 import { useTaskActions } from "../../context/TaskActionsContext";
 import { useHaptics } from "../../hooks";
-import { useRequirePlusOrFreeAction } from "../../hooks/useRequirePlus";
+import {
+  isPlusRequiredError,
+  useRequirePlusOrFreeAction,
+} from "../../hooks/useRequirePlus";
+import { useSubscription } from "../../context/SubscriptionContext";
 import {
   ClimateAlert,
   WeatherService,
@@ -47,7 +51,8 @@ export function useClimateAlert() {
   const { createTasks } = useTasks();
   const { refresh } = useTaskActions();
   const { triggerLight } = useHaptics();
-  const { requireAccess, consume } = useRequirePlusOrFreeAction();
+  const { requireAccess, sync } = useRequirePlusOrFreeAction();
+  const { presentPaywall } = useSubscription();
   const [alert, setAlert] = useState<ClimateAlert | null>(null);
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -96,10 +101,14 @@ export function useClimateAlert() {
     try {
       const result = await createTasks(buildWeatherChecklistPayloads(alert.kind));
       if (!result.success) {
+        if (isPlusRequiredError(result.error)) {
+          await presentPaywall({ force: true, reason: "free_exhausted" });
+          return;
+        }
         Alert.alert("Could not add tasks", result.error || "Please try again.");
         return;
       }
-      await consume();
+      await sync();
       await markWeatherChecklistApplied(alert.kind);
       setApplied(true);
       await triggerLight();
@@ -107,7 +116,16 @@ export function useClimateAlert() {
     } finally {
       setApplying(false);
     }
-  }, [alert, applying, consume, createTasks, refresh, requireAccess, triggerLight]);
+  }, [
+    alert,
+    applying,
+    createTasks,
+    presentPaywall,
+    refresh,
+    requireAccess,
+    sync,
+    triggerLight,
+  ]);
 
   return {
     alert: alert && !applied ? alert : null,
