@@ -8,7 +8,7 @@ import { isGrowingSeason } from "./homeSeason";
  * Keep in sync with supabase/functions/_shared/seasonalTasks.ts
  */
 export function isTaskInSeason(
-  task: MaintenanceTask,
+  task: Pick<MaintenanceTask, "interval_days" | "category" | "source_plan_id">,
   month: number,
   latitude?: number | null,
 ): boolean {

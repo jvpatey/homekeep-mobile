@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
@@ -20,7 +19,12 @@ import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
 import { useRequirePlus } from "../../hooks/useRequirePlus";
 import { useHomeContacts } from "../../hooks/useHomeContacts";
-import { HeaderIconButton } from "../../components/ui";
+import {
+  Button,
+  HeaderIconButton,
+  HearthSurfaceCard,
+  IconChip,
+} from "../../components/ui";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { PhotoViewerModal } from "../../components/record/PhotoViewerModal";
 import {
@@ -80,7 +84,7 @@ function newCustomSpot(): EmergencySpotView {
 
 export function EmergencyInfoScreen() {
   const navigation = useNavigation<Nav>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { user } = useAuth();
   const { profile, updateHomeEmergency, canEditHome } = useProfile();
   const { upcomingTasks, overdueTasks, completeTask } = useTasks();
@@ -346,7 +350,6 @@ export function EmergencyInfoScreen() {
   };
 
   const total = spots.length;
-  const progress = total > 0 ? filledCount / total : 0;
   const allSaved = total > 0 && filledCount === total;
 
   return (
@@ -356,36 +359,18 @@ export function EmergencyInfoScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
-        <View
-          style={[
-            styles.hero,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            DesignSystem.shadows.softKey,
-          ]}
+        <HearthSurfaceCard
+          emphasis="tinted"
+          tint={colors.error}
+          style={styles.hero}
         >
-          <LinearGradient
-            colors={[colors.error + (isDark ? "2A" : "16"), "transparent"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
           <View style={styles.heroTop}>
-            <View
-              style={[
-                styles.heroMark,
-                {
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <Ionicons
-                name="shield-checkmark"
-                size={24}
-                color={colors.error}
-              />
-            </View>
+            <IconChip
+              icon="shield-checkmark"
+              tint={colors.error}
+              size={48}
+              shape="rounded"
+            />
             <View style={styles.heroText}>
               <Text style={[styles.heroTitle, { color: colors.text }]}>
                 When something goes wrong
@@ -399,20 +384,27 @@ export function EmergencyInfoScreen() {
 
           <View style={styles.progressRow}>
             <View
-              style={[
-                styles.progressTrack,
-                { backgroundColor: colors.fieldFill },
-              ]}
+              style={styles.segments}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={`Emergency spots ${filledCount} of ${total} saved`}
+              accessibilityValue={{ min: 0, max: total, now: filledCount }}
             >
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${Math.round(progress * 100)}%`,
-                    backgroundColor: allSaved ? colors.success : colors.primary,
-                  },
-                ]}
-              />
+              {spots.map((spot) => (
+                <View
+                  key={spot.id}
+                  style={[
+                    styles.segment,
+                    {
+                      backgroundColor: spot.filled
+                        ? allSaved
+                          ? colors.success
+                          : colors.primary
+                        : colors.fieldFill,
+                    },
+                  ]}
+                />
+              ))}
             </View>
             <Text
               style={[
@@ -424,72 +416,60 @@ export function EmergencyInfoScreen() {
             </Text>
           </View>
 
-          <Pressable
+          <Button
+            label="Share with a sitter or family"
+            variant="secondary"
             onPress={share}
             disabled={filledCount === 0}
-            style={({ pressed }) => [
-              styles.shareButton,
-              {
-                backgroundColor: colors.primary + "14",
-                borderColor: colors.primary + "40",
-              },
-              filledCount === 0 && { opacity: 0.45 },
-              pressed && { opacity: 0.7 },
-            ]}
-            accessibilityRole="button"
             accessibilityLabel="Share emergency info"
-            accessibilityHint="Send locations and steps to a sitter or family member"
-          >
-            <Ionicons name="share-outline" size={17} color={colors.primary} />
-            <Text style={[styles.shareText, { color: colors.primary }]}>
-              Share with a sitter or family
-            </Text>
-          </Pressable>
+          />
+        </HearthSurfaceCard>
+
+        <View style={styles.spots}>
+          {spots.map((spot) =>
+            spot.filled ? (
+              <SpotCard
+                key={spot.id}
+                spot={spot}
+                photoUri={
+                  spot.photoPath ? (photoUrls[spot.photoPath] ?? null) : null
+                }
+                canEdit={canEditHome}
+                onPress={() => void openEditor(spot)}
+                onMore={() => openSpotMenu(spot)}
+                onViewPhoto={() => setViewer(spot)}
+              />
+            ) : (
+              <EmptySpotRow
+                key={spot.id}
+                spot={spot}
+                canEdit={canEditHome}
+                onPress={() => void openEditor(spot)}
+              />
+            )
+          )}
+
+          {canAddCustom ? (
+            <Pressable
+              onPress={() => void openEditor(newCustomSpot())}
+              style={({ pressed }) => [
+                styles.addCustom,
+                { borderColor: colors.textSecondary + "66" },
+                pressed && { opacity: 0.7 },
+              ]}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.addCustomText, { color: colors.primary }]}>
+                Add a custom spot
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-
-        {spots.map((spot) =>
-          spot.filled ? (
-            <SpotCard
-              key={spot.id}
-              spot={spot}
-              photoUri={
-                spot.photoPath ? (photoUrls[spot.photoPath] ?? null) : null
-              }
-              canEdit={canEditHome}
-              onPress={() => void openEditor(spot)}
-              onMore={() => openSpotMenu(spot)}
-              onViewPhoto={() => setViewer(spot)}
-            />
-          ) : (
-            <EmptySpotRow
-              key={spot.id}
-              spot={spot}
-              canEdit={canEditHome}
-              onPress={() => void openEditor(spot)}
-            />
-          )
-        )}
-
-        {canAddCustom ? (
-          <Pressable
-            onPress={() => void openEditor(newCustomSpot())}
-            style={({ pressed }) => [
-              styles.addCustom,
-              { borderColor: colors.border },
-              pressed && { opacity: 0.7 },
-            ]}
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="add-circle-outline"
-              size={20}
-              color={colors.primary}
-            />
-            <Text style={[styles.addCustomText, { color: colors.primary }]}>
-              Add a custom spot
-            </Text>
-          </Pressable>
-        ) : null}
 
         <RecordSection
           title="Who to call"
@@ -593,102 +573,98 @@ function SpotCard({
     <Pressable
       onPress={canEdit ? onPress : undefined}
       onLongPress={onMore}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-        DesignSystem.shadows.softAmbient,
-        pressed && canEdit && { opacity: 0.9 },
-      ]}
+      style={({ pressed }) => pressed && canEdit && { opacity: 0.9 }}
       accessibilityRole={canEdit ? "button" : undefined}
       accessibilityHint={canEdit ? "Opens this spot to edit" : undefined}
     >
-      {spot.photoPath ? (
-        <Pressable
-          onPress={onViewPhoto}
-          style={[styles.cardPhoto, { backgroundColor: spot.tint + "14" }]}
-          accessibilityRole="imagebutton"
-          accessibilityLabel={`Photo of ${spot.label}. Opens full screen`}
-        >
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.cardPhotoImage} />
-          ) : (
-            <Ionicons name="image-outline" size={28} color={spot.tint} />
-          )}
-          <View style={styles.expandBadge}>
-            <Ionicons name="expand" size={13} color="#FFFFFF" />
-          </View>
-        </Pressable>
-      ) : null}
-
-      <View style={styles.cardBody}>
-        <View style={styles.cardHeader}>
-          <View
-            style={[styles.iconBadge, { backgroundColor: spot.tint + "22" }]}
-          >
-            <Ionicons name={spot.icon} size={17} color={spot.tint} />
-          </View>
-          <Text
-            style={[styles.cardTitle, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {spot.label}
-          </Text>
+      <HearthSurfaceCard>
+        {spot.photoPath ? (
           <Pressable
-            onPress={onMore}
-            hitSlop={10}
-            style={styles.moreHit}
-            accessibilityRole="button"
-            accessibilityLabel={`More options for ${spot.label}`}
+            onPress={onViewPhoto}
+            style={[styles.cardPhoto, { backgroundColor: spot.tint + "1F" }]}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={`Photo of ${spot.label}. Opens full screen`}
           >
-            <Ionicons
-              name="ellipsis-horizontal"
-              size={18}
-              color={colors.textSecondary}
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.cardPhotoImage} />
+            ) : (
+              <Ionicons name="image-outline" size={28} color={spot.tint} />
+            )}
+            <View style={styles.expandBadge}>
+              <Ionicons name="expand" size={13} color="#FFFFFF" />
+            </View>
+          </Pressable>
+        ) : null}
+
+        <View style={styles.cardBody}>
+          <View style={styles.cardHeader}>
+            <IconChip icon={spot.icon} tint={spot.tint} />
+            <Text
+              style={[styles.cardTitle, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {spot.label}
+            </Text>
+            <Pressable
+              onPress={onMore}
+              hitSlop={10}
+              style={styles.moreHit}
+              accessibilityRole="button"
+              accessibilityLabel={`More options for ${spot.label}`}
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={18}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+          </View>
+
+          {spot.note.trim() ? (
+            <Text style={[styles.lead, { color: colors.text }]}>
+              {spot.note.trim()}
+            </Text>
+          ) : null}
+
+          {spot.safety ? (
+            <View
+              style={[
+                styles.safety,
+                {
+                  backgroundColor: colors.error + "12",
+                  borderColor: colors.error + "33",
+                },
+              ]}
+            >
+              <Ionicons name="warning" size={15} color={colors.error} />
+              <Text style={[styles.safetyText, { color: colors.text }]}>
+                {spot.safety}
+              </Text>
+            </View>
+          ) : null}
+
+          {spot.howto.trim() ? (
+            <Fact
+              label={spot.builtInKey ? "How to shut it off" : "What to do"}
+              value={spot.howto.trim()}
             />
-          </Pressable>
+          ) : null}
+
+          {!spot.photoPath && canEdit ? (
+            <Pressable
+              onPress={onPress}
+              hitSlop={6}
+              style={styles.addPhoto}
+              accessibilityRole="button"
+            >
+              <Ionicons name="camera-outline" size={15} color={colors.primary} />
+              <Text style={[styles.addPhotoText, { color: colors.primary }]}>
+                Add a photo
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-
-        {spot.safety ? (
-          <View
-            style={[
-              styles.safety,
-              {
-                backgroundColor: colors.error + "12",
-                borderColor: colors.error + "33",
-              },
-            ]}
-          >
-            <Ionicons name="warning" size={15} color={colors.error} />
-            <Text style={[styles.safetyText, { color: colors.text }]}>
-              {spot.safety}
-            </Text>
-          </View>
-        ) : null}
-
-        {spot.note.trim() ? (
-          <Fact label="Where" value={spot.note.trim()} />
-        ) : null}
-        {spot.howto.trim() ? (
-          <Fact
-            label={spot.builtInKey ? "How to shut it off" : "What to do"}
-            value={spot.howto.trim()}
-          />
-        ) : null}
-
-        {!spot.photoPath && canEdit ? (
-          <Pressable
-            onPress={onPress}
-            hitSlop={6}
-            style={styles.addPhoto}
-            accessibilityRole="button"
-          >
-            <Ionicons name="camera-outline" size={15} color={colors.primary} />
-            <Text style={[styles.addPhotoText, { color: colors.primary }]}>
-              Add a photo
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
+      </HearthSurfaceCard>
     </Pressable>
   );
 }
@@ -720,15 +696,13 @@ function EmptySpotRow({
       onPress={canEdit ? onPress : undefined}
       style={({ pressed }) => [
         styles.emptyRow,
-        { borderColor: colors.border },
+        { borderColor: colors.textSecondary + "66" },
         pressed && canEdit && { opacity: 0.7 },
       ]}
       accessibilityRole={canEdit ? "button" : undefined}
       accessibilityLabel={`${spot.label}. ${canEdit ? "Not added yet. Add it" : "Not added yet"}`}
     >
-      <View style={[styles.iconBadge, { backgroundColor: spot.tint + "1A" }]}>
-        <Ionicons name={spot.icon} size={17} color={spot.tint} />
-      </View>
+      <IconChip icon={spot.icon} tint={spot.tint} />
       <View style={styles.emptyText}>
         <Text style={[styles.emptyTitle, { color: colors.text }]}>
           {spot.label}
@@ -737,42 +711,26 @@ function EmptySpotRow({
           {canEdit ? "Add where it is and how to shut it off" : "Not added yet"}
         </Text>
       </View>
-      {canEdit ? (
-        <View
-          style={[styles.addCircle, { backgroundColor: colors.primary + "18" }]}
-        >
-          <Ionicons name="add" size={18} color={colors.primary} />
-        </View>
-      ) : null}
+      {canEdit ? <IconChip icon="add" tint={colors.primary} /> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
+    gap: DesignSystem.spacing.lg,
   },
   hero: {
-    borderRadius: DesignSystem.borders.radius.xlarge,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.lg,
-    overflow: "hidden",
+    padding: DesignSystem.spacing.lg - 4,
+    gap: DesignSystem.spacing.md,
   },
   heroTop: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: DesignSystem.spacing.md,
-  },
-  heroMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
   },
   heroText: {
     flex: 1,
@@ -792,39 +750,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 2,
-    marginTop: DesignSystem.spacing.lg,
   },
-  progressTrack: {
+  segments: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 4,
+  },
+  segment: {
     flex: 1,
     height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
     borderRadius: 3,
   },
   progressText: {
     ...DesignSystem.typography.captionSemiBold,
+    fontVariant: ["tabular-nums"],
   },
-  shareButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: DesignSystem.spacing.xs + 2,
-    marginTop: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.sm + 4,
-    borderRadius: DesignSystem.borders.radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  shareText: {
-    ...DesignSystem.typography.bodySemiBold,
-  },
-  card: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-    marginBottom: DesignSystem.spacing.sm + 4,
+  spots: {
+    gap: DesignSystem.spacing.sm + 4,
   },
   cardPhoto: {
     aspectRatio: 16 / 9,
@@ -855,16 +797,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 2,
   },
-  iconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   cardTitle: {
-    ...DesignSystem.typography.bodySemiBold,
-    fontSize: 17,
+    ...DesignSystem.typography.subhead,
+    fontWeight: "600",
     flex: 1,
   },
   moreHit: {
@@ -873,6 +808,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: -DesignSystem.spacing.xs,
+  },
+  lead: {
+    ...DesignSystem.typography.bodySemiBold,
+    fontSize: 17,
+    lineHeight: 23,
   },
   safety: {
     flexDirection: "row",
@@ -892,8 +832,6 @@ const styles = StyleSheet.create({
   },
   factLabel: {
     ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   factValue: {
     ...DesignSystem.typography.body,
@@ -913,8 +851,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 4,
     padding: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.sm + 4,
-    borderRadius: DesignSystem.borders.radius.large,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     borderWidth: 1,
     borderStyle: "dashed",
   },
@@ -929,20 +866,13 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.footnote,
     marginTop: 1,
   },
-  addCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   addCustom: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: DesignSystem.spacing.sm,
     paddingVertical: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
+    borderRadius: DesignSystem.borders.radius.xlarge,
     borderWidth: 1,
     borderStyle: "dashed",
   },
@@ -950,7 +880,7 @@ const styles = StyleSheet.create({
     ...DesignSystem.typography.bodySemiBold,
   },
   callSection: {
-    marginTop: DesignSystem.spacing.xl,
+    marginBottom: 0,
   },
   callButton: {
     width: 34,

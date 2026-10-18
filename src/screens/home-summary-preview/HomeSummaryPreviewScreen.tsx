@@ -3,11 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { format } from "date-fns";
@@ -17,7 +16,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useHaptics } from "../../hooks";
 import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import { usePlusFeature } from "../../lib/plusFeatures";
-import { HeaderIconButton, HomeKeepBrand } from "../../components/ui";
+import {
+  Button,
+  HeaderIconButton,
+  HearthSurfaceCard,
+  HomeKeepBrand,
+} from "../../components/ui";
 import { RecordStackParamList } from "../../navigation/types";
 import { useAppNavigation } from "../../navigation/useAppNavigation";
 import {
@@ -95,7 +99,7 @@ function TaskGroupRow({
 }
 
 export function HomeSummaryPreviewScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const overlay = useOverlayInsets({ translucentHeader: false });
   const { profile, homeNotes } = useProfile();
   const { user } = useAuth();
@@ -161,35 +165,15 @@ export function HomeSummaryPreviewScreen() {
     ? format(report.generatedAt, "MMMM d, yyyy")
     : format(new Date(), "MMMM d, yyyy");
 
-  const sectionSurface = {
-    backgroundColor: colors.surface,
-    borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.border,
-  };
-
   const exportButton = (
-    <TouchableOpacity
-      style={[
-        styles.exportButton,
-        {
-          backgroundColor: canExport ? colors.primary : colors.border,
-        },
-      ]}
-      onPress={() => void handleExport()}
-      disabled={!canExport}
-      activeOpacity={0.85}
-      accessibilityRole="button"
-      accessibilityLabel="Export PDF"
-      accessibilityState={{ disabled: !canExport }}
-    >
-      {exporting ? (
-        <ActivityIndicator color="#FFFFFF" />
-      ) : (
-        <Ionicons name="share-outline" size={20} color="#FFFFFF" />
-      )}
-      <Text style={styles.exportButtonText}>
-        {exporting ? "Creating PDF…" : "Export PDF"}
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.exportButton}>
+      <Button
+        label={exporting ? "Creating PDF…" : "Export PDF"}
+        onPress={() => void handleExport()}
+        loading={exporting}
+        disabled={!canExport}
+      />
+    </View>
   );
 
   useLayoutEffect(() => {
@@ -228,8 +212,11 @@ export function HomeSummaryPreviewScreen() {
           <Text style={[styles.errorText, { color: colors.error }]}>
             {error}
           </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
+          <Pressable
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && { opacity: 0.6 },
+            ]}
             onPress={() => void loadReport()}
             accessibilityRole="button"
             accessibilityLabel="Retry loading summary"
@@ -237,7 +224,7 @@ export function HomeSummaryPreviewScreen() {
             <Text style={[styles.retryText, { color: colors.primary }]}>
               Retry
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : null}
 
@@ -277,7 +264,10 @@ export function HomeSummaryPreviewScreen() {
             ) : null}
           </View>
 
-          <View style={[styles.section, sectionSurface]}>
+          <HearthSurfaceCard
+            style={styles.section}
+            containerStyle={styles.sectionContainer}
+          >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Property
             </Text>
@@ -297,15 +287,16 @@ export function HomeSummaryPreviewScreen() {
                 >
                   No home address on file.
                 </Text>
-                <TouchableOpacity
+                <Pressable
                   onPress={handleOpenSettings}
+                  style={({ pressed }) => pressed && { opacity: 0.6 }}
                   accessibilityRole="button"
                   accessibilityLabel="Add home address in settings"
                 >
                   <Text style={[styles.hintText, { color: colors.primary }]}>
                     Add your address in Settings
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </>
             )}
             {report?.homeAgeLabel ? (
@@ -313,9 +304,12 @@ export function HomeSummaryPreviewScreen() {
                 {report.homeAgeLabel}
               </Text>
             ) : null}
-          </View>
+          </HearthSurfaceCard>
 
-          <View style={[styles.section, sectionSurface]}>
+          <HearthSurfaceCard
+            style={styles.section}
+            containerStyle={styles.sectionContainer}
+          >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Equipment
             </Text>
@@ -391,10 +385,13 @@ export function HomeSummaryPreviewScreen() {
                 );
               })
             )}
-          </View>
+          </HearthSurfaceCard>
 
           {report && report.paints.length > 0 ? (
-            <View style={[styles.section, sectionSurface]}>
+            <HearthSurfaceCard
+              style={styles.section}
+              containerStyle={styles.sectionContainer}
+            >
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 Paint colours
               </Text>
@@ -438,10 +435,13 @@ export function HomeSummaryPreviewScreen() {
                   </View>
                 </View>
               ))}
-            </View>
+            </HearthSurfaceCard>
           ) : null}
 
-          <View style={[styles.section, sectionSurface]}>
+          <HearthSurfaceCard
+            style={styles.section}
+            containerStyle={styles.sectionContainer}
+          >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Maintenance history
             </Text>
@@ -479,7 +479,7 @@ export function HomeSummaryPreviewScreen() {
                 />
               ))
             )}
-          </View>
+          </HearthSurfaceCard>
 
           <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>
             This document is an informational record generated from data you

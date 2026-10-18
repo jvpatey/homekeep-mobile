@@ -50,6 +50,15 @@ const CONTACT_TRADES = [
 ] as const;
 const EMERGENCY_SPOTS = ["waterShutoff", "waterHeater", "breakerPanel", "gasShutoff", "custom"] as const;
 
+const DOCUMENT_KINDS = [
+  "insurance",
+  "inspection",
+  "closing",
+  "permit",
+  "warranty",
+  "other",
+] as const;
+
 const ACTION_TYPES = [
   "create_routine",
   "create_task",
@@ -61,6 +70,11 @@ const ACTION_TYPES = [
   "add_pro",
   "set_emergency_spot",
   "open_emergency",
+  "add_document",
+  "open_documents",
+  "open_spend",
+  "open_equipment",
+  "dismiss_recall",
 ] as const;
 
 const MAX_TURNS = 12;
@@ -159,6 +173,10 @@ const ACTION_PROPERTIES: Record<string, unknown> = {
   spot: oneOf(EMERGENCY_SPOTS),
   where: str,
   howto: str,
+  document_kind: oneOf(DOCUMENT_KINDS),
+  issued_on: str,
+  expires_on: str,
+  year: int,
 };
 const ACTION_FIELDS = Object.keys(ACTION_PROPERTIES);
 
@@ -186,8 +204,9 @@ const SCHEMA = {
 };
 
 const SYSTEM = `You are Keeper, HomeKeep's AI home assistant. You help one household look after their own house. If asked who you are, say you're Keeper, HomeKeep's AI; don't claim to be a person or a licensed tradesperson.
-Ground every answer in the HOME FACTS below: their equipment (brands, models, part sizes), schedule, emergency shutoffs, recent work, pros, paint colours, and house notes. Quote those facts directly when they answer the question ("Your furnace filter is 16x25x1; it was last changed on 2026-03-02").
+Ground every answer in the HOME FACTS below: their address, equipment (brands, models, part sizes, warranties), open recalls, schedule, spend totals, emergency shutoffs, recent work, documents (insurance, inspections, expiry dates), pros, paint colours, and house notes. Quote those facts directly when they answer the question ("Your furnace filter is 16x25x1; it was last changed on 2026-03-02").
 If the facts don't cover something, say so briefly and give general guidance, clearly marked as general.
+For recalls, lead with the hazard and remedy, say which equipment it matched, and note when it was only a name match (possible, not confirmed). For spend questions, use the Spend section totals; don't invent amounts. For documents, mention expiry dates when relevant.
 
 Style: plain, warm, short. Lead with the answer. Use at most 5 short bullet points or 120 words unless the user asks for detail. No markdown headers.
 
@@ -209,6 +228,11 @@ Check HOME FACTS first: don't add something that's already there. For equipment 
 - add_pro: a tradesperson or service. name (required), company, trade, phone, email, website, notes. Example: "save Dave from Coastal Plumbing, 902-555-0142" -> {"type":"add_pro","name":"Dave","company":"Coastal Plumbing","trade":"plumber","phone":"902-555-0142"}.
 - set_emergency_spot: where a shutoff or panel is. spot (waterShutoff, waterHeater, breakerPanel, gasShutoff, or custom with label), where, howto.
 - open_emergency: when the answer relies on an emergency spot; label must match one listed in HOME FACTS.
+- add_document: a vault document (insurance, inspection, closing, permit, warranty, other). title (required), document_kind, issued_on and expires_on (YYYY-MM-DD), notes, equipment_name if it belongs to a piece of equipment in HOME FACTS. Does not attach a file — they can add the PDF in Documents after.
+- open_documents: open the document vault. Set title when pointing at a specific document listed in HOME FACTS.
+- open_spend: open the spend ledger. year (e.g. 2026) when talking about a specific year; null for all time / current overview.
+- open_equipment: open equipment. equipment_name must match HOME FACTS exactly to open that item; omit it (null) to open the full list.
+- dismiss_recall: when they've checked or fixed an open recall. title must match an Open recalls entry exactly; include equipment_name when listed.
 Return an empty actions array when no action fits.`;
 
 function text(value: unknown, max: number): string | null {
@@ -249,7 +273,7 @@ function parts(value: unknown) {
 
 const PROMISES_BUTTON = /\btap (below|the button|to (save|add))\b/i;
 
-const REQUIRED_FIELDS = `create_routine: title, interval_days. create_task: title, due_in_days. log_repair: title, days_ago. add_equipment: name. update_equipment: equipment_name plus a field to change. add_paint: room plus brand, color_name, or color_code. add_note: title and body. add_pro: name. set_emergency_spot: spot plus where or howto.`;
+const REQUIRED_FIELDS = `create_routine: title, interval_days. create_task: title, due_in_days. log_repair: title, days_ago. add_equipment: name. update_equipment: equipment_name plus a field to change. add_paint: room plus brand, color_name, or color_code. add_note: title and body. add_pro: name. set_emergency_spot: spot plus where or howto. add_document: title. dismiss_recall: title matching an open recall. open_equipment: equipment_name when opening one item.`;
 
 function retryNudge(rejected: unknown[]): string {
   const problem = rejected.length
@@ -289,6 +313,8 @@ export function normalizeAction(
     emergencyLabels: Set<string>;
     equipmentIdByName: Map<string, string>;
     focusEquipmentId: string | null;
+    recallsByKey: Map<string, { id: string; equipmentId: string | null }>;
+    documentTitles: Set<string>;
   }
 ): Record<string, unknown> | null {
   const category = pick(action?.category, CATEGORIES) ?? "GENERAL";
@@ -414,6 +440,58 @@ export function normalizeAction(
       if (!label || !ctx.emergencyLabels.has(label.toLowerCase())) return null;
       return { type: "open_emergency", label };
     }
+    case "add_document": {
+      const title = firstString(action, ["title", "name", "label"], 80);
+      if (!title) return null;
+      const named = cleanString(action.equipment_name, 60);
+      const equipmentId = named
+        ? ctx.equipmentIdByName.get(named.toLowerCase()) ?? null
+        : ctx.focusEquipmentId;
+      return {
+        type: "add_document",
+        title,
+        kind: pick(action.document_kind ?? action.kind, DOCUMENT_KINDS) ?? "other",
+        issued_on: isoDate(action.issued_on),
+        expires_on: isoDate(action.expires_on),
+        notes: text(action.notes, 500),
+        equipment_id: equipmentId,
+        equipment_name: named,
+      };
+    }
+    case "open_documents": {
+      const title = cleanString(action.title ?? action.label ?? action.name, 80);
+      if (title && !ctx.documentTitles.has(title.toLowerCase())) return null;
+      return { type: "open_documents", title };
+    }
+    case "open_spend": {
+      const year = intIn(action.year, 1990, 2100);
+      return { type: "open_spend", year };
+    }
+    case "open_equipment": {
+      const named = cleanString(action.equipment_name ?? action.name ?? action.title, 60);
+      if (!named) return { type: "open_equipment", equipment_id: null, equipment_name: null };
+      const equipmentId = ctx.equipmentIdByName.get(named.toLowerCase()) ?? null;
+      if (!equipmentId) return null;
+      return { type: "open_equipment", equipment_id: equipmentId, equipment_name: named };
+    }
+    case "dismiss_recall": {
+      const title = firstString(action, ["title", "name", "label"], 160);
+      if (!title) return null;
+      const named = cleanString(action.equipment_name, 60);
+      const matched =
+        (named &&
+          ctx.recallsByKey.get(`${named.toLowerCase()}|${title.toLowerCase()}`)) ||
+        ctx.recallsByKey.get(title.toLowerCase()) ||
+        null;
+      if (!matched) return null;
+      return {
+        type: "dismiss_recall",
+        recall_id: matched.id,
+        title,
+        equipment_id: matched.equipmentId,
+        equipment_name: named,
+      };
+    }
     default:
       return null;
   }
@@ -460,6 +538,8 @@ export const assistantChat: AiTask<ChatInput> = {
         Object.entries(home.equipmentNames).map(([id, name]) => [name.toLowerCase(), id])
       ),
       focusEquipmentId: input.equipmentId,
+      recallsByKey: new Map(Object.entries(home.recallsByKey)),
+      documentTitles: new Set(home.documentTitles.map((t) => t.toLowerCase())),
     };
 
     const ask = async (turns: GeminiContent[]) => {

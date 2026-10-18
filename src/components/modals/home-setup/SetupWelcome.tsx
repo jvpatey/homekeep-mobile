@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   Easing,
-  FadeInDown,
   SharedValue,
   cancelAnimation,
   interpolate,
@@ -17,18 +16,21 @@ import Animated, {
 import { useTheme } from "../../../context/ThemeContext";
 import { useHaptics, useReducedMotion } from "../../../hooks";
 import { DesignSystem } from "../../../theme/designSystem";
+import {
+  BuildingMark,
+  HeroIconName as IconName,
+  Sparkle,
+  useEnter,
+  useLoop,
+  usePop,
+} from "../../ui/hero/heroKit";
 
-type IconName = keyof typeof Ionicons.glyphMap;
-
-const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const HERO_HEIGHT = 236;
 const ORBIT_RX = 124;
 const ORBIT_RY = 92;
 const BUBBLE = 44;
 const PLATE = 104;
 const MARK = 58;
-const BAR_WIDTH = MARK * 0.22;
-const BAR_HEIGHTS = [MARK * 0.55, MARK * 0.85, MARK * 0.42];
 const BARS_START = 220;
 const ORBIT_START = 640;
 const ORBIT_STAGGER = 80;
@@ -68,35 +70,6 @@ const STEPS: { icon: IconName; title: string; detail: string }[] = [
   },
 ];
 
-function useLoop(
-  reducedMotion: boolean,
-  duration: number,
-  delay = 0,
-  reverse = true
-) {
-  const value = useSharedValue(0);
-  useEffect(() => {
-    if (reducedMotion) {
-      cancelAnimation(value);
-      value.value = 0;
-      return;
-    }
-    value.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(1, {
-          duration,
-          easing: reverse ? Easing.inOut(Easing.sin) : Easing.linear,
-        }),
-        -1,
-        reverse
-      )
-    );
-    return () => cancelAnimation(value);
-  }, [reducedMotion, duration, delay, reverse, value]);
-  return value;
-}
-
 function OrbitBubble({
   index,
   icon,
@@ -111,21 +84,8 @@ function OrbitBubble({
   reducedMotion: boolean;
 }) {
   const { colors } = useTheme();
-  const pop = useSharedValue(reducedMotion ? 1 : 0);
+  const pop = usePop(reducedMotion, ORBIT_START + index * ORBIT_STAGGER);
   const bob = useLoop(reducedMotion, 1800 + index * 170, ORBIT_START + 400);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      cancelAnimation(pop);
-      pop.value = 1;
-      return;
-    }
-    pop.value = 0;
-    pop.value = withDelay(
-      ORBIT_START + index * ORBIT_STAGGER,
-      withSpring(1, DesignSystem.motion.spring.bouncy)
-    );
-  }, [index, pop, reducedMotion]);
 
   const angle = (-90 + index * (360 / ORBIT_ICONS.length)) * (Math.PI / 180);
 
@@ -158,97 +118,6 @@ function OrbitBubble({
     >
       <Ionicons name={icon} size={20} color={color} />
     </Animated.View>
-  );
-}
-
-function Sparkle({
-  x,
-  y,
-  size,
-  delay,
-  color,
-  reducedMotion,
-}: {
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
-  color: string;
-  reducedMotion: boolean;
-}) {
-  const twinkle = useLoop(reducedMotion, 1400, delay);
-  const style = useAnimatedStyle(() => ({
-    opacity: reducedMotion ? 0.5 : interpolate(twinkle.value, [0, 1], [0, 0.9]),
-    transform: [
-      { translateX: x },
-      { translateY: y },
-      { scale: interpolate(twinkle.value, [0, 1], [0.6, 1.2]) },
-    ],
-  }));
-  return (
-    <Animated.View
-      style={[
-        styles.sparkle,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-        },
-        style,
-      ]}
-    />
-  );
-}
-
-function BuildingMark({ reducedMotion }: { reducedMotion: boolean }) {
-  const { colors } = useTheme();
-  const barColors = [colors.secondary, colors.primary, colors.text];
-  const grow = [
-    useSharedValue(reducedMotion ? 1 : 0),
-    useSharedValue(reducedMotion ? 1 : 0),
-    useSharedValue(reducedMotion ? 1 : 0),
-  ];
-
-  useEffect(() => {
-    grow.forEach((value, index) => {
-      if (reducedMotion) {
-        cancelAnimation(value);
-        value.value = 1;
-        return;
-      }
-      value.value = 0;
-      value.value = withDelay(
-        BARS_START + index * 110,
-        withSpring(1, DesignSystem.motion.spring.snappy)
-      );
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable
-  }, [reducedMotion]);
-
-  const barStyles = [
-    useAnimatedStyle(() => ({ height: BAR_HEIGHTS[0] * grow[0].value })),
-    useAnimatedStyle(() => ({ height: BAR_HEIGHTS[1] * grow[1].value })),
-    useAnimatedStyle(() => ({ height: BAR_HEIGHTS[2] * grow[2].value })),
-  ];
-
-  return (
-    <View
-      style={styles.mark}
-      accessibilityRole="image"
-      accessibilityLabel="HomeKeep"
-    >
-      {barStyles.map((barStyle, index) => (
-        <Animated.View
-          key={index}
-          style={[
-            styles.bar,
-            { backgroundColor: barColors[index] },
-            barStyle,
-          ]}
-        />
-      ))}
-    </View>
   );
 }
 
@@ -359,7 +228,11 @@ function WelcomeHero() {
           plateStyle,
         ]}
       >
-        <BuildingMark reducedMotion={reducedMotion} />
+        <BuildingMark
+          size={MARK}
+          delay={BARS_START}
+          reducedMotion={reducedMotion}
+        />
       </Animated.View>
     </View>
   );
@@ -367,12 +240,7 @@ function WelcomeHero() {
 
 export function SetupWelcome() {
   const { colors } = useTheme();
-  const reducedMotion = useReducedMotion();
-
-  const enter = (delay: number) =>
-    reducedMotion
-      ? undefined
-      : FadeInDown.delay(delay).duration(460).easing(EASE_OUT);
+  const enter = useEnter();
 
   return (
     <View style={styles.root}>
@@ -476,9 +344,6 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     opacity: 0.7,
   },
-  sparkle: {
-    position: "absolute",
-  },
   bubble: {
     position: "absolute",
     width: BUBBLE,
@@ -495,16 +360,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
-  },
-  mark: {
-    height: MARK,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: MARK * 0.06,
-  },
-  bar: {
-    width: BAR_WIDTH,
-    borderRadius: MARK * 0.08,
   },
   eyebrow: {
     ...DesignSystem.typography.captionSemiBold,

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,7 +15,13 @@ import { useRecordData } from "../../hooks/useRecordData";
 import { useCurrency } from "../../hooks/useCurrency";
 import { useSignedPhotoUrls } from "../../hooks/useSignedPhotoUrls";
 import { useHaptics } from "../../hooks";
-import { Button, HearthSurfaceCard } from "../../components/ui";
+import {
+  Button,
+  EmptyState,
+  HearthSurfaceCard,
+  Pill,
+  SectionHeader,
+} from "../../components/ui";
 import { YearInReviewCard } from "../../components/record/YearInReviewCard";
 import { LockedPreview } from "../../components/plus/LockedPreview";
 import { usePlusFeature } from "../../lib/plusFeatures";
@@ -113,12 +118,11 @@ export function YearInReviewScreen() {
   if (years.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          Nothing to review yet
-        </Text>
-        <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-          Complete a few tasks and your year in review fills itself in.
-        </Text>
+        <EmptyState
+          icon="sparkles-outline"
+          title="Nothing to review yet"
+          body="Complete a few tasks and your year in review fills itself in."
+        />
       </View>
     );
   }
@@ -136,36 +140,15 @@ export function YearInReviewScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.yearRow}
         >
-          {years.map((y) => {
-            const active = y === year;
-            return (
-              <Pressable
-                key={y}
-                onPress={() => {
-                  void triggerLight();
-                  setPickedYear(y);
-                }}
-                style={[
-                  styles.yearChip,
-                  {
-                    backgroundColor: active ? colors.primary : colors.fieldFill,
-                    borderColor: active ? colors.primary : colors.border,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={[
-                    styles.yearChipText,
-                    { color: active ? "#FFFFFF" : colors.text },
-                  ]}
-                >
-                  {y}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {years.map((y) => (
+            <Pill
+              key={y}
+              label={String(y)}
+              size="medium"
+              selected={y === year}
+              onPress={() => setPickedYear(y)}
+            />
+          ))}
         </ScrollView>
       ) : null}
 
@@ -213,10 +196,8 @@ export function YearInReviewScreen() {
       ) : null}
 
       {review.spend ? (
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            Spend
-          </Text>
+        <View>
+          <SectionHeader title="Spend" />
           <LockedPreview feature="ledger">
             <HearthSurfaceCard style={styles.sectionCard}>
               <Text style={[styles.body, { color: colors.text }]}>
@@ -281,12 +262,9 @@ export function YearInReviewScreen() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  const { colors } = useTheme();
   return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-        {title}
-      </Text>
+    <View>
+      <SectionHeader title={title} />
       <HearthSurfaceCard style={styles.sectionCard}>{children}</HearthSurfaceCard>
     </View>
   );
@@ -311,35 +289,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
     paddingBottom: DesignSystem.spacing.xxl,
-    gap: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.lg,
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: DesignSystem.spacing.xl,
-    gap: DesignSystem.spacing.sm,
-  },
-  emptyTitle: {
-    ...DesignSystem.typography.title2,
-    textAlign: "center",
-  },
-  emptyBody: {
-    ...DesignSystem.typography.footnote,
-    textAlign: "center",
+    padding: DesignSystem.spacing.lg,
   },
   yearRow: {
     gap: DesignSystem.spacing.sm,
-  },
-  yearChip: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  yearChipText: {
-    ...DesignSystem.typography.footnote,
-    fontWeight: "600",
   },
   actions: {
     flexDirection: "row",
@@ -347,15 +306,6 @@ const styles = StyleSheet.create({
   },
   actionSlot: {
     flex: 1,
-  },
-  section: {
-    gap: DesignSystem.spacing.sm,
-  },
-  sectionLabel: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
   },
   sectionCard: {
     padding: DesignSystem.spacing.md,

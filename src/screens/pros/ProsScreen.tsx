@@ -22,7 +22,13 @@ import {
   useHomeContacts,
 } from "../../hooks/useHomeContacts";
 import { HomeContactService } from "../../services/HomeContactService";
-import { Button, HeaderIconButton } from "../../components/ui";
+import {
+  EmptyState,
+  HeaderIconButton,
+  HearthSurfaceCard,
+  IconChip,
+  SectionHeader,
+} from "../../components/ui";
 import { ProFormSheet } from "../../components/pros/ProFormSheet";
 import {
   callContact,
@@ -30,7 +36,6 @@ import {
   emailContact,
   textContact,
 } from "../../components/pros/contactLinks";
-import { ProAvatar } from "../../components/pros/ProAvatar";
 import {
   CONTACT_TRADES,
   HomeContact,
@@ -249,7 +254,7 @@ export function ProsScreen() {
             .join(", ")}
           accessibilityHint="Opens details. Swipe left to call or delete."
         >
-          <ProAvatar contact={contact} size={40} />
+          <IconChip icon={meta.icon} tint={meta.tint} size={40} />
           <View style={styles.rowText}>
             <Text
               style={[styles.name, { color: colors.text }]}
@@ -314,12 +319,7 @@ export function ProsScreen() {
           contentContainerStyle={styles.content}
         >
           <LockedPreview feature="pros">
-            <View
-              style={[
-                styles.lockedCard,
-                { borderColor: colors.border, backgroundColor: colors.surface },
-              ]}
-            >
+            <HearthSurfaceCard containerStyle={styles.lockedCard}>
               {(items.length > 0 ? items.slice(0, 6) : SAMPLE_PROS).map(
                 (contact, index) => (
                   <React.Fragment key={contact.id}>
@@ -327,7 +327,7 @@ export function ProsScreen() {
                   </React.Fragment>
                 )
               )}
-            </View>
+            </HearthSurfaceCard>
           </LockedPreview>
         </ScrollView>
       ) : (
@@ -353,12 +353,7 @@ export function ProsScreen() {
             />
           }
           renderSectionHeader={({ section }) => (
-            <Text
-              style={[styles.sectionTitle, { color: colors.textSecondary }]}
-              accessibilityRole="header"
-            >
-              {section.title}
-            </Text>
+            <SectionHeader title={section.title} style={styles.sectionTitle} />
           )}
           renderItem={({ item, index, section }) => (
             <View
@@ -374,40 +369,18 @@ export function ProsScreen() {
           )}
           ListEmptyComponent={
             empty ? (
-              <View style={styles.empty}>
-                <View
-                  style={[
-                    styles.emptyIcon,
-                    { backgroundColor: colors.primary + "14" },
-                  ]}
-                >
-                  <Ionicons
-                    name="people-outline"
-                    size={30}
-                    color={colors.primary}
-                  />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  Keep your trusted pros here
-                </Text>
-                <Text
-                  style={[styles.emptyBody, { color: colors.textSecondary }]}
-                >
-                  The plumber who showed up on a Sunday, the electrician who
-                  fixed the panel. One tap to call, shared with your home.
-                </Text>
-                <View style={styles.emptyButton}>
-                  <Button
-                    label="Add a pro"
-                    onPress={() => setFormVisible(true)}
-                  />
-                </View>
-                {error ? (
-                  <Text style={[styles.emptyBody, { color: colors.error }]}>
-                    {error}
-                  </Text>
-                ) : null}
-              </View>
+              <EmptyState
+                icon="people-outline"
+                title="Keep your trusted pros here"
+                body={
+                  error ??
+                  "The plumber who showed up on a Sunday, the electrician who fixed the panel. One tap to call, shared with your home."
+                }
+                primaryAction={{
+                  label: "Add a pro",
+                  onPress: () => setFormVisible(true),
+                }}
+              />
             ) : (
               <Text style={[styles.noMatch, { color: colors.textSecondary }]}>
                 No pros match “{query.trim()}”.
@@ -449,7 +422,7 @@ function QuickAction({
       style={({ pressed }) => [
         styles.quickAction,
         {
-          backgroundColor: strong ? colors.success + "1F" : colors.fieldFill,
+          backgroundColor: strong ? colors.success + "1F" : colors.primary + "1F",
           opacity: pressed ? 0.6 : 1,
         },
       ]}
@@ -475,7 +448,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingBottom: DesignSystem.spacing.xxl,
   },
   contentEmpty: {
@@ -483,17 +456,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sectionTitle: {
-    ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    paddingHorizontal: DesignSystem.spacing.md,
     marginTop: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.sm,
   },
   lockedCard: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
     marginTop: DesignSystem.spacing.sm,
   },
   cardSlice: {
@@ -503,13 +468,13 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopLeftRadius: DesignSystem.borders.radius.large,
-    borderTopRightRadius: DesignSystem.borders.radius.large,
+    borderTopLeftRadius: DesignSystem.borders.radius.xlarge,
+    borderTopRightRadius: DesignSystem.borders.radius.xlarge,
   },
   cardBottom: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomLeftRadius: DesignSystem.borders.radius.large,
-    borderBottomRightRadius: DesignSystem.borders.radius.large,
+    borderBottomLeftRadius: DesignSystem.borders.radius.xlarge,
+    borderBottomRightRadius: DesignSystem.borders.radius.xlarge,
   },
   row: {
     flexDirection: "row",
@@ -553,33 +518,6 @@ const styles = StyleSheet.create({
   swipeText: {
     ...DesignSystem.typography.captionSemiBold,
     color: "#FFFFFF",
-  },
-  empty: {
-    alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.lg,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: DesignSystem.spacing.md,
-  },
-  emptyTitle: {
-    ...DesignSystem.typography.title2,
-    textAlign: "center",
-  },
-  emptyBody: {
-    ...DesignSystem.typography.footnote,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
-    maxWidth: 300,
-  },
-  emptyButton: {
-    alignSelf: "stretch",
-    marginTop: DesignSystem.spacing.lg,
   },
   noMatch: {
     ...DesignSystem.typography.footnote,

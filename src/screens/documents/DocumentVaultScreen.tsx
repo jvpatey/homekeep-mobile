@@ -22,7 +22,14 @@ import {
 } from "../../hooks/useHomeDocuments";
 import { useEquipmentIndex } from "../../hooks/useEquipmentIndex";
 import { DocumentService } from "../../services/DocumentService";
-import { Button, HeaderIconButton } from "../../components/ui";
+import {
+  EmptyState,
+  HeaderIconButton,
+  HearthSurfaceCard,
+  IconChip,
+  Pill,
+  SectionHeader,
+} from "../../components/ui";
 import { DocumentFormSheet } from "../../components/documents/DocumentFormSheet";
 import { openStoredFile } from "../../components/equipment/equipmentAttachments";
 import { LockedPreview } from "../../components/plus/LockedPreview";
@@ -355,15 +362,11 @@ export function DocumentVaultScreen() {
           .filter(Boolean)
           .join(", ")}
       >
-        <View
-          style={[styles.iconBubble, { backgroundColor: colors.primary + "14" }]}
-        >
-          <Ionicons
-            name={DOCUMENT_KIND_ICONS[document.kind]}
-            size={18}
-            color={colors.primary}
-          />
-        </View>
+        <IconChip
+          icon={DOCUMENT_KIND_ICONS[document.kind]}
+          tint={colors.primary}
+          size={36}
+        />
         <View style={styles.rowText}>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {document.title}
@@ -378,22 +381,17 @@ export function DocumentVaultScreen() {
           ) : null}
         </View>
         {expiry ? (
-          <Text
-            style={[
-              styles.expiry,
-              {
-                color:
-                  expiry.tone === "expired"
-                    ? colors.error
-                    : expiry.tone === "soon"
-                      ? colors.warning ?? colors.primary
-                      : colors.textSecondary,
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {expiry.text}
-          </Text>
+          <Pill
+            label={expiry.text}
+            tone={
+              expiry.tone === "expired"
+                ? "error"
+                : expiry.tone === "soon"
+                  ? "warning"
+                  : "neutral"
+            }
+            style={styles.expiry}
+          />
         ) : null}
       </Pressable>
     );
@@ -421,15 +419,11 @@ export function DocumentVaultScreen() {
       accessibilityLabel={`${item.name} ${file}`}
       accessibilityHint="Opens the equipment"
     >
-      <View
-        style={[styles.iconBubble, { backgroundColor: colors.fieldFill }]}
-      >
-        <Ionicons
-          name={file === "manual" ? "document-text" : "receipt"}
-          size={18}
-          color={colors.textSecondary}
-        />
-      </View>
+      <IconChip
+        icon={file === "manual" ? "document-text" : "receipt"}
+        tint={colors.textSecondary}
+        size={36}
+      />
       <View style={styles.rowText}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
           {item.name}
@@ -484,12 +478,7 @@ export function DocumentVaultScreen() {
           contentContainerStyle={styles.content}
         >
           <LockedPreview feature="documents">
-            <View
-              style={[
-                styles.lockedCard,
-                { borderColor: colors.border, backgroundColor: colors.surface },
-              ]}
-            >
+            <HearthSurfaceCard containerStyle={styles.lockedCard}>
               {(items.length > 0 ? items.slice(0, 6) : SAMPLE_DOCUMENTS).map(
                 (document, index) => (
                   <React.Fragment key={document.id}>
@@ -497,7 +486,7 @@ export function DocumentVaultScreen() {
                   </React.Fragment>
                 )
               )}
-            </View>
+            </HearthSurfaceCard>
           </LockedPreview>
         </ScrollView>
       ) : (
@@ -529,47 +518,20 @@ export function DocumentVaultScreen() {
                 contentContainerStyle={styles.filterRow}
                 style={styles.filterScroller}
               >
-                {filters.map((option) => {
-                  const active = filter === option.key;
-                  return (
-                    <Pressable
-                      key={option.key}
-                      onPress={() => {
-                        triggerLight();
-                        setFilter(option.key);
-                      }}
-                      style={[
-                        styles.filterChip,
-                        {
-                          backgroundColor: active
-                            ? colors.primary
-                            : colors.fieldFill,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterText,
-                          { color: active ? "#FFFFFF" : colors.text },
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                {filters.map((option) => (
+                  <Pill
+                    key={option.key}
+                    label={option.label}
+                    size="medium"
+                    selected={filter === option.key}
+                    onPress={() => setFilter(option.key)}
+                  />
+                ))}
               </ScrollView>
             ) : null
           }
           renderSectionHeader={({ section }) => (
-            <Text
-              style={[styles.sectionTitle, { color: colors.textSecondary }]}
-              accessibilityRole="header"
-            >
-              {section.title}
-            </Text>
+            <SectionHeader title={section.title} style={styles.sectionTitle} />
           )}
           renderItem={({ item, index, section }) => (
             <View
@@ -585,37 +547,15 @@ export function DocumentVaultScreen() {
           )}
           ListEmptyComponent={
             empty ? (
-              <View style={styles.empty}>
-                <View
-                  style={[
-                    styles.emptyIcon,
-                    { backgroundColor: colors.primary + "14" },
-                  ]}
-                >
-                  <Ionicons
-                    name="folder-open-outline"
-                    size={30}
-                    color={colors.primary}
-                  />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  Keep the house paperwork here
-                </Text>
-                <Text
-                  style={[styles.emptyBody, { color: colors.textSecondary }]}
-                >
-                  Insurance policies, inspection reports, closing papers, and
-                  permits, shared with everyone in your home.
-                </Text>
-                <View style={styles.emptyButton}>
-                  <Button label="Add a document" onPress={openAdd} />
-                </View>
-                {error ? (
-                  <Text style={[styles.emptyBody, { color: colors.error }]}>
-                    {error}
-                  </Text>
-                ) : null}
-              </View>
+              <EmptyState
+                icon="folder-open-outline"
+                title="Keep the house paperwork here"
+                body={
+                  error ??
+                  "Insurance policies, inspection reports, closing papers, and permits, shared with everyone in your home."
+                }
+                primaryAction={{ label: "Add a document", onPress: openAdd }}
+              />
             ) : null
           }
         />
@@ -648,7 +588,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingBottom: DesignSystem.spacing.xxl,
   },
   contentEmpty: {
@@ -656,33 +596,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   filterScroller: {
-    marginHorizontal: -DesignSystem.spacing.md,
+    marginHorizontal: -DesignSystem.spacing.lg,
   },
   filterRow: {
     gap: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
     paddingTop: DesignSystem.spacing.sm,
   },
-  filterChip: {
-    paddingHorizontal: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.xs + 3,
-    borderRadius: DesignSystem.borders.radius.round,
-  },
-  filterText: {
-    ...DesignSystem.typography.smallSemiBold,
-  },
   sectionTitle: {
-    ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    paddingHorizontal: DesignSystem.spacing.md,
     marginTop: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.sm,
   },
   lockedCard: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
     marginTop: DesignSystem.spacing.sm,
   },
   cardSlice: {
@@ -692,13 +616,13 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopLeftRadius: DesignSystem.borders.radius.large,
-    borderTopRightRadius: DesignSystem.borders.radius.large,
+    borderTopLeftRadius: DesignSystem.borders.radius.xlarge,
+    borderTopRightRadius: DesignSystem.borders.radius.xlarge,
   },
   cardBottom: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomLeftRadius: DesignSystem.borders.radius.large,
-    borderBottomRightRadius: DesignSystem.borders.radius.large,
+    borderBottomLeftRadius: DesignSystem.borders.radius.xlarge,
+    borderBottomRightRadius: DesignSystem.borders.radius.xlarge,
   },
   row: {
     flexDirection: "row",
@@ -707,13 +631,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignSystem.spacing.md,
     paddingVertical: DesignSystem.spacing.sm + 2,
     minHeight: 60,
-  },
-  iconBubble: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
   },
   rowText: {
     flex: 1,
@@ -727,34 +644,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   expiry: {
-    ...DesignSystem.typography.caption,
-    maxWidth: 130,
-  },
-  empty: {
-    alignItems: "center",
-    paddingHorizontal: DesignSystem.spacing.lg,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: DesignSystem.spacing.md,
-  },
-  emptyTitle: {
-    ...DesignSystem.typography.title2,
-    textAlign: "center",
-  },
-  emptyBody: {
-    ...DesignSystem.typography.footnote,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: DesignSystem.spacing.sm,
-    maxWidth: 300,
-  },
-  emptyButton: {
-    alignSelf: "stretch",
-    marginTop: DesignSystem.spacing.lg,
+    maxWidth: 140,
+    alignSelf: "center",
   },
 });

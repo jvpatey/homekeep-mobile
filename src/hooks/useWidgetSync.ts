@@ -1,39 +1,28 @@
 import { useEffect, useMemo } from "react";
 import { MaintenanceTask } from "../types/maintenance";
-import { getHomeMapZones } from "../data/homeMapZones";
-import {
-  HomeSystems,
-  isHomeSystemsComplete,
-} from "../data/maintenancePlans";
-import {
-  LastCompletionMap,
-  computeAllZoneHealth,
-  overallHomeHealth,
-} from "../utils/zoneHealth";
+import { UpkeepResult } from "../utils/upkeep";
 import { buildWidgetSnapshot, writeWidgetSnapshot } from "../lib/homeWidget";
 
-/** Mirrors the dashboard's schedule and home health into the iOS widget. No-op elsewhere. */
+/** Mirrors the schedule and upkeep score into the iOS widget. No-op elsewhere. */
 export function useWidgetSync({
   overdue,
   upcoming,
-  lastCompletion,
-  home,
+  upkeep,
   ready,
 }: {
   overdue: MaintenanceTask[];
   upcoming: MaintenanceTask[];
-  lastCompletion: LastCompletionMap;
-  home: HomeSystems | null | undefined;
+  upkeep: UpkeepResult | null;
   /** False until the first task load finishes, so an empty list isn't published. */
   ready: boolean;
 }) {
-  const health = useMemo(() => {
-    if (!isHomeSystemsComplete(home)) return null;
-    const zones = getHomeMapZones(home).filter((z) => !z.hidden);
-    return overallHomeHealth(
-      computeAllZoneHealth(zones, [...overdue, ...upcoming], lastCompletion)
-    );
-  }, [home, overdue, upcoming, lastCompletion]);
+  const health = useMemo(
+    () =>
+      upkeep?.state === "scored"
+        ? { score: upkeep.score, grade: upkeep.grade }
+        : null,
+    [upkeep]
+  );
 
   useEffect(() => {
     if (!ready) return;

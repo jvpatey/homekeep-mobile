@@ -23,7 +23,7 @@ export function ProAvatar({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: meta.tint + "26",
+          backgroundColor: meta.tint + "1F",
         },
       ]}
       accessibilityElementsHidden

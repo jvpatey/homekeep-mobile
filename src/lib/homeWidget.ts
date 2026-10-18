@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { ExtensionStorage } from "@bacons/apple-targets";
 import { format } from "date-fns";
 import { MaintenanceTask } from "../types/maintenance";
-import type { ZoneHealthGrade } from "../utils/zoneHealth";
+import type { UpkeepGrade } from "../utils/upkeep";
 
 /** Must match the App Group in app.json and targets/widget. */
 export const WIDGET_APP_GROUP = "group.com.homekeep.mobile";
@@ -13,7 +13,8 @@ const MAX_TASKS = 30;
 export interface WidgetSnapshot {
   version: 1;
   signedIn: boolean;
-  health: { score: number; grade: ZoneHealthGrade } | null;
+  /** Upkeep score; field keeps its original name so stored snapshots still decode. */
+  health: { score: number; grade: UpkeepGrade } | null;
   /** Open tasks, soonest first. `due` is the local calendar date (yyyy-MM-dd). */
   tasks: { id: string; title: string; due: string }[];
 }

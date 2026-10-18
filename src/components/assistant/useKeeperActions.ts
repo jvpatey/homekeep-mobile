@@ -10,12 +10,17 @@ import { AssistantAction } from "../../services/AiService";
 import { MaintenanceInstanceService } from "../../services/MaintenanceInstanceService";
 import { EquipmentManualService } from "../../services/EquipmentManualService";
 import { HomeContactService } from "../../services/HomeContactService";
+import { DocumentService } from "../../services/DocumentService";
+import { EquipmentRecallService } from "../../services/EquipmentRecallService";
 import {
   upsertEquipmentInIndex,
   useEquipmentIndex,
 } from "../../hooks/useEquipmentIndex";
 import { upsertHomeContact } from "../../hooks/useHomeContacts";
+import { upsertHomeDocument } from "../../hooks/useHomeDocuments";
+import { refreshEquipmentRecalls } from "../../hooks/useEquipmentRecalls";
 import { refreshRecordData } from "../../hooks/useRecordData";
+import { DOCUMENT_KIND_LABELS } from "../../types/homeDocument";
 import { buildRoutinePayloadsFromItems } from "../../data/maintenancePlans";
 import { formatRoutineInterval } from "../all-reminders/groupRoutines";
 import {
@@ -236,6 +241,52 @@ export function useKeeperActions({
             title: `Open ${action.label}`,
             detail: null,
           };
+        case "add_document":
+          return {
+            icon: "folder-outline",
+            kind: "Add document",
+            title: action.title,
+            detail: join([
+              DOCUMENT_KIND_LABELS[action.kind],
+              action.equipment_name ??
+                (action.equipment_id
+                  ? equipmentName(action.equipment_id)
+                  : null),
+              action.expires_on && `Expires ${action.expires_on}`,
+            ]),
+          };
+        case "open_documents":
+          return {
+            icon: "folder-open-outline",
+            kind: "Documents",
+            title: action.title ? `Open ${action.title}` : "Open documents",
+            detail: null,
+          };
+        case "open_spend":
+          return {
+            icon: "wallet-outline",
+            kind: "Spend ledger",
+            title: action.year
+              ? `Open spend for ${action.year}`
+              : "Open spend ledger",
+            detail: null,
+          };
+        case "open_equipment":
+          return {
+            icon: "hardware-chip-outline",
+            kind: "Equipment",
+            title: action.equipment_name
+              ? `Open ${action.equipment_name}`
+              : "Open equipment",
+            detail: null,
+          };
+        case "dismiss_recall":
+          return {
+            icon: "checkmark-done-outline",
+            kind: "Dismiss recall",
+            title: action.title,
+            detail: action.equipment_name,
+          };
       }
     },
     [formatMoney, equipmentName],
@@ -247,6 +298,61 @@ export function useKeeperActions({
         case "open_emergency":
           open("EmergencyInfo")();
           return { error: null };
+
+        case "open_documents":
+          open("DocumentVault")();
+          return { error: null };
+
+        case "open_spend":
+          open(
+            "SpendLedger",
+            action.year != null ? { year: action.year } : undefined,
+          )();
+          return { error: null };
+
+        case "open_equipment":
+          if (action.equipment_id) {
+            open("EquipmentDetail", { equipmentId: action.equipment_id })();
+          } else {
+            open("EquipmentList")();
+          }
+          return { error: null };
+
+        case "dismiss_recall": {
+          const { error } = await EquipmentRecallService.dismiss(
+            action.recall_id,
+          );
+          if (error) {
+            return { error: error.message };
+          }
+          await refreshEquipmentRecalls();
+          return {
+            error: null,
+            view: action.equipment_id
+              ? open("EquipmentDetail", {
+                  equipmentId: action.equipment_id,
+                })
+              : open("EquipmentList"),
+          };
+        }
+
+        case "add_document": {
+          const { data, error } = await DocumentService.create({
+            title: action.title,
+            kind: action.kind,
+            notes: action.notes,
+            equipment_id: action.equipment_id,
+            issued_on: action.issued_on,
+            expires_on: action.expires_on,
+          });
+          if (error || !data) {
+            return {
+              error: error?.message ?? "Couldn't save this document.",
+            };
+          }
+          upsertHomeDocument(data);
+          return { error: null, view: open("DocumentVault") };
+        }
 
         case "create_routine": {
           const [payload] = buildRoutinePayloadsFromItems([

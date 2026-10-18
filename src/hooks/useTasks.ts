@@ -92,6 +92,10 @@ interface UseTasksReturn {
   skipTaskOccurrence: (
     task: MaintenanceTask
   ) => Promise<{ success: boolean; error?: string }>;
+  /** Skip recurring overdue and dismiss one-time overdue; one refresh at the end. */
+  clearOverdueTasks: (
+    tasks: MaintenanceTask[]
+  ) => Promise<{ success: boolean; cleared: number; error?: string }>;
   pauseTask: (routineId: string) => Promise<{ success: boolean; error?: string }>;
   resumeTask: (
     routineId: string
@@ -645,6 +649,64 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     [user?.id, loadTasks]
   );
 
+  const clearOverdueTasks = useCallback(
+    async (tasks: MaintenanceTask[]) => {
+      if (!user) {
+        return { success: false, cleared: 0, error: "User not authenticated" };
+      }
+
+      const pending = tasks.filter((task) => !task.is_completed);
+      if (pending.length === 0) {
+        return { success: true, cleared: 0 };
+      }
+
+      let cleared = 0;
+      let firstError: string | null = null;
+
+      for (const task of pending) {
+        try {
+          if (task.interval_days > 0) {
+            const result = await MaintenanceService.skipRoutineInstance({
+              instanceId: task.instance_id,
+              routineId: task.id,
+              dueDate: task.due_date,
+              intervalDays: task.interval_days,
+            });
+            if (result.error) throw result.error;
+          } else {
+            const result = await MaintenanceService.deleteInstance(
+              task.instance_id
+            );
+            if (result.error) throw result.error;
+          }
+          cleared += 1;
+        } catch (err) {
+          const error = err as Error;
+          if (!firstError) {
+            firstError =
+              error.message || "Couldn't clear one of the overdue tasks";
+          }
+          console.error("Error clearing overdue task:", error);
+        }
+      }
+
+      await loadTasks();
+
+      if (cleared === 0 && firstError) {
+        return { success: false, cleared: 0, error: firstError };
+      }
+      if (firstError) {
+        return {
+          success: false,
+          cleared,
+          error: `Cleared ${cleared}, but some failed. ${firstError}`,
+        };
+      }
+      return { success: true, cleared };
+    },
+    [user?.id, loadTasks]
+  );
+
   const pauseTask = useCallback(
     async (routineId: string) => {
       if (!user) {
@@ -867,6 +929,7 @@ export function useTasks(filters?: MaintenanceFilters): UseTasksReturn {
     completeTask,
     uncompleteTask,
     skipTaskOccurrence,
+    clearOverdueTasks,
     pauseTask,
     resumeTask,
     deleteTask,

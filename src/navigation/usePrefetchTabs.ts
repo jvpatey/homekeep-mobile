@@ -8,7 +8,7 @@ import { refreshEquipmentRecalls } from "../hooks/useEquipmentRecalls";
 import { refreshRoutines } from "../components/all-reminders/useReminderRoutines";
 
 /**
- * Warms the Record and Plan tabs once Home has loaded, so switching tabs
+ * Warms the My Home and Tasks tabs once Today has loaded, so switching tabs
  * shows real content immediately instead of placeholders popping in.
  */
 export function usePrefetchTabs() {

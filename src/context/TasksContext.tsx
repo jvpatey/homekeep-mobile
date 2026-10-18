@@ -77,6 +77,9 @@ interface UseTasksReturn {
   skipTaskOccurrence: (
     task: MaintenanceTask
   ) => Promise<{ success: boolean; error?: string }>;
+  clearOverdueTasks: (
+    tasks: MaintenanceTask[]
+  ) => Promise<{ success: boolean; cleared: number; error?: string }>;
   pauseTask: (routineId: string) => Promise<{ success: boolean; error?: string }>;
   resumeTask: (
     routineId: string

@@ -33,8 +33,12 @@ import { useCurrency } from "../../hooks/useCurrency";
 import { useSignedPhotoUrls } from "../../hooks/useSignedPhotoUrls";
 import { useOverlayInsets } from "../../hooks/useOverlayInsets";
 import {
+  EmptyState,
   HeaderIconButton,
   HearthSurfaceCard,
+  IconChip,
+  Pill,
+  SectionHeader,
   SegmentedControl,
   SegmentOption,
   TintedGlassAvatar,
@@ -257,16 +261,11 @@ export function CompletionHistoryScreen() {
           .filter(Boolean)
           .join(". ")}
       >
-        <View
-          style={[
-            completionHistoryStyles.rowIcon,
-            { backgroundColor: statusColor + "22" },
-          ]}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          <Ionicons name={statusMeta.icon} size={18} color={statusColor} />
-        </View>
+        <IconChip
+          icon={statusMeta.icon}
+          tint={statusColor}
+          style={completionHistoryStyles.rowIcon}
+        />
         <View style={completionHistoryStyles.rowMain}>
           <Text
             style={[completionHistoryStyles.rowTitle, { color: colors.text }]}
@@ -284,18 +283,32 @@ export function CompletionHistoryScreen() {
           </Text>
           {cost || labor || pro ? (
             <View style={completionHistoryStyles.chipLine}>
-              {cost ? <Chip icon="wallet-outline" label={cost} strong /> : null}
+              {cost ? (
+                <Pill
+                  icon="wallet-outline"
+                  label={cost}
+                  tone="primary"
+                  style={completionHistoryStyles.chip}
+                />
+              ) : null}
               {labor ? (
-                <Chip
+                <Pill
                   icon={
                     task.labor_type === "hired"
                       ? "briefcase-outline"
                       : "hand-left-outline"
                   }
                   label={labor}
+                  style={completionHistoryStyles.chip}
                 />
               ) : null}
-              {pro ? <Chip icon="person-outline" label={pro} /> : null}
+              {pro ? (
+                <Pill
+                  icon="person-outline"
+                  label={pro}
+                  style={completionHistoryStyles.chip}
+                />
+              ) : null}
             </View>
           ) : null}
           {who ? (
@@ -357,18 +370,10 @@ export function CompletionHistoryScreen() {
     index: number;
   }) => (
     <View>
-      <Text
-        style={[
-          completionHistoryStyles.sectionHeader,
-          {
-            color: colors.textSecondary,
-            marginTop: index === 0 ? 0 : undefined,
-          },
-        ]}
-        accessibilityRole="header"
-      >
-        {section.title}
-      </Text>
+      <SectionHeader
+        title={section.title}
+        style={index > 0 && completionHistoryStyles.sectionHeader}
+      />
       <HearthSurfaceCard
         containerStyle={completionHistoryStyles.cardContainer}
         style={completionHistoryStyles.cardSurface}
@@ -448,61 +453,29 @@ export function CompletionHistoryScreen() {
 
     const searching = query.trim().length > 0;
     return (
-      <View style={completionHistoryStyles.emptyState}>
-        <View
-          style={[
-            completionHistoryStyles.emptyIconCircle,
-            { backgroundColor: colors.primary + "14" },
-          ]}
-        >
-          <Ionicons
-            name={searching ? "search-outline" : "checkmark-circle-outline"}
-            size={32}
-            color={colors.primary}
-          />
-        </View>
-        <Text
-          style={[completionHistoryStyles.emptyTitle, { color: colors.text }]}
-        >
-          {searching
+      <EmptyState
+        icon={searching ? "search-outline" : "checkmark-circle-outline"}
+        title={
+          searching
             ? "No matches"
             : lookback === "all"
               ? "No jobs recorded yet"
-              : "Nothing in this range"}
-        </Text>
-        <Text
-          style={[
-            completionHistoryStyles.emptySubtext,
-            { color: colors.textSecondary },
-          ]}
-        >
-          {searching
+              : "Nothing in this range"
+        }
+        body={
+          searching
             ? `Nothing matches “${query.trim()}”.`
             : lookback === "all"
               ? "Finished tasks and repairs show up here, with costs, notes, and photos."
-              : "Try a wider date range."}
-        </Text>
-        {!searching && lookback === "all" ? (
-          <Pressable
-            onPress={() => openLogRepair()}
-            style={[
-              completionHistoryStyles.emptyAction,
-              { backgroundColor: colors.primary + "14" },
-            ]}
-            accessibilityRole="button"
-          >
-            <Ionicons name="hammer-outline" size={16} color={colors.primary} />
-            <Text
-              style={[
-                completionHistoryStyles.emptyActionText,
-                { color: colors.primary },
-              ]}
-            >
-              Log a repair
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
+              : "Try a wider date range."
+        }
+        primaryAction={
+          !searching && lookback === "all"
+            ? { label: "Log a repair", onPress: () => openLogRepair() }
+            : null
+        }
+        style={completionHistoryStyles.emptyState}
+      />
     );
   };
 
@@ -583,41 +556,6 @@ export function CompletionHistoryScreen() {
         }
         onClose={() => setViewer(null)}
       />
-    </View>
-  );
-}
-
-function Chip({
-  icon,
-  label,
-  strong,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  strong?: boolean;
-}) {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        completionHistoryStyles.chip,
-        { backgroundColor: strong ? colors.primary + "14" : colors.fieldFill },
-      ]}
-    >
-      <Ionicons
-        name={icon}
-        size={12}
-        color={strong ? colors.primary : colors.textSecondary}
-      />
-      <Text
-        style={[
-          completionHistoryStyles.chipText,
-          { color: strong ? colors.primary : colors.textSecondary },
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
     </View>
   );
 }

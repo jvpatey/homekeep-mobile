@@ -10,47 +10,47 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { DesignSystem } from "../../theme/designSystem";
+import { HearthSurfaceCard } from "../ui/HearthSurfaceCard";
+import { IconChip } from "../ui/IconChip";
+import { SectionHeader } from "../ui/SectionHeader";
 
-/** Grouped inset list section, iOS Settings style, on Hearth surfaces. */
+const TILE = 30;
+
+/** Grouped list section: a section header over rows on a Hearth surface. */
 export function RecordSection({
   title,
   footer,
   children,
   style,
   trailing,
+  actionLabel,
+  onAction,
 }: {
   title?: string;
   footer?: string;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Shown at the header's trailing edge instead of an action link. */
   trailing?: ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   const { colors } = useTheme();
   const items = React.Children.toArray(children).filter(Boolean);
   return (
     <View style={[styles.section, style]}>
-      {title || trailing ? (
+      {title ? (
         <View style={styles.sectionHeader}>
-          {title ? (
-            <Text
-              style={[styles.sectionTitle, { color: colors.textSecondary }]}
-              accessibilityRole="header"
-            >
-              {title}
-            </Text>
-          ) : (
-            <View />
-          )}
+          <SectionHeader
+            title={title}
+            actionLabel={trailing ? undefined : actionLabel}
+            onAction={trailing ? undefined : onAction}
+            style={styles.sectionHeaderTitle}
+          />
           {trailing}
         </View>
       ) : null}
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-          DesignSystem.shadows.softAmbient,
-        ]}
-      >
+      <HearthSurfaceCard>
         {items.map((child, index) => (
           <View key={index}>
             {index > 0 ? (
@@ -61,9 +61,12 @@ export function RecordSection({
             {child}
           </View>
         ))}
-      </View>
+      </HearthSurfaceCard>
       {footer ? (
-        <Text style={[styles.footer, { color: colors.textSecondary }]}>
+        <Text
+          style={[styles.footer, { color: colors.textSecondary }]}
+          maxFontSizeMultiplier={1.4}
+        >
           {footer}
         </Text>
       ) : null}
@@ -73,8 +76,10 @@ export function RecordSection({
 
 export interface RecordRowProps {
   icon: keyof typeof Ionicons.glyphMap;
-  /** Tile colour; defaults to the primary accent. */
+  /** Chip colour; defaults to the primary accent. */
   tint?: string;
+  /** `solid` draws a filled tile with a white glyph instead of a soft chip. */
+  tone?: "solid" | "soft";
   title: string;
   subtitle?: string | null;
   value?: string | null;
@@ -89,6 +94,7 @@ export interface RecordRowProps {
 export function RecordRow({
   icon,
   tint,
+  tone = "soft",
   title,
   subtitle,
   value,
@@ -117,9 +123,13 @@ export function RecordRow({
           .join(". ")
       }
     >
-      <View style={[styles.tile, { backgroundColor: tileColor }]}>
-        <Ionicons name={icon} size={17} color="#FFFFFF" />
-      </View>
+      {tone === "solid" ? (
+        <View style={[styles.tile, { backgroundColor: tileColor }]}>
+          <Ionicons name={icon} size={17} color="#FFFFFF" />
+        </View>
+      ) : (
+        <IconChip icon={icon} tint={tileColor} size={TILE} />
+      )}
       <View style={styles.rowText}>
         <Text
           style={[
@@ -169,28 +179,22 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: DesignSystem.spacing.md,
+    gap: DesignSystem.spacing.sm,
     marginBottom: DesignSystem.spacing.sm,
   },
-  sectionTitle: {
-    ...DesignSystem.typography.captionSemiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  card: {
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
+  sectionHeaderTitle: {
+    flex: 1,
+    marginBottom: 0,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: DesignSystem.spacing.md + 30 + DesignSystem.spacing.md,
+    marginLeft: DesignSystem.spacing.md + TILE + DesignSystem.spacing.md,
   },
   footer: {
     ...DesignSystem.typography.footnote,
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.xs,
     marginTop: DesignSystem.spacing.sm,
   },
   row: {
@@ -202,8 +206,8 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.md,
   },
   tile: {
-    width: 30,
-    height: 30,
+    width: TILE,
+    height: TILE,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",

@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "build:ios": "expo build:ios",
     "submit:ios": "expo submit --platform ios",
+    "test": "jest",
     "functions:deploy": "supabase functions deploy send-push-notification && supabase functions deploy notification-worker && supabase functions deploy process-scheduled-notifications && supabase functions deploy notify-household-event && supabase functions deploy revenuecat-webhook && supabase functions deploy recall-scan && supabase functions deploy homekeep-ai && supabase functions deploy calendar-feed"
   },
   "dependencies": {
@@ -68,10 +69,19 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@types/jest": "29.5.14",
     "@types/react": "~19.2.4",
     "babel-preset-expo": "~57.0.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.6",
     "supabase": "^2.98.2",
     "typescript": "~6.0.3"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "moduleNameMapper": {
+      "^expo-modules-core(/.*)?$": "<rootDir>/node_modules/expo/node_modules/expo-modules-core$1"
+    }
   },
   "private": true,
   "expo": {

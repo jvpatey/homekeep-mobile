@@ -1,81 +1,32 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { TodayAlertCard } from "../ui";
 import { useTheme } from "../../context/ThemeContext";
-import { DesignSystem } from "../../theme/designSystem";
 import { CampaignProgress } from "../../utils/campaignProgress";
 
 interface CampaignPlanStripProps {
   progress: CampaignProgress;
   onPress: () => void;
+  onDismiss?: () => void;
 }
 
 export function CampaignPlanStrip({
   progress,
   onPress,
+  onDismiss,
 }: CampaignPlanStripProps) {
-  const { colors, isDark } = useTheme();
-  const progressLabel = `${progress.done} of ${progress.total} done`;
-
+  const { colors } = useTheme();
   return (
-    <Pressable
+    <TodayAlertCard
+      icon={progress.isComplete ? "checkmark-circle" : "leaf-outline"}
+      tint={colors.secondary}
+      title={`${progress.title} · ${progress.done} of ${progress.total} done`}
+      body={
+        progress.isComplete
+          ? "Season checklist complete"
+          : "Keep going on this season’s plan"
+      }
       onPress={onPress}
-      style={[
-        styles.wrap,
-        {
-          backgroundColor: isDark
-            ? "rgba(35, 37, 38, 0.45)"
-            : "rgba(255, 255, 255, 0.55)",
-          borderColor: colors.glassStroke,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={`${progress.title}, ${progressLabel}. Open plan.`}
-    >
-      <Ionicons
-        name={progress.isComplete ? "checkmark-circle" : "leaf-outline"}
-        size={18}
-        color={colors.primary}
-      />
-      <View style={styles.copy}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {progress.title} · {progressLabel}
-        </Text>
-        <Text
-          style={[styles.meta, { color: colors.textSecondary }]}
-          numberOfLines={1}
-        >
-          {progress.isComplete
-            ? "Season checklist complete"
-            : "Keep going on this season’s plan"}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-    </Pressable>
+      onDismiss={onDismiss}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    marginHorizontal: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.md,
-    paddingVertical: DesignSystem.spacing.md,
-    paddingHorizontal: DesignSystem.spacing.md,
-    borderRadius: DesignSystem.borders.radius.large,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.sm,
-  },
-  copy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  title: {
-    ...DesignSystem.typography.smallSemiBold,
-  },
-  meta: {
-    ...DesignSystem.typography.caption,
-    marginTop: 2,
-  },
-});

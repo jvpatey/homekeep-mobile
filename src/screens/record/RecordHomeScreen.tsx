@@ -1,15 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { format } from "date-fns";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
@@ -23,19 +15,34 @@ import { useCurrency } from "../../hooks/useCurrency";
 import { useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import {
-  HouseMark,
+  ScrollAtmosphere,
   TabHeaderAction,
   TabScreenHeader,
 } from "../../components/ui";
+import { useEnter } from "../../components/ui/hero/heroKit";
 import { RecordRow, RecordSection } from "../../components/record/RecordList";
 import { KeeperHeaderButton } from "../../components/assistant/KeeperHeaderButton";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
+import {
+  EmergencyQuickCard,
+  HeadsUpCard,
+  HomeIdentityHero,
+  MemberAvatars,
+  RecentWorkStrip,
+  RecordChecklistCard,
+  ThingsGrid,
+} from "../../components/myHome";
 import {
   HouseholdMemberView,
   HouseholdService,
   formatHouseholdPeople,
 } from "../../services/HouseholdService";
-import { emergencyProgressSubtitle } from "../../types/homeEmergency";
+import { countFilledEmergencySpots } from "../../types/homeEmergency";
+import {
+  HomeRecordItemKey,
+  homeRecordProgress,
+} from "../../utils/homeRecordProgress";
+import { HeadsUpItem, homeHeadsUp } from "../../utils/homeHeadsUp";
 import { computeSpendLedger, spendForYear } from "../../utils/spendLedger";
 import {
   formatProfileAddressLines,
@@ -49,27 +56,17 @@ import { DesignSystem } from "../../theme/designSystem";
 
 type Nav = NativeStackNavigationProp<RecordStackParamList, "RecordHome">;
 
-const TINTS = {
-  history: "#2F5D50",
-  ledger: "#C45C26",
-  equipment: "#5B6C8F",
-  documents: "#7A6A4F",
+const GRID_TINTS = {
   paint: "#B5739D",
   notes: "#3E7CB1",
-  emergency: "#C0392B",
-  pros: "#C49A3C",
-  share: "#3E8E7E",
-  pdf: "#6B645C",
-  review: "#A0522D",
 };
 
-function countSubtitle(count: number, noun: string, empty: string) {
-  return count > 0 ? `${count} ${noun}${count === 1 ? "" : "s"} saved` : empty;
-}
+/** Entrance motion plays on the first My Home render of each app session. */
+let enteredThisSession = false;
 
 export function RecordHomeScreen() {
   const navigation = useNavigation<Nav>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { user } = useAuth();
   const { profile, homeNotes } = useProfile();
   const { triggerLight } = useHaptics();
@@ -78,12 +75,21 @@ export function RecordHomeScreen() {
   const { completions, loaded, refresh } = useRecordData();
   const equipment = useEquipmentIndex();
   const contacts = useHomeContacts();
-  const { locked: recordLocked } = usePlusFeature("history");
+  const history = usePlusFeature("history");
+  const recordLocked = history.locked;
   const documents = useHomeDocuments();
   const { locked: documentsLocked } = usePlusFeature("documents");
   const [refreshing, setRefreshing] = useState(false);
   const [showHomeShare, setShowHomeShare] = useState(false);
   const [members, setMembers] = useState<HouseholdMemberView[]>([]);
+  const enter = useEnter();
+
+  const [animateIn] = useState(() => !enteredThisSession);
+  useEffect(() => {
+    enteredThisSession = true;
+  }, []);
+  const entering = (index: number) =>
+    animateIn ? enter(80 + index * 70) : undefined;
 
   const year = new Date().getFullYear();
   const ledger = useMemo(() => computeSpendLedger(completions), [completions]);
@@ -134,12 +140,66 @@ export function RecordHomeScreen() {
 
   const householdShared = members.length > 1;
 
+  const emergencyCount = countFilledEmergencySpots(
+    profile?.home_emergency,
+    profile?.home_systems
+  );
+  const recordProgress = homeRecordProgress({
+    emergencyComplete:
+      emergencyCount.total > 0 && emergencyCount.filled === emergencyCount.total,
+    equipmentCount: equipment.items.length,
+    documentCount: documents.items.length,
+    proCount: contacts.items.length,
+    noteCount: homeNotes.notes.length,
+    paintCount: homeNotes.paints.length,
+    householdShared,
+  });
+  const recordLoaded = equipment.loaded && documents.loaded;
+
+  const headsUp = useMemo(
+    () => homeHeadsUp(equipment.items, documents.items),
+    [equipment.items, documents.items]
+  );
+
+  const startRecordItem = (key: HomeRecordItemKey) => {
+    switch (key) {
+      case "emergency":
+        navigation.navigate("EmergencyInfo");
+        return;
+      case "equipment":
+        navigation.navigate("EquipmentList");
+        return;
+      case "documents":
+        navigation.navigate("DocumentVault");
+        return;
+      case "pros":
+        navigation.navigate("Pros");
+        return;
+      case "notes":
+        navigation.navigate("HouseNotes");
+        return;
+      case "homeShare":
+        setShowHomeShare(true);
+        return;
+    }
+  };
+
+  const openHeadsUp = (item: HeadsUpItem) => {
+    if (item.kind === "warranty") {
+      navigation.navigate("EquipmentDetail", { equipmentId: item.targetId });
+    } else {
+      navigation.navigate("DocumentVault");
+    }
+  };
+
+  let section = 0;
+
   return (
     <>
       <ScrollView
         style={{ backgroundColor: colors.background }}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -149,10 +209,10 @@ export function RecordHomeScreen() {
           />
         }
       >
+        <ScrollAtmosphere />
         <TabScreenHeader
-          title="Record"
-          subtitle="Your home's history, things, and people"
-          style={styles.header}
+          eyebrow={locality ?? undefined}
+          title="My Home"
           actions={
             <>
               <KeeperHeaderButton />
@@ -182,218 +242,175 @@ export function RecordHomeScreen() {
             </>
           }
         />
-        <View
-          style={[
-            styles.hero,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            DesignSystem.shadows.softKey,
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.primary + (isDark ? "26" : "14"), "transparent"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <View style={styles.heroTop}>
-            <View
-              style={[
-                styles.heroMark,
+
+        <View style={styles.content}>
+          <Animated.View entering={entering(section++)}>
+            <HomeIdentityHero
+              street={street}
+              meta={homeAgeLabel}
+              sinceLabel={sinceLabel}
+              stats={[
                 {
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
+                  value: loaded ? String(ledger.jobCount) : "—",
+                  label: ledger.jobCount === 1 ? "job" : "jobs",
+                  onPress: () => navigation.navigate("CompletionHistory"),
+                },
+                {
+                  value: loaded ? formatMoney(yearSpend, { whole: true }) : "—",
+                  label: `spent ${year}`,
+                  locked: recordLocked,
+                  onPress: () => navigation.navigate("SpendLedger"),
+                },
+                {
+                  value: equipment.loaded ? String(equipment.items.length) : "—",
+                  label:
+                    equipment.items.length === 1 ? "appliance" : "appliances",
+                  onPress: () => navigation.navigate("EquipmentList"),
                 },
               ]}
-            >
-              <HouseMark size={26} inline />
-            </View>
-            <View style={styles.heroText}>
-              <Text
-                style={[styles.heroTitle, { color: colors.text }]}
-                numberOfLines={2}
-              >
-                {street}
-              </Text>
-              {locality ? (
-                <Text
-                  style={[styles.heroLocality, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {locality}
-                </Text>
-              ) : null}
-              {homeAgeLabel ? (
-                <Text
-                  style={[styles.heroLocality, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {homeAgeLabel}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-          <Text style={[styles.since, { color: colors.textSecondary }]}>
-            {sinceLabel}
-          </Text>
-          <View style={[styles.stats, { borderTopColor: colors.border }]}>
-            <Stat
-              value={loaded ? String(ledger.jobCount) : "—"}
-              label={ledger.jobCount === 1 ? "job" : "jobs"}
-              onPress={() => go(() => navigation.navigate("CompletionHistory"))}
             />
-            <View
-              style={[styles.statDivider, { backgroundColor: colors.border }]}
+          </Animated.View>
+
+          {recordLoaded && recordProgress.done < recordProgress.total ? (
+            <Animated.View entering={entering(section++)}>
+              <RecordChecklistCard
+                items={recordProgress.items}
+                done={recordProgress.done}
+                total={recordProgress.total}
+                onStart={startRecordItem}
+              />
+            </Animated.View>
+          ) : null}
+
+          <Animated.View entering={entering(section++)}>
+            <EmergencyQuickCard
+              facts={profile?.home_emergency}
+              home={profile?.home_systems}
+              onPress={() => navigation.navigate("EmergencyInfo")}
             />
-            <Stat
-              value={loaded ? formatMoney(yearSpend, { whole: true }) : "—"}
-              label={`spent ${year}`}
+          </Animated.View>
+
+          {headsUp.items.length > 0 ? (
+            <Animated.View entering={entering(section++)}>
+              <HeadsUpCard
+                items={headsUp.items}
+                total={headsUp.total}
+                onPressItem={openHeadsUp}
+              />
+            </Animated.View>
+          ) : null}
+
+          <Animated.View entering={entering(section++)}>
+            <RecentWorkStrip
+              completions={completions}
+              loaded={loaded}
               locked={recordLocked}
-              onPress={() => go(() => navigation.navigate("SpendLedger"))}
+              onOpenHistory={() => navigation.navigate("CompletionHistory")}
+              onUnlock={() => void history.unlock()}
+              onLogRepair={() => void openLogRepair()}
             />
-            <View
-              style={[styles.statDivider, { backgroundColor: colors.border }]}
+          </Animated.View>
+
+          <Animated.View entering={entering(section++)}>
+            <ThingsGrid
+              tiles={[
+                {
+                  icon: "cube",
+                  tint: colors.secondary,
+                  title: "Equipment",
+                  count: equipment.loaded ? equipment.items.length : null,
+                  descriptor: "Manuals, parts, warranties",
+                  onPress: () => navigation.navigate("EquipmentList"),
+                },
+                {
+                  icon: "folder-open",
+                  tint: colors.warning,
+                  title: "Documents",
+                  count: documents.loaded ? documents.items.length : null,
+                  descriptor: "Insurance, inspections, permits",
+                  locked: documentsLocked,
+                  onPress: () => navigation.navigate("DocumentVault"),
+                },
+                {
+                  icon: "color-palette",
+                  tint: GRID_TINTS.paint,
+                  title: "Paint colours",
+                  count: homeNotes.paints.length,
+                  descriptor: "Brands and codes by room",
+                  onPress: () => navigation.navigate("PaintColors"),
+                },
+                {
+                  icon: "document-text",
+                  tint: GRID_TINTS.notes,
+                  title: "House notes",
+                  count: homeNotes.notes.length,
+                  descriptor: "Wi‑Fi, codes, trash day",
+                  onPress: () => navigation.navigate("HouseNotes"),
+                },
+              ]}
             />
-            <Stat
-              value={equipment.loaded ? String(equipment.items.length) : "—"}
-              label={equipment.items.length === 1 ? "appliance" : "appliances"}
-              onPress={() => go(() => navigation.navigate("EquipmentList"))}
-            />
-          </View>
+          </Animated.View>
+
+          <Animated.View entering={entering(section++)}>
+            <RecordSection title="People" style={styles.group}>
+              <RecordRow
+                icon="call"
+                tint={colors.primary}
+                title="Pros"
+                subtitle={
+                  contacts.items.length > 0
+                    ? `${contacts.items.length} saved · tap to call`
+                    : "Plumber, electrician, and who to call"
+                }
+                locked={recordLocked}
+                onPress={() => go(() => navigation.navigate("Pros"))}
+              />
+              <RecordRow
+                icon="people"
+                tint={colors.secondary}
+                title="HomeShare"
+                subtitle={
+                  householdShared
+                    ? formatHouseholdPeople(members, user?.id)
+                    : "Share the home with everyone who lives there"
+                }
+                trailing={
+                  householdShared ? (
+                    <MemberAvatars members={members} currentUserId={user?.id} />
+                  ) : null
+                }
+                locked={recordLocked && !householdShared}
+                onPress={() => go(() => setShowHomeShare(true))}
+              />
+            </RecordSection>
+          </Animated.View>
+
+          <Animated.View entering={entering(section++)}>
+            <RecordSection
+              title="Share"
+              style={styles.group}
+              footer="A tidy history of the home for buyers, insurers, and your own files."
+            >
+              <RecordRow
+                icon="sparkles"
+                tint={colors.warning}
+                title="Year in review"
+                subtitle="Your year of upkeep, ready to share"
+                onPress={() => go(() => navigation.navigate("YearInReview"))}
+              />
+              <RecordRow
+                icon="document-text"
+                tint={colors.textSecondary}
+                title="Home history PDF"
+                subtitle="Preview and export"
+                locked={recordLocked}
+                onPress={() =>
+                  go(() => navigation.navigate("HomeSummaryPreview"))
+                }
+              />
+            </RecordSection>
+          </Animated.View>
         </View>
-
-        <RecordSection title="History">
-          <RecordRow
-            icon="time"
-            tint={TINTS.history}
-            title="Completion history"
-            subtitle={
-              ledger.jobCount > 0
-                ? `${ledger.jobCount} job${ledger.jobCount === 1 ? "" : "s"} recorded`
-                : "Every finished job, with notes and photos"
-            }
-            locked={recordLocked}
-            onPress={() => go(() => navigation.navigate("CompletionHistory"))}
-          />
-          <RecordRow
-            icon="wallet"
-            tint={TINTS.ledger}
-            title="Spend ledger"
-            subtitle={
-              ledger.hasAnyCost && !recordLocked
-                ? `${formatMoney(yearSpend)} this year`
-                : "Costs by year and category"
-            }
-            locked={recordLocked}
-            onPress={() => go(() => navigation.navigate("SpendLedger"))}
-          />
-          <RecordRow
-            icon="sparkles"
-            tint={TINTS.review}
-            title="Year in review"
-            subtitle="Your year of upkeep, ready to share"
-            onPress={() => go(() => navigation.navigate("YearInReview"))}
-          />
-        </RecordSection>
-
-        <RecordSection title="Things">
-          <RecordRow
-            icon="cube"
-            tint={TINTS.equipment}
-            title="Equipment"
-            subtitle={
-              equipment.items.length > 0
-                ? `${equipment.items.length} item${equipment.items.length === 1 ? "" : "s"} · manuals, parts, warranties`
-                : "Manuals, parts, and warranties"
-            }
-            onPress={() => go(() => navigation.navigate("EquipmentList"))}
-          />
-          <RecordRow
-            icon="folder-open"
-            tint={TINTS.documents}
-            title="Documents"
-            subtitle={
-              documents.items.length > 0
-                ? `${documents.items.length} saved · insurance, inspections, permits`
-                : "Insurance, inspections, closing papers, permits"
-            }
-            locked={documentsLocked}
-            onPress={() => go(() => navigation.navigate("DocumentVault"))}
-          />
-          <RecordRow
-            icon="color-palette"
-            tint={TINTS.paint}
-            title="Paint colours"
-            subtitle={countSubtitle(
-              homeNotes.paints.length,
-              "colour",
-              "Brands, codes, and finishes by room",
-            )}
-            onPress={() => go(() => navigation.navigate("PaintColors"))}
-          />
-          <RecordRow
-            icon="document-text"
-            tint={TINTS.notes}
-            title="House notes"
-            subtitle={countSubtitle(
-              homeNotes.notes.length,
-              "note",
-              "Wi‑Fi, codes, trash day, and quirks",
-            )}
-            onPress={() => go(() => navigation.navigate("HouseNotes"))}
-          />
-          <RecordRow
-            icon="flash"
-            tint={TINTS.emergency}
-            title="Emergency info"
-            subtitle={emergencyProgressSubtitle(
-              profile?.home_emergency,
-              profile?.home_systems,
-            )}
-            onPress={() => go(() => navigation.navigate("EmergencyInfo"))}
-          />
-        </RecordSection>
-
-        <RecordSection title="People">
-          <RecordRow
-            icon="call"
-            tint={TINTS.pros}
-            title="Pros"
-            subtitle={
-              contacts.items.length > 0
-                ? `${contacts.items.length} saved · tap to call`
-                : "Plumber, electrician, and who to call"
-            }
-            locked={recordLocked}
-            onPress={() => go(() => navigation.navigate("Pros"))}
-          />
-          <RecordRow
-            icon="people"
-            tint={TINTS.share}
-            title="HomeShare"
-            subtitle={
-              householdShared
-                ? formatHouseholdPeople(members, user?.id)
-                : "Share the home with everyone who lives there"
-            }
-            locked={recordLocked && !householdShared}
-            onPress={() => go(() => setShowHomeShare(true))}
-          />
-        </RecordSection>
-
-        <RecordSection
-          title="Share"
-          footer="A tidy history of the home for buyers, insurers, and your own files."
-        >
-          <RecordRow
-            icon="document-text"
-            tint={TINTS.pdf}
-            title="Home history PDF"
-            subtitle="Preview and export"
-            locked={recordLocked}
-            onPress={() => go(() => navigation.navigate("HomeSummaryPreview"))}
-          />
-        </RecordSection>
       </ScrollView>
 
       <HouseholdSharingModal
@@ -404,134 +421,14 @@ export function RecordHomeScreen() {
   );
 }
 
-function Stat({
-  value,
-  label,
-  onPress,
-  locked,
-}: {
-  value: string;
-  label: string;
-  onPress: () => void;
-  locked?: boolean;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.stat, pressed && { opacity: 0.6 }]}
-      accessibilityRole="button"
-      accessibilityLabel={
-        locked ? `${label}, HomeKeep Plus` : `${value} ${label}`
-      }
-    >
-      {locked ? (
-        <View style={styles.statLocked}>
-          <Ionicons name="lock-closed" size={18} color={colors.textSecondary} />
-        </View>
-      ) : (
-        <Text
-          style={[
-            styles.statValue,
-            { color: colors.text },
-            value.length >= 10
-              ? styles.statValueSmall
-              : value.length >= 8 && styles.statValueMedium,
-          ]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-      )}
-      <Text
-        style={[styles.statLabel, { color: colors.textSecondary }]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  statLocked: {
-    height: 28,
-    justifyContent: "center",
-  },
   content: {
-    paddingHorizontal: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xs,
     paddingBottom: DesignSystem.spacing.xxl,
+    gap: DesignSystem.spacing.lg,
   },
-  header: {
-    marginHorizontal: -DesignSystem.spacing.md,
-  },
-  hero: {
-    borderRadius: DesignSystem.borders.radius.xlarge,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: DesignSystem.spacing.lg,
-    marginBottom: DesignSystem.spacing.lg,
-    overflow: "hidden",
-  },
-  heroTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: DesignSystem.spacing.md,
-  },
-  heroMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  heroTitle: {
-    ...DesignSystem.typography.title2,
-  },
-  heroLocality: {
-    ...DesignSystem.typography.footnote,
-    marginTop: 2,
-  },
-  since: {
-    ...DesignSystem.typography.footnote,
-    marginTop: DesignSystem.spacing.md,
-  },
-  stats: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: DesignSystem.spacing.md,
-    paddingTop: DesignSystem.spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  stat: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: DesignSystem.spacing.xs,
-  },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
-  },
-  statValue: {
-    fontFamily: DesignSystem.fonts.displaySemiBold,
-    fontSize: 22,
-    lineHeight: 28,
-    fontVariant: ["tabular-nums"],
-  },
-  // Sized by length rather than adjustsFontSizeToFit, which iOS can collapse
-  // to a sliver when the flex column is measured before it has a width.
-  statValueMedium: {
-    fontSize: 18,
-  },
-  statValueSmall: {
-    fontSize: 15,
-  },
-  statLabel: {
-    ...DesignSystem.typography.caption,
-    marginTop: 2,
+  group: {
+    marginBottom: 0,
   },
 });

@@ -19,6 +19,13 @@ export { PriorityMark, getPriorityColor } from "./PriorityMark";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl";
 export { HeaderIconButton } from "./HeaderIconButton";
 export { TabScreenHeader, TabHeaderAction } from "./TabScreenHeader";
+export { SectionHeader } from "./SectionHeader";
+export { StatTile } from "./StatTile";
+export { IconChip } from "./IconChip";
+export { Pill, type PillTone } from "./Pill";
+export { EmptyState } from "./EmptyState";
+export { QuickAction } from "./QuickAction";
+export { TodayAlertCard } from "./TodayAlertCard";
 export {
   SearchableSelectModal,
   type SearchableOption,

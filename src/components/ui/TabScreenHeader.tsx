@@ -17,6 +17,8 @@ import { DesignSystem } from "../../theme/designSystem";
 interface TabScreenHeaderProps {
   title: string;
   subtitle?: string;
+  /** Small line above the title, e.g. today's date. */
+  eyebrow?: string;
   actions?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -28,6 +30,7 @@ interface TabScreenHeaderProps {
 export function TabScreenHeader({
   title,
   subtitle,
+  eyebrow,
   actions,
   style,
 }: TabScreenHeaderProps) {
@@ -46,6 +49,14 @@ export function TabScreenHeader({
         style,
       ]}
     >
+      {eyebrow ? (
+        <Text
+          style={[styles.eyebrow, { color: colors.textSecondary }]}
+          maxFontSizeMultiplier={1.4}
+        >
+          {eyebrow}
+        </Text>
+      ) : null}
       <View style={styles.titleRow}>
         <Text
           style={[styles.title, { color: colors.text }]}
@@ -121,6 +132,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     minHeight: DesignSystem.components.minTouchTarget,
     gap: DesignSystem.spacing.md,
+  },
+  eyebrow: {
+    ...DesignSystem.typography.footnote,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
   title: {
     ...DesignSystem.typography.title1,

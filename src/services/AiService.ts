@@ -5,6 +5,7 @@ import type { EquipmentType } from "../types/equipmentManual";
 import type { MaintenanceCategory, Priority } from "../types/maintenance";
 import type { NoteKind, PaintFinish } from "../types/homeNotes";
 import type { ContactTrade } from "../types/homeContact";
+import type { DocumentKind } from "../types/homeDocument";
 
 /** Free lifetime scans; mirrors AI_POLICY in supabase/functions/_shared/ai/quota.ts. */
 export const AI_FREE_SCAN_LIMIT = 3;
@@ -113,7 +114,31 @@ export type AssistantAction =
       where: string | null;
       howto: string | null;
     }
-  | { type: "open_emergency"; label: string };
+  | { type: "open_emergency"; label: string }
+  | {
+      type: "add_document";
+      title: string;
+      kind: DocumentKind;
+      issued_on: string | null;
+      expires_on: string | null;
+      notes: string | null;
+      equipment_id: string | null;
+      equipment_name: string | null;
+    }
+  | { type: "open_documents"; title: string | null }
+  | { type: "open_spend"; year: number | null }
+  | {
+      type: "open_equipment";
+      equipment_id: string | null;
+      equipment_name: string | null;
+    }
+  | {
+      type: "dismiss_recall";
+      recall_id: string;
+      title: string;
+      equipment_id: string | null;
+      equipment_name: string | null;
+    };
 
 export interface EquipmentDetails {
   manufacturer: string | null;

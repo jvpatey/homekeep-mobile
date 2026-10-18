@@ -3,8 +3,8 @@ import { NavigationProp, useNavigation } from "@react-navigation/native";
 import {
   AppStackParamList,
   AppTabsParamList,
-  PlanStackParamList,
   RecordStackParamList,
+  TasksStackParamList,
 } from "./types";
 
 type RecordRoute = keyof RecordStackParamList;
@@ -38,10 +38,10 @@ export function useAppNavigation() {
           } as never,
         });
       },
-      openPlan(params?: PlanStackParamList["PlanHome"]) {
+      openTasks(params?: TasksStackParamList["TasksHome"]) {
         navigation.navigate("Tabs", {
-          screen: "PlanTab",
-          params: { screen: "PlanHome", params },
+          screen: "TasksTab",
+          params: { screen: "TasksHome", params },
         });
       },
       openPlanFlow(planId?: string) {

@@ -1,1159 +1,254 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Alert, View, Pressable, Text } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppNavigation } from "../../navigation/useAppNavigation";
-import { showActionMenu } from "../../utils/actionMenu";
-import { useQuickActions } from "../../context/QuickActionsContext";
-import { CompletionExtras, MaintenanceTask } from "../../types/maintenance";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { format } from "date-fns";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useProfile } from "../../context/ProfileContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { SimpleTaskDetailModal, CreateTaskModal } from "./modals";
+import { useSubscription } from "../../context/SubscriptionContext";
+import { useTasks } from "../../context/TasksContext";
+import { useTaskActions } from "../../context/TaskActionsContext";
+import { useAppNavigation } from "../../navigation/useAppNavigation";
+import { DesignSystem } from "../../theme/designSystem";
+import { accountFirstName } from "../../utils/displayName";
+import { homeSeasonLabel, recommendInSeasonPlanId } from "../../utils/homeSeason";
+import { nextRightThingWhy } from "../../utils/nextRightThing";
+import { HomeMapZoneId } from "../../data/homeMapZones";
 import {
-  CompletionCelebration,
-  CompletionCelebrationSnapshot,
-} from "./popups";
-import { NotificationPermissionRequest, ScrollAtmosphere } from "../ui";
-import { DashboardHeader } from "./DashboardHeader";
-import { NextRightThingCard } from "./NextRightThingCard";
-import { HomeSystemMap } from "./HomeSystemMap";
-import { TasksLoadErrorBanner } from "./TasksLoadErrorBanner";
+  NotificationPermissionRequest,
+  ScrollAtmosphere,
+  TabHeaderAction,
+  TabScreenHeader,
+} from "../ui";
+import { useEnter } from "../ui/hero/heroKit";
+import { KeeperHeaderButton } from "../assistant/KeeperHeaderButton";
+import { ProfileMenu } from "./profile";
+import { AppStackParamList } from "../../navigation/types";
 import { HomeSetupModal } from "../modals/home-setup";
 import { HouseholdSharingModal } from "../modals/household-sharing/HouseholdSharingModal";
-import { PlusStatusBanner } from "../plus";
-import { useRequirePlus, useRequirePlusOrFreeAction } from "../../hooks/useRequirePlus";
-import { useSubscription } from "../../context/SubscriptionContext";
-import { useProfile } from "../../context/ProfileContext";
-import { isHomeSystemsComplete } from "../../data/maintenancePlans";
-import { DesignSystem } from "../../theme/designSystem";
-import { getGreeting } from "./utils";
-import { accountFirstName } from "../../utils/displayName";
+import { WeekendPlanPrompt, WeekendPlanStrip } from "./WeekendPlanStrip";
+import { StatusHero } from "../today/StatusHero";
+import { TodaySetupHero } from "../today/TodaySetupHero";
+import { DoThisNext } from "../today/DoThisNext";
 import {
-  buildDashboardSections,
-  countDueToday,
-} from "./dashboardSections";
-import {
-  DashboardScheduleList,
-  DashboardScheduleListRef,
-} from "./DashboardScheduleList";
-import { confirmSkipTaskOccurrence } from "../../utils/skipTaskOccurrence";
-import { confirmPauseTask } from "../../utils/pauseTask";
-import { maybeRequestReviewAfterTaskComplete } from "../../utils/requestAppReview";
-import { useHaptics, useReducedMotion } from "../../hooks";
-import {
-  recommendInSeasonPlanId,
-  homeSeasonLabel,
-} from "../../utils/homeSeason";
-import {
-  pickNextRightThing,
-  nextRightThingWhy,
-} from "../../utils/nextRightThing";
-import {
-  HomeMapZoneId,
-  getHomeMapZones,
-  taskMatchesZone,
-} from "../../data/homeMapZones";
-import { isTaskInSeason, buildWeekendPlan } from "../../utils/seasonalTasks";
-import {
-  loadWeekendPlan,
-  saveWeekendPlan,
-  clearWeekendPlan,
-  createWeekendPlanFromTasks,
-  resolveWeekendPlan,
-  markWeekendPlanItemComplete,
-  loadWeekendPlanHistory,
-  archiveWeekendPlan,
-  StoredWeekendPlan,
-  WeekendPlanHistoryEntry,
-} from "../../utils/weekendPlanStorage";
-import { CompleteTaskSheet } from "../modals/complete-task/CompleteTaskSheet";
-import { AssistantSheet } from "../assistant/AssistantSheet";
-import { usePlusFeature } from "../../lib/plusFeatures";
-import { WeekendBudgetSheet } from "./WeekendBudgetSheet";
-import { WeekendPlanStrip } from "./WeekendPlanStrip";
-import {
-  WeekendPlanCelebration,
-  WeekendPlanCelebrationSnapshot,
-} from "./WeekendPlanCelebration";
-import { WeatherAlertCard } from "./WeatherAlertCard";
-import { InspectionImportCard } from "./InspectionImportCard";
-import { CampaignPlanStrip } from "./CampaignPlanStrip";
-import {
-  computeCampaignProgress,
-  hasCelebratedCampaign,
-  markCampaignCelebrated,
-} from "../../utils/campaignProgress";
-import { MaintenanceService } from "../../services/maintenanceService";
-import { MaintenanceStatsService } from "../../services/MaintenanceStatsService";
-import type { LastCompletionMap } from "../../utils/zoneHealth";
-import { useWidgetSync } from "../../hooks/useWidgetSync";
-import { MaintenanceRoutine } from "../../types/maintenance";
-import { getAppliedPlanIds } from "../../data/maintenancePlans";
-import { WeatherService, ClimateAlert, pickTemperatureUnit } from "../../services/WeatherService";
-import {
-  buildWeatherChecklistPayloads,
-  weatherChecklistForKind,
-} from "../../data/weatherChecklists";
-import {
-  hasAppliedWeatherChecklist,
-  markWeatherChecklistApplied,
-} from "../../utils/weatherChecklistStorage";
-import { useTasks } from "../../context/TasksContext";
+  TodayAlertSlot,
+  useCampaignProgress,
+  useClimateAlert,
+} from "../today/TodayAlertSlot";
+import { RecordHighlights } from "../today/RecordHighlights";
 
-interface NewDashboardProps {
-  tasks: MaintenanceTask[];
-  overdueTasks?: MaintenanceTask[];
-  completedTasks?: MaintenanceTask[];
-  onCompleteTask: (
-    instanceId: string,
-    extras?: CompletionExtras
-  ) => Promise<{ success: boolean; error?: string }>;
-  onTaskPress?: (instanceId: string) => void;
-  onRefresh?: () => void;
-  refreshing?: boolean;
-  onBrowseMaintenancePlans?: (planId?: string) => void;
-  onSkipTaskOccurrence?: (
-    task: MaintenanceTask
-  ) => Promise<{ success: boolean; error?: string }>;
-  onPauseTask?: (
-    routineId: string
-  ) => Promise<{ success: boolean; error?: string }>;
-  tasksError?: string | null;
-  onRetryTasks?: () => void;
-}
+/** Entrance motion plays on the first Today render of each app session. */
+let enteredThisSession = false;
 
-const DASHBOARD_HEADER_ENTRANCE_KEY =
-  "@homekeep/dashboard_header_entrance_seen";
-
-export function NewDashboard({
-  tasks,
-  overdueTasks = [],
-  completedTasks = [],
-  onCompleteTask,
-  onTaskPress,
-  onRefresh,
-  refreshing = false,
-  onBrowseMaintenancePlans,
-  onSkipTaskOccurrence,
-  onPauseTask,
-  tasksError = null,
-  onRetryTasks,
-}: NewDashboardProps) {
-  const { user } = useAuth();
-  const { pendingOpen, clearPendingOpen } = useNotifications();
+export function TodayDashboard() {
   const { colors } = useTheme();
-  const { triggerMedium, triggerLight } = useHaptics();
-  const reducedMotion = useReducedMotion();
+  const { user } = useAuth();
   const { addressNeeded, homeSetupNeeded, profile } = useProfile();
-  const requirePlus = useRequirePlus();
-  const {
-    requireAccess: requirePlusOrFree,
-    consume: consumeFreeAction,
-  } = useRequirePlusOrFreeAction();
+  const { pendingOpen, clearPendingOpen } = useNotifications();
   const { isPlus, offerPaywallAfterSetup } = useSubscription();
-  const assistant = usePlusFeature("assistant");
-  const [showAssistant, setShowAssistant] = useState(false);
-  const [assistantPrompt, setAssistantPrompt] = useState<string | undefined>();
-  const pendingAskKeeperRef = useRef<MaintenanceTask | null>(null);
-  const { createTasks, loading: tasksLoading } = useTasks();
-  const sawTasksLoad = useRef(false);
-  if (tasksLoading) sawTasksLoad.current = true;
-  const insets = useSafeAreaInsets();
-  const listRef = useRef<DashboardScheduleListRef>(null);
-  const { goToTab, openPlan, openRecord } = useAppNavigation();
-  const { openLogRepair, openScheduleRepair } = useQuickActions();
+  const { upcomingTasks, overdueTasks, loading: tasksLoading } = useTasks();
+  const actions = useTaskActions();
+  const { openTasks, openPlanFlow } = useAppNavigation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const climate = useClimateAlert();
+  const campaign = useCampaignProgress();
+  const enter = useEnter();
 
-  const [celebration, setCelebration] = useState<{
-    visible: boolean;
-    snapshot: CompletionCelebrationSnapshot | null;
-  }>({ visible: false, snapshot: null });
-  const [weekendCelebration, setWeekendCelebration] = useState<{
-    visible: boolean;
-    snapshot: WeekendPlanCelebrationSnapshot | null;
-  }>({ visible: false, snapshot: null });
-  const [completingInstanceIds, setCompletingInstanceIds] = useState<
-    Set<string>
-  >(new Set());
-  const completingRef = useRef<Set<string>>(new Set());
+  const [animateIn] = useState(() => !enteredThisSession);
+  useEffect(() => {
+    enteredThisSession = true;
+  }, []);
+  const entering = (index: number) =>
+    animateIn ? enter(80 + index * 70) : undefined;
+
   const [showHomeSetupModal, setShowHomeSetupModal] = useState(false);
   // Setup asks for notifications itself; don't re-prompt in the same session.
   const [setupFinishedThisSession, setSetupFinishedThisSession] =
     useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
-  const offerPlusAfterHomeShareRef = useRef(false);
-  const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(
-    null
-  );
-  const [showTaskDetail, setShowTaskDetail] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editTaskInitial, setEditTaskInitial] =
-    useState<MaintenanceTask | null>(null);
-  const [createEquipmentId, setCreateEquipmentId] = useState<string | null>(
-    null
-  );
-  const [selectedZoneId, setSelectedZoneId] = useState<HomeMapZoneId | null>(
-    null
-  );
-  const [storedWeekendPlan, setStoredWeekendPlan] =
-    useState<StoredWeekendPlan | null>(null);
-  const [weekendHistory, setWeekendHistory] = useState<
-    WeekendPlanHistoryEntry[]
-  >([]);
-  const [showWeekendBudget, setShowWeekendBudget] = useState(false);
-  const [sheetBudget, setSheetBudget] = useState(90);
-  const [completeTarget, setCompleteTarget] = useState<MaintenanceTask | null>(
-    null
-  );
-  const [climateAlert, setClimateAlert] = useState<ClimateAlert | null>(null);
-  const [weatherChecklistApplied, setWeatherChecklistApplied] = useState(false);
-  const [applyingWeatherChecklist, setApplyingWeatherChecklist] =
-    useState(false);
-  const [activeRoutines, setActiveRoutines] = useState<MaintenanceRoutine[]>(
-    []
-  );
-  const [lastCompletion, setLastCompletion] = useState<LastCompletionMap>({});
-  const [campaignCelebrated, setCampaignCelebrated] = useState(true);
-  const pendingEditRef = useRef<MaintenanceTask | null>(null);
-  const pendingCompleteRef = useRef<MaintenanceTask | null>(null);
-  const resumeWeekendAfterDetailRef = useRef(false);
-  /** Resume weekend sheet only after celebrations finish (Modals stack above overlays). */
-  const pendingWeekendResumeRef = useRef(false);
-
-  const headerOpacity = useSharedValue(0);
-  const headerTranslateY = useSharedValue(14);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        const seen = await AsyncStorage.getItem(DASHBOARD_HEADER_ENTRANCE_KEY);
-        if (cancelled) return;
-
-        if (seen === "true" || reducedMotion) {
-          headerOpacity.value = 1;
-          headerTranslateY.value = 0;
-          return;
-        }
-
-        const duration = DesignSystem.motion.duration.fast;
-        const stagger = Math.round(DesignSystem.motion.stagger * 0.4);
-
-        headerOpacity.value = withDelay(stagger, withTiming(1, { duration }));
-        headerTranslateY.value = withDelay(
-          stagger,
-          withTiming(0, { duration })
-        );
-
-        setTimeout(() => {
-          void AsyncStorage.setItem(DASHBOARD_HEADER_ENTRANCE_KEY, "true");
-        }, stagger + duration + 80);
-      } catch {
-        if (!cancelled) {
-          headerOpacity.value = 1;
-          headerTranslateY.value = 0;
-        }
-      }
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [headerOpacity, headerTranslateY, reducedMotion]);
-
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: headerOpacity.value,
-    transform: [{ translateY: headerTranslateY.value }],
-  }));
-
-  useEffect(() => {
-    if (profile?.latitude == null || profile?.longitude == null) {
-      setClimateAlert(null);
-      setWeatherChecklistApplied(false);
-      return;
-    }
-    const unit = pickTemperatureUnit(profile.country);
-    void WeatherService.getClimateAlert(
-      profile.latitude,
-      profile.longitude,
-      unit
-    ).then(async (alert) => {
-      setClimateAlert(alert);
-      if (alert) {
-        const applied = await hasAppliedWeatherChecklist(alert.kind);
-        setWeatherChecklistApplied(applied);
-      } else {
-        setWeatherChecklistApplied(false);
-      }
-    });
-  }, [profile?.latitude, profile?.longitude, profile?.country]);
-
-  const handleAddWeatherPrepTasks = useCallback(async () => {
-    if (!climateAlert || applyingWeatherChecklist) return;
-    if (!(await requirePlusOrFree())) return;
-
-    const count = weatherChecklistForKind(climateAlert.kind).length;
-    const confirmed = await new Promise<boolean>((resolve) => {
-      Alert.alert(
-        "Add prep tasks?",
-        `Add ${count} one-time prep task${count === 1 ? "" : "s"} for this alert?`,
-        [
-          { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-          { text: "Add", onPress: () => resolve(true) },
-        ],
-        { cancelable: true, onDismiss: () => resolve(false) }
-      );
-    });
-    if (!confirmed) return;
-
-    setApplyingWeatherChecklist(true);
-    try {
-      const payloads = buildWeatherChecklistPayloads(climateAlert.kind);
-      const result = await createTasks(payloads);
-      if (!result.success) {
-        Alert.alert(
-          "Could not add tasks",
-          result.error || "Please try again."
-        );
-        return;
-      }
-      await consumeFreeAction();
-      await markWeatherChecklistApplied(climateAlert.kind);
-      setWeatherChecklistApplied(true);
-      await triggerLight();
-      onRefresh?.();
-    } finally {
-      setApplyingWeatherChecklist(false);
-    }
-  }, [
-    applyingWeatherChecklist,
-    climateAlert,
-    consumeFreeAction,
-    createTasks,
-    onRefresh,
-    requirePlusOrFree,
-    triggerLight,
-  ]);
+  const [offerPlusAfterHomeShare, setOfferPlusAfterHomeShare] = useState(false);
 
   useEffect(() => {
     if (!addressNeeded && !homeSetupNeeded) return;
-    const timer = setTimeout(() => {
-      setShowHomeSetupModal(true);
-    }, DesignSystem.motion.duration.base + 200);
+    const timer = setTimeout(
+      () => setShowHomeSetupModal(true),
+      DesignSystem.motion.duration.base + 200
+    );
     return () => clearTimeout(timer);
   }, [addressNeeded, homeSetupNeeded]);
 
   useEffect(() => {
-    let cancelled = false;
-    void Promise.all([loadWeekendPlan(), loadWeekendPlanHistory()]).then(
-      ([stored, history]) => {
-        if (cancelled) return;
-        if (stored) {
-          setStoredWeekendPlan(stored);
-          setSheetBudget(stored.budgetMinutes);
-        }
-        setWeekendHistory(history);
-      }
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (pendingOpen?.action !== "household") return;
+    setShowHouseholdModal(true);
+    clearPendingOpen();
+  }, [pendingOpen, clearPendingOpen]);
 
-  const month = new Date().getMonth();
-  const seasonalTasks = useMemo(
-    () => tasks.filter((t) => isTaskInSeason(t, month, profile?.latitude)),
-    [tasks, month, profile?.latitude]
-  );
-  const seasonalOverdue = useMemo(
-    () =>
-      overdueTasks.filter((t) =>
-        isTaskInSeason(t, month, profile?.latitude)
-      ),
-    [overdueTasks, month, profile?.latitude]
-  );
+  const {
+    seasonalTasks,
+    seasonalOverdue,
+    nextTask,
+    upkeep,
+    zones,
+    dueTodayCount,
+  } = actions;
 
-  const weekendPool = useMemo(
-    () => [...seasonalOverdue, ...seasonalTasks],
-    [seasonalOverdue, seasonalTasks]
-  );
-
-  useWidgetSync({
-    overdue: seasonalOverdue,
-    upcoming: seasonalTasks,
-    lastCompletion,
-    home: profile?.home_systems,
-    ready:
-      !tasksLoading &&
-      !tasksError &&
-      (sawTasksLoad.current || tasks.length > 0 || overdueTasks.length > 0),
+  const userName = accountFirstName({
+    authFullName: user?.user_metadata?.full_name as string | undefined,
+    profileFullName: profile?.full_name,
+    email: user?.email ?? profile?.email ?? null,
   });
-
-  const activeWeekendPlan = useMemo(
-    () => (storedWeekendPlan ? resolveWeekendPlan(storedWeekendPlan) : null),
-    [storedWeekendPlan]
-  );
-
-  useEffect(() => {
-    if (!storedWeekendPlan || !activeWeekendPlan) return;
-    if (Date.now() <= activeWeekendPlan.windowEnd.getTime()) return;
-    setStoredWeekendPlan(null);
-    void clearWeekendPlan();
-  }, [activeWeekendPlan, storedWeekendPlan]);
-
-  const openWeekendPlanner = useCallback(() => {
-    setSheetBudget(storedWeekendPlan?.budgetMinutes ?? 90);
-    setShowWeekendBudget(true);
-  }, [storedWeekendPlan]);
-
-  const dismissWeekendSheet = useCallback(() => {
-    setShowWeekendBudget(false);
-  }, []);
-
-  const startWeekendPlan = useCallback(() => {
-    const preview = buildWeekendPlan(weekendPool, sheetBudget);
-    const created = createWeekendPlanFromTasks(preview.tasks, sheetBudget);
-    if (!created) return;
-    setStoredWeekendPlan(created);
-    void saveWeekendPlan(created);
-    setShowWeekendBudget(false);
-  }, [sheetBudget, weekendPool]);
-
-  const endWeekendPlan = useCallback(() => {
-    Alert.alert(
-      "End weekend plan?",
-      "This clears your checklist. Completed jobs stay in your history only if you finish the whole list.",
-      [
-        { text: "Keep plan", style: "cancel" },
-        {
-          text: "End plan",
-          style: "destructive",
-          onPress: () => {
-            setStoredWeekendPlan(null);
-            setShowWeekendBudget(false);
-            void clearWeekendPlan();
-          },
-        },
-      ]
-    );
-  }, []);
-
-  const queueWeekendResume = useCallback(() => {
-    pendingWeekendResumeRef.current = true;
-  }, []);
-
-  const flushWeekendResume = useCallback(() => {
-    if (!pendingWeekendResumeRef.current) return;
-    pendingWeekendResumeRef.current = false;
-    setTimeout(() => setShowWeekendBudget(true), 50);
-  }, []);
-
-  const handleCloseCelebration = () => {
-    setCelebration({ visible: false, snapshot: null });
-    flushWeekendResume();
-    void maybeRequestReviewAfterTaskComplete();
-  };
-
-  const handleCloseWeekendCelebration = () => {
-    setWeekendCelebration({ visible: false, snapshot: null });
-    // Plan is finished — do not reopen the weekend sheet.
-    pendingWeekendResumeRef.current = false;
-  };
-
-  const zoneFilteredUpcoming = useMemo(() => {
-    if (!selectedZoneId) return seasonalTasks;
-    const zone = getHomeMapZones(profile?.home_systems).find(
-      (z) => z.id === selectedZoneId
-    );
-    if (!zone) return seasonalTasks;
-    return seasonalTasks.filter((t) => taskMatchesZone(t, zone));
-  }, [seasonalTasks, selectedZoneId, profile?.home_systems]);
-
-  const zoneFilteredOverdue = useMemo(() => {
-    if (!selectedZoneId) return seasonalOverdue;
-    const zone = getHomeMapZones(profile?.home_systems).find(
-      (z) => z.id === selectedZoneId
-    );
-    if (!zone) return seasonalOverdue;
-    return seasonalOverdue.filter((t) => taskMatchesZone(t, zone));
-  }, [seasonalOverdue, selectedZoneId, profile?.home_systems]);
-
-  const sections = useMemo(
-    () => buildDashboardSections(zoneFilteredUpcoming, zoneFilteredOverdue),
-    [zoneFilteredUpcoming, zoneFilteredOverdue]
-  );
-
-  const nextTask = useMemo(
-    () => pickNextRightThing(seasonalOverdue, seasonalTasks),
-    [seasonalOverdue, seasonalTasks]
-  );
-
-  const inSeasonPlanId = recommendInSeasonPlanId(month, profile?.latitude);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const [{ data }, completions] = await Promise.all([
-        MaintenanceService.getMaintenanceRoutines({ is_active: true }),
-        MaintenanceStatsService.getLastCompletionByRoutine(),
-      ]);
-      if (cancelled) return;
-      setActiveRoutines(data ?? []);
-      if (completions.data) setLastCompletion(completions.data);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tasks, overdueTasks, completedTasks, refreshing]);
-
-  const campaignProgress = useMemo(() => {
-    if (!inSeasonPlanId) return null;
-    const applied = getAppliedPlanIds(activeRoutines);
-    if (!applied.has(inSeasonPlanId)) return null;
-    return computeCampaignProgress(
-      inSeasonPlanId,
-      activeRoutines,
-      [...tasks, ...overdueTasks],
-      completedTasks
-    );
-  }, [
-    inSeasonPlanId,
-    activeRoutines,
-    tasks,
-    overdueTasks,
-    completedTasks,
-  ]);
-
-  useEffect(() => {
-    if (!campaignProgress?.planId) {
-      setCampaignCelebrated(true);
-      return;
-    }
-    let cancelled = false;
-    void hasCelebratedCampaign(campaignProgress.planId).then((done) => {
-      if (!cancelled) setCampaignCelebrated(done);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [campaignProgress?.planId]);
-
-  useEffect(() => {
-    if (!campaignProgress?.isComplete || campaignCelebrated) return;
-    void (async () => {
-      await markCampaignCelebrated(campaignProgress.planId);
-      setCampaignCelebrated(true);
-      Alert.alert(
-        `${campaignProgress.title} complete`,
-        `You finished ${campaignProgress.total} seasonal reminder${
-          campaignProgress.total === 1 ? "" : "s"
-        }. Nice work.`
-      );
-    })();
-  }, [campaignProgress, campaignCelebrated]);
-
+  const month = new Date().getMonth();
   const seasonLabel = useMemo(
     () => homeSeasonLabel(month, profile?.latitude),
     [month, profile?.latitude]
   );
+  const inSeasonPlanId = recommendInSeasonPlanId(month, profile?.latitude);
 
-  const hasScheduleTasks = sections.length > 0;
+  const isNewHome =
+    upkeep.state === "empty" &&
+    !tasksLoading &&
+    upcomingTasks.length === 0 &&
+    overdueTasks.length === 0;
 
-  const dueTodayCount = useMemo(
-    () => countDueToday([...tasks, ...overdueTasks]),
-    [tasks, overdueTasks]
-  );
+  const why = nextTask
+    ? nextRightThingWhy(nextTask, {
+        inSeasonPlanId,
+        weatherWhy:
+          climate.current &&
+          (nextTask.category === "EXTERIOR" || nextTask.category === "PLUMBING")
+            ? climate.current.label
+            : null,
+      })
+    : "";
 
-  const handleCompleteTask = useCallback(
-    async (
-      instanceId: string,
-      extras?: CompletionExtras
-    ): Promise<boolean> => {
-      if (completingRef.current.has(instanceId)) return false;
-      if (!(await requirePlusOrFree())) return false;
-
-      const completedTask =
-        tasks.find((t) => t.instance_id === instanceId) ??
-        overdueTasks.find((t) => t.instance_id === instanceId);
-
-      const remainingOverdue = overdueTasks.filter(
-        (t) => t.instance_id !== instanceId
-      );
-      const remainingUpcoming = tasks.filter(
-        (t) => t.instance_id !== instanceId
-      );
-      const remainingSeasonalOverdue = seasonalOverdue.filter(
-        (t) => t.instance_id !== instanceId
-      );
-      const remainingSeasonalUpcoming = seasonalTasks.filter(
-        (t) => t.instance_id !== instanceId
-      );
-      const nextAfter = pickNextRightThing(
-        remainingSeasonalOverdue,
-        remainingSeasonalUpcoming
-      );
-
-      const snapshot: CompletionCelebrationSnapshot | null = completedTask
-        ? {
-            title: completedTask.title,
-            category: completedTask.category,
-            estimated_duration_minutes:
-              completedTask.estimated_duration_minutes,
-            wasOverdue:
-              completedTask.is_overdue ||
-              overdueTasks.some((t) => t.instance_id === instanceId),
-            remainingOverdue: remainingOverdue.length,
-            remainingToday: countDueToday([
-              ...remainingUpcoming,
-              ...remainingOverdue,
-            ]),
-            nextTitle: nextAfter?.title,
-          }
-        : null;
-
-      completingRef.current.add(instanceId);
-      setCompletingInstanceIds(new Set(completingRef.current));
-      await triggerMedium();
-
-      try {
-        const result = await onCompleteTask(instanceId, extras);
-        if (result.success) {
-          await consumeFreeAction();
-          setShowTaskDetail(false);
-          setSelectedTask(null);
-
-          const updatedPlan = await markWeekendPlanItemComplete(instanceId);
-          if (updatedPlan) {
-            const resolved = resolveWeekendPlan(updatedPlan);
-            if (resolved.isComplete) {
-              const entry = await archiveWeekendPlan(updatedPlan);
-              const history = await loadWeekendPlanHistory();
-              setStoredWeekendPlan(null);
-              setWeekendHistory(history);
-              resumeWeekendAfterDetailRef.current = false;
-              pendingWeekendResumeRef.current = false;
-              setShowWeekendBudget(false);
-              setWeekendCelebration({
-                visible: true,
-                snapshot: {
-                  taskCount: entry.taskCount,
-                  totalMinutes: entry.totalMinutes,
-                  titles: entry.titles,
-                  history,
-                },
-              });
-              return true;
-            }
-            setStoredWeekendPlan(updatedPlan);
-          }
-
-          if (resumeWeekendAfterDetailRef.current) {
-            resumeWeekendAfterDetailRef.current = false;
-            queueWeekendResume();
-          }
-          setCelebration({ visible: true, snapshot });
-          return true;
-        }
-        Alert.alert(
-          "Could not complete",
-          result.error || "Failed to complete the task. Please try again."
-        );
-        return false;
-      } catch (error) {
-        console.error("Error completing task:", error);
-        Alert.alert(
-          "Could not complete",
-          "An unexpected error occurred. Please try again."
-        );
-        return false;
-      } finally {
-        completingRef.current.delete(instanceId);
-        setCompletingInstanceIds(new Set(completingRef.current));
-      }
-    },
-    [
-      onCompleteTask,
-      overdueTasks,
-      queueWeekendResume,
-      requirePlusOrFree,
-      consumeFreeAction,
-      seasonalOverdue,
-      seasonalTasks,
-      tasks,
-      triggerMedium,
-    ]
-  );
-
-  const handleSkipOccurrence = useCallback(
-    async (
-      task: MaintenanceTask,
-      closeSwipe?: () => void
-    ): Promise<boolean> => {
-      if (!onSkipTaskOccurrence) {
-        closeSwipe?.();
-        return false;
-      }
-      if (!(await requirePlus())) {
-        closeSwipe?.();
-        return false;
-      }
-
-      const confirmed = await confirmSkipTaskOccurrence(task);
-      if (!confirmed) {
-        closeSwipe?.();
-        return false;
-      }
-
-      await triggerMedium();
-      const result = await onSkipTaskOccurrence(task);
-      closeSwipe?.();
-
-      if (result.success) {
-        await triggerLight();
-        if (
-          selectedTask?.instance_id === task.instance_id &&
-          showTaskDetail
-        ) {
-          setShowTaskDetail(false);
-          setSelectedTask(null);
-        }
-        return true;
-      }
-
-      Alert.alert(
-        "Skip Failed",
-        result.error || "Failed to skip this occurrence. Please try again."
-      );
-      return false;
-    },
-    [
-      onSkipTaskOccurrence,
-      requirePlus,
-      triggerMedium,
-      triggerLight,
-      selectedTask,
-      showTaskDetail,
-    ]
-  );
-
-  const handlePauseTask = useCallback(
-    async (
-      task: MaintenanceTask,
-      closeSwipe?: () => void
-    ): Promise<boolean> => {
-      if (!onPauseTask) {
-        closeSwipe?.();
-        return false;
-      }
-      if (!(await requirePlus())) {
-        closeSwipe?.();
-        return false;
-      }
-
-      const confirmed = await confirmPauseTask(task);
-      if (!confirmed) {
-        closeSwipe?.();
-        return false;
-      }
-
-      await triggerMedium();
-      const result = await onPauseTask(task.id);
-      closeSwipe?.();
-
-      if (result.success) {
-        await triggerLight();
-        if (
-          selectedTask?.instance_id === task.instance_id &&
-          showTaskDetail
-        ) {
-          setShowTaskDetail(false);
-          setSelectedTask(null);
-        }
-        return true;
-      }
-
-      Alert.alert(
-        "Pause Failed",
-        result.error || "Failed to pause this reminder. Please try again."
-      );
-      return false;
-    },
-    [
-      onPauseTask,
-      requirePlus,
-      triggerMedium,
-      triggerLight,
-      selectedTask,
-      showTaskDetail,
-    ]
-  );
-
-  const handleTaskPress = (instanceId: string) => {
-    const task =
-      tasks.find((t) => t.instance_id === instanceId) ??
-      overdueTasks.find((t) => t.instance_id === instanceId);
-    if (task) {
-      setSelectedTask(task);
-      setShowTaskDetail(true);
-    }
-    onTaskPress?.(instanceId);
-  };
-
-  useEffect(() => {
-    if (!pendingOpen) return;
-
-    if (pendingOpen.action === "recall" && pendingOpen.equipmentId) {
-      openRecord("EquipmentDetail", { equipmentId: pendingOpen.equipmentId });
-      clearPendingOpen();
-      return;
-    }
-
-    goToTab("HomeTab");
-
-    if (pendingOpen.action === "household") {
-      setShowHouseholdModal(true);
-      clearPendingOpen();
-      return;
-    }
-
-    if (pendingOpen.instanceId) {
-      const task =
-        tasks.find((t) => t.instance_id === pendingOpen.instanceId) ??
-        overdueTasks.find((t) => t.instance_id === pendingOpen.instanceId);
-      if (task) {
-        setSelectedTask(task);
-        setShowTaskDetail(true);
-        clearPendingOpen();
-        return;
-      }
-      if (tasks.length > 0 || overdueTasks.length > 0) {
-        clearPendingOpen();
-      }
-      return;
-    }
-
-    clearPendingOpen();
-  }, [clearPendingOpen, goToTab, openRecord, overdueTasks, pendingOpen, tasks]);
-
-  const handleTaskCreated = () => {
-    setShowCreateModal(false);
-    setEditTaskInitial(null);
-    onRefresh?.();
-  };
-
-  const openCreateModal = async () => {
-    if (!(await requirePlusOrFree())) return;
-    setEditTaskInitial(null);
-    setCreateEquipmentId(null);
-    setShowCreateModal(true);
-  };
-
-  const openEditModal = async (task: MaintenanceTask) => {
-    if (!(await requirePlus())) return;
-    setCreateEquipmentId(null);
-    setEditTaskInitial(task);
-    setShowCreateModal(true);
-  };
-
-  const handleStatusChipPress = useCallback(
+  const handleStatusChip = useCallback(
     (kind: "overdue" | "today") => {
-      if (kind === "overdue") {
-        if (seasonalOverdue.length === 1) {
-          setSelectedTask(seasonalOverdue[0]);
-          setShowTaskDetail(true);
-          return;
-        }
-        listRef.current?.scrollToSection("overdue");
-        return;
-      }
-
       const today = new Date().toDateString();
-      const dueTodayTasks = [...tasks, ...overdueTasks].filter(
-        (t) =>
-          !t.is_completed && new Date(t.due_date).toDateString() === today
-      );
-      if (dueTodayTasks.length === 1) {
-        setSelectedTask(dueTodayTasks[0]);
-        setShowTaskDetail(true);
+      const matching =
+        kind === "overdue"
+          ? seasonalOverdue
+          : [...seasonalOverdue, ...seasonalTasks].filter(
+              (t) =>
+                !t.is_completed &&
+                new Date(t.due_date).toDateString() === today
+            );
+      if (matching.length === 1) {
+        actions.openTask(matching[0]);
         return;
       }
-      listRef.current?.scrollToSection("__today__");
+      openTasks({ segment: "schedule", focus: kind });
     },
-    [overdueTasks, seasonalOverdue, tasks]
+    [actions, openTasks, seasonalOverdue, seasonalTasks]
   );
 
-  const contentPaddingBottom = DesignSystem.spacing.xxl;
-
-  const openAddMenu = () => {
-    showActionMenu({
-      options: [
-        {
-          label: "Add a reminder",
-          icon: "add-circle-outline",
-          onPress: () => void openCreateModal(),
-        },
-        {
-          label: "Schedule a repair",
-          icon: "construct-outline",
-          onPress: () => void openScheduleRepair(),
-        },
-        {
-          label: "Log a repair",
-          icon: "hammer-outline",
-          onPress: () => void openLogRepair(),
-        },
-        {
-          label: "Browse task library",
-          icon: "library-outline",
-          onPress: () => openPlan({ segment: "library" }),
-        },
-      ],
-    });
-  };
-
-  const listHeader = (
-    <>
-      <ScrollAtmosphere />
-      <DashboardHeader
-        userName={accountFirstName({
-          authFullName: user?.user_metadata?.full_name as string | undefined,
-          profileFullName: profile?.full_name,
-          email: user?.email ?? profile?.email ?? null,
-        })}
-        greeting={getGreeting()}
-        overdueCount={seasonalOverdue.length}
-        dueTodayCount={dueTodayCount}
-        onOpenAddressEditor={() => setShowHomeSetupModal(true)}
-        onAddPress={openAddMenu}
-        onAskPress={() => {
-          void assistant.unlock().then((ok) => {
-            if (ok) setShowAssistant(true);
-          });
-        }}
-        onStatusChipPress={handleStatusChipPress}
-        animatedStyle={headerAnimatedStyle}
-        seasonLabel={seasonLabel}
-      />
-      <PlusStatusBanner />
-      {climateAlert && !weatherChecklistApplied ? (
-        <WeatherAlertCard
-          alert={climateAlert}
-          applying={applyingWeatherChecklist}
-          onAddPrepTasks={() => {
-            void handleAddWeatherPrepTasks();
-          }}
-        />
-      ) : null}
-      <InspectionImportCard />
-      {campaignProgress ? (
-        <CampaignPlanStrip
-          progress={campaignProgress}
-          onPress={() => onBrowseMaintenancePlans?.(campaignProgress.planId)}
-        />
-      ) : null}
-      <HomeSystemMap
-        overdueTasks={seasonalOverdue}
-        upcomingTasks={seasonalTasks}
-        lastCompletion={lastCompletion}
-        selectedZoneId={selectedZoneId}
-        onSelectZone={setSelectedZoneId}
-        onSetupHome={() => setShowHomeSetupModal(true)}
-        weatherOverlay={climateAlert?.kind ?? null}
-        showPins={isHomeSystemsComplete(profile?.home_systems)}
-        onPinPress={() => openRecord("EmergencyInfo")}
-      />
-      {nextTask ? (
-        <NextRightThingCard
-          task={nextTask}
-          why={nextRightThingWhy(nextTask, {
-            inSeasonPlanId,
-            weatherWhy:
-              climateAlert &&
-              (nextTask.category === "EXTERIOR" ||
-                nextTask.category === "PLUMBING")
-                ? climateAlert.label
-                : null,
-          })}
-          onPress={() => {
-            setSelectedTask(nextTask);
-            setShowTaskDetail(true);
-          }}
-        />
-      ) : null}
-      {activeWeekendPlan ? (
-        <WeekendPlanStrip
-          plan={activeWeekendPlan}
-          onPress={openWeekendPlanner}
-          onEndPlan={endWeekendPlan}
-        />
-      ) : (
-        <Pressable
-          onPress={openWeekendPlanner}
-          style={{
-            alignSelf: "center",
-            marginBottom: DesignSystem.spacing.md,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Plan a weekend with a time budget"
-        >
-          <Text style={{ color: colors.primary, fontWeight: "600" }}>
-            I have some time this weekend
-          </Text>
-        </Pressable>
-      )}
-      {tasksError && onRetryTasks ? (
-        <TasksLoadErrorBanner message={tasksError} onRetry={onRetryTasks} />
-      ) : null}
-    </>
+  const handleZonePress = useCallback(
+    (zone: HomeMapZoneId) => openTasks({ segment: "schedule", zone }),
+    [openTasks]
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <DashboardScheduleList
-        ref={listRef}
-        sections={sections}
-        ListHeaderComponent={listHeader}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
-        onCompleteTask={handleCompleteTask}
-        completingInstanceIds={completingInstanceIds}
-        onTaskPress={handleTaskPress}
-        onSkipOccurrence={
-          onSkipTaskOccurrence
-            ? (task, closeSwipe) => {
-                void handleSkipOccurrence(task, closeSwipe);
-              }
-            : undefined
+    <>
+      <ScrollView
+        style={[styles.flex, { backgroundColor: colors.background }]}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={actions.refreshing}
+            onRefresh={() => void actions.refresh()}
+            tintColor={colors.primary}
+          />
         }
-        onPauseTask={
-          onPauseTask
-            ? (task, closeSwipe) => {
-                void handlePauseTask(task, closeSwipe);
-              }
-            : undefined
-        }
-        onAddTask={openCreateModal}
-        onBrowseMaintenancePlans={onBrowseMaintenancePlans}
-        homeSetupIncomplete={!isHomeSystemsComplete(profile?.home_systems)}
-        contentPaddingBottom={contentPaddingBottom}
-      />
-
-      {selectedTask ? (
-        <SimpleTaskDetailModal
-          task={selectedTask}
-          visible={showTaskDetail}
-          onClose={() => setShowTaskDetail(false)}
-          onDismissed={() => {
-            setSelectedTask(null);
-            const toEdit = pendingEditRef.current;
-            const toComplete = pendingCompleteRef.current;
-            pendingEditRef.current = null;
-            pendingCompleteRef.current = null;
-            if (toEdit) {
-              setTimeout(() => {
-                void openEditModal(toEdit);
-              }, 50);
-              return;
-            }
-            if (toComplete) {
-              setTimeout(() => setCompleteTarget(toComplete), 50);
-              return;
-            }
-            const toAsk = pendingAskKeeperRef.current;
-            pendingAskKeeperRef.current = null;
-            if (toAsk) {
-              setTimeout(() => {
-                void assistant.unlock().then((ok) => {
-                  if (!ok) return;
-                  setAssistantPrompt(
-                    `How do I do "${toAsk.title}"? Walk me through it step by step for my home.`
-                  );
-                  setShowAssistant(true);
-                });
-              }, 50);
-              return;
-            }
-            // Resume weekend planner after browsing a task (avoid nested Modals).
-            if (resumeWeekendAfterDetailRef.current) {
-              resumeWeekendAfterDetailRef.current = false;
-              setTimeout(() => setShowWeekendBudget(true), 50);
-            }
-          }}
-          onComplete={handleCompleteTask}
-          onStartComplete={(task) => {
-            pendingCompleteRef.current = task;
-            setShowTaskDetail(false);
-          }}
-          onEdit={(task) => {
-            pendingEditRef.current = task;
-            setShowTaskDetail(false);
-          }}
-          onAskKeeper={(task) => {
-            pendingAskKeeperRef.current = task;
-            setShowTaskDetail(false);
-          }}
-          onSkipOccurrence={
-            onSkipTaskOccurrence
-              ? (task) => handleSkipOccurrence(task)
-              : undefined
+      >
+        <ScrollAtmosphere />
+        <TabScreenHeader
+          eyebrow={format(new Date(), "EEEE, MMM d")}
+          title="Today"
+          actions={
+            <>
+              <KeeperHeaderButton />
+              <TabHeaderAction
+                icon="add"
+                accessibilityLabel="Add"
+                accessibilityHint="Add a reminder, schedule or log a repair, or browse the library"
+                onPress={actions.openAddMenu}
+              />
+              <ProfileMenu navigation={navigation} />
+            </>
           }
-          onModified={onRefresh}
         />
-      ) : null}
 
-      {showCreateModal && (
-        <CreateTaskModal
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditTaskInitial(null);
-            setCreateEquipmentId(null);
-            if (resumeWeekendAfterDetailRef.current) {
-              resumeWeekendAfterDetailRef.current = false;
-              setTimeout(() => setShowWeekendBudget(true), 50);
-            }
-          }}
-          onTaskCreated={handleTaskCreated}
-          initialValues={
-            editTaskInitial
-              ? {
-                  id: editTaskInitial.id,
-                  title: editTaskInitial.title,
-                  category: editTaskInitial.category,
-                  interval_days: editTaskInitial.interval_days,
-                  startDate: new Date(editTaskInitial.start_date),
-                  priority: editTaskInitial.priority,
-                  estimated_duration_minutes:
-                    editTaskInitial.estimated_duration_minutes,
-                  description: editTaskInitial.description,
-                  equipment_id: editTaskInitial.equipment_id,
-                }
-              : createEquipmentId
-                ? { equipment_id: createEquipmentId }
-                : undefined
-          }
-          isEdit={!!editTaskInitial}
-        />
-      )}
+        <View style={styles.content}>
+          <Animated.View entering={entering(0)}>
+            {isNewHome ? (
+              <TodaySetupHero
+                userName={userName}
+                needsHomeSetup={homeSetupNeeded || addressNeeded}
+                onSetUpHome={() => setShowHomeSetupModal(true)}
+                onBrowseLibrary={() => openTasks({ segment: "library" })}
+              />
+            ) : (
+              <StatusHero
+                userName={userName}
+                upkeep={upkeep}
+                trendDelta={actions.upkeepTrend}
+                zones={zones}
+                seasonLabel={seasonLabel}
+                overdueCount={seasonalOverdue.length}
+                dueTodayCount={dueTodayCount}
+                onZonePress={handleZonePress}
+                onStatusChipPress={handleStatusChip}
+                onAddressPress={() => setShowHomeSetupModal(true)}
+              />
+            )}
+          </Animated.View>
 
-      <CompletionCelebration
-        isVisible={celebration.visible}
-        snapshot={celebration.snapshot}
-        onClose={handleCloseCelebration}
-      />
+          <Animated.View entering={entering(1)}>
+            <TodayAlertSlot
+              climate={climate}
+              campaign={campaign}
+              onOpenCampaign={openPlanFlow}
+            />
+          </Animated.View>
 
-      <WeekendPlanCelebration
-        isVisible={weekendCelebration.visible}
-        snapshot={weekendCelebration.snapshot}
-        onClose={handleCloseWeekendCelebration}
-      />
+          {!isNewHome ? (
+            <Animated.View entering={entering(2)}>
+              <DoThisNext
+                nextTask={nextTask}
+                why={why}
+                overdue={seasonalOverdue}
+                upcoming={seasonalTasks}
+                completingInstanceIds={actions.completingInstanceIds}
+                onOpenTask={actions.openTask}
+                onMarkDone={actions.markDone}
+                onSeeAll={() => openTasks({ segment: "schedule" })}
+              />
+            </Animated.View>
+          ) : null}
+
+          {!isNewHome ? (
+            <Animated.View entering={entering(3)}>
+              {actions.activeWeekendPlan ? (
+                <WeekendPlanStrip
+                  plan={actions.activeWeekendPlan}
+                  onPress={actions.openWeekendPlanner}
+                  onEndPlan={actions.endWeekendPlan}
+                />
+              ) : (
+                <WeekendPlanPrompt onPress={actions.openWeekendPlanner} />
+              )}
+            </Animated.View>
+          ) : null}
+
+          <Animated.View entering={entering(4)}>
+            <RecordHighlights />
+          </Animated.View>
+        </View>
+      </ScrollView>
 
       <HomeSetupModal
         visible={showHomeSetupModal}
@@ -1163,7 +258,7 @@ export function NewDashboard({
         }}
         onFirstRunFinished={(action) => {
           if (action === "invite" || action === "join") {
-            offerPlusAfterHomeShareRef.current = !isPlus;
+            setOfferPlusAfterHomeShare(!isPlus);
             setShowHouseholdModal(true);
             return;
           }
@@ -1177,69 +272,12 @@ export function NewDashboard({
         visible={showHouseholdModal}
         onClose={() => {
           setShowHouseholdModal(false);
-          if (offerPlusAfterHomeShareRef.current) {
-            offerPlusAfterHomeShareRef.current = false;
+          if (offerPlusAfterHomeShare) {
+            setOfferPlusAfterHomeShare(false);
             setTimeout(() => offerPaywallAfterSetup(), 320);
           }
         }}
       />
-
-      {completeTarget ? (
-        <CompleteTaskSheet
-          visible
-          task={completeTarget}
-          onClose={() => {
-            setCompleteTarget(null);
-            // Cancelled without completing — reopen plan now.
-            // Successful completes queue resume until celebration closes.
-            if (resumeWeekendAfterDetailRef.current) {
-              resumeWeekendAfterDetailRef.current = false;
-              setTimeout(() => setShowWeekendBudget(true), 50);
-            }
-          }}
-          onSubmit={handleCompleteTask}
-        />
-      ) : null}
-
-      <AssistantSheet
-        visible={showAssistant}
-        onClose={() => {
-          setShowAssistant(false);
-          setAssistantPrompt(undefined);
-        }}
-        initialPrompt={assistantPrompt}
-      />
-
-      {showWeekendBudget ? (
-        <WeekendBudgetSheet
-          visible
-          tasks={weekendPool}
-          budgetMinutes={sheetBudget}
-          onBudgetChange={setSheetBudget}
-          activePlan={activeWeekendPlan}
-          history={weekendHistory}
-          onClose={dismissWeekendSheet}
-          onStartPlan={startWeekendPlan}
-          onEndPlan={endWeekendPlan}
-          onPickTask={(instanceId) => {
-            const task =
-              weekendPool.find((t) => t.instance_id === instanceId) ??
-              tasks.find((t) => t.instance_id === instanceId) ??
-              overdueTasks.find((t) => t.instance_id === instanceId);
-            if (!task) {
-              Alert.alert(
-                "Job unavailable",
-                "This job is no longer on your schedule."
-              );
-              return;
-            }
-            resumeWeekendAfterDetailRef.current = true;
-            setShowWeekendBudget(false);
-            setSelectedTask(task);
-            setShowTaskDetail(true);
-          }}
-        />
-      ) : null}
 
       <NotificationPermissionRequest
         suppressed={
@@ -1250,6 +288,18 @@ export function NewDashboard({
           setupFinishedThisSession
         }
       />
-    </View>
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingTop: DesignSystem.spacing.xs,
+    paddingBottom: DesignSystem.spacing.xxl,
+    gap: DesignSystem.spacing.lg,
+  },
+});
