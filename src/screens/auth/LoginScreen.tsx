@@ -1,15 +1,21 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { AuthScaffold, OAuthButtons } from "../../components/auth";
 import { Button, TextField, TextLink } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { EMAIL_NOT_CONFIRMED } from "../../utils/isEmailVerified";
+import { offerBiometricLogin } from "../../utils/offerBiometricLogin";
+import {
+  getBiometricLabel,
+  hasBiometricLoginEnabled,
+  isBiometricAvailable,
+} from "../../services/biometricAuth";
 import { useAuthForm, useAuthHaptics } from "./hooks";
 import { DesignSystem } from "../../theme/designSystem";
 
 export function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithBiometrics } = useAuth();
   const navigation = useNavigation();
   const { triggerMedium, triggerError, triggerSuccess, triggerLight } =
     useAuthHaptics();
@@ -22,6 +28,29 @@ export function LoginScreen() {
   const email = getFieldValue("email");
   const password = getFieldValue("password");
   const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [biometricReady, setBiometricReady] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("Face ID");
+
+  const refreshBiometricAvailability = useCallback(async () => {
+    try {
+      const [available, enabled, label] = await Promise.all([
+        isBiometricAvailable(),
+        hasBiometricLoginEnabled(),
+        getBiometricLabel(),
+      ]);
+      setBiometricReady(available && enabled);
+      setBiometricLabel(label);
+    } catch {
+      setBiometricReady(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshBiometricAvailability();
+    }, [refreshBiometricAvailability])
+  );
 
   const handleSignIn = async () => {
     triggerMedium();
@@ -29,7 +58,7 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
+      const { data, error } = await signIn(email, password);
       if (error?.code === EMAIL_NOT_CONFIRMED) {
         triggerError();
         (navigation as any).navigate("CodeVerification", {
@@ -43,6 +72,9 @@ export function LoginScreen() {
         Alert.alert("Sign In Error", error.message);
       } else {
         triggerSuccess();
+        if (data?.session) {
+          void offerBiometricLogin(data.session);
+        }
       }
     } catch {
       triggerError();
@@ -52,10 +84,33 @@ export function LoginScreen() {
     }
   };
 
+  const handleBiometricSignIn = async () => {
+    if (biometricLoading || loading) return;
+    triggerMedium();
+    setBiometricLoading(true);
+    try {
+      const { error } = await signInWithBiometrics();
+      if (error) {
+        triggerError();
+        Alert.alert("Sign In Error", error.message);
+        void refreshBiometricAvailability();
+      } else {
+        triggerSuccess();
+      }
+    } catch {
+      triggerError();
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
   const handleBackPress = () => {
     triggerLight();
     navigation.goBack();
   };
+
+  const busy = loading || biometricLoading;
 
   return (
     <AuthScaffold
@@ -73,6 +128,21 @@ export function LoginScreen() {
         />
       }
     >
+      {biometricReady ? (
+        <View style={{ marginBottom: DesignSystem.spacing.md }}>
+          <Button
+            label={
+              biometricLoading
+                ? `Signing in with ${biometricLabel}...`
+                : `Sign in with ${biometricLabel}`
+            }
+            onPress={handleBiometricSignIn}
+            loading={biometricLoading}
+            disabled={busy}
+          />
+        </View>
+      ) : null}
+
       <TextField
         label="Email"
         value={email}
@@ -108,11 +178,12 @@ export function LoginScreen() {
         label={loading ? "Signing in..." : "Sign in"}
         onPress={handleSignIn}
         loading={loading}
-        disabled={loading}
+        disabled={busy}
+        variant={biometricReady ? "secondary" : "primary"}
       />
 
       <View style={{ marginTop: DesignSystem.spacing.md }}>
-        <OAuthButtons />
+        <OAuthButtons disabled={busy} />
       </View>
     </AuthScaffold>
   );

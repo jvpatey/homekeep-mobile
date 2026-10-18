@@ -37,6 +37,7 @@
           }
         ],
         "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "HomeKeep uses Face ID so you can sign in quickly and securely.",
         "LSApplicationQueriesSchemes": [
           "https",
           "http"
@@ -214,7 +215,9 @@
         }
       ],
       "expo-status-bar",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "expo-secure-store",
+      "expo-local-authentication"
     ],
     "extra": {
       "eas": {

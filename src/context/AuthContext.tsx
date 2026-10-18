@@ -8,9 +8,12 @@ import React, {
 } from "react";
 import { Session, User, SupabaseClient, AuthChangeEvent } from "@supabase/supabase-js";
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 import { Alert, AppState } from "react-native";
 import { MaintenanceService } from "../services/maintenanceService";
 import { supabase, hasValidCredentials } from "../lib/supabase";
+import { getAuthCallbackRedirect } from "../lib/authRedirect";
 import { ensureAuthSession } from "../utils/ensureAuthSession";
 import {
   isInvalidSessionError,
@@ -22,8 +25,57 @@ import {
   EMAIL_NOT_CONFIRMED,
   isEmailVerified,
 } from "../utils/isEmailVerified";
+import {
+  clearBiometricLogin,
+  enableBiometricLogin,
+  getBiometricSession,
+  hasBiometricLoginEnabled,
+  authenticateForBiometricLogin,
+  getBiometricLabel,
+  isBiometricAvailable,
+  updateBiometricSession,
+} from "../services/biometricAuth";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export { supabase } from "../lib/supabase";
+
+function parseOAuthCallbackParams(url: string): {
+  code?: string;
+  access_token?: string;
+  refresh_token?: string;
+  error?: string;
+  error_description?: string;
+} {
+  const hashIndex = url.indexOf("#");
+  const queryIndex = url.indexOf("?");
+  const params = new URLSearchParams();
+
+  if (queryIndex >= 0) {
+    const query = url
+      .slice(queryIndex + 1, hashIndex >= 0 ? hashIndex : undefined)
+      .split("&");
+    for (const part of query) {
+      const [k, v] = part.split("=");
+      if (k) params.set(decodeURIComponent(k), decodeURIComponent(v ?? ""));
+    }
+  }
+  if (hashIndex >= 0) {
+    const hash = url.slice(hashIndex + 1).split("&");
+    for (const part of hash) {
+      const [k, v] = part.split("=");
+      if (k) params.set(decodeURIComponent(k), decodeURIComponent(v ?? ""));
+    }
+  }
+
+  return {
+    code: params.get("code") ?? undefined,
+    access_token: params.get("access_token") ?? undefined,
+    refresh_token: params.get("refresh_token") ?? undefined,
+    error: params.get("error") ?? undefined,
+    error_description: params.get("error_description") ?? undefined,
+  };
+}
 
 interface AuthContextType {
   user: User | null;
@@ -42,6 +94,10 @@ interface AuthContextType {
     fullName: string
   ) => Promise<{ data: any; error: any }>;
   signInWithApple: () => Promise<{ data: any; error: any }>;
+  signInWithGoogle: () => Promise<{ data: any; error: any }>;
+  signInWithBiometrics: () => Promise<{ data: any; error: any }>;
+  enableBiometricSignIn: () => Promise<{ success: boolean; error?: string }>;
+  disableBiometricSignIn: () => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<{
     success: boolean;
@@ -199,6 +255,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       if (event === "TOKEN_REFRESHED") {
+        void updateBiometricSession(nextSession).catch(() => {});
         return;
       }
 
@@ -455,6 +512,198 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const redirectTo = getAuthCallbackRedirect();
+      // Log in dev so the exact URI can be allow-listed in Supabase.
+      if (__DEV__) {
+        console.log(
+          "Google OAuth redirect:",
+          redirectTo,
+          "(also try)",
+          makeRedirectUri({ scheme: "homekeep" })
+        );
+      }
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          queryParams: {
+            prompt: "select_account",
+          },
+        },
+      });
+
+      if (error) {
+        return { data: null, error };
+      }
+      if (!data?.url) {
+        return {
+          data: null,
+          error: { message: "No Google sign-in URL returned" },
+        };
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectTo,
+        { showInRecents: true }
+      );
+
+      if (result.type === "cancel" || result.type === "dismiss") {
+        return { data: null, error: null };
+      }
+      if (result.type !== "success" || !result.url) {
+        return {
+          data: null,
+          error: { message: "Google sign-in did not complete" },
+        };
+      }
+
+      const params = parseOAuthCallbackParams(result.url);
+      if (params.error) {
+        return {
+          data: null,
+          error: {
+            message:
+              params.error_description?.replace(/\+/g, " ") ||
+              params.error ||
+              "Google sign-in failed",
+          },
+        };
+      }
+
+      if (params.code) {
+        const exchanged = await supabase.auth.exchangeCodeForSession(
+          params.code
+        );
+        return { data: exchanged.data, error: exchanged.error };
+      }
+
+      if (params.access_token && params.refresh_token) {
+        const restored = await supabase.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        });
+        return { data: restored.data, error: restored.error };
+      }
+
+      return {
+        data: null,
+        error: {
+          message:
+            "Could not complete Google sign-in. Ensure homekeep://auth/callback is allow-listed in Supabase Auth redirect URLs.",
+        },
+      };
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to sign in with Google",
+        },
+      };
+    }
+  };
+
+  const signInWithBiometrics = async () => {
+    if (!supabase) {
+      return { data: null, error: { message: "Supabase not configured" } };
+    }
+
+    try {
+      const enabled = await hasBiometricLoginEnabled();
+      if (!enabled) {
+        return {
+          data: null,
+          error: { message: "Biometric sign-in is not enabled." },
+        };
+      }
+
+      const available = await isBiometricAvailable();
+      if (!available) {
+        return {
+          data: null,
+          error: {
+            message: "Biometric authentication is not available on this device.",
+          },
+        };
+      }
+
+      const label = await getBiometricLabel();
+      const ok = await authenticateForBiometricLogin(`Sign in with ${label}`);
+      if (!ok) {
+        return { data: null, error: null };
+      }
+
+      const vault = await getBiometricSession();
+      if (!vault) {
+        await clearBiometricLogin();
+        return {
+          data: null,
+          error: {
+            message: `${label} sign-in is no longer available. Please sign in again.`,
+          },
+        };
+      }
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: vault.access_token,
+        refresh_token: vault.refresh_token,
+      });
+
+      if (error || !data.session) {
+        await clearBiometricLogin();
+        return {
+          data: null,
+          error: {
+            message: `${label} sign-in expired. Please sign in again with your password, Apple, or Google.`,
+          },
+        };
+      }
+
+      // Keep vault tokens current after refresh/rotation (no second prompt).
+      try {
+        await updateBiometricSession(data.session);
+      } catch {
+        // Non-fatal: session is already restored
+      }
+
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Biometric sign-in error:", error);
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Biometric sign-in failed",
+        },
+      };
+    }
+  };
+
+  const enableBiometricSignIn = async () => {
+    if (!session) {
+      return { success: false, error: "Not signed in" };
+    }
+    return enableBiometricLogin(session);
+  };
+
+  const disableBiometricSignIn = async () => {
+    await clearBiometricLogin();
+  };
+
   // signOut function for the signOut on the home screen
   const signOut = async () => {
     if (!supabase) {
@@ -494,8 +743,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       await logOutPurchases();
 
-      // Sign out from Supabase auth
-      const { error } = await supabase.auth.signOut();
+      // Keep refresh token valid when Face ID login is enabled (local sign-out only).
+      const biometricEnabled = await hasBiometricLoginEnabled();
+      const { error } = await supabase.auth.signOut(
+        biometricEnabled ? { scope: "local" } : undefined
+      );
       if (error) {
         // If session is already missing, manually clear state to update UI
         if (isInvalidSessionError(error)) {
@@ -529,6 +781,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await MaintenanceService.deleteUserAccount();
       if (result.success) {
         console.log("Account deleted successfully, signing out");
+        await clearBiometricLogin();
         await logOutPurchases();
         // Sign out the user after successful deletion
         const { error } = await supabase.auth.signOut();
@@ -632,6 +885,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signIn,
     signUp,
     signInWithApple,
+    signInWithGoogle,
+    signInWithBiometrics,
+    enableBiometricSignIn,
+    disableBiometricSignIn,
     signOut,
     deleteAccount,
     updateUserFullName,

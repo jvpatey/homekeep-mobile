@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
@@ -23,10 +24,20 @@ import {
   getPrivacyUrl,
   plusStatusSubtitle,
 } from "../../lib/purchases";
+import {
+  getBiometricLabel,
+  hasBiometricLoginEnabled,
+  isBiometricAvailable,
+} from "../../services/biometricAuth";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors } = useTheme();
-  const { user, deleteAccount } = useAuth();
+  const {
+    user,
+    deleteAccount,
+    enableBiometricSignIn,
+    disableBiometricSignIn,
+  } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
   const { canEditHome, profile } = useProfile();
   const { triggerLight, triggerMedium } = useHaptics();
@@ -47,6 +58,31 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { openRecord } = useAppNavigation();
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
   const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("Face ID");
+
+  const refreshBiometricSettings = useCallback(async () => {
+    try {
+      const [available, enabled, label] = await Promise.all([
+        isBiometricAvailable(),
+        hasBiometricLoginEnabled(),
+        getBiometricLabel(),
+      ]);
+      setBiometricAvailable(available);
+      setBiometricEnabled(enabled);
+      setBiometricLabel(label);
+    } catch {
+      setBiometricAvailable(false);
+      setBiometricEnabled(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshBiometricSettings();
+    }, [refreshBiometricSettings])
+  );
 
   const nameInput = {
     authFullName: user?.user_metadata?.full_name as string | undefined,
@@ -57,6 +93,38 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const named = hasAccountName(nameInput);
   const email = user?.email ?? profile?.email ?? "";
   const canChangePassword = userHasEmailPassword(user);
+
+  const handleBiometricToggle = async () => {
+    await triggerLight();
+    if (biometricEnabled) {
+      Alert.alert(
+        `Turn off ${biometricLabel}?`,
+        `You will need your password, Apple, or Google to sign in next time.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Turn off",
+            style: "destructive",
+            onPress: () => {
+              void (async () => {
+                await disableBiometricSignIn();
+                await refreshBiometricSettings();
+              })();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    const result = await enableBiometricSignIn();
+    if (!result.success) {
+      if (result.error && !/canceled/i.test(result.error)) {
+        Alert.alert(`Could not enable ${biometricLabel}`, result.error);
+      }
+    }
+    await refreshBiometricSettings();
+  };
 
   const handleEditHome = async () => {
     await triggerLight();
@@ -227,7 +295,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               void triggerLight();
               setNameEditorVisible(true);
             }}
-            showDivider={canChangePassword}
+            showDivider={canChangePassword || biometricAvailable}
           />
           {canChangePassword ? (
             <SheetActionRow
@@ -238,6 +306,20 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 void triggerLight();
                 setPasswordEditorVisible(true);
               }}
+              showDivider={biometricAvailable}
+            />
+          ) : null}
+          {biometricAvailable ? (
+            <SheetActionRow
+              icon="scan-outline"
+              title={`${biometricLabel} sign-in`}
+              subtitle={
+                biometricEnabled
+                  ? `On — use ${biometricLabel} on the login screen`
+                  : `Off — sign in with password, Apple, or Google`
+              }
+              onPress={() => void handleBiometricToggle()}
+              showChevron={false}
               showDivider={false}
             />
           ) : null}
