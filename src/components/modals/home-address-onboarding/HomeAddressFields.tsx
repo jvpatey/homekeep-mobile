@@ -74,12 +74,20 @@ interface HomeAddressFieldsProps {
   /** When false, suggestion fetching pauses. Prefill runs when this becomes true. */
   active: boolean;
   onCanSubmitChange?: (canSubmit: boolean) => void;
+  /**
+   * Wizard embeds this under a sheet title + lead — hide the duplicate
+   * "Where is this house?" heading and keep a short typeahead hint only.
+   */
+  compactIntro?: boolean;
 }
 
 export const HomeAddressFields = forwardRef<
   HomeAddressFieldsHandle,
   HomeAddressFieldsProps
->(function HomeAddressFields({ active, onCanSubmitChange }, ref) {
+>(function HomeAddressFields(
+  { active, onCanSubmitChange, compactIntro = false },
+  ref
+) {
   const { colors, isDark } = useTheme();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
   const { profile, updateAddress } = useProfile();
@@ -449,13 +457,19 @@ export const HomeAddressFields = forwardRef<
           <Ionicons name="home-outline" size={22} color={colors.primary} />
         </View>
         <View style={styles.introCopy}>
-          <Text style={[styles.introTitle, { color: colors.text }]}>
-            Where is this house?
-          </Text>
+          {compactIntro ? null : (
+            <Text style={[styles.introTitle, { color: colors.text }]}>
+              Where is this house?
+            </Text>
+          )}
           <Text style={[styles.introBody, { color: colors.textSecondary }]}>
-            {isMapboxConfigured()
-              ? "Start typing your address — we'll fill in the rest. City is used for local weather and seasonal tasks."
-              : "We'll show your address on the dashboard and use the city for local weather and seasonal tasks."}
+            {compactIntro
+              ? isMapboxConfigured()
+                ? "Start typing your address — we'll fill in the rest."
+                : "Enter your street address and city."
+              : isMapboxConfigured()
+                ? "Start typing your address — we'll fill in the rest. City is used for local weather and seasonal tasks."
+                : "We'll show your address on the dashboard and use the city for local weather and seasonal tasks."}
           </Text>
         </View>
       </View>

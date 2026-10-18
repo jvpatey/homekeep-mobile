@@ -567,9 +567,7 @@ export function EquipmentDetailScreen() {
             locked={assistant.locked}
             onPress={() => {
               triggerLight();
-              void assistant.unlock().then((ok) => {
-                if (ok) setAsking(true);
-              });
+              setAsking(true);
             }}
           />
         </RecordSection>

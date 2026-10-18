@@ -18,7 +18,6 @@ import {
   isPlusRequiredError,
   useRequirePlusOrFreeAction,
 } from "../hooks/useRequirePlus";
-import { usePlusFeature } from "../lib/plusFeatures";
 import { useAppNavigation } from "../navigation/useAppNavigation";
 import { useWidgetSync } from "../hooks/useWidgetSync";
 import { refreshEquipmentIndex } from "../hooks/useEquipmentIndex";
@@ -146,7 +145,6 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     sync: syncFreeActions,
   } = useRequirePlusOrFreeAction();
   const { presentPaywall } = useSubscription();
-  const assistant = usePlusFeature("assistant");
   const { goToTab, openTasks, openRecord } = useAppNavigation();
 
   const sawTasksLoad = useRef(false);
@@ -798,16 +796,13 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
             }
             if (toAsk) {
               setTimeout(() => {
-                void assistant.unlock().then((ok) => {
-                  if (!ok) return;
-                  setAssistantPrompt(
-                    `How do I do "${toAsk.title}"? Walk me through it step by step for my home.`
-                  );
-                  setShowAssistant(true);
-                });
+                setAssistantPrompt(
+                  `How do I do "${toAsk.title}"? Walk me through it step by step for my home.`
+                );
+                setShowAssistant(true);
               }, 50);
               return;
-            }
+            }}
             resumeWeekendIfPending();
           }}
           onComplete={completeTask}

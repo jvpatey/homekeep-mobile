@@ -25,6 +25,7 @@ import { useHaptics } from "../../hooks";
 import { AiError, AiService, AssistantAction } from "../../services/AiService";
 import { DesignSystem } from "../../theme/designSystem";
 import { HearthSheet } from "../ui/HearthSheet";
+import { Button } from "../ui/Button";
 import { useProfile } from "../../context/ProfileContext";
 import { formatProfileAddressLines } from "../../utils/formatProfileAddress";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
@@ -109,7 +110,7 @@ export function AssistantSheet({
   const { colors } = useTheme();
   const { profile } = useProfile();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
-  const { presentPaywall } = useSubscription();
+  const { isPlus, presentPaywall } = useSubscription();
   const keeper = useKeeperActions({
     equipmentId: equipment?.id ?? null,
     onLeave: onClose,
@@ -134,12 +135,13 @@ export function AssistantSheet({
       sentInitialPrompt.current = null;
       return;
     }
+    if (!isPlus) return;
     if (!initialPrompt || sentInitialPrompt.current === initialPrompt) return;
     sentInitialPrompt.current = initialPrompt;
     setSaved({});
     void send(initialPrompt, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, initialPrompt]);
+  }, [visible, initialPrompt, isPlus]);
 
   useEffect(() => {
     const timer = setTimeout(
@@ -243,6 +245,39 @@ export function AssistantSheet({
   const heroBody = equipment
     ? `Ask me anything about the ${equipment.name}. I know its parts, upkeep, and what's been done, and I can save details, repairs, and reminders for you.`
     : `Ask me anything about ${street ?? "your home"}. I know your equipment, schedule, spend, documents, shutoffs, and recalls — and I can save things or open Documents, Spend, and Equipment for you.`;
+
+  const openPlus = () => {
+    triggerLight();
+    void presentPaywall({ force: true, reason: "assistant" });
+  };
+
+  if (!isPlus) {
+    return (
+      <HearthSheet
+        visible={visible}
+        onClose={onClose}
+        title="Keeper"
+        footer={
+          <Button
+            label="Try HomeKeep +"
+            onPress={openPlus}
+            accessibilityLabel="Open HomeKeep + to unlock Keeper"
+          />
+        }
+      >
+        <View style={styles.locked}>
+          <KeeperMark size={96} greet />
+          <Text style={[styles.heroTitle, { color: colors.text }]}>
+            Hi, I'm Keeper
+          </Text>
+          <Text style={[styles.lockedBody, { color: colors.textSecondary }]}>
+            Your home AI. Ask about equipment, what's due, shutoffs, or what was
+            done last — answers stay grounded in this house.
+          </Text>
+        </View>
+      </HearthSheet>
+    );
+  }
 
   return (
     <HearthSheet
@@ -553,6 +588,19 @@ const styles = StyleSheet.create({
   },
   intro: {
     gap: DesignSystem.spacing.sm,
+  },
+  locked: {
+    alignItems: "center",
+    paddingTop: DesignSystem.spacing.xl,
+    paddingBottom: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.md,
+  },
+  lockedBody: {
+    ...DesignSystem.typography.callout,
+    textAlign: "center",
+    maxWidth: 320,
+    lineHeight: 22,
   },
   hero: {
     alignItems: "center",

@@ -1158,6 +1158,7 @@ export function HomeSetupModal({
               <SetupLead>Used for local seasons and weather.</SetupLead>
               <HomeAddressFields
                 ref={addressRef}
+                compactIntro
                 active={sheetVisible && phase === "address"}
                 onCanSubmitChange={setAddressCanSubmit}
               />
