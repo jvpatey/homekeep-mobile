@@ -15,21 +15,22 @@ interface RecordChecklistCardProps {
   done: number;
   total: number;
   onStart: (key: HomeRecordItemKey) => void;
+  /** When false, Plus-required rows show a badge. */
+  isPlus?: boolean;
 }
 
-/** Steps left to fill in the home record; each step opens where it's done. */
+/** Checklist of home-record setup steps; each row opens where that step is done. */
 export function RecordChecklistCard({
   items,
   done,
   total,
   onStart,
+  isPlus = false,
 }: RecordChecklistCardProps) {
   const { colors } = useTheme();
   const { triggerLight } = useHaptics();
-  const missing = items.filter((item) => !item.done);
-  const next = missing[0];
-  if (!next) return null;
-  const rest = missing.slice(1);
+  const nextKey = items.find((item) => !item.done)?.key ?? null;
+  if (!nextKey) return null;
 
   const start = (key: HomeRecordItemKey) => {
     void triggerLight();
@@ -44,104 +45,123 @@ export function RecordChecklistCard({
           accessibilityRole="header"
           maxFontSizeMultiplier={1.4}
         >
-          Finish your home record
+          Set up your home
         </Text>
         <Text
           style={[styles.count, { color: colors.textSecondary }]}
+          accessibilityLabel={`${done} of ${total} done`}
           maxFontSizeMultiplier={1.3}
         >
-          {done} of {total}
+          {done} of {total} done
         </Text>
       </View>
 
-      <View
-        style={styles.segments}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel={`Home record ${done} of ${total} complete`}
-        accessibilityValue={{ min: 0, max: total, now: done }}
+      <Text
+        style={[styles.support, { color: colors.textSecondary }]}
+        maxFontSizeMultiplier={1.3}
       >
-        {items.map((item) => (
-          <View
-            key={item.key}
-            style={[
-              styles.segment,
-              {
-                backgroundColor: item.done ? colors.secondary : colors.fieldFill,
-              },
-            ]}
-          />
-        ))}
-      </View>
+        Shutoffs, appliances, and who helps — add what you have.
+      </Text>
 
-      <View style={styles.nextRow}>
-        <View
-          style={[styles.nextIcon, { backgroundColor: colors.primary + "1F" }]}
-        >
-          <Ionicons name={next.icon} size={18} color={colors.primary} />
-        </View>
-        <View style={styles.nextText}>
-          <Text
-            style={[styles.nextEyebrow, { color: colors.textSecondary }]}
-            maxFontSizeMultiplier={1.3}
-          >
-            Next up
-          </Text>
-          <Text
-            style={[styles.nextLabel, { color: colors.text }]}
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.4}
-          >
-            {next.label}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => start(next.key)}
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: colors.primary },
-            pressed && { opacity: 0.8 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={next.cta}
-        >
-          <Text
-            style={styles.buttonText}
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.3}
-          >
-            {next.cta}
-          </Text>
-        </Pressable>
-      </View>
-
-      {rest.length > 0 ? (
-        <View style={styles.chips}>
-          {rest.map((item) => (
+      <View style={styles.list} accessibilityRole="list">
+        {items.map((item) => {
+          const isNext = item.key === nextKey;
+          const showPlus = !isPlus && !item.done && Boolean(item.plusRequired);
+          return (
             <Pressable
               key={item.key}
               onPress={() => start(item.key)}
+              disabled={item.done}
               style={({ pressed }) => [
-                styles.chip,
-                { backgroundColor: colors.fieldFill },
-                pressed && { opacity: 0.7 },
+                styles.row,
+                isNext && {
+                  backgroundColor: colors.primary + "12",
+                  borderColor: colors.primary + "33",
+                },
+                !isNext && { borderColor: "transparent" },
+                pressed && !item.done && { opacity: 0.7 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel={item.cta}
+              accessibilityState={{ checked: item.done, disabled: item.done }}
+              accessibilityLabel={
+                item.done
+                  ? `${item.label}, done`
+                  : `${isNext ? `Next: ${item.cta}` : item.cta}${
+                      showPlus ? ", HomeKeep Plus" : ""
+                    }`
+              }
             >
-              <Ionicons name={item.icon} size={13} color={colors.textSecondary} />
-              <Text
-                style={[styles.chipText, { color: colors.text }]}
-                numberOfLines={1}
-                maxFontSizeMultiplier={1.3}
+              <View
+                style={[
+                  styles.icon,
+                  {
+                    backgroundColor: item.done
+                      ? colors.success + "22"
+                      : isNext
+                        ? colors.primary + "1F"
+                        : colors.fieldFill,
+                  },
+                ]}
               >
-                {item.label}
-              </Text>
+                <Ionicons
+                  name={item.done ? "checkmark" : item.icon}
+                  size={16}
+                  color={
+                    item.done
+                      ? colors.success
+                      : isNext
+                        ? colors.primary
+                        : colors.textSecondary
+                  }
+                />
+              </View>
+              <View style={styles.labelBlock}>
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      color: item.done ? colors.textSecondary : colors.text,
+                    },
+                    item.done && styles.labelDone,
+                  ]}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={1.4}
+                >
+                  {item.label}
+                </Text>
+                {showPlus ? (
+                  <View
+                    style={[
+                      styles.plusBadge,
+                      { backgroundColor: colors.secondary + "1F" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.plusText, { color: colors.secondary }]}
+                    >
+                      Plus
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              {item.done ? (
+                <Text
+                  style={[styles.doneTag, { color: colors.success }]}
+                  maxFontSizeMultiplier={1.2}
+                >
+                  Done
+                </Text>
+              ) : (
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={isNext ? colors.primary : colors.textSecondary}
+                />
+              )}
             </Pressable>
-          ))}
-        </View>
-      ) : null}
+          );
+        })}
+      </View>
     </HearthSurfaceCard>
   );
 }
@@ -149,7 +169,7 @@ export function RecordChecklistCard({
 const styles = StyleSheet.create({
   card: {
     padding: DesignSystem.spacing.md,
-    gap: DesignSystem.spacing.md - 4,
+    gap: DesignSystem.spacing.sm,
   },
   header: {
     flexDirection: "row",
@@ -166,71 +186,55 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontVariant: ["tabular-nums"],
   },
-  segments: {
-    flexDirection: "row",
-    gap: 4,
+  support: {
+    ...DesignSystem.typography.footnote,
+    marginBottom: DesignSystem.spacing.xs,
   },
-  segment: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
+  list: {
+    gap: DesignSystem.spacing.xs,
   },
-  nextRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
     gap: DesignSystem.spacing.md - 4,
-    marginTop: DesignSystem.spacing.xs,
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borders.radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    minHeight: DesignSystem.components.minTouchTarget,
   },
-  nextIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  icon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
-  nextText: {
+  labelBlock: {
     flex: 1,
     minWidth: 0,
-  },
-  nextEyebrow: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    fontSize: 10,
-  },
-  nextLabel: {
-    ...DesignSystem.typography.subhead,
-    fontWeight: "600",
-  },
-  button: {
-    paddingHorizontal: DesignSystem.spacing.md - 2,
-    paddingVertical: DesignSystem.spacing.sm,
-    borderRadius: DesignSystem.borders.radius.round,
-    minHeight: 36,
-    maxWidth: "55%",
-    justifyContent: "center",
-  },
-  buttonText: {
-    ...DesignSystem.typography.footnote,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: DesignSystem.spacing.xs + 2,
-  },
-  chip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: DesignSystem.spacing.sm,
+  },
+  label: {
+    ...DesignSystem.typography.subhead,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  labelDone: {
+    textDecorationLine: "line-through",
+    fontWeight: "500",
+  },
+  plusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     borderRadius: DesignSystem.borders.radius.round,
   },
-  chipText: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "600",
+  plusText: {
+    ...DesignSystem.typography.captionSemiBold,
+  },
+  doneTag: {
+    ...DesignSystem.typography.captionSemiBold,
   },
 });

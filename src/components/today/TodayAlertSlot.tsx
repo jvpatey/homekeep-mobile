@@ -39,8 +39,9 @@ import {
 } from "../Dashboard/InspectionImportCard";
 import { CampaignPlanStrip } from "../Dashboard/CampaignPlanStrip";
 import { PlusStatusBanner, usePlusStatusPrompt } from "../plus";
+import { useHomeShareNudge } from "../plus/useHomeShareNudge";
 
-type AlertKey = "weather" | "inspection" | "campaign" | "plus";
+type AlertKey = "weather" | "inspection" | "campaign" | "homeshare" | "plus";
 
 /** Dismissed for this app session only; they come back on the next launch. */
 const dismissedThisSession = new Set<AlertKey>();
@@ -190,20 +191,23 @@ interface TodayAlertSlotProps {
   climate: ReturnType<typeof useClimateAlert>;
   campaign: CampaignProgress | null;
   onOpenCampaign: (planId: string) => void;
+  onOpenHomeShareInvite?: () => void;
 }
 
 /**
  * At most one alert on Today. Priority: tasks failed to load, weather,
- * inspection import, seasonal plan, then Plus status.
+ * inspection import, seasonal plan, HomeShare nudge, then Plus status.
  */
 export function TodayAlertSlot({
   climate,
   campaign,
   onOpenCampaign,
+  onOpenHomeShareInvite,
 }: TodayAlertSlotProps) {
   const { colors } = useTheme();
   const { error: tasksError, refreshTasks } = useTasks();
   const inspection = useInspectionImportPrompt();
+  const homeShare = useHomeShareNudge(onOpenHomeShareInvite ?? (() => {}));
   const plus = usePlusStatusPrompt();
   const [, setDismissTick] = useState(0);
 
@@ -248,6 +252,24 @@ export function TodayAlertSlot({
         progress={campaign}
         onPress={() => onOpenCampaign(campaign.planId)}
         onDismiss={dismiss("campaign")}
+      />
+    );
+  }
+
+  if (homeShare && open("homeshare")) {
+    return (
+      <TodayAlertCard
+        icon="people-outline"
+        title={homeShare.title}
+        body={homeShare.body}
+        actionLabel="Invite"
+        actionIcon="person-add-outline"
+        onAction={homeShare.open}
+        onPress={homeShare.open}
+        onDismiss={() => {
+          homeShare.dismiss();
+          dismiss("homeshare")();
+        }}
       />
     );
   }

@@ -112,7 +112,10 @@ export function isPlusFeatureKey(value: unknown): value is PlusFeatureKey {
 export function usePlusFeature(key: PlusFeatureKey) {
   const { isPlus, loading, presentPaywall } = useSubscription();
   const unlock = useCallback(
-    () => (isPlus ? Promise.resolve(true) : presentPaywall({ reason: key })),
+    () =>
+      isPlus
+        ? Promise.resolve(true)
+        : presentPaywall({ force: true, reason: key }),
     [isPlus, key, presentPaywall]
   );
   return { locked: !isPlus && !loading, unlock, feature: PLUS_FEATURES[key] };

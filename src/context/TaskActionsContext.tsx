@@ -144,7 +144,9 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     consume: consumeFreeAction,
     sync: syncFreeActions,
   } = useRequirePlusOrFreeAction();
-  const { presentPaywall } = useSubscription();
+  const { presentPaywall, offerPaywallAfterFirstComplete, isPlus } =
+    useSubscription();
+  const pendingFirstCompleteOfferRef = useRef(false);
   const { goToTab, openTasks, openRecord } = useAppNavigation();
 
   const sawTasksLoad = useRef(false);
@@ -412,6 +414,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
           await syncFreeActions();
           setShowTaskDetail(false);
           setSelectedTask(null);
+          if (!isPlus) pendingFirstCompleteOfferRef.current = true;
 
           const updatedPlan = await markWeekendPlanItemComplete(instanceId);
           if (updatedPlan) {
@@ -472,6 +475,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
     },
     [
       completeTaskInstance,
+      isPlus,
       overdueTasks,
       presentPaywall,
       requirePlusOrFree,
@@ -482,6 +486,13 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
       triggerMedium,
     ]
   );
+
+  const flushFirstCompleteOffer = useCallback(() => {
+    if (!pendingFirstCompleteOfferRef.current) return;
+    pendingFirstCompleteOfferRef.current = false;
+    // After celebration so Modals don't stack.
+    setTimeout(() => offerPaywallAfterFirstComplete(), 320);
+  }, [offerPaywallAfterFirstComplete]);
 
   const markDone = useCallback(
     (task: MaintenanceTask) => {
@@ -862,6 +873,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
           setCelebration({ visible: false, snapshot: null });
           flushWeekendResume();
           void maybeRequestReviewAfterTaskComplete();
+          flushFirstCompleteOffer();
         }}
       />
 
@@ -871,6 +883,7 @@ export function TaskActionsProvider({ children }: { children: React.ReactNode })
         onClose={() => {
           setWeekendCelebration({ visible: false, snapshot: null });
           pendingWeekendResumeRef.current = false;
+          flushFirstCompleteOffer();
         }}
       />
 

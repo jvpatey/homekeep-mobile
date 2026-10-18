@@ -523,7 +523,7 @@ export function HouseholdSharingModal({
         onClose();
         if (needPaywall) {
           setTimeout(() => {
-            void presentPaywall({ reason: "homeshare" });
+            void presentPaywall({ force: true, reason: "homeshare" });
           }, 320);
         }
       }}

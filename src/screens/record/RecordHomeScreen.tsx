@@ -280,17 +280,26 @@ export function RecordHomeScreen() {
                 done={recordProgress.done}
                 total={recordProgress.total}
                 onStart={startRecordItem}
+                isPlus={!history.locked}
               />
             </Animated.View>
           ) : null}
 
-          <Animated.View entering={entering(section++)}>
-            <EmergencyQuickCard
-              facts={profile?.home_emergency}
-              home={profile?.home_systems}
-              onPress={() => navigation.navigate("EmergencyInfo")}
-            />
-          </Animated.View>
+          {/* Hide while checklist still asks for emergency — avoids a duplicate prompt. */}
+          {!(
+            recordLoaded &&
+            recordProgress.done < recordProgress.total &&
+            !recordProgress.items.find((item) => item.key === "emergency")
+              ?.done
+          ) ? (
+            <Animated.View entering={entering(section++)}>
+              <EmergencyQuickCard
+                facts={profile?.home_emergency}
+                home={profile?.home_systems}
+                onPress={() => navigation.navigate("EmergencyInfo")}
+              />
+            </Animated.View>
+          ) : null}
 
           {headsUp.items.length > 0 ? (
             <Animated.View entering={entering(section++)}>

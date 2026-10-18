@@ -15,6 +15,8 @@ export interface HomeRecordItem {
   /** Button copy for the step, e.g. "Add a pro". */
   cta: string;
   done: boolean;
+  /** Free users need HomeKeep + for this step (badge in the checklist). */
+  plusRequired?: boolean;
 }
 
 /** How much of the home record is filled in; separate from the Upkeep score. */
@@ -37,24 +39,26 @@ export function homeRecordProgress(input: {
     },
     {
       key: "equipment",
-      label: "An appliance",
+      label: "Appliance",
       icon: "cube",
       cta: "Add an appliance",
       done: input.equipmentCount > 0,
     },
     {
       key: "documents",
-      label: "A document",
+      label: "Document",
       icon: "folder-open",
       cta: "Add a document",
       done: input.documentCount > 0,
+      plusRequired: true,
     },
     {
       key: "pros",
-      label: "A pro",
+      label: "Trusted pro",
       icon: "call",
       cta: "Add a pro",
       done: input.proCount > 0,
+      plusRequired: true,
     },
     {
       key: "notes",
@@ -69,6 +73,7 @@ export function homeRecordProgress(input: {
       icon: "people",
       cta: "Invite your household",
       done: input.householdShared,
+      plusRequired: true,
     },
   ];
   return {

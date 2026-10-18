@@ -214,6 +214,10 @@ export function TodayDashboard() {
               climate={climate}
               campaign={campaign}
               onOpenCampaign={openPlanFlow}
+              onOpenHomeShareInvite={() => {
+                setHomeShareIntent("invite");
+                setShowHouseholdModal(true);
+              }}
             />
           </Animated.View>
 

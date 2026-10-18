@@ -254,9 +254,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         void upsertUserTimezone(nextSession.user);
       }
 
-      if (event === "TOKEN_REFRESHED") {
+      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
         void updateBiometricSession(nextSession).catch(() => {});
-        return;
+        if (event === "TOKEN_REFRESHED") return;
       }
 
       try {
@@ -656,10 +656,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
       }
 
-      const { data, error } = await supabase.auth.setSession({
-        access_token: vault.access_token,
+      // Prefer refreshSession: vault access_tokens go stale; refresh_token is
+      // what actually restores the session after Face ID / local sign-out.
+      let { data, error } = await supabase.auth.refreshSession({
         refresh_token: vault.refresh_token,
       });
+
+      if (error || !data.session) {
+        // Fallback for older vaults / edge cases where refresh alone fails.
+        const fallback = await supabase.auth.setSession({
+          access_token: vault.access_token,
+          refresh_token: vault.refresh_token,
+        });
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error || !data.session) {
         await clearBiometricLogin();

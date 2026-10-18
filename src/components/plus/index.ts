@@ -5,5 +5,9 @@ export {
   usePlusStatusPrompt,
   type PlusStatusPrompt,
 } from "./PlusStatusBanner";
+export {
+  useHomeShareNudge,
+  type HomeShareNudgePrompt,
+} from "./useHomeShareNudge";
 export { PlusSuccessCelebration } from "./PlusSuccessCelebration";
 export { LockedPreview } from "./LockedPreview";
