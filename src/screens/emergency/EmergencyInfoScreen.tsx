@@ -17,7 +17,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useTasks } from "../../context/TasksContext";
 import { useHaptics } from "../../hooks";
-import { useRequirePlus } from "../../hooks/useRequirePlus";
 import { useHomeContacts } from "../../hooks/useHomeContacts";
 import {
   Button,
@@ -89,7 +88,6 @@ export function EmergencyInfoScreen() {
   const { profile, updateHomeEmergency, canEditHome } = useProfile();
   const { upcomingTasks, overdueTasks, completeTask } = useTasks();
   const { triggerLight, triggerMedium, triggerSuccess } = useHaptics();
-  const requirePlus = useRequirePlus();
   const contacts = useHomeContacts();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [viewer, setViewer] = useState<EmergencySpotView | null>(null);
@@ -148,7 +146,6 @@ export function EmergencyInfoScreen() {
   const openEditor = async (spot: EmergencySpotView) => {
     if (!canEditHome) return;
     triggerLight();
-    if (!(await requirePlus())) return;
     setEditor({ visible: true, spot });
   };
 

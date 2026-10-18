@@ -704,9 +704,8 @@ export type NotificationType =
   | "monthly"
   | "recall";
 
-/** Job types that only run for HomeKeep+ members. */
+/** Job types that only run for HomeKeep+ members. Due-date (upcoming) stays free. */
 export const PLUS_ONLY_TYPES: ReadonlySet<NotificationType> = new Set([
-  "upcoming",
   "morning",
   "weekly",
 ]);

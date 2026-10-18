@@ -10,7 +10,11 @@ import { Alert } from "react-native";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { useTasks } from "./TasksContext";
 import { useHaptics } from "../hooks";
-import { useRequirePlusOrFreeAction } from "../hooks/useRequirePlus";
+import {
+  isPlusRequiredError,
+  useRequirePlusOrFreeAction,
+} from "../hooks/useRequirePlus";
+import { useSubscription } from "./SubscriptionContext";
 import { refreshRecordData } from "../hooks/useRecordData";
 import { MaintenanceInstanceService } from "../services/MaintenanceInstanceService";
 import { RootStackParamList, RecordStackParamList } from "../navigation/types";
@@ -54,7 +58,8 @@ export function QuickActionsProvider({
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { refreshTasks } = useTasks();
   const { triggerSuccess, triggerError } = useHaptics();
-  const { requireAccess, consume } = useRequirePlusOrFreeAction();
+  const { requireAccess, sync } = useRequirePlusOrFreeAction();
+  const { presentPaywall } = useSubscription();
   const { format: formatMoney } = useCurrency();
 
   const [repairVisible, setRepairVisible] = useState(false);
@@ -115,16 +120,20 @@ export function QuickActionsProvider({
       });
       if (error) {
         await triggerError();
+        if (isPlusRequiredError(error)) {
+          await presentPaywall({ force: true, reason: "free_exhausted" });
+          return false;
+        }
         Alert.alert("Couldn't schedule the repair", error.message);
         return false;
       }
-      await consume();
+      await sync();
       await refreshTasks();
       await triggerSuccess();
       setRepairVisible(false);
       return true;
     },
-    [consume, refreshTasks, triggerError, triggerSuccess]
+    [presentPaywall, refreshTasks, sync, triggerError, triggerSuccess]
   );
 
   const openCreateTask = useCallback(
@@ -146,10 +155,14 @@ export function QuickActionsProvider({
       });
       if (error) {
         await triggerError();
+        if (isPlusRequiredError(error)) {
+          await presentPaywall({ force: true, reason: "free_exhausted" });
+          return false;
+        }
         Alert.alert("Couldn't save the repair", error.message);
         return false;
       }
-      await consume();
+      await sync();
       await Promise.all([refreshTasks(), refreshRecordData()]);
       await triggerSuccess();
 
@@ -179,10 +192,11 @@ export function QuickActionsProvider({
       return true;
     },
     [
-      consume,
       formatMoney,
       openRecordScreen,
+      presentPaywall,
       refreshTasks,
+      sync,
       triggerError,
       triggerSuccess,
     ]

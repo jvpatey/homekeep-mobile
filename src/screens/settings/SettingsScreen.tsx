@@ -1,11 +1,17 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Alert, StyleSheet, Switch } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useHaptics } from "../../hooks";
-import { HearthSurfaceCard, SheetActionRow } from "../../components/ui";
+import {
+  HearthSurfaceCard,
+  SheetActionRow,
+  SettingsSectionLabel,
+} from "../../components/ui";
+import { settingsSwitchColors } from "../../components/ui/settingsSwitchColors";
 import { NotificationSettingsModal } from "../../components/modals/notification-settings-modal";
 import { HomeSetupModal } from "../../components/modals/home-setup";
 import { HouseholdSharingModal } from "../../components/modals/household-sharing/HouseholdSharingModal";
@@ -23,10 +29,20 @@ import {
   getPrivacyUrl,
   plusStatusSubtitle,
 } from "../../lib/purchases";
+import {
+  getBiometricLabel,
+  hasBiometricLoginEnabled,
+  isBiometricAvailable,
+} from "../../services/biometricAuth";
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { colors } = useTheme();
-  const { user, deleteAccount } = useAuth();
+  const {
+    user,
+    deleteAccount,
+    enableBiometricSignIn,
+    disableBiometricSignIn,
+  } = useAuth();
   const { deleteAllTasks, stats } = useTasks();
   const { canEditHome, profile } = useProfile();
   const { triggerLight, triggerMedium } = useHaptics();
@@ -47,6 +63,32 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { openRecord } = useAppNavigation();
   const [nameEditorVisible, setNameEditorVisible] = useState(false);
   const [passwordEditorVisible, setPasswordEditorVisible] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("Face ID");
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
+  const refreshBiometricSettings = useCallback(async () => {
+    try {
+      const [available, enabled, label] = await Promise.all([
+        isBiometricAvailable(),
+        hasBiometricLoginEnabled(),
+        getBiometricLabel(),
+      ]);
+      setBiometricAvailable(available);
+      setBiometricEnabled(enabled);
+      setBiometricLabel(label);
+    } catch {
+      setBiometricAvailable(false);
+      setBiometricEnabled(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshBiometricSettings();
+    }, [refreshBiometricSettings])
+  );
 
   const nameInput = {
     authFullName: user?.user_metadata?.full_name as string | undefined,
@@ -57,6 +99,44 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const named = hasAccountName(nameInput);
   const email = user?.email ?? profile?.email ?? "";
   const canChangePassword = userHasEmailPassword(user);
+
+  const handleBiometricToggle = async (next: boolean) => {
+    if (biometricBusy) return;
+    await triggerLight();
+
+    if (!next) {
+      Alert.alert(
+        `Turn off ${biometricLabel}?`,
+        `You will need your password, Apple, or Google to sign in next time.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Turn off",
+            style: "destructive",
+            onPress: () => {
+              void (async () => {
+                setBiometricBusy(true);
+                await disableBiometricSignIn();
+                await refreshBiometricSettings();
+                setBiometricBusy(false);
+              })();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    setBiometricBusy(true);
+    const result = await enableBiometricSignIn();
+    if (!result.success) {
+      if (result.error && !/canceled/i.test(result.error)) {
+        Alert.alert(`Could not enable ${biometricLabel}`, result.error);
+      }
+    }
+    await refreshBiometricSettings();
+    setBiometricBusy(false);
+  };
 
   const handleEditHome = async () => {
     await triggerLight();
@@ -151,6 +231,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   };
 
   const hasAnyTasks = (stats?.totalInstances || 0) > 0;
+  const biometricSwitch = settingsSwitchColors(colors, biometricEnabled);
 
   const homeRows = [
     {
@@ -215,9 +296,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           ) : null}
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          Account
-        </Text>
+        <SettingsSectionLabel first>Account</SettingsSectionLabel>
         <HearthSurfaceCard style={styles.groupSurface}>
           <SheetActionRow
             icon="person-outline"
@@ -227,7 +306,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               void triggerLight();
               setNameEditorVisible(true);
             }}
-            showDivider={canChangePassword}
+            showDivider={canChangePassword || biometricAvailable}
           />
           {canChangePassword ? (
             <SheetActionRow
@@ -238,14 +317,29 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 void triggerLight();
                 setPasswordEditorVisible(true);
               }}
+              showDivider={biometricAvailable}
+            />
+          ) : null}
+          {biometricAvailable ? (
+            <SheetActionRow
+              icon="scan-outline"
+              title={`${biometricLabel} sign-in`}
+              subtitle={`Unlock the login screen with ${biometricLabel}`}
               showDivider={false}
+              trailing={
+                <Switch
+                  value={biometricEnabled}
+                  disabled={biometricBusy}
+                  onValueChange={(value) => void handleBiometricToggle(value)}
+                  trackColor={biometricSwitch.trackColor}
+                  thumbColor={biometricSwitch.thumbColor}
+                />
+              }
             />
           ) : null}
         </HearthSurfaceCard>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          {HOMEKEEP_PLUS_NAME}
-        </Text>
+        <SettingsSectionLabel>{HOMEKEEP_PLUS_NAME}</SettingsSectionLabel>
         <HearthSurfaceCard style={styles.groupSurface}>
           <SheetActionRow
             icon="sparkles-outline"
@@ -260,7 +354,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           {getPrivacyUrl() ? (
             <SheetActionRow
               icon="document-text-outline"
-              title="Privacy Policy"
+              title="Privacy policy"
               onPress={() => {
                 void triggerLight();
                 void openLegal("privacy");
@@ -270,19 +364,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           ) : null}
           <SheetActionRow
             icon="reader-outline"
-            title="Terms of Use"
+            title="Terms of use"
             onPress={() => {
               void triggerLight();
               void openLegal("terms");
             }}
-            showChevron
             showDivider={false}
           />
         </HearthSurfaceCard>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          Home
-        </Text>
+        <SettingsSectionLabel>Home</SettingsSectionLabel>
         <HearthSurfaceCard style={styles.groupSurface}>
           {homeRows.map((row, index) => (
             <SheetActionRow
@@ -293,13 +384,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           ))}
         </HearthSurfaceCard>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          Notifications
-        </Text>
+        <SettingsSectionLabel>Notifications</SettingsSectionLabel>
         <HearthSurfaceCard style={styles.groupSurface}>
           <SheetActionRow
             icon="notifications-outline"
             title="Notification settings"
+            subtitle="Reminders and summaries"
             onPress={() => {
               void triggerLight();
               setNotificationModalVisible(true);
@@ -317,25 +407,27 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           />
         </HearthSurfaceCard>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          Data
-        </Text>
+        <SettingsSectionLabel>Data</SettingsSectionLabel>
         <HearthSurfaceCard style={styles.groupSurface}>
           <SheetActionRow
             icon="trash-bin-outline"
             title="Reset this home's schedule"
+            subtitle={
+              hasAnyTasks
+                ? "Delete reminders and history for this home"
+                : "No reminders to reset"
+            }
             onPress={() => void handleDeleteAllTasks()}
             destructive
             disabled={!hasAnyTasks}
-            showChevron={false}
             showDivider
           />
           <SheetActionRow
             icon="person-remove-outline"
             title="Delete account"
+            subtitle="Permanently remove your account and data"
             onPress={() => void handleDeleteAccount()}
             destructive
-            showChevron={false}
           />
         </HearthSurfaceCard>
       </ScrollView>
@@ -395,14 +487,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
     opacity: 0.85,
-  },
-  sectionLabel: {
-    ...DesignSystem.typography.caption,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-    marginTop: DesignSystem.spacing.md,
-    marginBottom: DesignSystem.spacing.sm,
   },
   groupSurface: {
     overflow: "hidden",

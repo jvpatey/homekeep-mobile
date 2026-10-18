@@ -66,13 +66,16 @@ export function EditNameModal({ visible, onClose }: EditNameModalProps) {
     if (!nextName || saving) return;
     setSaving(true);
     Keyboard.dismiss();
-    handleClose();
     try {
       const result = await updateDisplayName(nextName);
       if (!result.success) {
+        setSaving(false);
         Alert.alert("Couldn't save name", result.error ?? "Please try again.");
+        return;
       }
+      handleClose();
     } catch {
+      setSaving(false);
       Alert.alert("Couldn't save name", "Please try again.");
     }
   };

@@ -20,6 +20,7 @@ export const supabase = hasValidCredentials
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
+        flowType: "pkce",
       },
     })
   : null;

@@ -16,6 +16,7 @@ import { useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import {
   ScrollAtmosphere,
+  TabFocusReveal,
   TabHeaderAction,
   TabScreenHeader,
 } from "../../components/ui";
@@ -196,8 +197,9 @@ export function RecordHomeScreen() {
 
   return (
     <>
+      <TabFocusReveal>
       <ScrollView
-        style={{ backgroundColor: colors.background }}
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -412,6 +414,7 @@ export function RecordHomeScreen() {
           </Animated.View>
         </View>
       </ScrollView>
+      </TabFocusReveal>
 
       <HouseholdSharingModal
         visible={showHomeShare}

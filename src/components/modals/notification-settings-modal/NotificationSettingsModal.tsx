@@ -1,17 +1,23 @@
 import React from "react";
-import { View, Text, ScrollView, Switch, Alert, Linking } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, ScrollView, Switch, Alert, Linking, StyleSheet } from "react-native";
 import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
 import { useHaptics } from "../../../hooks";
-import { Button, HearthSheet, HearthSurfaceCard } from "../../ui";
+import {
+  Button,
+  HearthSheet,
+  HearthSurfaceCard,
+  SheetActionRow,
+  SettingsSectionLabel,
+} from "../../ui";
+import { settingsSwitchColors } from "../../ui/settingsSwitchColors";
 import { NotificationPreferences } from "../../../types/notifications";
 import {
   getNotificationTypeConfig,
   isNotificationTypeEnabled,
   getNotificationTypes,
 } from "../../../screens/notification-preferences/utils";
-import { styles } from "./styles";
+import { DesignSystem } from "../../../theme/designSystem";
 
 interface NotificationSettingsModalProps {
   visible: boolean;
@@ -71,51 +77,11 @@ export function NotificationSettingsModal({
     await Linking.openSettings();
   };
 
-  const renderNotificationTypeSection = (type: string) => {
-    const config = getNotificationTypeConfig(type, colors);
-    if (!config) return null;
-
-    const isEnabled = isNotificationTypeEnabled(type, notificationSettings);
-
-    return (
-      <HearthSurfaceCard key={type} containerStyle={styles.typeCard}>
-        <View style={styles.typeHeader}>
-          <View style={styles.typeHeaderLeft}>
-            <View
-              style={[
-                styles.iconWell,
-                { backgroundColor: config.color + "18" },
-              ]}
-            >
-              <Ionicons
-                name={config.icon as keyof typeof Ionicons.glyphMap}
-                size={20}
-                color={config.color}
-              />
-            </View>
-            <View style={styles.typeInfo}>
-              <Text style={[styles.typeName, { color: colors.text }]}>
-                {config.title}
-              </Text>
-              <Text
-                style={[styles.typeDescription, { color: colors.textSecondary }]}
-              >
-                {config.description}
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={isEnabled}
-            onValueChange={(value) =>
-              handleNotificationTypeToggle(type, value)
-            }
-            trackColor={{ false: colors.border, true: colors.primary + "40" }}
-            thumbColor={isEnabled ? colors.primary : colors.textSecondary}
-          />
-        </View>
-      </HearthSurfaceCard>
-    );
-  };
+  const globalSwitch = settingsSwitchColors(
+    colors,
+    notificationSettings.globalEnabled
+  );
+  const types = getNotificationTypes();
 
   return (
     <HearthSheet
@@ -132,70 +98,43 @@ export function NotificationSettingsModal({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <HearthSurfaceCard containerStyle={styles.globalCard}>
-          <View style={styles.globalRow}>
-            <View style={styles.globalLeft}>
-              <View
-                style={[
-                  styles.iconWellLarge,
-                  { backgroundColor: colors.primary + "14" },
-                ]}
-              >
-                <Ionicons
-                  name="notifications-outline"
-                  size={22}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.globalInfo}>
-                <Text style={[styles.globalTitle, { color: colors.text }]}>
-                  All notifications
-                </Text>
-                <Text
-                  style={[
-                    styles.globalDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Master switch for reminders
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={notificationSettings.globalEnabled}
-              onValueChange={handleGlobalToggle}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "40",
-              }}
-              thumbColor={
-                notificationSettings.globalEnabled
-                  ? colors.primary
-                  : colors.textSecondary
-              }
-            />
-          </View>
+        <Text style={[styles.intro, { color: colors.textSecondary }]}>
+          Choose which reminders HomeKeep can send.
+        </Text>
+
+        <HearthSurfaceCard style={styles.groupSurface}>
+          <SheetActionRow
+            icon="notifications-outline"
+            title="All notifications"
+            subtitle="Master switch for reminders"
+            showDivider={false}
+            trailing={
+              <Switch
+                value={notificationSettings.globalEnabled}
+                onValueChange={(value) => void handleGlobalToggle(value)}
+                trackColor={globalSwitch.trackColor}
+                thumbColor={globalSwitch.thumbColor}
+              />
+            }
+          />
         </HearthSurfaceCard>
 
         {!permissionStatus.granted ? (
-          <HearthSurfaceCard containerStyle={styles.permissionCard}>
+          <HearthSurfaceCard style={styles.permissionCard}>
             <View style={styles.permissionCopy}>
-              <Ionicons
-                name="warning-outline"
-                size={20}
-                color={colors.error}
-              />
               <Text
                 style={[styles.permissionText, { color: colors.textSecondary }]}
               >
                 {permissionStatus.canAskAgain
-                  ? "Notifications are off. Enable them to get task reminders."
+                  ? "Notifications are off on this device. Enable them to get task reminders."
                   : "Notifications are blocked. Turn them on in device settings."}
               </Text>
             </View>
             <View style={styles.permissionButton}>
               <Button
-                label={permissionStatus.canAskAgain ? "Enable" : "Open Settings"}
+                label={
+                  permissionStatus.canAskAgain ? "Enable" : "Open Settings"
+                }
                 onPress={() =>
                   permissionStatus.canAskAgain
                     ? void handleEnablePermissions()
@@ -214,20 +153,85 @@ export function NotificationSettingsModal({
 
         {notificationSettings.globalEnabled ? (
           <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Notification types
-            </Text>
-            <Text
-              style={[styles.sectionDescription, { color: colors.textSecondary }]}
-            >
-              Choose which reminders you want.
-            </Text>
-            {getNotificationTypes().map((type) =>
-              renderNotificationTypeSection(type)
-            )}
+            <SettingsSectionLabel>Types</SettingsSectionLabel>
+            <HearthSurfaceCard style={styles.groupSurface}>
+              {types.map((type, index) => {
+                const config = getNotificationTypeConfig(type, colors);
+                if (!config) return null;
+                const isEnabled = isNotificationTypeEnabled(
+                  type,
+                  notificationSettings
+                );
+                const typeSwitch = settingsSwitchColors(colors, isEnabled);
+                return (
+                  <SheetActionRow
+                    key={type}
+                    icon={config.icon as any}
+                    title={config.title}
+                    subtitle={config.description}
+                    accentColor={config.color}
+                    showDivider={index < types.length - 1}
+                    trailing={
+                      <Switch
+                        value={isEnabled}
+                        onValueChange={(value) =>
+                          void handleNotificationTypeToggle(type, value)
+                        }
+                        trackColor={typeSwitch.trackColor}
+                        thumbColor={typeSwitch.thumbColor}
+                      />
+                    }
+                  />
+                );
+              })}
+            </HearthSurfaceCard>
           </>
         ) : null}
       </ScrollView>
     </HearthSheet>
   );
 }
+
+const styles = StyleSheet.create({
+  sheetContent: {
+    paddingHorizontal: 0,
+    flex: 1,
+    minHeight: 0,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingBottom: DesignSystem.spacing.xl,
+  },
+  intro: {
+    ...DesignSystem.typography.footnote,
+    lineHeight: 20,
+    marginBottom: DesignSystem.spacing.md,
+  },
+  groupSurface: {
+    overflow: "hidden",
+    paddingVertical: DesignSystem.spacing.xs,
+  },
+  permissionCard: {
+    marginTop: DesignSystem.spacing.md,
+    overflow: "hidden",
+  },
+  permissionCopy: {
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.md,
+  },
+  permissionText: {
+    ...DesignSystem.typography.footnote,
+    lineHeight: 20,
+  },
+  permissionButton: {
+    padding: DesignSystem.spacing.md,
+    paddingTop: DesignSystem.spacing.sm,
+  },
+  tokenError: {
+    ...DesignSystem.typography.footnote,
+    marginTop: DesignSystem.spacing.md,
+  },
+});

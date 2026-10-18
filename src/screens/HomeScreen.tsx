@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDevice, useGradients, useHaptics, useReducedMotion } from "../hooks";
 import { HouseMark, Button, TextLink, HearthSurfaceCard } from "../components/ui";
 import { AppleContinueButton } from "../components/auth";
+import { offerBiometricLogin } from "../utils/offerBiometricLogin";
 import { HeroIconName, useEnter } from "../components/ui/hero/heroKit";
 import {
   WelcomeHero,
@@ -153,6 +154,7 @@ export function HomeScreen() {
         );
       } else if (data?.session) {
         triggerSuccess();
+        void offerBiometricLogin(data.session);
       }
     } catch {
       triggerError();

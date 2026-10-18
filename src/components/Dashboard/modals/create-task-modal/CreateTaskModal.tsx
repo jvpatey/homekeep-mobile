@@ -21,8 +21,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHaptics } from "../../../../hooks/useHaptics";
 import { useDevice } from "../../../../hooks";
-import { useRequirePlusOrFreeAction } from "../../../../hooks/useRequirePlus";
+import {
+  isPlusRequiredError,
+  useRequirePlusOrFreeAction,
+} from "../../../../hooks/useRequirePlus";
 import { useTasks } from "../../../../context/TasksContext";
+import { useSubscription } from "../../../../context/SubscriptionContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { DesignSystem } from "../../../../theme/designSystem";
 import { HearthSheet } from "../../../ui/HearthSheet";
@@ -116,8 +120,12 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const { triggerLight, triggerMedium } = useHaptics();
   const { createTask, updateTask } = useTasks();
-  const { requireAccess, consume: consumeFreeAction } =
-    useRequirePlusOrFreeAction();
+  const {
+    requireAccess,
+    consume: consumeFreeAction,
+    sync: syncFreeActions,
+  } = useRequirePlusOrFreeAction();
+  const { presentPaywall } = useSubscription();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { isTablet, getFontMultiplier, getResponsiveValue } = useDevice();
@@ -321,10 +329,8 @@ export function CreateTaskModal({
     setIsSubmitting(true);
 
     try {
-      if (!isEdit) {
-        if (!(await requireAccess())) {
-          return;
-        }
+      if (!(await requireAccess())) {
+        return;
       }
 
       const actualIntervalDays = getEffectiveIntervalDays();
@@ -345,6 +351,7 @@ export function CreateTaskModal({
       if (isEdit && initialValues?.id) {
         const result = await updateTask(initialValues.id, taskData);
         if (result.success) {
+          await consumeFreeAction();
           triggerLight();
           onTaskCreated();
         } else {
@@ -356,9 +363,11 @@ export function CreateTaskModal({
       const result = await createTask(taskData);
 
       if (result.success) {
-        await consumeFreeAction();
+        await syncFreeActions();
         triggerLight();
         onTaskCreated();
+      } else if (isPlusRequiredError(result.error)) {
+        await presentPaywall({ force: true, reason: "free_exhausted" });
       } else {
         Alert.alert("Error", result.error || "Failed to create task");
       }

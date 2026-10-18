@@ -15,7 +15,8 @@ export function useRequirePlus() {
 
 /**
  * Allow Plus users freely, or unpaid users who still have free actions.
- * Does NOT consume — call `consumeFreeAction` after a successful complete/create.
+ * Does NOT consume — call `consume` after client-gated mutations (skip/pause),
+ * or `sync` after server-enforced complete/create.
  */
 export function useCanUseFreeAction(): boolean {
   const { isPlus } = useSubscription();
@@ -24,16 +25,30 @@ export function useCanUseFreeAction(): boolean {
   return (profile?.free_actions_used ?? 0) < FREE_ACTION_LIMIT;
 }
 
+/** True when Postgres raised our plus_required schedule gate. */
+export function isPlusRequiredError(error: unknown): boolean {
+  const message =
+    typeof error === "object" &&
+    error &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+      ? (error as { message: string }).message
+      : typeof error === "string"
+        ? error
+        : "";
+  return /plus_required/i.test(message);
+}
+
 /**
- * Gate complete/create: Plus always; otherwise consume one free action after
- * the caller succeeds — use `requireAccess` before work and `consume` after.
+ * Gate schedule mutations: Plus always; otherwise free-action quota.
  *
- * `requireAccess` returns true if Plus or free quota remains (does not consume).
- * When quota is exhausted, presents paywall with free-exhausted messaging.
+ * `requireAccess` checks quota (does not consume).
+ * `consume` increments via RPC — use for skip/pause/resume/edit (client-only gates).
+ * `sync` re-reads the counter after server triggers consume on complete/create.
  */
 export function useRequirePlusOrFreeAction() {
   const { isPlus, presentPaywall } = useSubscription();
-  const { profile, consumeFreeAction } = useProfile();
+  const { profile, consumeFreeAction, refreshFreeActions } = useProfile();
 
   const requireAccess = useCallback(async (): Promise<boolean> => {
     if (isPlus) return true;
@@ -47,9 +62,14 @@ export function useRequirePlusOrFreeAction() {
     await consumeFreeAction();
   }, [isPlus, consumeFreeAction]);
 
+  const sync = useCallback(async (): Promise<void> => {
+    if (isPlus) return;
+    await refreshFreeActions();
+  }, [isPlus, refreshFreeActions]);
+
   const remaining = isPlus
     ? null
     : Math.max(0, FREE_ACTION_LIMIT - (profile?.free_actions_used ?? 0));
 
-  return { requireAccess, consume, remaining, isPlus };
+  return { requireAccess, consume, sync, remaining, isPlus };
 }

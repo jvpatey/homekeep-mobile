@@ -104,6 +104,11 @@ export function SetupNotify({ isPlus }: { isPlus: boolean }) {
         icon: "alarm-outline",
         title: "Due-date reminders",
         detail: "A heads-up before tasks are due",
+      },
+      {
+        icon: "sunny-outline",
+        title: "Morning and weekly digests",
+        detail: "A fuller heads-up of what's due",
         plus: !isPlus,
       },
       {

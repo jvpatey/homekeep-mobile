@@ -118,13 +118,22 @@ function storeForPlatform(): "app_store" | "play_store" {
   return Platform.OS === "ios" ? "app_store" : "play_store";
 }
 
+function rcEntitlementStatus(ent: {
+  periodType: string;
+  billingIssueDetectedAt: string | null;
+}): "trialing" | "active" | "grace" {
+  if (ent.periodType === "TRIAL") return "trialing";
+  if (ent.billingIssueDetectedAt) return "grace";
+  return "active";
+}
+
 async function upsertStoreEntitlementFromRc(
   info: CustomerInfo
 ): Promise<boolean> {
   if (!supabase || !rcHasPlus(info)) return false;
   const ent = info.entitlements.active[HOMEKEEP_PLUS_ENTITLEMENT];
   if (!ent) return false;
-  const status = ent.periodType === "TRIAL" ? "trialing" : "active";
+  const status = rcEntitlementStatus(ent);
   const { error } = await supabase.rpc("upsert_my_store_entitlement", {
     p_status: status,
     p_product_id: ent.productIdentifier ?? null,
