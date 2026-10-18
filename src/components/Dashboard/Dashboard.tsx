@@ -70,7 +70,9 @@ export function TodayDashboard() {
   const [setupFinishedThisSession, setSetupFinishedThisSession] =
     useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
-  const [offerPlusAfterHomeShare, setOfferPlusAfterHomeShare] = useState(false);
+  const [homeShareIntent, setHomeShareIntent] = useState<
+    "invite" | "join" | null
+  >(null);
 
   useEffect(() => {
     if (!addressNeeded && !homeSetupNeeded) return;
@@ -258,10 +260,11 @@ export function TodayDashboard() {
         }}
         onFirstRunFinished={(action) => {
           if (action === "invite" || action === "join") {
-            setOfferPlusAfterHomeShare(!isPlus);
+            setHomeShareIntent(action);
             setShowHouseholdModal(true);
             return;
           }
+          // Soft paywall only when they skip HomeShare — not stacked after Invite.
           if (profile?.home_setup_set_at && !isPlus) {
             setTimeout(() => offerPaywallAfterSetup(), 320);
           }
@@ -270,12 +273,10 @@ export function TodayDashboard() {
 
       <HouseholdSharingModal
         visible={showHouseholdModal}
+        initialIntent={homeShareIntent}
         onClose={() => {
           setShowHouseholdModal(false);
-          if (offerPlusAfterHomeShare) {
-            setOfferPlusAfterHomeShare(false);
-            setTimeout(() => offerPaywallAfterSetup(), 320);
-          }
+          setHomeShareIntent(null);
         }}
       />
 

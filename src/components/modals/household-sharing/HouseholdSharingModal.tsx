@@ -37,9 +37,13 @@ import {
 } from "../../../utils/homeShareInvite";
 import { HomeSharePitch } from "../home-setup/SetupHomeShare";
 
+export type HomeShareInitialIntent = "invite" | "join";
+
 interface HouseholdSharingModalProps {
   visible: boolean;
   onClose: () => void;
+  /** From first-run setup: skip pitch and go straight to invite or join. */
+  initialIntent?: HomeShareInitialIntent | null;
 }
 
 function roleLabel(role: string): string {
@@ -50,6 +54,7 @@ function roleLabel(role: string): string {
 export function HouseholdSharingModal({
   visible,
   onClose,
+  initialIntent = null,
 }: HouseholdSharingModalProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -68,18 +73,27 @@ export function HouseholdSharingModal({
   const [sheetVisible, setSheetVisible] = useState(visible);
   const [mode, setMode] = useState<"main" | "scan">("main");
   const [scanLocked, setScanLocked] = useState(false);
+  const [activeIntent, setActiveIntent] = useState<HomeShareInitialIntent | null>(
+    null
+  );
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const scanHandledRef = useRef(false);
   const pendingPaywallRef = useRef(false);
+  const autoCreateStartedRef = useRef(false);
 
   useEffect(() => {
     setSheetVisible(visible);
-    if (!visible) {
+    if (visible) {
+      setActiveIntent(initialIntent ?? null);
+      autoCreateStartedRef.current = false;
+    } else {
       setMode("main");
       setScanLocked(false);
       scanHandledRef.current = false;
+      setActiveIntent(null);
+      autoCreateStartedRef.current = false;
     }
-  }, [visible]);
+  }, [visible, initialIntent]);
 
   /** Close HomeShare first so Plus is not trapped under this Modal. */
   const ensurePlus = async (): Promise<boolean> => {
@@ -203,6 +217,41 @@ export function HouseholdSharingModal({
       setBusy(false);
     }
   };
+
+  // First-run Invite + Plus: create immediately and land on code/QR.
+  useEffect(() => {
+    if (!visible || !isPlus || profile?.household_id || !user) return;
+    if (activeIntent !== "invite") return;
+    if (autoCreateStartedRef.current) return;
+    autoCreateStartedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      setBusy(true);
+      try {
+        const result = await HouseholdService.createHousehold(user.id);
+        if (cancelled) return;
+        if (result.error) {
+          Alert.alert("Couldn't create HomeShare", result.error.message);
+          autoCreateStartedRef.current = false;
+          return;
+        }
+        const nextCode = result.data?.invite_code
+          ? normalizeInviteCode(result.data.invite_code)
+          : null;
+        setInvite(nextCode);
+        await refresh();
+        if (result.data?.id) {
+          await loadDetails(result.data.id);
+        }
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot when invite intent opens
+  }, [visible, isPlus, activeIntent, profile?.household_id, user?.id]);
 
   const join = async (rawCode?: string) => {
     if (busy) return;
@@ -686,6 +735,88 @@ export function HouseholdSharingModal({
             onPress={() => void leave()}
             disabled={busy}
           />
+        </>
+      ) : activeIntent === "join" ? (
+        <>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            Enter the code from whoever set up this home, or scan their QR.
+          </Text>
+          <Text style={[styles.label, { color: colors.text }]}>
+            Invite code
+          </Text>
+          <TextInput
+            value={code}
+            onChangeText={(value) => setCode(normalizeInviteCode(value))}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="off"
+            autoFocus
+            maxLength={8}
+            placeholder="ABC123"
+            placeholderTextColor={colors.textSecondary}
+            style={[
+              styles.input,
+              {
+                color: colors.text,
+                borderColor: colors.border,
+                backgroundColor: colors.fieldFill,
+              },
+            ]}
+          />
+          <View style={styles.joinActions}>
+            <Button
+              label={busy ? "Joining…" : "Join"}
+              onPress={() => void join()}
+              disabled={busy || normalizeInviteCode(code).length < 4}
+            />
+            <Button
+              label="Scan QR"
+              variant="ghost"
+              onPress={() => void openScanner()}
+              disabled={busy}
+              accessibilityLabel="Scan a HomeShare QR code"
+            />
+          </View>
+        </>
+      ) : activeIntent === "invite" ? (
+        <>
+          {isPlus || busy ? (
+            <>
+              <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                {busy
+                  ? "Creating your HomeShare…"
+                  : "You'll get a code and QR to send them."}
+              </Text>
+              {busy ? (
+                <ActivityIndicator
+                  color={colors.primary}
+                  style={styles.spinner}
+                />
+              ) : (
+                <Button
+                  label="Create HomeShare"
+                  onPress={() => void create()}
+                  disabled={busy}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                Share one schedule with a partner, roommate, or family member.
+                HomeShare is included with HomeKeep +.
+              </Text>
+              <Button
+                label="Continue with HomeKeep +"
+                onPress={() => void create()}
+                disabled={busy}
+              />
+              <Text style={[styles.plusNote, { color: colors.textSecondary }]}>
+                Joining with a code is free — close and choose Join if you have
+                one.
+              </Text>
+            </>
+          )}
         </>
       ) : (
         <>
