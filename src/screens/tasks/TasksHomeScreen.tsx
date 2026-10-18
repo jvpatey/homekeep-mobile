@@ -8,14 +8,15 @@ import {
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../context/ThemeContext";
 import { useProfile } from "../../context/ProfileContext";
 import { useTaskActions } from "../../context/TaskActionsContext";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { DesignSystem } from "../../theme/designSystem";
 import {
+  HearthCanvas,
   SegmentedControl,
   SegmentOption,
+  TabFocusReveal,
   TabHeaderAction,
   TabScreenHeader,
 } from "../../components/ui";
@@ -54,7 +55,6 @@ const SEGMENTS: SegmentOption<TasksSegment>[] = [
 type Nav = NativeStackNavigationProp<TasksStackParamList, "TasksHome">;
 
 export function TasksHomeScreen() {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const { profile } = useProfile();
@@ -130,7 +130,6 @@ export function TasksHomeScreen() {
       style={[
         styles.chrome,
         {
-          backgroundColor: colors.background,
           paddingTop:
             (Platform.OS === "ios" ? insets.top : 0) + DesignSystem.spacing.sm,
         },
@@ -242,25 +241,27 @@ export function TasksHomeScreen() {
     );
 
   return (
-    <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      {chrome}
-      <Animated.View
-        key={segment}
-        style={styles.flex}
-        entering={
-          reduceMotion
-            ? undefined
-            : FadeIn.duration(DesignSystem.motion.duration.fast)
-        }
-        exiting={
-          reduceMotion
-            ? undefined
-            : FadeOut.duration(DesignSystem.motion.duration.instant)
-        }
-      >
-        {body}
-      </Animated.View>
-    </View>
+    <HearthCanvas>
+      <TabFocusReveal>
+        {chrome}
+        <Animated.View
+          key={segment}
+          style={styles.flex}
+          entering={
+            reduceMotion
+              ? undefined
+              : FadeIn.duration(DesignSystem.motion.duration.fast)
+          }
+          exiting={
+            reduceMotion
+              ? undefined
+              : FadeOut.duration(DesignSystem.motion.duration.instant)
+          }
+        >
+          {body}
+        </Animated.View>
+      </TabFocusReveal>
+    </HearthCanvas>
   );
 }
 
