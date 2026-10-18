@@ -15,6 +15,7 @@ export { HearthSheet } from "./HearthSheet";
 export { HearthCanvas, ScrollAtmosphere } from "./HearthCanvas";
 export { HearthSurfaceCard } from "./HearthSurfaceCard";
 export { SheetActionRow } from "./sheet-action-row";
+export { SettingsSectionLabel } from "./SettingsSectionLabel";
 export { PriorityMark, getPriorityColor } from "./PriorityMark";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl";
 export { HeaderIconButton } from "./HeaderIconButton";

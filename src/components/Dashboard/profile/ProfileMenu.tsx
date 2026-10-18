@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -124,14 +124,57 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
   };
 
   const householdShared = members.length > 1;
-  const householdTitle = householdShared ? "HomeShare" : "Account";
   const householdSubtitle = householdShared
     ? formatHouseholdPeople(members, user?.id)
     : householdRole === "member"
       ? "You're a member of this home"
-      : "Single-user account";
-  const visibleAvatars = members.slice(0, 4);
+      : "Share this home or join with a code";
+  const visibleAvatars = members.slice(0, 3);
   const extraCount = Math.max(0, members.length - visibleAvatars.length);
+
+  const householdTrailing =
+    householdShared && visibleAvatars.length > 0 ? (
+      <View style={styles.householdAvatars}>
+        {visibleAvatars.map((member, index) => (
+          <View
+            key={member.user_id}
+            style={[
+              styles.householdAvatar,
+              {
+                borderColor: colors.surface,
+                marginLeft: index === 0 ? 0 : -8,
+                zIndex: visibleAvatars.length - index,
+              },
+            ]}
+          >
+            <TintedGlassAvatar
+              size={26}
+              gradient={
+                member.user_id === user?.id
+                  ? selectedGradient
+                  : resolveGradientPreset(member.avatarStyle)
+              }
+              initial={member.initial}
+              imageUri={
+                member.user_id === user?.id
+                  ? avatarUrl ?? member.avatarUrl
+                  : member.avatarUrl
+              }
+              pressable={false}
+              ringWidth={1.5}
+              accessibilityLabel={member.displayName}
+            />
+          </View>
+        ))}
+        {extraCount > 0 ? (
+          <Text
+            style={[styles.householdOverflow, { color: colors.textSecondary }]}
+          >
+            +{extraCount}
+          </Text>
+        ) : null}
+      </View>
+    ) : undefined;
 
   return (
     <>
@@ -193,102 +236,26 @@ export function ProfileMenu({ navigation }: ProfileMenuProps) {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.householdCard,
-            {
-              backgroundColor: colors.fieldFill,
-              borderColor: colors.border,
-            },
-          ]}
-          onPress={() => {
-            void triggerLight();
-            presentAfterClose(() => setHouseholdVisible(true));
-          }}
-          activeOpacity={0.75}
-          accessibilityRole="button"
-          accessibilityLabel={`${householdTitle}. ${householdSubtitle}. Open HomeShare`}
-        >
-          <View style={styles.householdCardTop}>
-            {visibleAvatars.length > 0 ? (
-              <View style={styles.householdAvatars}>
-                {visibleAvatars.map((member, index) => (
-                  <View
-                    key={member.user_id}
-                    style={[
-                      styles.householdAvatar,
-                      {
-                        borderColor: colors.surface,
-                        marginLeft: index === 0 ? 0 : -8,
-                        zIndex: visibleAvatars.length - index,
-                      },
-                    ]}
-                  >
-                    <TintedGlassAvatar
-                      size={26}
-                      gradient={
-                        member.user_id === user?.id
-                          ? selectedGradient
-                          : resolveGradientPreset(member.avatarStyle)
-                      }
-                      initial={member.initial}
-                      imageUri={
-                        member.user_id === user?.id
-                          ? avatarUrl ?? member.avatarUrl
-                          : member.avatarUrl
-                      }
-                      pressable={false}
-                      ringWidth={1.5}
-                      accessibilityLabel={member.displayName}
-                    />
-                  </View>
-                ))}
-                {extraCount > 0 ? (
-                  <Text
-                    style={[
-                      styles.householdOverflow,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    +{extraCount}
-                  </Text>
-                ) : null}
-              </View>
-            ) : (
-              <Ionicons
-                name="person-outline"
-                size={18}
-                color={colors.primary}
-              />
-            )}
-            <View style={styles.householdCardText}>
-              <Text
-                style={[styles.householdTitle, { color: colors.textSecondary }]}
-              >
-                {householdTitle}
-              </Text>
-              <Text
-                style={[styles.householdPeople, { color: colors.text }]}
-                numberOfLines={2}
-              >
-                {householdSubtitle}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={colors.textSecondary}
-            />
-          </View>
-        </TouchableOpacity>
-
         <HearthSurfaceCard
           containerStyle={styles.actionsCard}
           style={styles.actionsSurface}
         >
           <SheetActionRow
+            icon="people-outline"
+            title="HomeShare"
+            subtitle={householdSubtitle}
+            onPress={() => {
+              void triggerLight();
+              presentAfterClose(() => setHouseholdVisible(true));
+            }}
+            trailing={householdTrailing}
+            showChevron={!householdTrailing}
+            showDivider
+          />
+          <SheetActionRow
             icon="settings-outline"
             title="Settings"
+            subtitle="Account, home, and notifications"
             onPress={() => {
               void triggerLight();
               presentAfterClose(() => navigation.navigate("Settings"));

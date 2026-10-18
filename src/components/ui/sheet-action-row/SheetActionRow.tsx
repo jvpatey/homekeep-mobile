@@ -1,5 +1,12 @@
 import React, { ReactNode } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  StyleProp,
+  ViewStyle,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { DesignSystem } from "../../../theme/designSystem";
@@ -8,13 +15,17 @@ export interface SheetActionRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle?: string;
-  onPress: () => void;
+  /** Omit for non-tappable rows (e.g. Switch-only). */
+  onPress?: () => void;
   destructive?: boolean;
   disabled?: boolean;
   showChevron?: boolean;
   trailing?: ReactNode;
+  /** Override icon / well accent (defaults to primary or error when destructive). */
+  accentColor?: string;
   accessibilityLabel?: string;
   showDivider?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function SheetActionRow({
@@ -24,42 +35,33 @@ export function SheetActionRow({
   onPress,
   destructive = false,
   disabled = false,
-  showChevron = true,
+  showChevron,
   trailing,
+  accentColor,
   accessibilityLabel,
   showDivider = false,
+  style,
 }: SheetActionRowProps) {
   const { colors } = useTheme();
-  const iconColor = disabled
-    ? colors.textSecondary
+  const pressable = typeof onPress === "function" && !disabled;
+  const chevronVisible =
+    showChevron ?? (pressable && !destructive && !trailing);
+
+  const tone = accentColor
+    ? accentColor
     : destructive
       ? colors.error
       : colors.primary;
+  const iconColor = disabled ? colors.textSecondary : tone;
   const textColor = disabled
     ? colors.textSecondary
     : destructive
       ? colors.error
       : colors.text;
-  const iconBg = `${disabled ? colors.border : destructive ? colors.error : colors.primary}15`;
+  const iconBg = `${disabled ? colors.border : tone}15`;
 
-  return (
-    <TouchableOpacity
-      style={[
-        styles.row,
-        showDivider && {
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-      ]}
-      onPress={disabled ? undefined : onPress}
-      activeOpacity={0.75}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={
-        accessibilityLabel ?? (subtitle ? `${title}. ${subtitle}` : title)
-      }
-      accessibilityState={{ disabled }}
-    >
+  const content = (
+    <>
       <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>
@@ -76,15 +78,54 @@ export function SheetActionRow({
           </Text>
         ) : null}
       </View>
-      {trailing}
-      {showChevron && !destructive ? (
+      {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
+      {chevronVisible ? (
         <Ionicons
           name="chevron-forward"
           size={16}
           color={colors.textSecondary}
         />
       ) : null}
-    </TouchableOpacity>
+    </>
+  );
+
+  const rowStyle = [
+    styles.row,
+    showDivider && {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    style,
+  ];
+
+  if (pressable) {
+    return (
+      <TouchableOpacity
+        style={rowStyle}
+        onPress={onPress}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={
+          accessibilityLabel ?? (subtitle ? `${title}. ${subtitle}` : title)
+        }
+        accessibilityState={{ disabled }}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View
+      style={rowStyle}
+      accessibilityRole={trailing ? "none" : "text"}
+      accessibilityLabel={
+        accessibilityLabel ?? (subtitle ? `${title}. ${subtitle}` : title)
+      }
+      accessibilityState={{ disabled }}
+    >
+      {content}
+    </View>
   );
 }
 
@@ -114,5 +155,9 @@ const styles = StyleSheet.create({
   subtitle: {
     ...DesignSystem.typography.caption,
     marginTop: 2,
+  },
+  trailing: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

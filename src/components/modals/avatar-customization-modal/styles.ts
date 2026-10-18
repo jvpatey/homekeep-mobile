@@ -19,7 +19,8 @@ export const styles = StyleSheet.create({
   },
   photoAction: {
     marginTop: DesignSystem.spacing.md,
-    minWidth: 180,
+    alignSelf: "center",
+    width: 200,
   },
   footerRow: {
     flexDirection: "row",
