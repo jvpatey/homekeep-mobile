@@ -18,6 +18,10 @@ import { useTheme } from "../../../context/ThemeContext";
 import { useNotifications } from "../../../context/NotificationContext";
 import { useSubscription } from "../../../context/SubscriptionContext";
 import { useHaptics, useReducedMotion } from "../../../hooks";
+import {
+  isPlusRequiredError,
+  useRequirePlusOrFreeAction,
+} from "../../../hooks/useRequirePlus";
 import { useProfile } from "../../../context/ProfileContext";
 import { useTasks } from "../../../context/TasksContext";
 import { HearthSheet } from "../../ui/HearthSheet";
@@ -224,8 +228,9 @@ export function HomeSetupModal({
   const {
     applyGeneratedHomeSchedule,
     reconcileHomeSchedule,
-    createTask,
+    createTasks,
   } = useTasks();
+  const { requireAccess, sync } = useRequirePlusOrFreeAction();
   const addressRef = useRef<HomeAddressFieldsHandle>(null);
   const basicsScrollRef = useRef<ScrollView>(null);
   const [addressCanSubmit, setAddressCanSubmit] = useState(false);
@@ -275,7 +280,7 @@ export function HomeSetupModal({
   const reducedMotion = useReducedMotion();
   const { triggerLight, triggerSuccess } = useHaptics();
   const { permissionStatus, syncPushToken } = useNotifications();
-  const { isPlus } = useSubscription();
+  const { isPlus, presentPaywall } = useSubscription();
   const shouldAskNotifications =
     !hideSkip && permissionStatus.status === "undetermined";
 
@@ -617,6 +622,12 @@ export function HomeSetupModal({
     return rows;
   };
 
+  /** Mark setup complete, then notify / HomeShare (first-run only after hints). */
+  const markDoneAndFinish = async (title: string, message: string) => {
+    await markHomeSetupDone();
+    goToFinishSteps(title, message);
+  };
+
   const finishAfterSchedule = (title: string, message: string) => {
     const hints = buildPendingHints(sessionEquipment);
     if (!hideSkip && hints.length > 0) {
@@ -625,7 +636,13 @@ export function HomeSetupModal({
       setPhase("hints");
       return;
     }
-    goToFinishSteps(title, message);
+    void markDoneAndFinish(title, message);
+  };
+
+  const presentPlusIfRequired = async (error: unknown): Promise<boolean> => {
+    if (!isPlusRequiredError(error)) return false;
+    await presentPaywall({ force: true, reason: "free_exhausted" });
+    return true;
   };
 
   const applySelectedHints = async () => {
@@ -633,13 +650,14 @@ export function HomeSetupModal({
     setSaving(true);
     try {
       const selected = pendingHints.filter((row) => row.selected);
-      for (const row of selected) {
-        const [payload] = buildRoutinePayloadsFromItems([row.item]);
-        const result = await createTask({
-          ...payload,
-          equipment_id: row.equipmentId,
+      if (selected.length > 0) {
+        const payloads = selected.map((row) => {
+          const [payload] = buildRoutinePayloadsFromItems([row.item]);
+          return { ...payload, equipment_id: row.equipmentId };
         });
+        const result = await createTasks(payloads);
         if (!result.success) {
+          if (await presentPlusIfRequired(result.error)) return;
           throw new Error(result.error ?? "Could not add reminder");
         }
       }
@@ -648,8 +666,9 @@ export function HomeSetupModal({
         message: "Your home is set up.",
       };
       setPendingHints([]);
-      goToFinishSteps(copy.title, copy.message);
+      await markDoneAndFinish(copy.title, copy.message);
     } catch (e) {
+      if (await presentPlusIfRequired(e)) return;
       Alert.alert(
         "Could not add reminders",
         e instanceof Error ? e.message : "Please try again."
@@ -665,7 +684,7 @@ export function HomeSetupModal({
       message: "Your home is set up.",
     };
     setPendingHints([]);
-    goToFinishSteps(copy.title, copy.message);
+    void markDoneAndFinish(copy.title, copy.message);
   };
 
   const toggleSessionEquipmentType = async (type: EquipmentType) => {
@@ -745,11 +764,16 @@ export function HomeSetupModal({
       latitude: profile?.latitude,
     });
     if (diff.toAdd.length === 0 && diff.toPause.length === 0) {
-      await markHomeSetupDone();
-      finishAfterSchedule(
-        "You're set",
-        "Your schedule already matches this home."
-      );
+      if (hideSkip) {
+        await markHomeSetupDone();
+        Alert.alert("You're set", "Your schedule already matches this home.");
+        closeSheet();
+      } else {
+        finishAfterSchedule(
+          "You're set",
+          "Your schedule already matches this home."
+        );
+      }
       return;
     }
     setReconcileDiff(diff);
@@ -793,6 +817,12 @@ export function HomeSetupModal({
 
   const handleApply = async () => {
     if (saving) return;
+    const willAdd = isReconcile
+      ? selectedAdds.length > 0
+      : selectedItems.length > 0;
+    // Settings re-edit: gate adds against Plus / free actions. First-run seed is free.
+    if (hideSkip && willAdd && !(await requireAccess())) return;
+
     setSaving(true);
     try {
       if (isReconcile) {
@@ -801,15 +831,17 @@ export function HomeSetupModal({
           pauseIds: selectedPauses.map((row) => row.id),
         });
         if (!result.success) {
+          if (await presentPlusIfRequired(result.error)) return;
           Alert.alert(
             "Couldn't update schedule",
             result.error ?? "Please try again."
           );
           return;
         }
-        await markHomeSetupDone();
         const added = result.addedCount ?? 0;
         const paused = result.pausedCount ?? 0;
+        if (hideSkip && added > 0) await sync();
+        if (hideSkip) await markHomeSetupDone();
         if (added > 0 || paused > 0) {
           const parts: string[] = [];
           if (added > 0) {
@@ -826,20 +858,24 @@ export function HomeSetupModal({
           } else {
             finishAfterSchedule("Home updated", `${parts.join(", ")}.`);
           }
-        } else {
+        } else if (hideSkip) {
           closeSheet();
+        } else {
+          finishAfterSchedule("You're set", "Your home details are saved.");
         }
         return;
       }
 
       const result = await applyGeneratedHomeSchedule(selectedItems);
       if (!result.success) {
+        if (await presentPlusIfRequired(result.error)) return;
         Alert.alert("Couldn't add tasks", result.error ?? "Please try again.");
         return;
       }
-      await markHomeSetupDone();
       const added = result.addedCount ?? 0;
       const skipped = result.skippedCount ?? 0;
+      if (hideSkip && added > 0) await sync();
+      if (hideSkip) await markHomeSetupDone();
       let title = "You're set";
       let message = "Those routines are already on your schedule.";
       if (added > 0) {
