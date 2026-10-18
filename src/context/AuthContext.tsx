@@ -25,6 +25,7 @@ import {
   EMAIL_NOT_CONFIRMED,
   isEmailVerified,
 } from "../utils/isEmailVerified";
+import { clearLocalSessionKeepRefreshToken } from "../utils/clearLocalAuthSession";
 import {
   clearBiometricLogin,
   enableBiometricLogin,
@@ -815,9 +816,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       await logOutPurchases();
 
-      // Keep refresh token valid when Face ID login is enabled (local sign-out only).
-      // Do NOT refresh here — rotating the refresh token and failing to persist
-      // it would permanently break Face ID. Snapshot the current session only.
+      // Face ID keeps a refresh token in SecureStore. Supabase's
+      // signOut({ scope: "local" }) still calls /logout and REVOKE that token —
+      // which is why Apple/Google Face ID always looked "expired". When Face ID
+      // is on, only clear the local client session and leave the server session.
       const biometricEnabled = await hasBiometricLoginEnabled();
       if (biometricEnabled) {
         try {
@@ -829,10 +831,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } catch (err) {
           console.warn("Failed to sync biometric vault before sign-out", err);
         }
+
+        await clearLocalSessionKeepRefreshToken(supabase);
+        userIdRef.current = null;
+        setSession(null);
+        setUser(null);
+        markSessionReady();
+        console.log("Sign out successful (local keep-alive for Face ID)");
+        return;
       }
-      const { error } = await supabase.auth.signOut(
-        biometricEnabled ? { scope: "local" } : undefined
-      );
+
+      const { error } = await supabase.auth.signOut();
       if (error) {
         // If session is already missing, manually clear state to update UI
         if (isInvalidSessionError(error)) {
