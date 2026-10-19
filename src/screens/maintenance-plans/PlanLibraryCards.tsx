@@ -5,6 +5,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useTasks } from "../../context/TasksContext";
 import { useProfile } from "../../context/ProfileContext";
+import { useDevice } from "../../hooks";
 import { HearthSurfaceCard } from "../../components/ui";
 import {
   refreshRoutines,
@@ -113,6 +114,7 @@ export function PlanLibraryCards({
   showIntro?: boolean;
 }) {
   const { colors, isDark } = useTheme();
+  const { isRegularWidth } = useDevice();
   const { profile } = useProfile();
   const { catalogPlans, suggestedPlanId, appliedPlanIds, homeSetupComplete } =
     catalog;
@@ -131,6 +133,7 @@ export function PlanLibraryCards({
             : "Choose a bundle and pick what to add. For a full schedule at once, finish Set up your home on the dashboard."}
         </Text>
       ) : null}
+      <View style={isRegularWidth ? maintenancePlansStyles.tabletGrid : undefined}>
       {catalogPlans.map((plan) => {
         const theme = getPlanTheme(plan.id);
         const bubble = theme
@@ -151,7 +154,10 @@ export function PlanLibraryCards({
         return (
           <HearthSurfaceCard
             key={plan.id}
-            containerStyle={maintenancePlansStyles.cardContainer}
+            containerStyle={[
+              maintenancePlansStyles.cardContainer,
+              isRegularWidth && maintenancePlansStyles.tabletGridItem,
+            ]}
             style={maintenancePlansStyles.cardSurface}
           >
             <TouchableOpacity
@@ -270,6 +276,7 @@ export function PlanLibraryCards({
           </HearthSurfaceCard>
         );
       })}
+      </View>
     </>
   );
 }

@@ -71,16 +71,20 @@ export function HomeScreen() {
   } = useDevice();
   const [appleLoading, setAppleLoading] = useState(false);
 
+  // Side-by-side only in landscape. Portrait iPad gets a centered stack —
+  // the old split left a small CTA floating in empty space.
   const isTabletPortrait = isRegularWidth && height >= width;
+  const isTabletLandscape = isRegularWidth && width > height;
   const splitWidth = getMaxContentWidth();
   const phoneColumnWidth = getAuthContentWidth("welcome");
-  const ctaCardWidth = isRegularWidth
-    ? getResponsiveValue(
-        isTabletPortrait ? 300 : 320,
-        isTabletPortrait ? 320 : 360,
-        400
-      )
+  const portraitColumnWidth = isTabletPortrait
+    ? getResponsiveValue(440, 480, 520)
     : undefined;
+  const ctaCardWidth = isTabletLandscape
+    ? getResponsiveValue(340, 380, 420)
+    : isTabletPortrait
+      ? portraitColumnWidth
+      : undefined;
   const gutter = isRegularWidth
     ? getResponsiveValue(
         DesignSystem.spacing.xl,
@@ -92,19 +96,25 @@ export function HomeScreen() {
   const isCompact = !isRegularWidth && height < COMPACT_HEIGHT;
   const showSupport = isRegularWidth || height >= SUPPORT_MIN_HEIGHT;
   const phoneHeroScale = isCompact ? 0.8 : showSupport ? 1.15 : 1;
-  const heroScale = isRegularWidth
-    ? getResponsiveValue(isTabletPortrait ? 0.9 : 1, 1, 1.15)
-    : Math.min(phoneHeroScale, (width - gutter * 2) / WELCOME_HERO_WIDTH);
-  const headlineFontSize = isRegularWidth
-    ? getResponsiveValue(36, 42, 48)
-    : isCompact
-      ? 30
-      : 34;
-  const headlineLineHeight = isRegularWidth
-    ? getResponsiveValue(42, 48, 54)
-    : isCompact
-      ? 36
-      : 40;
+  const heroScale = isTabletPortrait
+    ? getResponsiveValue(1.05, 1.12, 1.2)
+    : isTabletLandscape
+      ? getResponsiveValue(1, 1.05, 1.15)
+      : Math.min(phoneHeroScale, (width - gutter * 2) / WELCOME_HERO_WIDTH);
+  const headlineFontSize = isTabletPortrait
+    ? getResponsiveValue(40, 44, 48)
+    : isTabletLandscape
+      ? getResponsiveValue(36, 40, 44)
+      : isCompact
+        ? 30
+        : 34;
+  const headlineLineHeight = isTabletPortrait
+    ? getResponsiveValue(46, 50, 54)
+    : isTabletLandscape
+      ? getResponsiveValue(42, 46, 50)
+      : isCompact
+        ? 36
+        : 40;
   const supportFontSize = isRegularWidth ? getResponsiveValue(16, 17, 18) : 16;
   const supportLineHeight = isRegularWidth
     ? getResponsiveValue(22, 24, 26)
@@ -116,11 +126,11 @@ export function HomeScreen() {
         DesignSystem.spacing.xxl
       )
     : DesignSystem.spacing.lg;
-  const splitGap = isRegularWidth
+  const splitGap = isTabletLandscape
     ? getResponsiveValue(
-        DesignSystem.spacing.xl,
         DesignSystem.spacing.xxl,
-        DesignSystem.spacing.xxl
+        DesignSystem.spacing.xxl + 8,
+        DesignSystem.spacing.xxl + 16
       )
     : DesignSystem.spacing.xl;
 
@@ -319,14 +329,22 @@ export function HomeScreen() {
         <View
           style={[
             styles.column,
-            isRegularWidth && splitWidth != null && { maxWidth: splitWidth },
+            isTabletLandscape &&
+              splitWidth != null && { maxWidth: splitWidth },
+            isTabletPortrait &&
+              portraitColumnWidth != null && {
+                maxWidth: portraitColumnWidth,
+              },
             !isRegularWidth &&
               phoneColumnWidth != null && { maxWidth: phoneColumnWidth },
           ]}
         >
           <Animated.View
             {...(entering ? { entering } : {})}
-            style={styles.wordmarkRow}
+            style={[
+              styles.wordmarkRow,
+              isTabletPortrait && styles.wordmarkCentered,
+            ]}
           >
             <View style={[styles.wordmarkMark, { height: wordmarkSize }]}>
               <HouseMark size={wordmarkSize} inline />
@@ -347,14 +365,17 @@ export function HomeScreen() {
             </Text>
           </Animated.View>
 
-          {isRegularWidth ? (
+          {isTabletLandscape ? (
             <View style={styles.heroStage}>
               <View style={[styles.splitRow, { gap: splitGap }]}>
                 <View style={styles.brand}>{copy}</View>
                 <HearthSurfaceCard
                   containerStyle={[
                     styles.ctaCardContainer,
-                    ctaCardWidth != null && { maxWidth: ctaCardWidth },
+                    ctaCardWidth != null && {
+                      width: ctaCardWidth,
+                      maxWidth: ctaCardWidth,
+                    },
                   ]}
                   style={[
                     styles.ctaCard,
@@ -369,6 +390,25 @@ export function HomeScreen() {
                   {dock}
                 </HearthSurfaceCard>
               </View>
+            </View>
+          ) : isTabletPortrait ? (
+            <View style={styles.portraitStage}>
+              <View style={styles.topSpacer} />
+              {copy}
+              <View style={styles.portraitGap} />
+              <HearthSurfaceCard
+                containerStyle={styles.portraitCardContainer}
+                style={[
+                  styles.ctaCard,
+                  {
+                    padding: cardPadding,
+                    width: "100%",
+                  },
+                ]}
+              >
+                {dock}
+              </HearthSurfaceCard>
+              <View style={styles.spacer} />
             </View>
           ) : (
             <>
@@ -404,21 +444,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: DesignSystem.spacing.xl,
   },
+  portraitStage: {
+    flex: 1,
+    width: "100%",
+  },
+  portraitGap: {
+    height: DesignSystem.spacing.xl,
+  },
+  portraitCardContainer: {
+    width: "100%",
+    alignSelf: "stretch",
+  },
   splitRow: {
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "center",
     width: "100%",
   },
   brand: {
-    flex: 1.15,
+    flex: 1.25,
     minWidth: 0,
     justifyContent: "center",
   },
   ctaCardContainer: {
-    flex: 1,
-    minWidth: 260,
-    maxWidth: 400,
-    alignSelf: "stretch",
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 280,
+    alignSelf: "center",
   },
   ctaCard: {
     overflow: "visible",
@@ -429,6 +480,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: DesignSystem.spacing.sm + 2,
     marginBottom: DesignSystem.spacing.sm,
+  },
+  wordmarkCentered: {
+    justifyContent: "center",
+    marginBottom: DesignSystem.spacing.md,
   },
   wordmarkMark: {
     height: 20,
@@ -457,12 +512,14 @@ const styles = StyleSheet.create({
   support: {
     ...DesignSystem.typography.callout,
     textAlign: "center",
-    maxWidth: 360,
+    maxWidth: 420,
     marginBottom: DesignSystem.spacing.lg,
+    alignSelf: "center",
   },
   benefits: {
     width: "100%",
-    maxWidth: 400,
+    maxWidth: 440,
+    alignSelf: "center",
   },
   benefit: {
     flexDirection: "row",

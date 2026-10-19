@@ -12,7 +12,7 @@ import { useEquipmentIndex } from "../../hooks/useEquipmentIndex";
 import { useHomeContacts } from "../../hooks/useHomeContacts";
 import { useHomeDocuments } from "../../hooks/useHomeDocuments";
 import { useCurrency } from "../../hooks/useCurrency";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import {
   ScrollAtmosphere,
@@ -68,6 +68,8 @@ let enteredThisSession = false;
 export function RecordHomeScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { getTabContentStyle } = useDevice();
+  const tabColumn = getTabContentStyle();
   const { user } = useAuth();
   const { profile, homeNotes } = useProfile();
   const { triggerLight } = useHaptics();
@@ -245,7 +247,7 @@ export function RecordHomeScreen() {
           }
         />
 
-        <View style={styles.content}>
+        <View style={[styles.content, tabColumn]}>
           <Animated.View entering={entering(section++)}>
             <HomeIdentityHero
               street={street}
@@ -280,17 +282,26 @@ export function RecordHomeScreen() {
                 done={recordProgress.done}
                 total={recordProgress.total}
                 onStart={startRecordItem}
+                isPlus={!history.locked}
               />
             </Animated.View>
           ) : null}
 
-          <Animated.View entering={entering(section++)}>
-            <EmergencyQuickCard
-              facts={profile?.home_emergency}
-              home={profile?.home_systems}
-              onPress={() => navigation.navigate("EmergencyInfo")}
-            />
-          </Animated.View>
+          {/* Hide while checklist still asks for emergency — avoids a duplicate prompt. */}
+          {!(
+            recordLoaded &&
+            recordProgress.done < recordProgress.total &&
+            !recordProgress.items.find((item) => item.key === "emergency")
+              ?.done
+          ) ? (
+            <Animated.View entering={entering(section++)}>
+              <EmergencyQuickCard
+                facts={profile?.home_emergency}
+                home={profile?.home_systems}
+                onPress={() => navigation.navigate("EmergencyInfo")}
+              />
+            </Animated.View>
+          ) : null}
 
           {headsUp.items.length > 0 ? (
             <Animated.View entering={entering(section++)}>

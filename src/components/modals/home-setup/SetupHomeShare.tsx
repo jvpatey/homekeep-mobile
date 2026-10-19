@@ -309,7 +309,7 @@ export function HomeSharePitch({ isPlus }: { isPlus: boolean }) {
   );
 }
 
-/** HomeShare pitch shown at the end of first-run setup. */
+/** Short HomeShare ask at the end of first-run setup (full pitch lives in Settings). */
 export function SetupHomeShare({
   isPlus,
   readyMessage,
@@ -335,10 +335,25 @@ export function SetupHomeShare({
         </Animated.View>
       ) : null}
 
-      <HomeSharePitch isPlus={isPlus} />
+      <Animated.Text
+        entering={enter(80)}
+        style={[styles.setupHeadline, { color: colors.text }]}
+        accessibilityRole="header"
+        maxFontSizeMultiplier={1.3}
+      >
+        Anyone else help with this home?
+      </Animated.Text>
+      <Animated.Text
+        entering={enter(160)}
+        style={[styles.setupSupport, { color: colors.textSecondary }]}
+        maxFontSizeMultiplier={1.4}
+      >
+        Invite a partner, roommate, or family member to share the schedule —
+        or join with a code if they already set one up.
+      </Animated.Text>
 
       <Animated.View
-        entering={enter(1080)}
+        entering={enter(240)}
         style={[styles.notePill, { borderColor: colors.border }]}
       >
         <Ionicons name="key-outline" size={14} color={colors.textSecondary} />
@@ -372,6 +387,21 @@ const styles = StyleSheet.create({
   },
   readyText: {
     ...DesignSystem.typography.smallSemiBold,
+  },
+  setupHeadline: {
+    ...DesignSystem.typography.display,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.6,
+    textAlign: "center",
+    marginTop: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.sm,
+  },
+  setupSupport: {
+    ...DesignSystem.typography.callout,
+    textAlign: "center",
+    maxWidth: 320,
+    marginBottom: DesignSystem.spacing.lg,
   },
   hero: {
     width: "100%",

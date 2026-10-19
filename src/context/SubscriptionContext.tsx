@@ -29,6 +29,10 @@ import {
   pickMonthlyPackage,
   pickYearlyPackage,
 } from "../lib/purchases";
+import {
+  hasOfferedPaywallAfterFirstComplete,
+  markOfferedPaywallAfterFirstComplete,
+} from "../utils/plusOfferStorage";
 
 export type EntitlementStatus =
   | "none"
@@ -58,7 +62,10 @@ type RestoreResult =
   | { restored: false; error?: string };
 
 /** Why the paywall opened; picks the headline and highlighted value line. */
-export type PaywallReason = "free_exhausted" | PlusFeatureKey;
+export type PaywallReason =
+  | "free_exhausted"
+  | "first_complete"
+  | PlusFeatureKey;
 
 interface SubscriptionContextValue {
   isPlus: boolean;
@@ -83,6 +90,8 @@ interface SubscriptionContextValue {
   }) => Promise<boolean>;
   closePaywall: () => void;
   offerPaywallAfterSetup: () => void;
+  /** Soft Plus offer once after the user's first successful task complete. */
+  offerPaywallAfterFirstComplete: () => void;
   paywallReason: PaywallReason | null;
   reloadOfferings: () => Promise<void>;
   purchasePackage: (pkg: PurchasesPackage) => Promise<PurchaseResult>;
@@ -462,9 +471,17 @@ export function SubscriptionProvider({
         paywallResolverRef.current = null;
         prior(isPlusRef.current);
       }
-      setPaywallReason(options?.reason ?? null);
+      const reason = options?.reason ?? null;
+      setPaywallReason(reason);
       setPaywallEpoch((n) => n + 1);
       setPaywallVisible(true);
+      if (reason && configurePurchases()) {
+        try {
+          await Purchases.setAttributes({ paywall_reason: reason });
+        } catch {
+          // Non-fatal — conversion still works without the attribute.
+        }
+      }
       void reloadOfferings();
       return new Promise<boolean>((resolve) => {
         paywallResolverRef.current = resolve;
@@ -478,6 +495,18 @@ export function SubscriptionProvider({
     setupPaywallShownRef.current = true;
     void presentPaywall();
   }, [presentPaywall]);
+
+  const offerPaywallAfterFirstComplete = useCallback(() => {
+    if (isPlusRef.current) return;
+    const userId = user?.id;
+    if (!userId) return;
+    void (async () => {
+      if (await hasOfferedPaywallAfterFirstComplete(userId)) return;
+      await markOfferedPaywallAfterFirstComplete(userId);
+      if (isPlusRef.current) return;
+      void presentPaywall({ reason: "first_complete" });
+    })();
+  }, [presentPaywall, user?.id]);
 
   const finishEntitledPurchase = useCallback(
     async (info: CustomerInfo): Promise<PurchaseResult> => {
@@ -612,6 +641,7 @@ export function SubscriptionProvider({
       presentPaywall,
       closePaywall,
       offerPaywallAfterSetup,
+      offerPaywallAfterFirstComplete,
       paywallReason,
       reloadOfferings,
       purchasePackage,
@@ -629,6 +659,7 @@ export function SubscriptionProvider({
       isPlus,
       loading,
       offerPaywallAfterSetup,
+      offerPaywallAfterFirstComplete,
       offering,
       offeringsError,
       offeringsLoading,

@@ -25,6 +25,7 @@ import {
   EMAIL_NOT_CONFIRMED,
   isEmailVerified,
 } from "../utils/isEmailVerified";
+import { clearLocalSessionKeepRefreshToken } from "../utils/clearLocalAuthSession";
 import {
   clearBiometricLogin,
   enableBiometricLogin,
@@ -33,6 +34,7 @@ import {
   authenticateForBiometricLogin,
   getBiometricLabel,
   isBiometricAvailable,
+  isBiometricSessionInvalidError,
   updateBiometricSession,
 } from "../services/biometricAuth";
 
@@ -254,9 +256,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         void upsertUserTimezone(nextSession.user);
       }
 
-      if (event === "TOKEN_REFRESHED") {
-        void updateBiometricSession(nextSession).catch(() => {});
-        return;
+      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+        // Await so a quick sign-out after refresh doesn't leave a dead token.
+        try {
+          await updateBiometricSession(nextSession);
+        } catch (err) {
+          console.warn("Failed to sync biometric vault after auth event", err);
+        }
+        if (event === "TOKEN_REFRESHED") return;
       }
 
       try {
@@ -358,7 +365,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         });
       } else {
-        client.auth.stopAutoRefresh();
+        // Snapshot tokens before pause so Face ID still has a live refresh_token.
+        void (async () => {
+          try {
+            const {
+              data: { session: current },
+            } = await client.auth.getSession();
+            if (current) await updateBiometricSession(current);
+          } catch (err) {
+            console.warn("Failed to sync biometric vault on background", err);
+          } finally {
+            client.auth.stopAutoRefresh();
+          }
+        })();
       }
     };
 
@@ -656,26 +675,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
       }
 
-      const { data, error } = await supabase.auth.setSession({
-        access_token: vault.access_token,
-        refresh_token: vault.refresh_token,
-      });
+      // refresh_token is what restores the session after Face ID / local sign-out.
+      // Try refresh first, then setSession — and one short retry for flaky networks.
+      let data: Awaited<
+        ReturnType<typeof supabase.auth.refreshSession>
+      >["data"] = { session: null, user: null };
+      let error: Awaited<
+        ReturnType<typeof supabase.auth.refreshSession>
+      >["error"] = null;
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const refreshed = await supabase.auth.refreshSession({
+          refresh_token: vault.refresh_token,
+        });
+        data = refreshed.data;
+        error = refreshed.error;
+
+        if (!error && data.session) break;
+
+        const fallback = await supabase.auth.setSession({
+          access_token: vault.access_token,
+          refresh_token: vault.refresh_token,
+        });
+        data = fallback.data;
+        error = fallback.error;
+        if (!error && data.session) break;
+
+        if (attempt === 0 && !isBiometricSessionInvalidError(error)) {
+          await new Promise((r) => setTimeout(r, 400));
+          continue;
+        }
+        break;
+      }
 
       if (error || !data.session) {
-        await clearBiometricLogin();
+        console.warn("Biometric session restore failed", error?.message);
+        if (isBiometricSessionInvalidError(error)) {
+          await clearBiometricLogin();
+          return {
+            data: null,
+            error: {
+              message: `${label} sign-in expired. Please sign in again with your password, Apple, or Google.`,
+            },
+          };
+        }
         return {
           data: null,
           error: {
-            message: `${label} sign-in expired. Please sign in again with your password, Apple, or Google.`,
+            message: `Couldn't reach HomeKeep to finish ${label} sign-in. Check your connection and try again.`,
           },
         };
       }
 
-      // Keep vault tokens current after refresh/rotation (no second prompt).
+      // Persist rotated tokens immediately (awaited — don't lose the new refresh).
       try {
         await updateBiometricSession(data.session);
-      } catch {
-        // Non-fatal: session is already restored
+      } catch (err) {
+        console.warn("Failed to sync biometric vault after Face ID sign-in", err);
       }
 
       return { data, error: null };
@@ -694,10 +750,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const enableBiometricSignIn = async () => {
-    if (!session) {
-      return { success: false, error: "Not signed in" };
+    if (!supabase) {
+      return { success: false, error: "Supabase not configured" };
     }
-    return enableBiometricLogin(session);
+    try {
+      // enableBiometricLogin re-reads the session after Face ID succeeds so a
+      // refresh during the prompt cannot leave a dead token in the vault.
+      const { data } = await supabase.auth.getSession();
+      const latest = data.session ?? session;
+      if (!latest) {
+        return { success: false, error: "Not signed in" };
+      }
+      return enableBiometricLogin(latest);
+    } catch (err) {
+      return {
+        success: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Could not enable biometric sign-in.",
+      };
+    }
   };
 
   const disableBiometricSignIn = async () => {
@@ -743,11 +816,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       await logOutPurchases();
 
-      // Keep refresh token valid when Face ID login is enabled (local sign-out only).
+      // Face ID keeps a refresh token in SecureStore. Supabase's
+      // signOut({ scope: "local" }) still calls /logout and REVOKE that token —
+      // which is why Apple/Google Face ID always looked "expired". When Face ID
+      // is on, only clear the local client session and leave the server session.
       const biometricEnabled = await hasBiometricLoginEnabled();
-      const { error } = await supabase.auth.signOut(
-        biometricEnabled ? { scope: "local" } : undefined
-      );
+      if (biometricEnabled) {
+        try {
+          const { data: latest } = await supabase.auth.getSession();
+          const toStore = latest.session ?? session;
+          if (toStore?.refresh_token) {
+            await updateBiometricSession(toStore);
+          }
+        } catch (err) {
+          console.warn("Failed to sync biometric vault before sign-out", err);
+        }
+
+        await clearLocalSessionKeepRefreshToken(supabase);
+        userIdRef.current = null;
+        setSession(null);
+        setUser(null);
+        markSessionReady();
+        console.log("Sign out successful (local keep-alive for Face ID)");
+        return;
+      }
+
+      const { error } = await supabase.auth.signOut();
       if (error) {
         // If session is already missing, manually clear state to update UI
         if (isInvalidSessionError(error)) {

@@ -8,8 +8,7 @@ import { EMAIL_NOT_CONFIRMED } from "../../utils/isEmailVerified";
 import { offerBiometricLogin } from "../../utils/offerBiometricLogin";
 import {
   getBiometricLabel,
-  hasBiometricLoginEnabled,
-  isBiometricAvailable,
+  isBiometricLoginReady,
 } from "../../services/biometricAuth";
 import { useAuthForm, useAuthHaptics } from "./hooks";
 import { DesignSystem } from "../../theme/designSystem";
@@ -34,12 +33,11 @@ export function LoginScreen() {
 
   const refreshBiometricAvailability = useCallback(async () => {
     try {
-      const [available, enabled, label] = await Promise.all([
-        isBiometricAvailable(),
-        hasBiometricLoginEnabled(),
+      const [ready, label] = await Promise.all([
+        isBiometricLoginReady(),
         getBiometricLabel(),
       ]);
-      setBiometricReady(available && enabled);
+      setBiometricReady(ready);
       setBiometricLabel(label);
     } catch {
       setBiometricReady(false);

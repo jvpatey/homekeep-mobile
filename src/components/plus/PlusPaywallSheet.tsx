@@ -313,18 +313,22 @@ export function PlusPaywallSheet({
     ? "Your plan"
     : feature
       ? feature.headline
-      : paywallReason === "free_exhausted"
-        ? "You’ve used your free tasks"
-        : status === "promo"
-          ? "Subscribe to keep HomeKeep +"
-          : DEFAULT_HEADLINE;
+      : paywallReason === "first_complete"
+        ? "Nice work — keep the record"
+        : paywallReason === "free_exhausted"
+          ? "Subscribe to keep completing"
+          : status === "promo"
+            ? "Subscribe to keep HomeKeep +"
+            : DEFAULT_HEADLINE;
   const subhead = feature
     ? feature.blurb
-    : paywallReason === "free_exhausted"
-      ? "Your schedule stays free to view. Subscribe to keep checking things off and keep the record of every job."
-      : status === "promo"
-        ? currentStatus
-        : DEFAULT_SUBHEAD;
+    : paywallReason === "first_complete"
+      ? "Your schedule stays free. HomeKeep + keeps the history, costs, and photos of every job with the house."
+      : paywallReason === "free_exhausted"
+        ? "You've used your free tasks. Subscribe to keep checking things off and save every job to your home record."
+        : status === "promo"
+          ? currentStatus
+          : DEFAULT_SUBHEAD;
 
   return (
     <>

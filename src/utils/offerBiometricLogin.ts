@@ -28,6 +28,8 @@ export async function offerBiometricLogin(session: Session | null | undefined) {
           text: `Enable ${label}`,
           onPress: () => {
             void (async () => {
+              // enableBiometricLogin re-fetches the live session after Face ID
+              // succeeds, so a token refresh during the prompt stays safe.
               const result = await enableBiometricLogin(session);
               if (!result.success && result.error) {
                 Alert.alert(`Could not enable ${label}`, result.error);

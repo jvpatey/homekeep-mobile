@@ -12,6 +12,7 @@ import { useSubscription } from "../../context/SubscriptionContext";
 import { useTasks } from "../../context/TasksContext";
 import { useTaskActions } from "../../context/TaskActionsContext";
 import { useAppNavigation } from "../../navigation/useAppNavigation";
+import { useDevice } from "../../hooks";
 import { DesignSystem } from "../../theme/designSystem";
 import { accountFirstName } from "../../utils/displayName";
 import { homeSeasonLabel, recommendInSeasonPlanId } from "../../utils/homeSeason";
@@ -45,6 +46,8 @@ let enteredThisSession = false;
 
 export function TodayDashboard() {
   const { colors } = useTheme();
+  const { getTabContentStyle } = useDevice();
+  const tabColumn = getTabContentStyle();
   const { user } = useAuth();
   const { addressNeeded, homeSetupNeeded, profile } = useProfile();
   const { pendingOpen, clearPendingOpen } = useNotifications();
@@ -70,7 +73,9 @@ export function TodayDashboard() {
   const [setupFinishedThisSession, setSetupFinishedThisSession] =
     useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
-  const [offerPlusAfterHomeShare, setOfferPlusAfterHomeShare] = useState(false);
+  const [homeShareIntent, setHomeShareIntent] = useState<
+    "invite" | "join" | null
+  >(null);
 
   useEffect(() => {
     if (!addressNeeded && !homeSetupNeeded) return;
@@ -182,7 +187,7 @@ export function TodayDashboard() {
           }
         />
 
-        <View style={styles.content}>
+        <View style={[styles.content, tabColumn]}>
           <Animated.View entering={entering(0)}>
             {isNewHome ? (
               <TodaySetupHero
@@ -212,6 +217,10 @@ export function TodayDashboard() {
               climate={climate}
               campaign={campaign}
               onOpenCampaign={openPlanFlow}
+              onOpenHomeShareInvite={() => {
+                setHomeShareIntent("invite");
+                setShowHouseholdModal(true);
+              }}
             />
           </Animated.View>
 
@@ -258,10 +267,11 @@ export function TodayDashboard() {
         }}
         onFirstRunFinished={(action) => {
           if (action === "invite" || action === "join") {
-            setOfferPlusAfterHomeShare(!isPlus);
+            setHomeShareIntent(action);
             setShowHouseholdModal(true);
             return;
           }
+          // Soft paywall only when they skip HomeShare — not stacked after Invite.
           if (profile?.home_setup_set_at && !isPlus) {
             setTimeout(() => offerPaywallAfterSetup(), 320);
           }
@@ -270,12 +280,10 @@ export function TodayDashboard() {
 
       <HouseholdSharingModal
         visible={showHouseholdModal}
+        initialIntent={homeShareIntent}
         onClose={() => {
           setShowHouseholdModal(false);
-          if (offerPlusAfterHomeShare) {
-            setOfferPlusAfterHomeShare(false);
-            setTimeout(() => offerPaywallAfterSetup(), 320);
-          }
+          setHomeShareIntent(null);
         }}
       />
 

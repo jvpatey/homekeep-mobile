@@ -21,10 +21,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useSubscription } from "../../context/SubscriptionContext";
-import { useHaptics } from "../../hooks";
+import { useDevice, useHaptics } from "../../hooks";
 import { AiError, AiService, AssistantAction } from "../../services/AiService";
 import { DesignSystem } from "../../theme/designSystem";
 import { HearthSheet } from "../ui/HearthSheet";
+import { Button } from "../ui/Button";
 import { useProfile } from "../../context/ProfileContext";
 import { formatProfileAddressLines } from "../../utils/formatProfileAddress";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
@@ -107,9 +108,10 @@ export function AssistantSheet({
   initialPrompt?: string;
 }) {
   const { colors } = useTheme();
+  const { isRegularWidth } = useDevice();
   const { profile } = useProfile();
   const { triggerLight, triggerSuccess, triggerError } = useHaptics();
-  const { presentPaywall } = useSubscription();
+  const { isPlus, presentPaywall } = useSubscription();
   const keeper = useKeeperActions({
     equipmentId: equipment?.id ?? null,
     onLeave: onClose,
@@ -122,6 +124,22 @@ export function AssistantSheet({
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const scrollRef = useRef<ScrollView>(null);
   const sentInitialPrompt = useRef<string | null>(null);
+  /** Close Keeper first, then present Plus — nested RN Modals break purchases / taps. */
+  const pendingPaywallRef = useRef(false);
+
+  const requestPlusPaywall = () => {
+    pendingPaywallRef.current = true;
+    onClose();
+  };
+
+  const handleSheetDismissed = () => {
+    if (!pendingPaywallRef.current) return;
+    pendingPaywallRef.current = false;
+    // Wait for Keeper's Modal to unmount — presenting Plus on top freezes taps.
+    setTimeout(() => {
+      void presentPaywall({ force: true, reason: "assistant" });
+    }, 80);
+  };
 
   useEffect(() => {
     setTurns([]);
@@ -134,12 +152,13 @@ export function AssistantSheet({
       sentInitialPrompt.current = null;
       return;
     }
+    if (!isPlus) return;
     if (!initialPrompt || sentInitialPrompt.current === initialPrompt) return;
     sentInitialPrompt.current = initialPrompt;
     setSaved({});
     void send(initialPrompt, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, initialPrompt]);
+  }, [visible, initialPrompt, isPlus]);
 
   useEffect(() => {
     const timer = setTimeout(
@@ -183,7 +202,7 @@ export function AssistantSheet({
       if (error instanceof AiError && error.code === "plus_required") {
         setTurns(base);
         setDraft(question);
-        void presentPaywall({ force: true, reason: "assistant" });
+        requestPlusPaywall();
         return;
       }
       setTurns((prev) => [
@@ -244,10 +263,51 @@ export function AssistantSheet({
     ? `Ask me anything about the ${equipment.name}. I know its parts, upkeep, and what's been done, and I can save details, repairs, and reminders for you.`
     : `Ask me anything about ${street ?? "your home"}. I know your equipment, schedule, spend, documents, shutoffs, and recalls — and I can save things or open Documents, Spend, and Equipment for you.`;
 
+  const openPlus = () => {
+    triggerLight();
+    requestPlusPaywall();
+  };
+
+  if (!isPlus) {
+    return (
+      <HearthSheet
+        visible={visible}
+        onClose={onClose}
+        onDismissed={handleSheetDismissed}
+        title="Keeper"
+        footer={
+          <Button
+            label="Try HomeKeep +"
+            onPress={openPlus}
+            accessibilityLabel="Open HomeKeep + to unlock Keeper"
+          />
+        }
+      >
+        <View style={styles.locked}>
+          <KeeperMark size={96} greet />
+          <Text style={[styles.heroTitle, { color: colors.text }]}>
+            Hi, I'm Keeper
+          </Text>
+          <Text
+            style={[
+              styles.lockedBody,
+              isRegularWidth && styles.lockedBodyWide,
+              { color: colors.textSecondary },
+            ]}
+          >
+            Your home AI. Ask about equipment, what's due, shutoffs, or what was
+            done last — answers stay grounded in this house.
+          </Text>
+        </View>
+      </HearthSheet>
+    );
+  }
+
   return (
     <HearthSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={handleSheetDismissed}
       title={equipment ? `Keeper · ${equipment.name}` : "Keeper"}
       fillMaxHeight
       maxHeightRatio={0.9}
@@ -363,7 +423,11 @@ export function AssistantSheet({
               style={[
                 styles.bubble,
                 turn.role === "user"
-                  ? [styles.userBubble, { backgroundColor: colors.primary }]
+                  ? [
+                      styles.userBubble,
+                      isRegularWidth && styles.userBubbleWide,
+                      { backgroundColor: colors.primary },
+                    ]
                   : [
                       styles.botBubble,
                       {
@@ -513,7 +577,10 @@ export function AssistantSheet({
           return turn.role === "user" ? (
             bubble
           ) : (
-            <View key={turn.id} style={styles.botRow}>
+            <View
+              key={turn.id}
+              style={[styles.botRow, isRegularWidth && styles.botRowWide]}
+            >
               <KeeperMark size={28} badge={false} />
               {bubble}
             </View>
@@ -522,7 +589,7 @@ export function AssistantSheet({
 
         {sending ? (
           <View
-            style={styles.botRow}
+            style={[styles.botRow, isRegularWidth && styles.botRowWide]}
             accessibilityLabel="Keeper is thinking"
             accessibilityLiveRegion="polite"
           >
@@ -553,6 +620,22 @@ const styles = StyleSheet.create({
   },
   intro: {
     gap: DesignSystem.spacing.sm,
+  },
+  locked: {
+    alignItems: "center",
+    paddingTop: DesignSystem.spacing.xl,
+    paddingBottom: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.md,
+  },
+  lockedBody: {
+    ...DesignSystem.typography.callout,
+    textAlign: "center",
+    maxWidth: 320,
+    lineHeight: 22,
+  },
+  lockedBodyWide: {
+    maxWidth: 480,
   },
   hero: {
     alignItems: "center",
@@ -612,6 +695,9 @@ const styles = StyleSheet.create({
     maxWidth: "88%",
     borderBottomRightRadius: 6,
   },
+  userBubbleWide: {
+    maxWidth: 560,
+  },
   botRow: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -619,6 +705,9 @@ const styles = StyleSheet.create({
     gap: DesignSystem.spacing.sm,
     maxWidth: "94%",
     paddingTop: 4,
+  },
+  botRowWide: {
+    maxWidth: 640,
   },
   botBubble: {
     flexShrink: 1,

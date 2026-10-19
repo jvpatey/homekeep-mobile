@@ -37,6 +37,17 @@ export const maintenancePlansStyles = StyleSheet.create({
   cardContainer: {
     marginBottom: DesignSystem.spacing.md,
   },
+  /** iPad regular width only — two plan cards per row. */
+  tabletGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: DesignSystem.spacing.md,
+  },
+  tabletGridItem: {
+    width: "48%",
+    marginBottom: 0,
+  },
   cardSurface: {
     overflow: "hidden",
   },

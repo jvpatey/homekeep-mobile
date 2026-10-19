@@ -38,12 +38,12 @@ export function usePlusStatusPrompt(): PlusStatusPrompt | null {
       ? freeRemaining === 1
         ? "1 free action left"
         : `${freeRemaining} free actions left`
-      : "You’ve used your free tasks";
+      : "Subscribe to keep completing";
   const subtitle = trialEnding
     ? "View your plan and billing."
     : freeTrialActions
       ? "Your schedule is free. HomeKeep + keeps the record behind it."
-      : "Your schedule is still here. Subscribe to keep checking things off and keep the record.";
+      : "You've used your free tasks. Subscribe to check things off and keep every job on the record.";
 
   return {
     title,

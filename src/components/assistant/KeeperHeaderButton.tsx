@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { useHaptics } from "../../hooks";
-import { usePlusFeature } from "../../lib/plusFeatures";
 import { DesignSystem } from "../../theme/designSystem";
 import { AssistantSheet } from "./AssistantSheet";
 import { KeeperMark } from "./KeeperMark";
@@ -11,7 +10,6 @@ const SIZE = 36;
 /** Logo-only Keeper entry for tab headers; opens the assistant sheet. */
 export function KeeperHeaderButton() {
   const { triggerLight } = useHaptics();
-  const assistant = usePlusFeature("assistant");
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,9 +17,7 @@ export function KeeperHeaderButton() {
       <Pressable
         onPress={() => {
           triggerLight();
-          void assistant.unlock().then((ok) => {
-            if (ok) setOpen(true);
-          });
+          setOpen(true);
         }}
         hitSlop={6}
         style={({ pressed }) => [styles.hit, pressed && { opacity: 0.7 }]}
